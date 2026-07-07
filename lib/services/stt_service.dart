@@ -30,7 +30,7 @@ class SttService {
   bool get isListening => _speechToText.isListening;
 
   Future<void> startListening({
-    required Function(String) onResult,
+    required Function(String, bool) onResult,
     required Function(bool) onListeningStateChanged,
   }) async {
     final hasPermissions = await initializeStt();
@@ -44,7 +44,7 @@ class SttService {
       pauseFor: const Duration(milliseconds: 2500),
       listenFor: const Duration(seconds: 30),
       onResult: (result) {
-        onResult(result.recognizedWords);
+        onResult(result.recognizedWords, result.finalResult);
       },
     );
   }

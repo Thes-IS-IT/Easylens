@@ -119,7 +119,7 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
       });
     } else {
       await _sttService.startListening(
-        onResult: (text) {
+        onResult: (text, isFinal) {
           setState(() {
             _textController.text = text;
           });

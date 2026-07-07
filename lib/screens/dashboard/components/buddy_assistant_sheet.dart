@@ -134,17 +134,38 @@ Buddy's Answer:
       _scrollToBottom();
 
       // Check if LLM requested navigation
-      final navMatch = RegExp(r'\[NAVIGATE:\s*(\w+)\]').firstMatch(response);
+      final navMatch = RegExp(r'\[NAVIGATE:\s*([^\]]+)\]', caseSensitive: false).firstMatch(response);
       
       // Speak response concurrently (do not await so navigation is instantaneous)
       _speakText(response);
 
       if (navMatch != null) {
-        final targetScreen = navMatch.group(1);
+        final targetScreen = navMatch.group(1)?.trim().toLowerCase();
         if (targetScreen != null) {
-          if (mounted) {
+          String matchedKey = '';
+          if (targetScreen.contains('home')) {
+            matchedKey = 'home';
+          } else if (targetScreen.contains('nav')) {
+            matchedKey = 'nav';
+          } else if (targetScreen.contains('hardware') || targetScreen.contains('sens') || targetScreen.contains('camera')) {
+            matchedKey = 'hardware';
+          } else if (targetScreen.contains('text') || targetScreen.contains('ocr') || targetScreen.contains('scan')) {
+            matchedKey = 'text';
+          } else if (targetScreen.contains('object') || targetScreen.contains('detect')) {
+            matchedKey = 'objects';
+          } else if (targetScreen.contains('emergency') || targetScreen.contains('sos') || targetScreen.contains('phone')) {
+            matchedKey = 'emergency';
+          } else if (targetScreen.contains('setting')) {
+            matchedKey = 'settings';
+          } else if (targetScreen.contains('notification')) {
+            matchedKey = 'notifications';
+          } else if (targetScreen.contains('contact')) {
+            matchedKey = 'contacts';
+          }
+
+          if (matchedKey.isNotEmpty && mounted) {
             Navigator.of(context).pop();
-            widget.onNavigate(targetScreen.trim().toLowerCase());
+            widget.onNavigate(matchedKey);
           }
         }
       }
@@ -158,20 +179,27 @@ Buddy's Answer:
       });
     } else {
       await TtsService().stop();
+      bool messageSent = false;
       await SttService().startListening(
-        onResult: (text) {
+        onResult: (text, isFinal) {
           setState(() {
             _textController.text = text;
           });
+          if (isFinal && text.trim().isNotEmpty && !messageSent) {
+            messageSent = true;
+            _handleSendMessage(text);
+          }
         },
         onListeningStateChanged: (listening) {
           setState(() {
             _isListening = listening;
             if (listening) {
               _buddyState = 'speaking';
+              messageSent = false;
             } else {
               _buddyState = 'idle';
-              if (_textController.text.isNotEmpty) {
+              if (_textController.text.isNotEmpty && !messageSent) {
+                messageSent = true;
                 _handleSendMessage(_textController.text);
               }
             }

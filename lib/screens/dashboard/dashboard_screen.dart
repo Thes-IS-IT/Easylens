@@ -27,8 +27,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _firebaseService = FirebaseService();
   late String _displayName;
   int _currentIndex = 0;
-  double? _fabLeft;
-  double? _fabTop;
 
   @override
   void initState() {
@@ -122,12 +120,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_fabLeft == null || _fabTop == null) {
-      final size = MediaQuery.of(context).size;
-      _fabLeft = size.width - 94.0;
-      _fabTop = size.height - 220.0;
-    }
-
     // Define bottom tabs
     final List<Widget> tabs = [
       DashboardHome(
@@ -216,56 +208,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
 
           // Draggable Floating Mascot Button S01
-          Positioned(
-            left: _fabLeft,
-            top: _fabTop,
-            child: GestureDetector(
-              onPanUpdate: (details) {
-                setState(() {
-                  _fabTop = (_fabTop! + details.delta.dy).clamp(
-                    50.0,
-                    MediaQuery.of(context).size.height - 180.0,
-                  );
-                  _fabLeft = (_fabLeft! + details.delta.dx).clamp(
-                    20.0,
-                    MediaQuery.of(context).size.width - 100.0,
-                  );
-                });
-              },
-              onTap: _openBuddyAssistant,
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF6B21A8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6B21A8).withOpacity(0.35),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 2.5,
-                  ),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/Mascots/App Mascot.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.pets,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
-                ),
+          DraggableBuddyButton(onTap: _openBuddyAssistant),
+        ],
+      ),
+    );
+  }
+}
+
+class DraggableBuddyButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const DraggableBuddyButton({super.key, required this.onTap});
+
+  @override
+  State<DraggableBuddyButton> createState() => _DraggableBuddyButtonState();
+}
+
+class _DraggableBuddyButtonState extends State<DraggableBuddyButton> {
+  double? _left;
+  double? _top;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_left == null || _top == null) {
+      final size = MediaQuery.of(context).size;
+      _left = size.width - 94.0;
+      _top = size.height - 220.0;
+    }
+
+    return Positioned(
+      left: _left,
+      top: _top,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _top = (_top! + details.delta.dy).clamp(
+              50.0,
+              MediaQuery.of(context).size.height - 180.0,
+            );
+            _left = (_left! + details.delta.dx).clamp(
+              20.0,
+              MediaQuery.of(context).size.width - 100.0,
+            );
+          });
+        },
+        onTap: widget.onTap,
+        child: Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF6B21A8),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6B21A8).withOpacity(0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+            border: Border.all(
+              color: Colors.white,
+              width: 2.5,
+            ),
+          ),
+          child: ClipOval(
+            child: Image.asset(
+              'assets/Mascots/App Mascot.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.pets,
+                color: Colors.white,
+                size: 32,
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -679,7 +679,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
     try {
       await SttService().startListening(
-        onResult: (text) {
+        onResult: (text, isFinal) {
           if (mounted) {
             modalSetState(() {
               _geminiSpokenQuestion = text;
