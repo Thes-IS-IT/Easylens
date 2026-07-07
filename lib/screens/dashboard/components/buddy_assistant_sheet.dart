@@ -131,17 +131,15 @@ Buddy's Answer:
       });
       _scrollToBottom();
 
-      // Check if LLM requested navigation S01
+      // Check if LLM requested navigation
       final navMatch = RegExp(r'\[NAVIGATE:\s*(\w+)\]').firstMatch(response);
       
-      // Speak response first
-      await _speakText(response);
+      // Speak response concurrently (do not await so navigation is instantaneous)
+      _speakText(response);
 
       if (navMatch != null) {
         final targetScreen = navMatch.group(1);
         if (targetScreen != null) {
-          // Delay briefly to allow TTS to start, then pop sheet and navigate
-          await Future.delayed(const Duration(milliseconds: 600));
           if (mounted) {
             Navigator.of(context).pop();
             widget.onNavigate(targetScreen.trim().toLowerCase());

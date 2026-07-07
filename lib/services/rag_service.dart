@@ -103,7 +103,7 @@ class RagService {
         _isGemmaModelInstalled = true;
       }
 
-      final model = await FlutterGemma.getActiveModel(maxTokens: 256);
+      final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
       final session = await model.createSession();
       await session.addQueryChunk(Message(text: prompt, isUser: true));
       final response = await session.getResponse();

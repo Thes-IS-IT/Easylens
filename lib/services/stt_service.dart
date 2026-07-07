@@ -41,6 +41,8 @@ class SttService {
 
     onListeningStateChanged(true);
     await _speechToText.listen(
+      pauseFor: const Duration(milliseconds: 2500),
+      listenFor: const Duration(seconds: 30),
       onResult: (result) {
         onResult(result.recognizedWords);
       },
