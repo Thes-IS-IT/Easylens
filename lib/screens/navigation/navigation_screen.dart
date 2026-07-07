@@ -41,6 +41,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
   LatLng _currentLocation = const LatLng(15.1325, 120.5901); // Fallback coordinates
   StreamSubscription<Position>? _positionStreamSubscription;
   bool _isLoadingLocation = true;
+  List<LatLng> _routePoints = [];
+  bool _isFetchingRoute = false;
 
   // HAU Location coordinates (Pampanga, PH)
   static const LatLng _hauLatLng = LatLng(15.1325, 120.5901);
@@ -120,8 +122,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        setState(() => _isLoadingLocation = false);
-        return;
+        // Automatically request GPS activation from their phone
+        await Geolocator.openLocationSettings();
+        await Future.delayed(const Duration(seconds: 3));
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          setState(() => _isLoadingLocation = false);
+          return;
+        }
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
@@ -160,7 +168,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 2, // update every 2 meters
+          distanceFilter: 5, // update every 5 meters
         ),
       ).listen((Position position) {
         if (mounted) {
@@ -168,17 +176,19 @@ class _NavigationScreenState extends State<NavigationScreen> {
             _currentLocation = LatLng(position.latitude, position.longitude);
           });
           
-          // Smoothly track current location if navigating
-          if (_navState == 1 && _selectedPlace != null) {
-            _mapController?.animateCamera(
-              CameraUpdate.newLatLng(_currentLocation),
-            );
+          if (_selectedPlace != null) {
+            _fetchRoadRoute();
+            // Smoothly track current location if navigating
+            if (_navState == 1) {
+              _mapController?.animateCamera(
+                CameraUpdate.newLatLng(_currentLocation),
+              );
+            }
           }
         }
       });
     } catch (e) {
       print('Location tracking init error: $e');
-      // Set to high accuracy fallback if timeout occurs
       try {
         final position = await Geolocator.getLastKnownPosition();
         if (position != null) {
@@ -188,6 +198,48 @@ class _NavigationScreenState extends State<NavigationScreen> {
         }
       } catch (_) {}
       setState(() => _isLoadingLocation = false);
+    }
+  }
+
+  Future<void> _fetchRoadRoute() async {
+    if (_selectedPlace == null || _isFetchingRoute) return;
+    _isFetchingRoute = true;
+    final start = _currentLocation;
+    final end = _selectedPlace!['latLng'] as LatLng;
+    
+    try {
+      final url = Uri.parse(
+        "https://router.project-osrm.org/route/v1/driving/"
+        "${start.longitude},${start.latitude};${end.longitude},${end.latitude}"
+        "?overview=full&geometries=geojson"
+      );
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['routes'] != null && data['routes'].isNotEmpty) {
+          final coordinates = data['routes'][0]['geometry']['coordinates'] as List;
+          final List<LatLng> points = coordinates.map((coord) {
+            final double lon = coord[0].toDouble();
+            final double lat = coord[1].toDouble();
+            return LatLng(lat, lon);
+          }).toList();
+          
+          if (mounted) {
+            setState(() {
+              _routePoints = points;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print("OSRM route fetch error: $e");
+      if (mounted) {
+        setState(() {
+          _routePoints = [start, end];
+        });
+      }
+    } finally {
+      _isFetchingRoute = false;
     }
   }
 
@@ -301,6 +353,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _currentStepIndex = 0;
       _navState = 1; // Open Guideline View (Figma Screen 3)
     });
+    _fetchRoadRoute();
 
     // Save recent navigation data locally and to Firestore
     final firebaseService = FirebaseService();
@@ -564,10 +617,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
         color: Colors.blue.shade800,
         width: 6,
         patterns: [PatternItem.dot, PatternItem.gap(10)],
-        points: [
-          _currentLocation,
-          _selectedPlace!['latLng'] as LatLng,
-        ],
+        points: _routePoints.isNotEmpty
+            ? _routePoints
+            : [
+                _currentLocation,
+                _selectedPlace!['latLng'] as LatLng,
+              ],
       )
     };
   }
