@@ -107,6 +107,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Navigator.of(context).push(
             AppRoute.to(const SettingsScreen()),
           );
+        } else if (screenKey == 'notifications') {
+          Navigator.of(context).push(
+            AppRoute.to(const NotificationsScreen()),
+          );
+        } else if (screenKey == 'contacts') {
+          Navigator.of(context).push(
+            AppRoute.to(const ContactsScreen()),
+          );
         }
       },
     );

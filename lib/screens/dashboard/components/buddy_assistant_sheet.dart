@@ -117,6 +117,8 @@ You have MCP navigation abilities. To open a screen, append exactly one of these
 - Nearby Object Detector: [NAVIGATE: objects]
 - Emergency SOS Screen: [NAVIGATE: emergency]
 - Settings Screen: [NAVIGATE: settings]
+- Notifications Screen: [NAVIGATE: notifications]
+- Contacts Screen: [NAVIGATE: contacts]
 
 User Question: $text
 Buddy's Answer:
