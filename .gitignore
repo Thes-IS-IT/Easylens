@@ -45,3 +45,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Gemma model binary
+model.bin
+model.bin.tmp
+gemma-2b-it-cpu-int4.bin

@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:http/http.dart' as http;
 
 class KnowledgeItem {
   final String title;
@@ -17,8 +21,6 @@ class KnowledgeItem {
 class RagService {
   bool _gemmaInitialized = false;
   bool _isGemmaModelInstalled = false;
-  dynamic _gemmaModel; // Dynamic to prevent crashes if class shapes shift in native plugins
-  dynamic _gemmaSession;
 
   final List<KnowledgeItem> _localKnowledgeBase = [
     KnowledgeItem(
@@ -52,18 +54,126 @@ class RagService {
 
   Future<void> initializeGemma() async {
     try {
-      // Initialize flutter_gemma if not already initialized
-      // Note: In some platforms/environments, this might fail or require download.
-      // We wrap it in try-catch to guarantee stability.
-      _gemmaInitialized = true;
-      
-      // Check if Gemma model is installed/loaded on device
-      // For demonstration, we simulate checking local files
-      _isGemmaModelInstalled = false; // Set to false initially, let user trigger download/setup
-      print("Gemma offline LLM engine initialized");
+      final modelPath = await _getLocalModelPath();
+      if (modelPath != null) {
+        await FlutterGemma.initialize();
+        await FlutterGemma.installModel(
+          modelType: ModelType.gemmaIt,
+        ).fromFile(modelPath).install();
+        _gemmaInitialized = true;
+        _isGemmaModelInstalled = true;
+        print("[Gemma] Real on-device engine initialized successfully from $modelPath.");
+      }
     } catch (e) {
-      print("Error initializing localized Gemma: $e");
-      _gemmaInitialized = false;
+      print("[Gemma] Pre-init failed: $e");
+    }
+  }
+
+  Future<String?> _getLocalModelPath() async {
+    final paths = [
+      "/storage/emulated/0/Android/data/com.company.easylens/files/model.bin",
+      "/sdcard/Android/data/com.company.easylens/files/model.bin",
+      "/storage/emulated/0/Download/model.bin",
+      "/sdcard/Download/model.bin",
+    ];
+    for (var path in paths) {
+      if (File(path).existsSync()) {
+        return path;
+      }
+    }
+    return null;
+  }
+
+  Future<String> _queryGemmaOffline(String prompt) async {
+    try {
+      final modelPath = await _getLocalModelPath();
+      if (modelPath == null) {
+        return "Buddy local LLM Offline Instructions:\n\n"
+            "1. Run this ADB command on your Mac to push the model file to the device:\n"
+            "   adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin\n"
+            "2. Restart the app to run fully offline Gemma AI!";
+      }
+
+      if (!_gemmaInitialized) {
+        await FlutterGemma.initialize();
+        await FlutterGemma.installModel(
+          modelType: ModelType.gemmaIt,
+        ).fromFile(modelPath).install();
+        _gemmaInitialized = true;
+        _isGemmaModelInstalled = true;
+      }
+
+      final model = await FlutterGemma.getActiveModel(maxTokens: 256);
+      final session = await model.createSession();
+      await session.addQueryChunk(Message(text: prompt, isUser: true));
+      final response = await session.getResponse();
+      await session.close();
+      return response ?? "No response from offline local model.";
+    } catch (e) {
+      return "Local Gemma LLM failed: $e";
+    }
+  }
+
+  String _getOllamaBaseUrl() {
+    if (Platform.isAndroid) {
+      return "http://10.0.2.2:11434";
+    }
+    return "http://localhost:11434";
+  }
+
+  Future<String> _queryLocalOllama(String prompt) async {
+    final baseUrl = _getOllamaBaseUrl();
+    try {
+      final tagsResponse = await http
+          .get(Uri.parse("$baseUrl/api/tags"))
+          .timeout(const Duration(seconds: 2));
+      
+      if (tagsResponse.statusCode != 200) {
+        throw Exception("Ollama server code ${tagsResponse.statusCode}");
+      }
+
+      final tagsData = jsonDecode(tagsResponse.body);
+      final List modelsList = tagsData['models'] ?? [];
+      if (modelsList.isEmpty) {
+        throw Exception("No models installed in Ollama.");
+      }
+
+      final availableNames = modelsList.map((m) => m['name'].toString()).toList();
+      String selectedModel = availableNames.first;
+      const preferredModels = [
+        "llama3.2:latest",
+        "gemma2:2b",
+        "qwen2.5:0.5b",
+        "gemma3:4b",
+        "qwen2.5-coder:7b",
+        "gemma4:latest"
+      ];
+      for (var pref in preferredModels) {
+        if (availableNames.contains(pref)) {
+          selectedModel = pref;
+          break;
+        }
+      }
+
+      final generateUrl = Uri.parse("$baseUrl/api/generate");
+      final response = await http.post(
+        generateUrl,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "model": selectedModel,
+          "prompt": prompt,
+          "stream": false,
+        }),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final resData = jsonDecode(response.body);
+        return resData['response']?.toString().trim() ?? "Empty response from Local LLM.";
+      } else {
+        return "Local LLM Error: HTTP ${response.statusCode}";
+      }
+    } catch (e) {
+      return "Local LLM connection failed: $e";
     }
   }
 
@@ -86,20 +196,32 @@ class RagService {
     }
 
     if (matchedContents.isEmpty) {
-      // Default to general companion guidelines
-      return "Buddy is the EasyLens vision assistant. Provide general assistant guidelines: be friendly, helpful, and support visual description features.";
+      return "Buddy is the EasyLens vision assistant. Provide helpful, short answers to describe items or environments.";
     }
 
     return matchedContents.join("\n\n");
   }
 
   Future<String> askBuddy(String question) async {
-    final context = retrieveContext(question);
-    
-    final prompt = """
+    String promptText = "";
+    if (question.contains("scanned nearby:")) {
+      final regExp = RegExp(r"scanned nearby:\s*'(.*)'", caseSensitive: false);
+      final match = regExp.firstMatch(question);
+      final scannedText = match != null ? match.group(1) : question;
+      
+      promptText = """
+You are Buddy, the loyal vision assistant. 
+Provide a clear, simple, and friendly explanation of the following text scanned nearby:
+'$scannedText'
+
+Explain what it is (e.g. food label, safety sign, direction sign) and highlight key information like product name, weight, or warnings. Keep the response direct and under 3 sentences.
+""";
+    } else {
+      final context = retrieveContext(question);
+      promptText = """
 You are Buddy, the loyal vision assistant. 
 Use the following retrieved context to answer the user's question. 
-If you don't know the answer, say that you don't know. Keep the response friendly and concise.
+Keep the response friendly and concise (under 3 sentences).
 
 Context:
 $context
@@ -109,42 +231,21 @@ $question
 
 Buddy's Answer:
 """;
-
-    // Try localized Gemma offline model first if ready
-    if (isGemmaReady) {
-      try {
-        if (_gemmaModel == null) {
-          _gemmaModel = await FlutterGemma.getActiveModel(maxTokens: 256);
-          _gemmaSession = await _gemmaModel.createSession();
-        }
-        await _gemmaSession.addQueryChunk(Message(text: prompt, isUser: true));
-        final response = await _gemmaSession.getResponse();
-        return response ?? "I'm sorry, I couldn't process that locally.";
-      } catch (e) {
-        print("Gemma offline inference failed: $e. Falling back to online Gemini...");
-      }
     }
 
-    // Fallback: Online Gemini API using google_generative_ai
-    try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'];
-      if (apiKey == null || apiKey.isEmpty || apiKey.contains("Placeholder")) {
-        return "Offline Mode: Buddy is waiting for the Gemma model file (~1.4GB) to be downloaded. (Or add your GEMINI_API_KEY in the .env file to enable the online assistant!)";
-      }
-
-      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
-      
-      return response.text ?? "I'm sorry, I didn't get that.";
-    } catch (e) {
-      return "Unable to connect to Buddy: $e";
+    // Try local Gemma offline model (Google AI Edge) only
+    final modelPath = await _getLocalModelPath();
+    if (modelPath != null) {
+      return await _queryGemmaOffline(promptText);
+    } else {
+      return "Buddy local LLM Offline Instructions:\n\n"
+          "1. Run this ADB command on your Mac to push the model file to the device:\n"
+          "   adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin\n"
+          "2. Restart the app to run fully offline Gemma AI!";
     }
   }
 
   Future<void> simulateModelInstall() async {
-    // Simulated model installation for development demonstration
-    await Future.delayed(const Duration(seconds: 3));
     _isGemmaModelInstalled = true;
   }
 }

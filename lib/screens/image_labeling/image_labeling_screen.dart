@@ -6,6 +6,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import '../../constants/colors.dart';
 import '../../services/tts_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/rag_service.dart';
 import '../dashboard/components/custom_navbar.dart';
 import '../object_detection/object_detection_screen.dart';
 import '../../utils/app_route.dart';
@@ -24,8 +25,10 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
   final _picker = ImagePicker();
   final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   String _extractedText = '';
+  String _explanation = '';
   bool _isLoading = false;
   bool _isSpeaking = false;
+  bool _isExplaining = false;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
 
@@ -60,8 +63,10 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
       setState(() {
         _image = File(picked.path);
         _extractedText = '';
+        _explanation = '';
         _isLoading = true;
         _isSpeaking = false;
+        _isExplaining = false;
       });
 
       await TtsService().stop();
@@ -101,6 +106,29 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
 
   Future<void> _stopReading() async {
     await TtsService().stop();
+    setState(() => _isSpeaking = false);
+  }
+
+  Future<void> _explainText() async {
+    if (_extractedText.isEmpty) return;
+    setState(() {
+      _isExplaining = true;
+    });
+
+    await TtsService().stop();
+    setState(() => _isSpeaking = false);
+
+    // Call lightweight LLM to summarize/explain
+    final prompt = "Analyze and give a clear, simple, and friendly explanation of the following text scanned nearby: '$_extractedText'. Focus on what it means and why it might be important. Keep it concise.";
+    final result = await RagService().askBuddy(prompt);
+
+    setState(() {
+      _explanation = result;
+      _isExplaining = false;
+      _isSpeaking = true;
+    });
+
+    await TtsService().speak(result);
     setState(() => _isSpeaking = false);
   }
 
@@ -223,25 +251,79 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
 
                         const SizedBox(height: 16),
 
-                        // ── Speak / Stop buttons ──────────────────────────────
+                        // ── Speak / Stop / Explain buttons ──────────────────────────────
                         if (_extractedText.isNotEmpty) ...[
-                          _isSpeaking
-                              ? _ActionButton(
-                                  icon: Icons.stop_circle_rounded,
-                                  label: 'Stop Reading',
-                                  color: const Color(0xFFEF4444),
-                                  textColor: Colors.white,
-                                  isOutlined: false,
-                                  onTap: _stopReading,
-                                )
-                              : _ActionButton(
-                                  icon: Icons.record_voice_over_rounded,
-                                  label: 'Read Aloud Again',
-                                  color: isDefault ? const Color(0xFF238290) : AppColors.primaryButton,
-                                  textColor: isDefault ? Colors.white : AppColors.primaryButtonText,
-                                  isOutlined: false,
-                                  onTap: _readAloud,
+                          const SizedBox(height: 16),
+                          if (_isExplaining)
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: isDefault ? const Color(0xFF3F83F8).withOpacity(0.1) : AppColors.unselectedBorder,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3F83F8)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    "Buddy is thinking…",
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryText,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _isSpeaking
+                                      ? _ActionButton(
+                                          icon: Icons.stop_circle_rounded,
+                                          label: 'Stop Reading',
+                                          color: const Color(0xFFEF4444),
+                                          textColor: Colors.white,
+                                          isOutlined: false,
+                                          onTap: _stopReading,
+                                        )
+                                      : _ActionButton(
+                                          icon: Icons.record_voice_over_rounded,
+                                          label: 'Read Aloud',
+                                          color: isDefault ? const Color(0xFF238290) : AppColors.primaryButton,
+                                          textColor: isDefault ? Colors.white : AppColors.primaryButtonText,
+                                          isOutlined: false,
+                                          onTap: _readAloud,
+                                        ),
                                 ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _ActionButton(
+                                    icon: Icons.auto_awesome,
+                                    label: 'Explain Text',
+                                    color: const Color(0xFF85581A),
+                                    textColor: Colors.white,
+                                    isOutlined: false,
+                                    onTap: _explainText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          
+                          if (_explanation.isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            _buildExplanationCard(isDefault),
+                          ],
                         ],
                         // Spacing so it doesn't get covered by floating navbar
                         const SizedBox(height: 110),
@@ -456,6 +538,70 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
           const SizedBox(height: 14),
           SelectableText(
             _extractedText,
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              height: 1.65,
+              color: AppColors.primaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExplanationCard(bool isDefault) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.unselectedBorder,
+          width: 1,
+        ),
+        boxShadow: [
+          if (isDefault)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF85581A).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Color(0xFF85581A),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                "Buddy's Explanation",
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: AppColors.primaryText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, color: AppColors.unselectedBorder),
+          const SizedBox(height: 14),
+          SelectableText(
+            _explanation,
             style: GoogleFonts.inter(
               fontSize: 15,
               height: 1.65,

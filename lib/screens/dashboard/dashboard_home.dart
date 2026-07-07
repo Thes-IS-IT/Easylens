@@ -15,6 +15,7 @@ class DashboardHome extends StatelessWidget {
   final VoidCallback onSettingsSelected;
   final VoidCallback onNotificationsSelected;
   final VoidCallback onContactsSelected;
+  final VoidCallback onBuddyAssistantTap;
 
   const DashboardHome({
     super.key,
@@ -24,6 +25,7 @@ class DashboardHome extends StatelessWidget {
     required this.onSettingsSelected,
     required this.onNotificationsSelected,
     required this.onContactsSelected,
+    required this.onBuddyAssistantTap,
   });
 
   String _getFormattedDate() {
@@ -116,6 +118,12 @@ class DashboardHome extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24.0, 32.0, 24.0, 0.0),
           child: Column(
             children: [
+              DashboardButton(
+                title: 'Talk to Buddy (Local LLM)',
+                icon: Icons.chat_bubble_outline,
+                color: const Color(0xFF6B21A8),
+                onTap: onBuddyAssistantTap,
+              ),
               DashboardButton(
                 title: 'EasyLens',
                 icon: Icons.visibility,

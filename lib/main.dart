@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/firebase_service.dart';
 import 'services/settings_service.dart';
+import 'services/rag_service.dart';
 import 'screens/welcome/welcome_screen.dart';
 
 void main() async {
@@ -29,6 +30,13 @@ void main() async {
   final firebaseService = FirebaseService();
   await firebaseService.initialize();
 
+  // Initialize localized Gemma offline model engine
+  try {
+    await RagService().initializeGemma();
+  } catch (e) {
+    print("Gemma initialization warning: $e");
+  }
+ 
   runApp(const EasyLensApp());
 }
 
