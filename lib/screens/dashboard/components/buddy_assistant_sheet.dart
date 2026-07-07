@@ -238,19 +238,16 @@ Buddy's Answer:
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: Image.asset(
-                    _getMascotAsset(),
+                Image.asset(
+                  _getMascotAsset(),
+                  width: 72,
+                  height: 72,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
                     width: 72,
                     height: 72,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 72,
-                      height: 72,
-                      color: AppColors.primaryButton,
-                      child: Icon(Icons.pets, color: AppColors.primaryButtonText),
-                    ),
+                    color: AppColors.primaryButton,
+                    child: Icon(Icons.pets, color: AppColors.primaryButtonText),
                   ),
                 ),
                 const SizedBox(width: 14),
