@@ -1,0 +1,222 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../constants/colors.dart';
+import 'step_helpers.dart';
+
+// STEP 19: Your SOS Contact
+class StepSosContact extends StatefulWidget {
+  final String name;
+  final String phone;
+  final String relationship;
+  final ValueChanged<String> onNameChanged;
+  final ValueChanged<String> onPhoneChanged;
+  final ValueChanged<String> onRelationshipChanged;
+  final VoidCallback onFinish;
+
+  const StepSosContact({
+    super.key,
+    required this.name,
+    required this.phone,
+    required this.relationship,
+    required this.onNameChanged,
+    required this.onPhoneChanged,
+    required this.onRelationshipChanged,
+    required this.onFinish,
+  });
+
+  @override
+  State<StepSosContact> createState() => _StepSosContactState();
+}
+
+class _StepSosContactState extends State<StepSosContact> {
+  late TextEditingController _nameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _relController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.name);
+    _phoneController = TextEditingController(text: widget.phone);
+    _relController = TextEditingController(text: widget.relationship);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _relController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        StepHeader(
+          title: 'Your SOS Contact',
+          subtitle: 'Set an emergency contact recipient for immediate SOS alerts.',
+        ),
+        const SizedBox(height: 24),
+
+        // Import from Contacts button
+        SizedBox(
+          width: double.infinity,
+          height: 58,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryButton,
+              foregroundColor: AppColors.primaryButtonText,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            onPressed: () {},
+            icon: const Icon(Icons.phone_callback_outlined, size: 20),
+            label: Text(
+              'Import from Contacts',
+              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Divider row
+        Center(
+          child: Text(
+            'or enter manually',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // FULL NAME field
+        _InputLabel(label: 'FULL NAME'),
+        const SizedBox(height: 6),
+        _SosTextField(
+          controller: _nameController,
+          onChanged: widget.onNameChanged,
+          icon: Icons.person_outline,
+          keyboardType: TextInputType.name,
+        ),
+
+        const SizedBox(height: 14),
+
+        // PHONE NUMBER field
+        _InputLabel(label: 'PHONE NUMBER'),
+        const SizedBox(height: 6),
+        _SosTextField(
+          controller: _phoneController,
+          onChanged: widget.onPhoneChanged,
+          icon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+        ),
+
+        const SizedBox(height: 14),
+
+        // RELATIONSHIP field
+        _InputLabel(label: 'RELATIONSHIP (E.G. FAMILY)'),
+        const SizedBox(height: 6),
+        _SosTextField(
+          controller: _relController,
+          onChanged: widget.onRelationshipChanged,
+          icon: Icons.favorite_border,
+          keyboardType: TextInputType.text,
+        ),
+
+        const SizedBox(height: 36),
+
+        // Finish Setup button
+        SizedBox(
+          width: double.infinity,
+          height: 58,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryButton,
+              foregroundColor: AppColors.primaryButtonText,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            onPressed: widget.onFinish,
+            child: Text(
+              'Finish Setup',
+              style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// All-caps label above each input field
+class _InputLabel extends StatelessWidget {
+  final String label;
+  const _InputLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textMuted,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+}
+
+/// Pill-shaped filled text field with prefix icon
+class _SosTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final IconData icon;
+  final TextInputType keyboardType;
+
+  const _SosTextField({
+    required this.controller,
+    required this.onChanged,
+    required this.icon,
+    required this.keyboardType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      style: GoogleFonts.inter(fontSize: 15, color: AppColors.primaryText),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: AppColors.textMuted, size: 18),
+        filled: true,
+        fillColor: AppColors.lightBackground,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: AppColors.unselectedBorder, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: AppColors.primaryButton, width: 1.5),
+        ),
+      ),
+    );
+  }
+}

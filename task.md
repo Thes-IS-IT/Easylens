@@ -1,0 +1,13 @@
+- [x] Implement settings_screen.dart file structure
+- [x] Add Profile details and Change Password card
+- [x] Add Language segmented controls
+- [x] Add Notifications and Preferences navigation links
+- [x] Add Security Face ID toggle switch
+- [x] Add Appearance segmented controls and Accent colors row
+- [x] Add Units selection card
+- [x] Add Quick Actions customize and shake to undo controls
+- [x] Add Help section cards and guide trigger buttons
+- [x] Add About block with mascot, update cards, external links, privacy disclaimer
+- [x] Add Log Out red action pill button
+- [x] Add full bottom text footer
+- [x] Run compiler check and unit tests

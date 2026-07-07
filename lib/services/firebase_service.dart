@@ -1,0 +1,438 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'storage/cloudflare_r2_service.dart';
+import '../models/user_preferences.dart';
+import '../models/emergency_contact.dart';
+
+class EasyLensUser {
+  final String uid;
+  final String email;
+  final String displayName;
+  final bool isForMyself;
+
+  EasyLensUser({
+    required this.uid,
+    required this.email,
+    required this.displayName,
+    required this.isForMyself,
+  });
+}
+
+class FirebaseService {
+  static final FirebaseService _instance = FirebaseService._internal();
+
+  factory FirebaseService() {
+    return _instance;
+  }
+
+  FirebaseService._internal();
+
+  bool _firebaseInitialized = false;
+  EasyLensUser? _mockUser;
+
+  bool get isFirebaseAvailable => _firebaseInitialized;
+
+  Future<void> initialize() async {
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        _firebaseInitialized = true;
+        print("Firebase already initialized (apps not empty)");
+        return;
+      }
+      final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? '';
+      final appId = dotenv.env['FIREBASE_APP_ID'] ?? '';
+      final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
+      final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
+      final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '';
+
+      if (apiKey.isNotEmpty && appId.isNotEmpty && projectId.isNotEmpty) {
+        await Firebase.initializeApp(
+          options: FirebaseOptions(
+            apiKey: apiKey,
+            appId: appId,
+            projectId: projectId,
+            messagingSenderId: messagingSenderId,
+            storageBucket: storageBucket,
+          ),
+        );
+      } else {
+        await Firebase.initializeApp();
+      }
+      _firebaseInitialized = true;
+      print("Firebase successfully initialized with dynamic settings");
+    } catch (e) {
+      if (e.toString().contains("duplicate-app")) {
+        _firebaseInitialized = true;
+        print("Firebase already initialized (caught duplicate-app exception)");
+      } else {
+        print("Firebase initialization skipped or failed: $e.");
+        print("Running EasyLens in Local Mock Mode");
+        _firebaseInitialized = false;
+      }
+    }
+  }
+
+  // Get current user (real or mock)
+  EasyLensUser? get currentUser {
+    if (_firebaseInitialized) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        return EasyLensUser(
+          uid: user.uid,
+          email: user.email ?? "",
+          displayName: user.displayName ?? "User",
+          isForMyself: true, // Defaults to true
+        );
+      }
+      return null;
+    } else {
+      return _mockUser;
+    }
+  }
+
+  // Sign up
+  Future<EasyLensUser?> signUp(
+    String email,
+    String password,
+    String name,
+    bool isForMyself,
+  ) async {
+    if (_firebaseInitialized) {
+      try {
+        final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        if (credential.user != null) {
+          await credential.user!.updateDisplayName(name);
+          return EasyLensUser(
+            uid: credential.user!.uid,
+            email: email,
+            displayName: name,
+            isForMyself: isForMyself,
+          );
+        }
+      } catch (e) {
+        print("Firebase Sign Up Error: $e");
+        rethrow;
+      }
+    } else {
+      // Mock Sign Up
+      await Future.delayed(const Duration(milliseconds: 800));
+      _mockUser = EasyLensUser(
+        uid: "mock_uid_${DateTime.now().millisecondsSinceEpoch}",
+        email: email,
+        displayName: name,
+        isForMyself: isForMyself,
+      );
+      return _mockUser;
+    }
+    return null;
+  }
+
+  // Sign in
+  Future<EasyLensUser?> signIn(String email, String password) async {
+    if (_firebaseInitialized) {
+      try {
+        final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        if (credential.user != null) {
+          return EasyLensUser(
+            uid: credential.user!.uid,
+            email: email,
+            displayName: credential.user!.displayName ?? "User",
+            isForMyself: true,
+          );
+        }
+      } catch (e) {
+        print("Firebase Sign In Error: $e");
+        rethrow;
+      }
+    } else {
+      // Mock Sign In
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (email.contains("error")) {
+        throw Exception("Mock Authentication Failure: Invalid email address.");
+      }
+      _mockUser = EasyLensUser(
+        uid: "mock_uid_12345",
+        email: email,
+        displayName: "EasyLens Explorer",
+        isForMyself: true,
+      );
+      return _mockUser;
+    }
+    return null;
+  }
+
+  // Google Sign In
+  Future<EasyLensUser?> signInWithGoogle() async {
+    if (_firebaseInitialized) {
+      try {
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        if (googleUser == null) return null; // User cancelled the sign-in
+
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        final User? user = userCredential.user;
+
+        if (user != null) {
+          return EasyLensUser(
+            uid: user.uid,
+            email: user.email ?? "",
+            displayName: user.displayName ?? "Google User",
+            isForMyself: true,
+          );
+        }
+      } catch (e) {
+        print("Firebase Google Sign In Error: $e");
+        rethrow;
+      }
+    } else {
+      // Mock Google Sign In
+      await Future.delayed(const Duration(milliseconds: 800));
+      _mockUser = EasyLensUser(
+        uid: "mock_google_uid_12345",
+        email: "google_explorer@easylens.com",
+        displayName: "Google Explorer",
+        isForMyself: true,
+      );
+      return _mockUser;
+    }
+    return null;
+  }
+
+  // Sign out
+  Future<void> signOut() async {
+    if (_firebaseInitialized) {
+      await FirebaseAuth.instance.signOut();
+    } else {
+      _mockUser = null;
+    }
+  }
+
+  /// Creates a temporary Firebase account for [email] with a random password,
+  /// then sends Firebase's built-in email verification link.
+  /// Returns true if the verification email was dispatched successfully.
+  Future<bool> sendEmailVerificationLink(String email) async {
+    if (_firebaseInitialized) {
+      try {
+        // Use a strong temp password — user will set their real one later
+        final tempPassword = 'TempPwd!${DateTime.now().millisecondsSinceEpoch}';
+        UserCredential cred;
+        try {
+          cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email,
+            password: tempPassword,
+          );
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'email-already-in-use') {
+            // Account already exists — sign in to resend verification
+            cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: email,
+              password: tempPassword,
+            );
+          } else {
+            rethrow;
+          }
+        }
+        final user = cred.user;
+        if (user != null && !user.emailVerified) {
+          await user.sendEmailVerification();
+          return true;
+        }
+        return user?.emailVerified ?? false;
+      } catch (e) {
+        print('sendEmailVerificationLink error: $e');
+        return false;
+      }
+    } else {
+      // Mock: always succeed
+      await Future.delayed(const Duration(milliseconds: 500));
+      return true;
+    }
+  }
+
+  /// Reloads the current Firebase user and returns whether their email is verified.
+  Future<bool> checkEmailVerified() async {
+    if (_firebaseInitialized) {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return false;
+        await user.reload();
+        return FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+      } catch (e) {
+        print('checkEmailVerified error: $e');
+        return false;
+      }
+    } else {
+      // Mock: always return verified
+      return true;
+    }
+  }
+
+  // Upload an image file to cloud storage (with Cloudflare R2 rewiring)
+  Future<String> uploadImageFile(File file, String folder) async {
+    final user = currentUser;
+    final userId = user?.uid ?? "anonymous";
+
+    try {
+      final r2Service = CloudflareR2Service();
+      final uploadUrl = await r2Service.uploadAvatar(file, userId);
+      return uploadUrl;
+    } catch (e) {
+      print("Cloudflare R2 upload failed or credentials missing: $e. Falling back to Firebase Storage.");
+      
+      final fileName = "${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}";
+      if (_firebaseInitialized) {
+        try {
+          final ref = FirebaseStorage.instance.ref().child("$folder/$fileName");
+          final uploadTask = await ref.putFile(file);
+          final downloadUrl = await uploadTask.ref.getDownloadURL();
+          return downloadUrl;
+        } catch (storageError) {
+          print("Firebase Storage Error: $storageError");
+          rethrow;
+        }
+      } else {
+        // Mock Upload: returns local path representing stored image
+        await Future.delayed(const Duration(milliseconds: 1000));
+        return "https://mock-firebase-storage.easylens.internal/$folder/$fileName";
+      }
+    }
+  }
+
+  // Update Display Name
+  Future<void> updateDisplayName(String name) async {
+    if (_firebaseInitialized) {
+      await FirebaseAuth.instance.currentUser?.updateDisplayName(name);
+    } else {
+      if (_mockUser != null) {
+        _mockUser = EasyLensUser(
+          uid: _mockUser!.uid,
+          email: _mockUser!.email,
+          displayName: name,
+          isForMyself: _mockUser!.isForMyself,
+        );
+      }
+    }
+  }
+
+  // Update Password
+  Future<void> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (_firebaseInitialized) {
+      // Reauthenticate can be added here if needed by real firebase, but basic update is:
+      await FirebaseAuth.instance.currentUser?.updatePassword(newPassword);
+    } else {
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
+  // Sync user preferences — writes to Firebase Firestore.
+  Future<void> syncPreferencesToCloud(String userId, Map<String, dynamic> prefsJson) async {
+    if (_firebaseInitialized) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .set({'preferences': prefsJson}, SetOptions(merge: true));
+        print('Firestore: Preferences saved for $userId.');
+      } catch (e) {
+        print('Firestore preferences sync error: $e');
+      }
+    } else {
+      await Future.delayed(const Duration(milliseconds: 100));
+      print('Mock: Preferences saved locally.');
+    }
+  }
+
+  // Sync emergency contact — writes to Firebase Firestore.
+  Future<void> syncContactToCloud(String userId, Map<String, dynamic> contactJson) async {
+    if (_firebaseInitialized) {
+      try {
+        final contactId = (contactJson['phone'] as String? ?? 'contact')
+            .replaceAll(RegExp(r'\s+'), '');
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('contacts')
+            .doc(contactId)
+            .set(contactJson);
+        print('Firestore: Contact saved for $userId.');
+      } catch (e) {
+        print('Firestore contact sync error: $e');
+      }
+    } else {
+      await Future.delayed(const Duration(milliseconds: 100));
+      print('Mock: Contact saved locally.');
+    }
+  }
+
+  // Save recent navigation data to local storage and Firestore
+  Future<void> saveRecentNavigation(String userId, Map<String, dynamic> navData) async {
+    // 1. Save to SharedPreferences locally
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> recentList = prefs.getStringList('recent_navigation') ?? [];
+      
+      // Keep only unique entries by destination name
+      recentList.removeWhere((item) {
+        try {
+          final Map<String, dynamic> decoded = jsonDecode(item);
+          return decoded['name'] == navData['name'];
+        } catch (_) {
+          return false;
+        }
+      });
+      
+      recentList.insert(0, jsonEncode(navData));
+      
+      // Limit local list size to 10 entries
+      if (recentList.length > 10) {
+        recentList.removeLast();
+      }
+      await prefs.setStringList('recent_navigation', recentList);
+      print('Local: Navigation history saved.');
+    } catch (e) {
+      print('Local navigation history save error: $e');
+    }
+
+    // 2. Save to Firestore
+    if (_firebaseInitialized) {
+      try {
+        final docId = DateTime.now().millisecondsSinceEpoch.toString();
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('recent_navigation')
+            .doc(docId)
+            .set({
+              ...navData,
+              'timestamp': FieldValue.serverTimestamp(),
+            });
+        print('Firestore: Navigation history saved for $userId.');
+      } catch (e) {
+        print('Firestore navigation history sync error: $e');
+      }
+    }
+  }
+}
