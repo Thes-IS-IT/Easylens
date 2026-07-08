@@ -120,7 +120,7 @@ sequenceDiagram
     else No Local Models
         Coordinator->>Gemini: Query Cloud Gemini API
         Gemini-->>User: TTS Output Response
-    alt End
+    end
 ```
 
 ### B. Computer Vision & Isolate Threads
