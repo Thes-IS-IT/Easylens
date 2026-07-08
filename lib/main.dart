@@ -5,6 +5,7 @@ import 'services/firebase_service.dart';
 import 'services/settings_service.dart';
 import 'services/rag_service.dart';
 import 'screens/welcome/welcome_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,9 @@ void main() async {
   } catch (e) {
     print("Gemma initialization warning: $e");
   }
+
+  // Initialize notification service (loads persisted notifications + daily Buddy follow-up)
+  await NotificationService().initialize();
  
   runApp(const EasyLensApp());
 }

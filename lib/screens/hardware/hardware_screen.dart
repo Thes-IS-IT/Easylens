@@ -18,6 +18,7 @@ import '../../services/tflite_processor.dart';
 import '../emergency/emergency_screen.dart';
 import '../settings/settings_screen.dart';
 import '../notifications/notifications_screen.dart';
+import '../../services/notification_service.dart';
 import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
 
@@ -393,6 +394,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
             if (cooldownElapsed) {
               _lastSpokenMap[alertKey] = now;
               TtsService().speak(guidance);
+              // Push real notification
+              NotificationService().pushObstacleAlert(direction, closest.label);
 
               // Also update HUD card visually
               setState(() {
@@ -615,6 +618,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
           if (cooldownElapsed) {
             _lastSpokenMap[title] = now;
             TtsService().speak(speech);
+            // Push real notification for safety warning
+            NotificationService().pushWarning(title, speech);
           }
         }
       }
@@ -1032,11 +1037,32 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_none, size: 20),
-                      onPressed: () => _navigateTo(const NotificationsScreen()),
-                      constraints: const BoxConstraints(),
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                    // Live unread badge on notification bell
+                    ListenableBuilder(
+                      listenable: NotificationService(),
+                      builder: (ctx, _) {
+                        final unread = NotificationService().unreadCount;
+                        return Badge(
+                          isLabelVisible: unread > 0,
+                          label: Text(
+                            unread > 9 ? '9+' : '$unread',
+                            style: const TextStyle(fontSize: 9, color: Colors.white),
+                          ),
+                          backgroundColor: const Color(0xFFDC2626),
+                          child: IconButton(
+                            icon: Icon(
+                              unread > 0
+                                  ? Icons.notifications_active
+                                  : Icons.notifications_none,
+                              size: 20,
+                              color: unread > 0 ? const Color(0xFFDC2626) : null,
+                            ),
+                            onPressed: () => _navigateTo(const NotificationsScreen()),
+                            constraints: const BoxConstraints(),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                        );
+                      },
                     ),
                     IconButton(
                       icon: const Icon(Icons.people_outline, size: 20),
@@ -1342,11 +1368,31 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none, size: 20),
-                    onPressed: () => _navigateTo(const NotificationsScreen()),
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                  ListenableBuilder(
+                    listenable: NotificationService(),
+                    builder: (ctx, _) {
+                      final unread = NotificationService().unreadCount;
+                      return Badge(
+                        isLabelVisible: unread > 0,
+                        label: Text(
+                          unread > 9 ? '9+' : '$unread',
+                          style: const TextStyle(fontSize: 9, color: Colors.white),
+                        ),
+                        backgroundColor: const Color(0xFFDC2626),
+                        child: IconButton(
+                          icon: Icon(
+                            unread > 0
+                                ? Icons.notifications_active
+                                : Icons.notifications_none,
+                            size: 20,
+                            color: unread > 0 ? const Color(0xFFDC2626) : null,
+                          ),
+                          onPressed: () => _navigateTo(const NotificationsScreen()),
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                        ),
+                      );
+                    },
                   ),
                   IconButton(
                     icon: const Icon(Icons.people_outline, size: 20),
