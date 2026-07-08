@@ -174,3 +174,117 @@ Easylens connects directly to a custom head-mounted ESP32-CAM device:
 *   **Cloudflare R2 Bucket:** Stores larger media captures, backups, and user avatars. Built with client-side AWS Signature Version 4 HMAC generation (`sha256` payload hashes).
 *   **Firebase Store:** Manages credentials via Firebase Auth and stores quick settings variables.
 *   **SharedPreferences:** Holds localized device flags (e.g. contrast choices, speech rate).
+
+---
+
+## 6. Data Synchronization Flowchart
+
+The following flowchart describes the pipeline of reading user profile settings, hardware frame streams, and offline RAG queries, along with how state is synchronized across Local Storage and Cloud Storage:
+
+```mermaid
+graph TD
+    %% Local Inputs
+    Camera[Camera/ESP32 MJPEG Frame] -->|Live Stream| FrameBuffer[Frame Bytes in memory]
+    UIPreferences[User Alters Settings] -->|Writes to| SharedPrefs[Local SharedPreferences]
+    UserVoice[Speech Input] -->|Captures Audio| RAGEngine[Local RAG Engine]
+
+    %% Local Actions
+    FrameBuffer -->|Background Isolate| TFLite[SSD MobileNet OCR Classifier]
+    TFLite -->|Extract Labels & Alerts| AudioFeedback[TTS Voice Output]
+    SharedPrefs -->|Triggers UI updates| AppState[Provider State Manager]
+
+    %% Storage / Sync Actions
+    AppState -->|Syncs Relational Info| CloudflareD1[Cloudflare D1 REST API]
+    AppState -->|Syncs Document Preferences| FirebaseDoc[Firebase Firestore]
+    FrameBuffer -->|If user captures screenshot| CloudflareR2[Cloudflare R2 Bucket via SigV4]
+
+    %% Local Caching
+    CloudflareD1 <-->|Offline Cache| LocalSQLite[Local SQLite Cache]
+    FirebaseDoc <-->|Offline Access enabled| FirebaseLocalCache[Firebase Offline Cache]
+```
+
+---
+
+## 7. Database Schemas
+
+Below are the detailed layout structures implemented across local devices and remote servers:
+
+### A. Local SharedPreferences Schema
+Fast, key-value variables cached directly on the physical mobile device:
+
+| Key Name | Data Type | Default Value | Description |
+|---|---|---|---|
+| `easylens_notifications` | String (JSON Array) | `[]` | Persisted notification history (limits up to 100 entries). |
+| `esp32_stream_url` | String | `http://192.168.4.1:81/stream` | Saved endpoint address for ESP32 MJPEG stream targets. |
+| `user_language` | String | `English` | Active UI language configuration setting. |
+| `high_contrast_theme` | String | `Black` | Theme setting targeting visual impairments. |
+| `voice_feedback_enabled` | Boolean | `true` | TTS speech output global toggles. |
+| `speech_rate` | Double (Float) | `0.5` | Pace factor used in speech synthesis. |
+| `voice_persona_id` | String | `aria` | Current voice character profile selected. |
+
+### B. Firebase Firestore Schema
+Main document schemas storing active profile information under the `/users` collection:
+
+#### Document: `/users/{userId}`
+```json
+{
+  "email": "String (e.g. user@easylens.com)",
+  "displayName": "String (e.g. John Doe)",
+  "createdAt": "Timestamp (e.g. 2026-07-08T12:00:00Z)",
+  "preferences": {
+    "language": "English",
+    "faceIdUnlock": false,
+    "appearanceTheme": "Black",
+    "accentColorIndex": 0,
+    "shakeToUndo": true,
+    "voiceFeedback": true,
+    "navigationAssistant": true,
+    "hapticFeedback": true,
+    "speechRate": 0.5,
+    "pitch": 0.5,
+    "voicePersonaId": "aria",
+    "unitsPreference": "Metric",
+    "globalNotifications": true,
+    "buddyFollowUp": true,
+    "obstacleAlerts": true,
+    "batteryAlerts": false,
+    "connectionAlerts": false
+  },
+  "emergencyContacts": [
+    {
+      "name": "String (e.g. Sarah Doe)",
+      "phone": "String (e.g. +1234567890)",
+      "relationship": "String (e.g. Spouse)",
+      "isActive": true
+    }
+  ]
+}
+```
+
+### C. Cloudflare D1 SQL Schema
+The relational layout deployed globally in Cloudflare's serverless D1 engine:
+
+#### Table 1: `users`
+```sql
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,               -- Matches Firebase Authentication UID
+  email TEXT,                        -- Primary contact email address
+  display_name TEXT,                 -- User full name
+  preferences_json TEXT,             -- Serialized UserPreferences object
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Table 2: `contacts`
+```sql
+CREATE TABLE contacts (
+  id TEXT PRIMARY KEY,               -- Unique contact UUID
+  user_id TEXT,                      -- Foreign Key references users(id)
+  name TEXT,                         -- Contact name
+  phone TEXT,                        -- Cellular number
+  relationship TEXT,                 -- Relation type (e.g. Parent, Caregiver)
+  is_active INTEGER DEFAULT 1,       -- 1 = true, 0 = false
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
