@@ -19,6 +19,8 @@ import '../emergency/emergency_screen.dart';
 import '../settings/settings_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../../services/notification_service.dart';
+import '../../services/esp32_service.dart';
+import '../devices/devices_screen.dart';
 import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
 
@@ -1069,6 +1071,24 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                       onPressed: () => _navigateTo(const ContactsScreen()),
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
+                    ),
+                    // ESP32 device status icon
+                    ListenableBuilder(
+                      listenable: Esp32Service(),
+                      builder: (ctx, _) {
+                        final connected = Esp32Service().isConnected;
+                        return IconButton(
+                          icon: Icon(
+                            connected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                            size: 20,
+                            color: connected ? const Color(0xFF10B981) : null,
+                          ),
+                          onPressed: () => _navigateTo(const DevicesScreen()),
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          tooltip: connected ? 'Glasses connected' : 'Connect glasses',
+                        );
+                      },
                     ),
                     IconButton(
                       icon: const Icon(Icons.settings_outlined, size: 20),

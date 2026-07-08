@@ -6,6 +6,7 @@ import 'services/settings_service.dart';
 import 'services/rag_service.dart';
 import 'screens/welcome/welcome_screen.dart';
 import 'services/notification_service.dart';
+import 'services/esp32_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,9 @@ void main() async {
 
   // Initialize notification service (loads persisted notifications + daily Buddy follow-up)
   await NotificationService().initialize();
+
+  // Initialize ESP32 service (restores last used stream URL from prefs)
+  await Esp32Service().initialize();
  
   runApp(const EasyLensApp());
 }
