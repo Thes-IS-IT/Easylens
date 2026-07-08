@@ -4,9 +4,50 @@ Easylens is a state-of-the-art accessibility assistant designed to empower visua
 
 ---
 
-## 1. High-Level Architecture Flowchart
+## 1. Complete Technology Stack & Specifications
 
-The following diagram illustrates how UI controllers interact with underlying offline services, remote cloud databases, and external hardware devices.
+### Core Framework & State Management
+*   **Flutter (Dart SDK `^3.11.5`):** Serves as the cross-platform application runtime.
+*   **Provider Pattern (`provider: ^6.1.2`):** Handles reactive state management, linking hardware event triggers, ML classification labels, and settings adjustments across UI widgets.
+*   **Declarative Navigation:** Custom router wrapper in `app_route.dart` facilitating transition configurations suitable for accessibility focus frames.
+
+### Artificial Intelligence & On-Device Models
+1.  **Object Detection Pipeline (`tflite_flutter: ^0.12.1`):**
+    *   **Inference Engine:** TensorFlow Lite C-API bindings for Dart.
+    *   **Execution Model:** MobileNetV2 SSD trained on the MS-COCO dataset. Takes `300x300` RGB arrays and generates class IDs, bounding boxes, and scores. Runs on 4 threads via CPU interpreter options.
+2.  **On-Device LLM - Google Gemma (`flutter_gemma: ^0.13.6`):**
+    *   **Model:** Gemma-IT 2B (Instruction Tuned).
+    *   **Interface:** Google AI Edge SDK. Uses hardware acceleration (NNAPI/GPU delegates where available) to perform offline prompts using context extracted locally.
+3.  **Local Ollama Server Fallback:**
+    *   Connects to an external local Ollama daemon using HTTP protocols on `http://10.0.2.2:11434` (Android) or `http://localhost:11434` (iOS).
+    *   Supports models like `llama3.2`, `gemma2:2b`, and `qwen2.5:0.5b`.
+4.  **Cloud LLM - Google Gemini (`google_generative_ai: ^0.4.4`):**
+    *   Targets remote `gemini-1.5-flash` or similar models for rich conversational tasks when Internet access is detected.
+5.  **Text Recognition & Image Labeling (`google_mlkit_text_recognition: ^0.15.1`, `google_mlkit_image_labeling: ^0.14.2`):**
+    *   Performs low-latency on-device Optical Character Recognition (OCR) to parse labels, prescription text, and warning signs.
+
+### Hardware & Peripherals (ESP32-CAM)
+*   **Local Networking Server:** The ESP32 hosts a local open WiFi Access Point (AP) named `EasyLens-Camera`.
+*   **MJPEG Video Receiver:** `Esp32Service` establishes an HTTP persistent boundary stream to `http://192.168.4.1:81/stream`, chunk-decodes raw JPEG frames, and updates visual frames.
+*   **Hardware Control Endpoint:** Sends micro-control GET requests to adjust flash LED levels (`/led?val=1` or `/led?val=0`).
+
+### Audio & Accessibility Engagements
+*   **Text-to-Speech (`flutter_tts: ^4.2.5`):** Reads parsed OCR texts, warning labels, and companion remarks. Supports pitch, rate, and volume configurations.
+*   **Speech-to-Text (`speech_to_text: ^7.4.0`):** Listens for user queries to feed directly into the local RAG assistant.
+
+### Databases & Cloud Storage
+1.  **Cloudflare D1 (D1 SQL Database):**
+    *   Serverless database running on Cloudflare Workers.
+    *   Stores relational data, sync history, and emergency contact mappings. Communicates securely via API HTTP request payloads.
+2.  **Cloudflare R2 Bucket (S3-Compatible Object Store):**
+    *   Stores profile avatars, captured hazard reports, and diagnostic clips.
+    *   **Security Protocol:** Custom client-side AWS Signature Version 4 implementation using HMAC-SHA256 (`crypto: ^3.0.3`) to directly sign payload requests on-device without exposing secrets.
+3.  **Firebase Services (`firebase_core: ^3.1.1`, `firebase_auth: ^5.1.2`):**
+    *   Provides token-based secure authentication and real-time document synchronization.
+
+---
+
+## 2. High-Level Architecture Flowchart
 
 ```mermaid
 graph TD
@@ -41,9 +82,7 @@ graph TD
 
 ---
 
-## 2. Directory Layout & Core Modules
-
-The codebase strictly follows a modular service-oriented architecture:
+## 3. Directory Layout & Core Modules
 
 ```
 lib/
@@ -87,20 +126,10 @@ lib/
 
 ---
 
-## 3. Subsystem Specifications
+## 4. Subsystem Specifications
 
 ### A. RAG Engine & LLM Integrations
 Easylens uses `RagService` as a multi-tier fallback generation coordinator to handle user queries offline and online:
-
-1.  **Tier 1: On-Device Google Gemma (`flutter_gemma`)**
-    *   Loads local model binary `.bin` files (`gemma-2b-it`).
-    *   Funnels keyword-enriched local context to the offline model.
-    *   Operates with a maximum limit of `1024` generation tokens.
-2.  **Tier 2: Local Ollama Fallback**
-    *   Targets local development instances (`http://10.0.2.2:11434` on Android emulator).
-    *   Dynamically probes local servers for models (`llama3.2:latest`, `gemma2:2b`, `qwen2.5:0.5b`).
-3.  **Tier 3: Google Gemini API (`google_generative_ai`)**
-    *   Cloud fallback when network connectivity is present.
 
 ```mermaid
 sequenceDiagram
@@ -112,10 +141,10 @@ sequenceDiagram
 
     User->>Coordinator: Send Query
     alt Local model.bin exists
-        Coordinator->>LocalGemma: Run Offline Inference
+        Coordinator->>LocalGemma: Run Offline Inference (Gemma-IT 2B)
         LocalGemma-->>User: TTS Output Response
     else Local model missing & Ollama active
-        Coordinator->>Ollama: Query Local Ollama Server
+        Coordinator->>Ollama: Query Local Ollama Server (llama3.2/gemma2)
         Ollama-->>User: TTS Output Response
     else No Local Models
         Coordinator->>Gemini: Query Cloud Gemini API
@@ -139,7 +168,7 @@ Easylens connects directly to a custom head-mounted ESP32-CAM device:
 
 ---
 
-## 4. Storage & Sync Layers
+## 5. Storage & Sync Layers
 
 *   **Cloudflare D1 Database:** Serverless SQLite database. Synchronizes user profiles, configurations, and contacts securely using token authorized HTTP payloads.
 *   **Cloudflare R2 Bucket:** Stores larger media captures, backups, and user avatars. Built with client-side AWS Signature Version 4 HMAC generation (`sha256` payload hashes).
