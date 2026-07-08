@@ -1,21 +1,19 @@
-# Easylens - Architecture Documentation
+# Easylens - Comprehensive Technical Architecture
 
-Easylens is an advanced accessibility assistant mobile application designed to empower visually impaired and neurodivergent users. By combining on-device computer vision, local/cloud large language models, cloud databases, and hardware glass integration (ESP32), Easylens serves as a real-time smart companion.
+Easylens is a state-of-the-art accessibility assistant designed to empower visually impaired and neurodivergent users. By blending local computer vision, on-device and cloud generative models, unified storage layers, and ESP32 hardware streaming, Easylens acts as a real-time voice and visual companion.
 
 ---
 
-## 1. System Architecture Overview
+## 1. High-Level Architecture Flowchart
 
-Easylens is built on a clean architectural pattern separating the **User Interface Layer**, **State & Controller Layer (Providers)**, and **Service/Infrastructure Layer (Platform Channels & Hardware Drivers)**.
-
-### High-Level Architecture Flowchart
+The following diagram illustrates how UI controllers interact with underlying offline services, remote cloud databases, and external hardware devices.
 
 ```mermaid
 graph TD
     %% User Interface
-    UI[Flutter UI / Screens] <--> Providers[State Management / Providers]
+    UI[Flutter Screen UI] <--> Providers[State & Provider Controllers]
     
-    %% Services and Core Controllers
+    %% Controllers and Services
     Providers <--> MLKitService[ML Kit Service]
     Providers <--> TFLiteService[TFLite Processor]
     Providers <--> RAGService[RAG Assistant Service]
@@ -23,102 +21,127 @@ graph TD
     Providers <--> AudioService[TTS & STT Services]
     Providers <--> FirebaseService[Firebase Auth & Firestore]
     
-    %% Background Runners
-    TFLiteService <--> IsolateRunner[Isolate Runner / BG Thread]
+    %% Background Work Isolation
+    TFLiteService <--> IsolateRunner[Isolate Worker Thread]
     MLKitService <--> IsolateRunner
     
+    %% Local Inference Models
+    RAGService <--> GemmaOffline[Gemma-IT 2B Local LLM]
+    RAGService <--> OllamaLocal[Ollama Local Server API]
+    RAGService <--> GeminiAPI[Google Gemini Flash API]
+    
     %% Edge Hardware
-    ESP32Service <--> |Bluetooth / Wi-Fi| ESP32[ESP32 Smart Glass Hardware]
+    ESP32Service <--> |WiFi / MJPEG Stream| ESP32[ESP32-CAM AP Hardware]
     
     %% Cloud / Databases
-    RAGService <--> CloudflareD1[Cloudflare D1 Database]
+    RAGService <--> CloudflareD1[Cloudflare D1 SQL Database]
     RAGService <--> CloudflareR2[Cloudflare R2 Storage]
-    FirebaseService <--> FirebaseCloud[Firebase Authentication & Storage]
+    FirebaseService <--> FirebaseCloud[Firebase Authentication & Firestore]
 ```
 
 ---
 
 ## 2. Directory Layout & Core Modules
 
-The Flutter codebase is structured as follows:
+The codebase strictly follows a modular service-oriented architecture:
 
 ```
 lib/
-├── main.dart                      # App initialization & MultiProvider configuration
-├── constants/                     # Global constants (colors, styles)
-├── models/                        # Declarative data models (preferences, contacts, notifications)
-├── utils/                         # Global helper methods, navigation routing
-├── services/                      # System interfaces and third-party integrations
-│   ├── storage/                   # Cloudflare D1 (SQL) and R2 (Object) Storage clients
-│   ├── firebase_service.dart      # User Auth, Firestore syncing
-│   ├── ml_kit_service.dart        # Image Labeling, Text Recognition (OCR)
-│   ├── object_detector_service.dart # Object detection pipelines
-│   ├── tflite_processor.dart      # TensorFlow Lite execution
-│   ├── isolate_runner.dart        # Multithreaded CPU heavy task isolation
-│   ├── esp32_service.dart         # Bluetooth / Local networking for ESP32 glasses
-│   ├── rag_service.dart           # Retrieval-Augmented Generation service
-│   ├── stt_service.dart           # Speech-To-Text wrapper
-│   └── tts_service.dart           # Text-To-Speech wrapper
-└── screens/                       # User interfaces organized by features
-    ├── welcome/                   # Application splash & onboarding
-    ├── login/                     # Secure Authentication entry
-    ├── signup/                    # Multi-step step-by-step preference setup
-    ├── dashboard/                 # Central navigation hub & Voice Buddy panel
-    ├── object_detection/          # Live camera computer vision feed
-    ├── rag_assistant/             # Voice/Text RAG Assistant panel
-    └── settings/                  # Personalization (Speech speeds, visual contrasts, units)
+├── main.dart                      # Multi-provider initialization & services startup
+├── constants/
+│   └── colors.dart                # Accessible high-contrast themes & UI specs
+├── models/
+│   ├── user_preferences.dart      # Accessible profiles (themes, speech rate, aids)
+│   ├── app_notification.dart      # Application logging & notification formats
+│   └── emergency_contact.dart     # Emergency SMS profiles
+├── utils/
+│   └── app_route.dart             # Declarative app navigation pathways
+├── services/
+│   ├── storage/
+│   │   ├── storage_service.dart   # Abstract storage base interface
+│   │   ├── cloudflare_d1_service.dart # Relational configuration sync
+│   │   └── cloudflare_r2_service.dart # AWS Signature V4 S3 upload logic
+│   ├── firebase_service.dart      # Profile synchronization
+│   ├── ml_kit_service.dart        # Real-time Google OCR (Text Recognition)
+│   ├── object_detector_service.dart # Object detector pipelines
+│   ├── tflite_processor.dart      # TensorFlow Lite execution pipelines
+│   ├── isolate_runner.dart        # Dart Isolate worker pools (Background threads)
+│   ├── esp32_service.dart         # ESP32-CAM MJPEG stream parse engine
+│   ├── rag_service.dart           # Offline-first local/cloud RAG coordinator
+│   ├── stt_service.dart           # Speech-To-Text configurations
+│   ├── tts_service.dart           # Text-To-Speech engine
+│   ├── settings_service.dart      # SharedPreferences config wrapper
+│   ├── sms_service.dart           # Cellular SMS emergency dispatch
+│   └── notification_service.dart  # System notification push wrapper
+└── screens/
+    ├── welcome/                   # Application introduction screen
+    ├── login/                     # Secure entry portals
+    ├── signup/                    # Step-by-step preference setup flow
+    │   ├── steps/                 # Multi-step layout directories
+    │   └── celebration_screen.dart # Celebration screen
+    ├── dashboard/                 # Central navigation hub & Voice Buddy
+    ├── object_detection/          # Real-time computer vision live feed
+    ├── rag_assistant/             # Voice-first RAG chat assistant
+    └── settings/                  # UI Customization panels
 ```
 
 ---
 
-## 3. Core Subsystem Workflows
+## 3. Subsystem Specifications
 
-### A. Real-Time Computer Vision (Object & Text Detection)
-To avoid UI lag (jank) during real-time image processing, Easylens utilizes **Dart Isolates**. Frame processing is offloaded to a separate CPU thread worker.
+### A. RAG Engine & LLM Integrations
+Easylens uses `RagService` as a multi-tier fallback generation coordinator to handle user queries offline and online:
+
+1.  **Tier 1: On-Device Google Gemma (`flutter_gemma`)**
+    *   Loads local model binary `.bin` files (`gemma-2b-it`).
+    *   Funnels keyword-enriched local context to the offline model.
+    *   Operates with a maximum limit of `1024` generation tokens.
+2.  **Tier 2: Local Ollama Fallback**
+    *   Targets local development instances (`http://10.0.2.2:11434` on Android emulator).
+    *   Dynamically probes local servers for models (`llama3.2:latest`, `gemma2:2b`, `qwen2.5:0.5b`).
+3.  **Tier 3: Google Gemini API (`google_generative_ai`)**
+    *   Cloud fallback when network connectivity is present.
 
 ```mermaid
 sequenceDiagram
-    participant UI as Camera UI
-    participant Service as Object Detector Service
-    participant Isolate as Isolate Worker (BG Thread)
-    participant Model as TFLite / MLKit SDK
+    participant User as User Voice Input
+    participant Coordinator as RagService
+    participant LocalGemma as Local Gemma IT
+    participant Ollama as Local Ollama Server
+    participant Gemini as Google Gemini Cloud API
 
-    UI->>Service: Send CameraImage Frame
-    Service->>Isolate: Dispatch Raw Byte Buffer
-    Isolate->>Model: Execute Inference (SSD MobileNet / OCR)
-    Model-->>Isolate: Return Detection Coordinates & Labels
-    Isolate-->>Service: Return Structured Detections JSON
-    Service-->>UI: Update Bounding Boxes / Play Speech
+    User->>Coordinator: Send Query
+    alt Local model.bin exists
+        Coordinator->>LocalGemma: Run Offline Inference
+        LocalGemma-->>User: TTS Output Response
+    else Local model missing & Ollama active
+        Coordinator->>Ollama: Query Local Ollama Server
+        Ollama-->>User: TTS Output Response
+    else No Local Models
+        Coordinator->>Gemini: Query Cloud Gemini API
+        Gemini-->>User: TTS Output Response
+    alt End
 ```
 
-### B. Voice-Activated RAG Assistant
-Easylens implements an offline-first hybrid RAG (Retrieval-Augmented Generation) assistant using local models combined with cloud storage logs.
+### B. Computer Vision & Isolate Threads
+To prevent dropping frames on the main UI thread during video capture, heavy tasks are delegated to `IsolateRunner`:
+*   **TFLite Model:** `ssd_mobilenet_v2.tflite` (64 MB) detects 80 standard classes from the MS-COCO dataset.
+*   **Input Handling:** Crops and resizes frame buffers to `300x300` pixels.
+*   **OCR Model:** ML Kit Text Recognition processes camera buffers to find labels and hazard signs.
 
-1. **Voice Input:** User speaks a query (captured via `SttService`).
-2. **Local Context Enrichment:** The query is compared against local preferences and cached knowledge.
-3. **Inference Execution:** Run locally via `flutter_gemma` or synced using Cloudflare D1 SQL vectors.
-4. **Voice Output:** Returns text response parsed into natural speech via `TtsService`.
-
-### C. Hardware Glass Integration (ESP32)
-The app connects to a custom wearable device built on the ESP32 chip.
-* **Stream Capture:** The glass sends remote video frame buffers or triggers SOS buttons.
-* **Control Channel:** Easylens sends haptic buzz commands or system indicators back to the glasses via Bluetooth Low Energy (BLE) or WebSockets.
-
----
-
-## 4. Databases & Storage Architecture
-
-Easylens uses a redundant hybrid storage engine to balance latency and security:
-
-* **Firebase Auth & Firestore:** Stores primary profile records, passwords, emergency contacts, and active configurations.
-* **Cloudflare D1 (D1 Database):** Houses relational logs and vectorized search embeddings for the RAG Engine.
-* **Cloudflare R2 Bucket:** Stores large media files, uploaded voice memos, and saved image captures.
-* **Local SharedPreferences:** Fast sync store for offline settings (e.g., high-contrast theme, selected language, preferred speech speed).
+### C. Hardware Integration (ESP32-CAM)
+Easylens connects directly to a custom head-mounted ESP32-CAM device:
+*   **WiFi AP Mode:** ESP32 acts as an Access Point (SSID: `EasyLens-Camera`).
+*   **MJPEG Stream Reader:** `Esp32Service` parses the MJPEG raw boundary streams from `http://192.168.4.1:81/stream` and emits parsed frame updates to observers.
+*   **GPIO Controls:** Controls the hardware flash LED remotely through HTTP endpoints:
+    *   LED On: `GET http://192.168.4.1:81/led?val=1`
+    *   LED Off: `GET http://192.168.4.1:81/led?val=0`
 
 ---
 
-## 5. Security & Verification Features
+## 4. Storage & Sync Layers
 
-* **Network Encryption:** All API traffic to Cloudflare and Firebase uses strict TLS.
-* **Camera Safety:** Live camera streams are processed locally in volatile memory; they are never uploaded to the cloud without explicit user command.
-* **SOS Protocol:** Emergency triggers query location metadata via GPS (`Geolocator`) and automatically trigger an SMS (`SmsService`) to preset emergency contacts.
+*   **Cloudflare D1 Database:** Serverless SQLite database. Synchronizes user profiles, configurations, and contacts securely using token authorized HTTP payloads.
+*   **Cloudflare R2 Bucket:** Stores larger media captures, backups, and user avatars. Built with client-side AWS Signature Version 4 HMAC generation (`sha256` payload hashes).
+*   **Firebase Store:** Manages credentials via Firebase Auth and stores quick settings variables.
+*   **SharedPreferences:** Holds localized device flags (e.g. contrast choices, speech rate).
