@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../../constants/colors.dart';
 import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
@@ -37,6 +38,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
   ImageLabeler? _imageLabeler;
+  final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   bool _isProcessingFrame = false;
 
   // Background Isolate Object Detector
@@ -181,6 +183,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
       'icon': Icons.person_rounded,
       'iconColor': Colors.indigo,
       'speech': 'Person detected nearby.'
+    },
+    {
+      'title': 'GO Signal Detected',
+      'desc': 'Go or walk signal detected. You may proceed.',
+      'bg': Color(0xFFE8F5E9),
+      'icon': Icons.arrow_circle_right_outlined,
+      'iconColor': Colors.green,
+      'speech': 'Go signal detected. Proceed carefully.'
     }
   ];
 
@@ -242,6 +252,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _isolateRunner.close();
     _cameraController?.dispose();
     _imageLabeler?.close();
+    _textRecognizer.close();
     super.dispose();
   }
 
@@ -533,8 +544,25 @@ class _HardwareScreenState extends State<HardwareScreen> {
             selectedSim = _hazardSimulations[6]; // Vehicle
           } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
             selectedSim = _hazardSimulations[3]; // Stairs
-          } else if (topLabel.contains('sign') || topLabel.contains('traffic sign')) {
-            selectedSim = _hazardSimulations[1]; // Traffic sign
+          } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel.contains('board') || topLabel.contains('billboard') || topLabel.contains('banner')) {
+            try {
+              final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+              final String signText = recognizedText.text.toUpperCase();
+              if (signText.contains('STOP')) {
+                selectedSim = _hazardSimulations[11]; // STOP!
+                selectedSim = Map<String, dynamic>.from(selectedSim!)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
+              } else if (signText.contains('GO') || signText.contains('WALK') || signText.contains('CROSS')) {
+                selectedSim = _hazardSimulations[13]; // GO Signal Detected
+              } else {
+                selectedSim = _hazardSimulations[1]; // General Traffic Sign
+                if (recognizedText.text.trim().isNotEmpty) {
+                  final words = recognizedText.text.split('\n').first.trim();
+                  selectedSim = Map<String, dynamic>.from(selectedSim!)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
+                }
+              }
+            } catch (e) {
+              selectedSim = _hazardSimulations[1]; // General Traffic Sign
+            }
           } else if (topLabel.contains('pothole') || topLabel.contains('crack') || topLabel.contains('hole') || topLabel.contains('depression')) {
             selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
           } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
