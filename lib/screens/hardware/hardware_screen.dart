@@ -173,6 +173,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
       'icon': Icons.error_outline_rounded,
       'iconColor': Colors.red,
       'speech': 'STOP! Immediate hazard in your path.'
+    },
+    {
+      'title': 'Person Detected',
+      'desc': 'A person is nearby. Proceed carefully.',
+      'bg': Color(0xFFE8EAF6),
+      'icon': Icons.person_rounded,
+      'iconColor': Colors.indigo,
+      'speech': 'Person detected nearby.'
     }
   ];
 
@@ -519,22 +527,31 @@ class _HardwareScreenState extends State<HardwareScreen> {
               'iconColor': Colors.red,
               'speech': 'The camera is covered. Please remove any obstruction.'
             };
-          } else if (topLabel.contains('fire') || topLabel.contains('smoke')) {
+          } else if (topLabel.contains('fire') || topLabel.contains('smoke') || topLabel.contains('flame')) {
             selectedSim = _hazardSimulations[10]; // Fire
-          } else if (topLabel.contains('car') || topLabel.contains('bus') || topLabel.contains('truck') || topLabel.contains('vehicle')) {
+          } else if (topLabel.contains('car') || topLabel.contains('bus') || topLabel.contains('truck') || topLabel.contains('vehicle') || topLabel.contains('traffic')) {
             selectedSim = _hazardSimulations[6]; // Vehicle
-          } else if (topLabel.contains('stair') || topLabel.contains('step')) {
+          } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
             selectedSim = _hazardSimulations[3]; // Stairs
-          } else if (topLabel.contains('sign') || topLabel.contains('traffic')) {
+          } else if (topLabel.contains('sign') || topLabel.contains('traffic sign')) {
             selectedSim = _hazardSimulations[1]; // Traffic sign
+          } else if (topLabel.contains('pothole') || topLabel.contains('crack') || topLabel.contains('hole') || topLabel.contains('depression')) {
+            selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
+          } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
+            selectedSim = _hazardSimulations[12]; // Person Detected
+          } else if (topLabel.contains('tree') || topLabel.contains('branch') || topLabel.contains('pole') || topLabel.contains('wall') || topLabel.contains('obstacle') || topLabel.contains('post') || topLabel.contains('barrier')) {
+            selectedSim = _hazardSimulations[9]; // Obstacle ahead
           } else {
-            // Keep path clear or random hazard simulation
-            final rand = Random().nextInt(10);
-            if (rand > 7) {
-              selectedSim = _hazardSimulations[Random().nextInt(_hazardSimulations.length)];
-            } else {
-              selectedSim = _hazardSimulations[0]; // Path clear
-            }
+            // Dynamically generate a warning category matching the everyday object!
+            final cleanLabel = topLabelText[0].toUpperCase() + topLabelText.substring(1);
+            selectedSim = {
+              'title': '$cleanLabel Detected',
+              'desc': '$cleanLabel located in front of you.',
+              'bg': const Color(0xFFE8F5E9),
+              'icon': Icons.check_circle_outline,
+              'iconColor': Colors.green,
+              'speech': '$cleanLabel detected.'
+            };
           }
 
           setState(() {
@@ -653,11 +670,19 @@ class _HardwareScreenState extends State<HardwareScreen> {
       });
     }
 
-    final detectedItems = detections.isNotEmpty 
-        ? detections.map((d) => "${d.label} (${(d.score * 100).toInt()}% confidence)").join(", ")
-        : "no distinct objects but general pathways";
+    final mlKitLabels = _detectedObjectLabels.join(", ");
+    final detectedItems = [
+      if (detections.isNotEmpty)
+        detections.map((d) => "${d.label} (${(d.score * 100).toInt()}% confidence)").join(", "),
+      if (mlKitLabels.isNotEmpty)
+        "general environment labels: $mlKitLabels"
+    ].join("; ");
 
-    final prompt = "The user is asking you to describe their surroundings. The real-time camera object detector reports seeing: $detectedItems. Describe the scene in a concise, friendly, and helpful way for a blind user, focusing on key elements.";
+    final prompt = """
+You are Buddy, the friendly Golden Retriever visual assistant.
+The camera reports these environment objects: $detectedItems.
+Explain the surroundings to the user in a short, friendly golden retriever visual assistant persona under 3 sentences.
+""";
     
     final response = await RagService().askBuddy(prompt);
     
