@@ -69,8 +69,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isAudioSpeaker = true; // true = Phone Speaker, false = Glasses
 
   // Cooldown trackers for TTS announcements S01
-  String? _lastSpokenStatus;
-  DateTime? _lastSpokenTime;
+  final Map<String, DateTime> _lastSpokenMap = {};
 
   // Gemini Dialog details
   bool _isGeminiListening = false;
@@ -384,16 +383,15 @@ class _HardwareScreenState extends State<HardwareScreen> {
               guidance = 'Stop! ${closest.label} directly ahead. Back up slowly.';
             }
 
-            // Cooldown: only speak if alert changed or 8 s elapsed
+            // Cooldown: map-based per-direction tracker to avoid repetitiveness
             final now = DateTime.now();
             final alertKey = 'proximity_$direction';
-            final cooldownElapsed = _lastSpokenTime == null ||
-                now.difference(_lastSpokenTime!).inSeconds > 8;
-            final alertChanged = _lastSpokenStatus != alertKey;
+            final lastSpoken = _lastSpokenMap[alertKey];
+            final cooldownElapsed = lastSpoken == null ||
+                now.difference(lastSpoken).inSeconds >= 12;
 
-            if (alertChanged || cooldownElapsed) {
-              _lastSpokenStatus = alertKey;
-              _lastSpokenTime = now;
+            if (cooldownElapsed) {
+              _lastSpokenMap[alertKey] = now;
               TtsService().speak(guidance);
 
               // Also update HUD card visually
@@ -602,15 +600,21 @@ class _HardwareScreenState extends State<HardwareScreen> {
             _statusIconColor = selectedSim['iconColor'];
           });
 
-          // Speak warning using selected voice setting only if it changes or every 8 seconds
+          // Speak warning using map-based per-category tracker S01
           final now = DateTime.now();
-          final statusChanged = _lastSpokenStatus != selectedSim['title'];
-          final cooldownElapsed = _lastSpokenTime == null || now.difference(_lastSpokenTime!).inSeconds > 8;
+          final String title = selectedSim!['title'];
+          final String speech = selectedSim['speech'];
 
-          if (statusChanged || cooldownElapsed) {
-            _lastSpokenStatus = selectedSim['title'];
-            _lastSpokenTime = now;
-            TtsService().speak(selectedSim['speech']);
+          final isImmediate = title == 'STOP!' || title == 'Fire Hazard!';
+          final cooldownLimit = isImmediate ? 5 : 15;
+
+          final lastSpoken = _lastSpokenMap[title];
+          final cooldownElapsed = lastSpoken == null ||
+              now.difference(lastSpoken).inSeconds >= cooldownLimit;
+
+          if (cooldownElapsed) {
+            _lastSpokenMap[title] = now;
+            TtsService().speak(speech);
           }
         }
       }
