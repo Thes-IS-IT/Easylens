@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
@@ -139,27 +140,69 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
       _downloadProgress = 0.0;
     });
 
-    // Simulate model download progress
-    for (int i = 0; i <= 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (!mounted) return;
-      setState(() {
-        _downloadProgress = i / 10.0;
-      });
-    }
-
-    await _ragService.simulateModelInstall();
-
-    if (mounted) {
-      setState(() {
-        _isDownloadingModel = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Gemma 2B model successfully downloaded! Buddy is now fully localized offline."),
-          backgroundColor: Colors.green,
-        ),
-      );
+    try {
+      const savePath = "/storage/emulated/0/Android/data/com.company.easylens/files/model.bin";
+      const url = "https://huggingface.co/MrHoang/LLM/resolve/main/gemma-2b-it-gpu-int8.bin";
+      
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close();
+      
+      if (response.statusCode == 200) {
+        final file = File(savePath);
+        await file.parent.create(recursive: true);
+        
+        final int totalBytes = response.contentLength;
+        int downloadedBytes = 0;
+        
+        final IOSink sink = file.openWrite();
+        
+        await for (final chunk in response) {
+          if (!mounted) {
+            await sink.close();
+            return;
+          }
+          sink.add(chunk);
+          downloadedBytes += chunk.length;
+          if (totalBytes > 0) {
+            setState(() {
+              _downloadProgress = downloadedBytes / totalBytes;
+            });
+          }
+        }
+        
+        await sink.flush();
+        await sink.close();
+        
+        // Initialize the actual Gemma model engine using the downloaded file
+        await _ragService.initializeGemma();
+        
+        if (mounted) {
+          setState(() {
+            _isDownloadingModel = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Gemma 2B model successfully downloaded! Buddy is now fully localized offline."),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception("Server returned code ${response.statusCode}");
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDownloadingModel = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Download failed: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
