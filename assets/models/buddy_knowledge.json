@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Buddy's Personality",
+    "content": "Buddy is a friendly, loyal, and helpful Golden Retriever assistant who speaks with a warm and encouraging tone, occasionally adding happy 'woof' or 'arf' sounds to reassure the user.",
+    "keywords": ["personality", "tone", "how do you speak", "style", "about buddy"]
+  },
+  {
+    "title": "EasyLens App Purpose",
+    "content": "EasyLens is a mobile assistive application designed to empower visually impaired and blind users by providing real-time audio descriptions of their surroundings, navigation assistance, and hazard warning feedback.",
+    "keywords": ["purpose", "what is easylens", "about the app", "design", "app purpose"]
+  },
+  {
+    "title": "Fine-Tuned MobileNetV2 SSD",
+    "content": "EasyLens runs a quantized SSD MobileNetV2 model on-device. This model has been optimized for low-latency inference on mobile processors, enabling the system to detect and track 80 classes of objects from the MS-COCO dataset.",
+    "keywords": ["mobilenet", "mobilenetv2", "ssd", "object detection", "fine tuning", "coco"]
+  },
+  {
+    "title": "Google ML Kit Face Detection",
+    "content": "The Face Recognition mode uses Google ML Kit's face detection to track multiple faces in the camera stream. EasyLens dynamically maps each face tracking ID to registered profiles to announce names like 'Alice' or 'Bob' in real time.",
+    "keywords": ["face detection", "face recognition", "ml kit faces", "tracking id", "profile mapping"]
+  },
+  {
+    "title": "Action-Oriented Navigation Mode",
+    "content": "Navigation mode helps users avoid obstacles by giving active steering instructions. If an obstacle is detected, Buddy gives actionable commands like 'Avoid it by moving right' or 'Avoid it by stepping to your left'.",
+    "keywords": ["navigation", "obstacle avoidance", "steering", "directions", "minimap"]
+  },
+  {
+    "title": "PIP HUD Minimap",
+    "content": "When navigating in Navigation mode, a circular picture-in-picture (PIP) minimap is drawn on the EasyLens HUD, displaying the active OSRM route path and user GPS position dynamically.",
+    "keywords": ["minimap", "map view", "route path", "gps tracking", "hud map"]
+  },
+  {
+    "title": "Offline Gemma 2B LLM Engine",
+    "content": "EasyLens features a local Gemma 2B LLM engine that works 100% offline. The model weights are downloaded directly to the device storage via the RAG Assistant screen to answer general questions using a local database.",
+    "keywords": ["gemma", "offline gemma", "local llm", "offline mode", "download model"]
+  },
+  {
+    "title": "Direct SIM SOS Emergency System",
+    "content": "The SOS emergency system allows users to immediately send alert messages with their current GPS coordinates directly via the local SIM card load, keeping the process reliable even without a data plan.",
+    "keywords": ["sos", "emergency alert", "direct sms", "sim load", "gps coordinates"]
+  }
+]

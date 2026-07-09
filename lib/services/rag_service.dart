@@ -22,7 +22,7 @@ class RagService {
   bool _gemmaInitialized = false;
   bool _isGemmaModelInstalled = false;
 
-  final List<KnowledgeItem> _localKnowledgeBase = [
+  List<KnowledgeItem> _localKnowledgeBase = [
     KnowledgeItem(
       title: "Buddy's Identity",
       content: "Buddy is a loyal golden retriever dog who wears a blue cap and blue collar shirt. He serves as an on-device vision assistant for the EasyLens app, helping users explore their environments and identify items.",
@@ -50,9 +50,25 @@ class RagService {
     ),
   ];
 
+  Future<void> loadKnowledgeBase() async {
+    try {
+      final jsonText = await rootBundle.loadString('assets/models/buddy_knowledge.json');
+      final List<dynamic> data = jsonDecode(jsonText);
+      _localKnowledgeBase = data.map((item) => KnowledgeItem(
+        title: item['title'],
+        content: item['content'],
+        keywords: List<String>.from(item['keywords']),
+      )).toList();
+      print('[RAG] Loaded ${_localKnowledgeBase.length} knowledge items from JSON asset file');
+    } catch (e) {
+      print('[RAG] Error loading knowledge JSON asset: $e. Falling back to default list.');
+    }
+  }
+
   bool get isGemmaReady => _gemmaInitialized && _isGemmaModelInstalled;
 
   Future<void> initializeGemma() async {
+    await loadKnowledgeBase();
     try {
       final modelPath = await _getLocalModelPath();
       if (modelPath != null) {
