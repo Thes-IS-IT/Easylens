@@ -15,6 +15,7 @@ import '../notifications/notifications_screen.dart';
 import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
 import '../../services/settings_service.dart';
+import '../../services/active_navigation_service.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -367,6 +368,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
             setState(() {
               _routePoints = points;
             });
+            ActiveNavigationService().startNavigation(
+              destinationName: _selectedPlace!['name'],
+              destinationLocation: end,
+              routePoints: points,
+            );
+            ActiveNavigationService().updateProgress(
+              currentStepText: _selectedPlace!['steps'][_currentStepIndex],
+              distanceRemaining: _selectedPlace!['dist'],
+              timeRemaining: _selectedPlace!['time'],
+              currentLocation: start,
+            );
           }
         }
       }
@@ -376,6 +388,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
         setState(() {
           _routePoints = [start, end];
         });
+        ActiveNavigationService().startNavigation(
+          destinationName: _selectedPlace!['name'],
+          destinationLocation: end,
+          routePoints: [start, end],
+        );
+        ActiveNavigationService().updateProgress(
+          currentStepText: _selectedPlace!['steps'][_currentStepIndex],
+          distanceRemaining: _selectedPlace!['dist'],
+          timeRemaining: _selectedPlace!['time'],
+          currentLocation: start,
+        );
       }
     } finally {
       _isFetchingRoute = false;
@@ -558,7 +581,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
         _currentStepIndex++;
       });
       final unit = SettingsService().selectedUnit;
-      TtsService().speak(_formatStep(steps[_currentStepIndex], unit));
+      final stepText = _formatStep(steps[_currentStepIndex], unit);
+      TtsService().speak(stepText);
+      ActiveNavigationService().updateProgress(
+        currentStepText: stepText,
+        distanceRemaining: _selectedPlace!['dist'],
+        timeRemaining: _selectedPlace!['time'],
+        currentLocation: _currentLocation,
+      );
     } else {
       setState(() {
         _navState = 2; // Arrived map view (Figma Screen 4)
@@ -566,10 +596,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
       TtsService().speak(
         "You have arrived at your destination, ${_selectedPlace!['name']}. Thank you for using EasyLens.",
       );
+      ActiveNavigationService().stopNavigation();
     }
   }
 
   void _cancelNavigation() {
+    ActiveNavigationService().stopNavigation();
     setState(() {
       _navState = 0;
       _selectedPlace = null;

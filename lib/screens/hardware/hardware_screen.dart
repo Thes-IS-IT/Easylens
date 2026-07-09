@@ -15,6 +15,8 @@ import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
 import '../../services/object_detector_service.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../../services/active_navigation_service.dart';
 import '../../services/face_registration_service.dart';
 import '../emergency/emergency_screen.dart';
 import '../settings/settings_screen.dart';
@@ -2012,6 +2014,147 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                           ),
                         ),
                       ),
+                    
+                    ListenableBuilder(
+                      listenable: ActiveNavigationService(),
+                      builder: (context, _) {
+                        final activeNav = ActiveNavigationService();
+                        if (_selectedHudMode != HudMode.navigation) {
+                          return const SizedBox.shrink();
+                        }
+                        
+                        return Stack(
+                          children: [
+                            Positioned(
+                              top: 16,
+                              right: 16,
+                              left: 150,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1.5),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                child: activeNav.isNavigating
+                                    ? Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                activeNav.currentStepText.toLowerCase().contains('left')
+                                                    ? Icons.turn_left
+                                                    : (activeNav.currentStepText.toLowerCase().contains('right')
+                                                        ? Icons.turn_right
+                                                        : Icons.directions),
+                                                color: Colors.cyanAccent,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  activeNav.currentStepText,
+                                                  style: GoogleFonts.inter(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            "To: ${activeNav.destinationName} • ${activeNav.distanceRemaining} (${activeNav.timeRemaining})",
+                                            style: GoogleFonts.inter(
+                                              color: Colors.cyanAccent,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Row(
+                                        children: [
+                                          const Icon(Icons.explore_outlined, color: Colors.amber, size: 14),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              "Start navigation on the Maps tab to synchronize turn directions here.",
+                                              style: GoogleFonts.inter(
+                                                color: Colors.white70,
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                            
+                            if (activeNav.isNavigating)
+                              Positioned(
+                                bottom: 16,
+                                right: 16,
+                                child: Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(60),
+                                    border: Border.all(color: Colors.cyanAccent, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.4),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(60),
+                                    child: GoogleMap(
+                                      key: ValueKey(activeNav.currentLocation),
+                                      initialCameraPosition: CameraPosition(
+                                        target: activeNav.currentLocation ?? const LatLng(15.1325, 120.5901),
+                                        zoom: 16.0,
+                                      ),
+                                      markers: {
+                                        Marker(
+                                          markerId: const MarkerId('current_loc'),
+                                          position: activeNav.currentLocation ?? const LatLng(15.1325, 120.5901),
+                                          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+                                        ),
+                                        if (activeNav.destinationLocation != null)
+                                          Marker(
+                                            markerId: const MarkerId('destination'),
+                                            position: activeNav.destinationLocation!,
+                                          ),
+                                      },
+                                      polylines: {
+                                        Polyline(
+                                          polylineId: const PolylineId('route_poly'),
+                                          points: activeNav.routePoints,
+                                          color: Colors.cyan,
+                                          width: 4,
+                                        ),
+                                      },
+                                      myLocationButtonEnabled: false,
+                                      zoomControlsEnabled: false,
+                                      mapToolbarEnabled: false,
+                                      compassEnabled: false,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ],
                 );
               },
