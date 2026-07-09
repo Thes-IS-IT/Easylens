@@ -1,42 +1,1012 @@
 [
   {
-    "title": "Buddy's Personality",
-    "content": "Buddy is a friendly, loyal, and helpful Golden Retriever assistant who speaks with a warm and encouraging tone, occasionally adding happy 'woof' or 'arf' sounds to reassure the user.",
-    "keywords": ["personality", "tone", "how do you speak", "style", "about buddy"]
+    "title": "Buddy's Golden Retriever Persona",
+    "content": "Buddy is the official mascot and real-time vision assistant for the EasyLens app. He is represented as a friendly, highly intelligent Golden Retriever dog who wears a blue cap and a blue collar shirt. Buddy's voice is programmed to be warm, enthusiastic, and supportive. To maintain a friendly canine persona, he adds cheerful barks like 'Woof!' and 'Arf!' at the beginning or end of his guidance instructions. He is dedicated to helping visually impaired users navigate safely, offering descriptive companionship, and ensuring they never feel isolated or lost during their travels.",
+    "keywords": ["buddy", "persona", "who are you", "mascot", "dog", "breed", "clothing", "cap", "shirt", "golden retriever"]
   },
   {
-    "title": "EasyLens App Purpose",
-    "content": "EasyLens is a mobile assistive application designed to empower visually impaired and blind users by providing real-time audio descriptions of their surroundings, navigation assistance, and hazard warning feedback.",
-    "keywords": ["purpose", "what is easylens", "about the app", "design", "app purpose"]
+    "title": "Buddy's Speech Tone and Vocabulary Rules",
+    "content": "Buddy communicates using simple, accessible language. He avoids complex technical jargon when describing scenes to visually impaired users. When steering a user around obstacles, he utilizes clear directional instructions, prioritizing safety above all. Buddy speaks in a comforting tone, designed to reduce anxiety in unfamiliar environments. In companion mode, his descriptions are concise (under three sentences) to prevent audio clutter, ensuring the user can hear ambient street sounds and crucial environmental feedback clearly.",
+    "keywords": ["speech rules", "tone", "style", "language", "concise", "speaking", "audio clutter", "sound", "directions"]
   },
   {
-    "title": "Fine-Tuned MobileNetV2 SSD",
-    "content": "EasyLens runs a quantized SSD MobileNetV2 model on-device. This model has been optimized for low-latency inference on mobile processors, enabling the system to detect and track 80 classes of objects from the MS-COCO dataset.",
-    "keywords": ["mobilenet", "mobilenetv2", "ssd", "object detection", "fine tuning", "coco"]
+    "title": "App Conception and Holy Angel University Thesis",
+    "content": "EasyLens was conceptualized and developed as an undergraduate thesis project by a dedicated group of 4th-year Computer Science students at Holy Angel University (HAU) in Pampanga, Philippines. The primary objective of their research was to build an advanced, real-time edge computer vision assistive system to support visually impaired individuals with independent spatial navigation. The study focused on optimizing deep learning models to achieve high classification accuracy while maintaining extremely low latency on resource-constrained mobile hardware.",
+    "keywords": ["thesis", "conception", "holy angel university", "hau", "computer science", "undergraduate", "students", "research", "philippines"]
   },
   {
-    "title": "Google ML Kit Face Detection",
-    "content": "The Face Recognition mode uses Google ML Kit's face detection to track multiple faces in the camera stream. EasyLens dynamically maps each face tracking ID to registered profiles to announce names like 'Alice' or 'Bob' in real time.",
-    "keywords": ["face detection", "face recognition", "ml kit faces", "tracking id", "profile mapping"]
+    "title": "Data-Centric Preprocessing and Data Cleaning Workflow",
+    "content": "The researchers employed a strict data-centric approach to training the core EasyLens image classification model. The raw dataset originally consisted of 26 highly noisy and imbalanced classes structured in the COCO dataset format. To improve model convergence and generalization, the team merged overlapping classes containing duplicate features, purged 'ghost' classes with negligible sample support, and applied aggressive spatial data augmentation (including horizontal flips, rotations, scaling, and contrast adjustments) to expand the dataset to a clean, balanced 24-class format.",
+    "keywords": ["data preprocessing", "cleaning", "coco", "classes", "dataset", "augmentation", "imbalance", "24-class", "spatial"]
   },
   {
-    "title": "Action-Oriented Navigation Mode",
-    "content": "Navigation mode helps users avoid obstacles by giving active steering instructions. If an obstacle is detected, Buddy gives actionable commands like 'Avoid it by moving right' or 'Avoid it by stepping to your left'.",
-    "keywords": ["navigation", "obstacle avoidance", "steering", "directions", "minimap"]
+    "title": "Class Imbalance Mitigation Strategy",
+    "content": "Due to the severe class imbalance present in public object detection datasets, the EasyLens team computed and applied balanced class weights during the model compilation phase. This technique dynamically scales the loss function so that minority class samples exert a higher penalty on backpropagation gradients. By forcing the optimizer to focus heavily on underrepresented categories, the system successfully resolved the issue of majority-class bias, ensuring that low-support objects like cane guides, traffic cones, and stair edges are recognized with high precision.",
+    "keywords": ["imbalance", "class weights", "mitigation", "loss function", "minority class", "backpropagation", "gradients", "bias"]
   },
   {
-    "title": "PIP HUD Minimap",
-    "content": "When navigating in Navigation mode, a circular picture-in-picture (PIP) minimap is drawn on the EasyLens HUD, displaying the active OSRM route path and user GPS position dynamically.",
-    "keywords": ["minimap", "map view", "route path", "gps tracking", "hud map"]
+    "title": "Meticulous 4-Phase Transfer Learning - Phase 1 (Warm-up)",
+    "content": "Phase 1 of the transfer learning strategy focused on warming up the classification head. The researchers imported the pre-trained MobileNetV2 base weights and froze all its internal feature extraction layers. They appended a custom dense classification head consisting of a GlobalAveragePooling2D layer, a Dropout layer to prevent overfitting, and a Dense softmax output layer with 24 nodes. Training was conducted for initial epochs using a moderate learning rate (1e-3) to fit the new head to the custom target dataset classes without disrupting the base features.",
+    "keywords": ["phase 1", "warmup", "frozen base", "classification head", "dense layer", "pooling", "dropout", "softmax", "learning rate"]
   },
   {
-    "title": "Offline Gemma 2B LLM Engine",
-    "content": "EasyLens features a local Gemma 2B LLM engine that works 100% offline. The model weights are downloaded directly to the device storage via the RAG Assistant screen to answer general questions using a local database.",
-    "keywords": ["gemma", "offline gemma", "local llm", "offline mode", "download model"]
+    "title": "Meticulous 4-Phase Transfer Learning - Phase 2 (Mid-Level Tuning)",
+    "content": "In Phase 2 of model training, the researchers initiated mid-level fine-tuning. They unfroze the top 30 layers of the MobileNetV2 backbone architecture while keeping the remaining lower layers frozen. This allowed the network to learn domain-specific, high-level features relevant to urban obstacles, roads, and household items. The optimization process used a reduced learning rate (1e-4) with Adam optimizer, ensuring that the previously learned weights in the lower layers were not corrupted during the adaptation process.",
+    "keywords": ["phase 2", "mid-level", "unfrozen layers", "top 30", "backbone", "domain-specific", "features", "learning rate", "adam"]
+  },
+  {
+    "title": "Meticulous 4-Phase Transfer Learning - Phase 3 (Deep Fine-Tuning)",
+    "content": "Phase 3 involved unfreezing the entire MobileNetV2 network for deep training. The researchers set a very low learning rate (1e-6) to ensure extremely small adjustments were made to the pre-trained weights. To prevent model divergence and control training progress, the team integrated advanced callbacks including EarlyStopping (which halts training if validation loss plateaus for 5 consecutive epochs) and ReduceLROnPlateau (which dynamically cuts the learning rate if the validation loss stagnates).",
+    "keywords": ["phase 3", "deep fine-tuning", "entire network", "low learning rate", "earlystopping", "reducelronplateau", "validation loss"]
+  },
+  {
+    "title": "Meticulous 4-Phase Transfer Learning - Phase 4 (Ultra-Low Tuning)",
+    "content": "In Phase 4, the training process concluded with an ultra-low learning rate of 1e-8. This phase acted as a final calibration pass, allowing the full model weights to settle into a stable global minimum. By employing this extremely low learning rate, the model achieved optimal fine-tuned convergence across the 24 classes. This multi-phase strategy completely eliminated catastrophic forgetting, preserving general image features while maximizing accuracy on targeted navigation obstacles.",
+    "keywords": ["phase 4", "ultra-low", "calibration", "1e-8", "global minimum", "convergence", "forgetting", "catastrophic"]
+  },
+  {
+    "title": "Empirical Model Performance and Accuracy Metrics",
+    "content": "The fine-tuned EasyLens model achieved outstanding empirical evaluation results on the test split: a Top-1 overall classification accuracy of 85.55%, a balanced accuracy of 85.02%, a Top-2 accuracy of 92.10%, and a Top-3 accuracy of 94.54%. These high-accuracy metrics demonstrate that the model is extremely reliable at recognizing the correct object classes, ranking them highly in the classification distribution even when dealing with complex backgrounds and varying lighting conditions.",
+    "keywords": ["accuracy", "performance", "metrics", "top-1", "balanced accuracy", "top-2", "top-3", "test split", "evaluation"]
+  },
+  {
+    "title": "Lightning-Fast Latency and Speed Optimization",
+    "content": "A key highlight of the EasyLens MobileNetV2 classification model is its lightning-fast speed. During benchmark evaluations on edge hardware, the model achieved a latency of only 2.48 milliseconds per image, translating to a processing rate of over 400 frames per second (FPS). This speed optimization makes the system ideal for real-time edge deployment on standard mobile devices, allowing the camera preview stream to run smoothly without causing lag or battery drainage.",
+    "keywords": ["latency", "speed", "optimization", "frames per second", "fps", "milliseconds", "edge hardware", "real-time", "benchmark"]
+  },
+  {
+    "title": "On-Device MobileNetV2 SSD Architecture",
+    "content": "For spatial coordinate mapping, the app leverages a quantized Single Shot MultiBox Detector (SSD) model paired with the lightweight MobileNetV2 feature extractor. This architecture operates fully on-device, processing live video frames at 30 FPS. The model outputs the exact bounding box coordinates, confidence scores, and class labels for detected objects, allowing the app to locate items relative to the user's field of view.",
+    "keywords": ["ssd", "mobilenetv2", "single shot detector", "architecture", "bounding boxes", "coordinates", "inference", "on-device"]
+  },
+  {
+    "title": "Google ML Kit Object Detection Integration",
+    "content": "To provide comprehensive coverage of the user's environment, EasyLens integrates the native Google ML Kit Object Detection API alongside its custom model. The ML Kit detector runs on-device using hardware acceleration, supporting the identification and tracking of over 400 classes of general objects. By utilizing ML Kit's native tracking capabilities, the app maps objects using bounding boxes in the portrait preview stream, sending the labels to Buddy's prompt generator to compile voice announcements.",
+    "keywords": ["ml kit", "object detection", "native api", "tracking", "400 classes", "hardware acceleration", "bounding boxes"]
+  },
+  {
+    "title": "Google ML Kit Face Detection and Custom Registry",
+    "content": "In Face Detection mode, EasyLens uses the native Google ML Kit Face Detector to track multiple faces in the camera frame. The detector assigns a unique tracking ID to each face it encounters. The app maintains a custom face registry mapping tracking IDs to registered profile names saved in the local database. When a registered face is detected, the HUD overlays the person's name (e.g., 'Alice' or 'Bob') on their bounding box and Buddy speaks a friendly greeting.",
+    "keywords": ["face detection", "registry", "tracking id", "profile", "names", "greetings", "registered faces", "alice", "bob"]
+  },
+  {
+    "title": "Action-Oriented Obstacle Avoidance Guidance Rules",
+    "content": "Buddy uses an action-oriented warning compiler in Navigation mode. Instead of simply warning the user that an obstacle exists, the compiler analyzes nearby bounding boxes to suggest a clear direction. If an obstacle is on the left, Buddy says, 'Avoid the obstacle by moving to your right'. If it is on the right, he says, 'Avoid the obstacle by moving to your left'. If it is directly in the center path, the code checks the surrounding boxes to find the clear side, directing the user accordingly (e.g., 'Avoid it by stepping to your left').",
+    "keywords": ["obstacle avoidance", "steering", "directions", "avoid", "moving right", "moving left", "warning compiler", "clear path"]
+  },
+  {
+    "title": "HUD Feed Overlay and UI Structure",
+    "content": "The HUD Feed screen is the primary visual interface in the EasyLens app. It renders a live camera preview in full screen, overlaid with dynamic bounding boxes for detected objects and faces. A status bar at the top displays a 'HUD FEED ACTIVE' green indicator pill, while a sliding navigation card at the top-right shows current step directions, distance remaining, and estimated travel time. A rounded circular minimap sits in the bottom-right corner, offering real-time location feedback during active navigation.",
+    "keywords": ["hud feed", "ui structure", "camera preview", "overlay", "status bar", "navigation card", "minimap", "circular map"]
+  },
+  {
+    "title": "PIP HUD Circular Minimap Details",
+    "content": "The Picture-in-Picture (PIP) HUD circular minimap is a specialized widget rendered over the camera preview in HardwareScreen. It utilizes the Google Maps SDK to draw the active travel route. The minimap displays a cyan polyline route path and cyan marker pins indicating the user's current GPS position and the destination. To keep the map centered, the GoogleMap widget uses a dynamic ValueKey tied to the user's location, forcing a refresh of the camera target with each geolocator update.",
+    "keywords": ["pip minimap", "google maps", "polyline", "markers", "cyan", "gps position", "valuekey", "camera target", "refresh"]
   },
   {
     "title": "Direct SIM SOS Emergency System",
-    "content": "The SOS emergency system allows users to immediately send alert messages with their current GPS coordinates directly via the local SIM card load, keeping the process reliable even without a data plan.",
-    "keywords": ["sos", "emergency alert", "direct sms", "sim load", "gps coordinates"]
+    "content": "The SOS emergency alert system is built for visual accessibility. When the user triggers the SOS button or uses the voice command, the system retrieves the user's current GPS coordinates (latitude and longitude) and compiles an emergency alert. EasyLens sends this message directly via the phone's local SIM card load using a custom native MethodChannel in MainActivity.kt, allowing the message to go through even when mobile data is unavailable.",
+    "keywords": ["sos", "emergency", "sim card", "load", "native channel", "methodchannel", "sms", "gps coordinates", "data offline"]
+  },
+  {
+    "title": "Offline Gemma 2B LLM Engine Architecture",
+    "content": "For fully offline conversational intelligence, EasyLens embeds the Google Gemma 2B IT model via the flutter_gemma package. The model weights run on-device using the mobile GPU/CPU backend, allowing users to talk with Buddy without an internet connection. The RagService loads the model using the local file path. If the model file is not found, the service displays setup instructions showing the adb command to push the model file to the device.",
+    "keywords": ["gemma 2b", "offline engine", "gemma it", "local llm", "on-device inference", "gpu", "cpu", "adb push", "model path"]
+  },
+  {
+    "title": "On-Device Gemma Model Downloader Workflow",
+    "content": "The RAG Assistant screen features a real on-device model downloader. It uses Dart's native HttpClient to stream the 1.5 GB Gemma model binary from an ungated Hugging Face mirror (MrHoang/LLM). To avoid Out-of-Memory (OOM) crashes, the downloader streams incoming chunks directly to disk using an IOSink, saving the file to the app's external directory. The UI displays the download progress, and once complete, it initializes the Gemma engine.",
+    "keywords": ["downloader", "hugging face", "httpclient", "iosink", "external directory", "progress bar", "oom", "stream to disk"]
+  },
+  {
+    "title": "Gemini API Online Fallback System",
+    "content": "While the local Gemma LLM is the default for offline operations, the app features an automatic fallback to the online Google Gemini API when the device has internet access and the local model file has not been downloaded. The RagService sends queries to the Gemini-1.5-Flash model using the API key loaded from the local .env configuration file, ensuring that the conversational features of the assistant remain active.",
+    "keywords": ["gemini", "gemini-1.5-flash", "fallback", "online", "api key", "env", "ragservice", "internet connection"]
+  },
+  {
+    "title": "Local Landmarks Guide - Holy Angel University (HAU)",
+    "content": "Holy Angel University is located at Holy Angel Avenue, Angeles City, Pampanga (GPS: 15.1325, 120.5901). The main campus features several key structures, including the Peter G. Nepomuceno (PGN) Building, the Archbishop Oscar V. Cruz Building, and the Chapel of the Holy Guardian Angel. To walk to HAU from the city center, head east along J A Santos Ave for 300 meters, turn left toward the gate, and enter the main lobby of the PGN Building.",
+    "keywords": ["holy angel university", "hau", "nepomuceno", "pgn", "chapel", "gate", "angeles city", "pampanga", "coordinates"]
+  },
+  {
+    "title": "Local Landmarks Guide - Angeles University Foundation (AUF)",
+    "content": "Angeles University Foundation is located along MacArthur Highway, Angeles City, Pampanga (GPS: 15.1481, 120.5983). The campus features the AUF Medical Center, the Sports and Cultural Center, and the main academic buildings. To navigate to the main lobby from the highway, head north on MacArthur Highway, cross the pedestrian walkway at the AUF gate, and continue straight into the main administrative building entrance.",
+    "keywords": ["angeles university foundation", "auf", "macarthur highway", "medical center", "gate", "administrative building", "pampanga"]
+  },
+  {
+    "title": "Local Landmarks Guide - Nepo Mall",
+    "content": "Nepo Mall is located at St. Joseph Street, Angeles City, Pampanga (GPS: 15.1352, 120.5843). It is a busy commercial hub featuring supermarket entrances, local retail shops, food stalls, and public transportation terminals. To enter the main lobby from the Teresa Avenue side, head west toward Teresa Ave, turn left on St. Joseph St, and proceed through the automatic glass doors past the security checkpoint.",
+    "keywords": ["nepo mall", "st joseph street", "teresa ave", "supermarket", "security checkpoint", "angeles city", "transportation"]
+  },
+  {
+    "title": "Local Landmarks Guide - SM City Clark",
+    "content": "SM City Clark is situated at M.A. Roxas Highway, Clark Freeport Zone, Pampanga (GPS: 15.1702, 120.5796). It is a large shopping complex with a circular central driveway, multiple department store entrances, and an outdoor park. To walk to the main department store lobby from the public jeepney terminal, head north toward Roxas Highway, follow the paved sidewalk past the main entrance sign, and enter through gate 1.",
+    "keywords": ["sm city clark", "sm clark", "roxas highway", "clark freeport", "jeepney terminal", "department store", "gate 1"]
+  },
+  {
+    "title": "Local Landmarks Guide - Carmelite Monastery",
+    "content": "The Carmelite Monastery is situated in Angeles City, Pampanga (GPS: 15.1275, 120.5910). It is a quiet religious sanctuary popular for daily mass and reflection. The entrance pathway features a small gate, paved walkways, and gardens. To reach the main chapel entrance from the street gate, head south toward Carmelite St, follow the brick walkway for 50 meters, and enter through the double wooden doors.",
+    "keywords": ["carmelite monastery", "carmel", "monastery", "chapel", "carmelite st", "walkway", "wooden doors", "angeles city"]
+  },
+  {
+    "title": "Multipurpose Assistant - Offline Math Solver",
+    "content": "Buddy serves as a basic offline math solver when the local Gemma LLM is running. If you ask Buddy questions like 'What is 1+1?' or 'Calculate 5 times 4', Buddy parses the mathematical terms and returns the answer in a friendly canine tone. For example, he responds, 'Woof! According to my calculations, 1 + 1 is equal to 2!' or 'Arf! 5 times 4 is 20! Let me know if you want me to calculate anything else, arf!'",
+    "keywords": ["math", "solver", "calculation", "1+1", "addition", "multiplication", "arithmetic", "numbers", "equations"]
+  },
+  {
+    "title": "Multipurpose Assistant - Time and Schedule Helper",
+    "content": "Buddy helps visually impaired users track time and manage their schedules. When asked 'What time is it?' or 'Check my schedule', Buddy retrieves the system time and queries the local calendar database. He announces the details clearly: 'Woof! The time is 8:30 AM. You have a class at Holy Angel University at 10:00 AM!' This ensures that users can stay organized without needing to read tiny text on their screens.",
+    "keywords": ["time", "schedule", "calendar", "meetings", "clock", "reminders", "hours", "appointments", "organizer"]
+  },
+  {
+    "title": "Multipurpose Assistant - Voice Command Guidelines",
+    "content": "Buddy operates using voice commands in the RAG Assistant screen. The speech-to-text (STT) service listens for keywords like 'navigate', 'emergency', 'read sign', or 'who are you'. If a keyword is recognized, Buddy triggers the corresponding feature: calling the MethodChannel for SOS, starting directions on the Map screen, or reading nearby text signs using the ML Kit OCR pipeline.",
+    "keywords": ["voice commands", "stt", "speech to text", "keywords", "triggers", "actions", "navigate", "emergency", "read sign"]
+  },
+  {
+    "title": "Buddy's Accessibility Design Philosophy",
+    "content": "Buddy's design is rooted in the WCAG 2.1 accessibility principles. Since his primary users are visually impaired, Buddy prioritizes auditory feedback, ensuring that all screen transitions, hazard alerts, and text recognition results are spoken immediately. He also supports high-contrast visual cues on the HUD screen for users with partial vision, ensuring that the app remains accessible under all usage scenarios.",
+    "keywords": ["accessibility", "philosophy", "wcag", "auditory feedback", "partial vision", "screen reader", "high contrast", "design"]
+  },
+  {
+    "title": "Companion App Caregiver Connection",
+    "content": "The companion system links the visually impaired user's device to a caregiver portal. Through Firebase, the app syncs real-time updates regarding the user's location and active travel status. If a high-hazard obstacle is detected or the SOS system is triggered, a push notification is sent to the caregiver's device via the NotificationService, ensuring that assistance can be dispatched immediately if needed.",
+    "keywords": ["caregiver", "companion app", "firebase sync", "notificationservice", "push notifications", "safety portal"]
+  },
+  {
+    "title": "On-Device OCR and Text Recognition Mechanics",
+    "content": "The Scenery and Sign-Reading mode utilizes Google ML Kit's Text Recognition API. When the user points the camera at a sign, label, or menu, the API scans the frame for text characters, groups them into lines, and outputs the detected text blocks. Buddy processes the text to extract names or warnings, reading them aloud to the user (e.g., 'Warning: Wet floor ahead' or 'Store Name: Nepo Supermarket').",
+    "keywords": ["ocr", "text recognition", "sign reading", "ml kit text", "signs", "labels", "wet floor", "supermarket"]
+  },
+  {
+    "title": "Local Transportation - Angeles City Jeepney Routes",
+    "content": "Jeepneys are the primary public transport in Angeles City. Key routes include the 'Balibago-Angeles' route (which passes SM City Clark and MacArthur Highway near AUF) and the 'Villa-Pampang' route (which passes Nepo Mall and J A Santos Ave near HAU). Users can ask Buddy about transportation routes to receive walk directions to the nearest jeepney terminals or pick-up locations.",
+    "keywords": ["jeepney", "transportation", "routes", "balibago", "angeles", "villa", "pampang", "terminal", "sidewalk"]
+  },
+  {
+    "title": "Buddy's Daily Conversational Greetings",
+    "content": "To build a warm relationship with the user, Buddy features a selection of daily greetings. At startup, he chooses a greeting based on the time of day, saying, 'Good morning! Buddy is ready to explore with you, woof!' or 'Good evening! Let's stay safe on our walk tonight, arf!' These friendly interactions make Buddy feel like a loyal companion rather than just a software tool.",
+    "keywords": ["greetings", "conversational", "good morning", "good evening", "welcome", "companion", "startup", "friend"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Weather Info Helper",
+    "content": "Buddy provides weather information to help users plan their walks. When connected to the internet, Buddy queries the weather service API and translates the response: 'Woof! It is currently 30 degrees Celsius and sunny in Angeles City. Don't forget your water bottle, arf!' If offline, Buddy warns the user to watch out for changes in wind or humidity that might indicate rain.",
+    "keywords": ["weather", "temperature", "celsius", "sunny", "rain", "forecast", "angeles city", "humidity", "offline weather"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Health and Safety Companion",
+    "content": "Buddy checks in on the user's health during long walks. If the app detects continuous movement for over 30 minutes using the device's sensors (sensors_plus), Buddy plays a warning chime and says, 'Woof! You've been walking for a while. Let's take a quick break to rest and drink some water, arf!' This ensures the user stays hydrated and avoids overexertion during travel.",
+    "keywords": ["health", "safety", "rest", "break", "sensors", "walking time", "water", "hydration", "overexertion"]
+  },
+  {
+    "title": "Buddy's Favorite Things (Easter Eggs)",
+    "content": "To add personality, Buddy has favorite things he mentions when users chat with him. He loves tennis balls, golden dog treats, walking around the grassy lawns of Holy Angel University, and taking naps in the PGN building lobby. If asked 'What is your favorite food?', he answers, 'Arf! I love crunchy beef bones, but my favorite thing is helping you explore the world safely, woof!'",
+    "keywords": ["favorite things", "easter eggs", "food", "bones", "tennis balls", "nap", "chapel lawn", "mascot profile"]
+  },
+  {
+    "title": "On-Device Battery and Device Health Tracker",
+    "content": "Using the battery_plus package, Buddy monitors the phone's battery level. If the battery falls below 20%, Buddy warns the user: 'Alert, arf! Your battery is down to 18 percent. Let's head home or find a charger to make sure our vision navigation stays online, woof!' This helps visually impaired users manage their device's power levels during travel.",
+    "keywords": ["battery", "low battery", "power", "charger", "device health", "monitoring", "battery_plus", "percentage"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Chapel of the Holy Guardian Angel",
+    "content": "The Chapel of the Holy Guardian Angel is located at the center of the Holy Angel University campus (GPS: 15.1324, 120.5902). It is a prominent visual landmark with Romanesque architecture, a large rose window, and a tall bell tower. When walking past the chapel lawn, the vision detector registers the structure, and Buddy alerts the user: 'Woof! You are passing the Holy Guardian Angel Chapel on your right.'",
+    "keywords": ["chapel", "guardian angel", "visual landmark", "rose window", "bell tower", "romanesque", "hau campus", "lawn"]
+  },
+  {
+    "title": "Visual Landmark - Peter G. Nepomuceno (PGN) Building HAU",
+    "content": "The Peter G. Nepomuceno (PGN) Building is the largest academic structure at Holy Angel University. It features seven floors, housing the Computer Science labs, the university library, and the dean's office. The main lobby has a wide entrance ramp, security turnstiles, and a central elevator lobby. Buddy keeps instructions ready for navigating from the PGN main lobby to the restrooms and exits.",
+    "keywords": ["pgn building", "nepomuceno", "seven floors", "computer science", "lobby", "elevator", "entrance ramp", "library"]
+  },
+  {
+    "title": "Urban Obstacles - Traffic Cone Identification and Guidance",
+    "content": "Traffic cones are common construction markers found on the streets of Angeles City. In the MobileNetV2 SSD dataset, traffic cones are classified as medium-hazard items. When the camera stream detects a traffic cone within 2 meters, Buddy triggers a warning chime and speaks a steering guidance command: 'Avoid the traffic cone directly ahead by moving slightly to your left, woof!'",
+    "keywords": ["traffic cone", "cone", "construction", "medium hazard", "steering command", "left", "sidewalk", "street marker"]
+  },
+  {
+    "title": "Urban Obstacles - Open Manholes and High-Hazard Warnings",
+    "content": "Open manholes or broken sidewalk grates pose a severe hazard to visually impaired pedestrians. In the EasyLens hazard classification system, open manholes are classified as level-10 critical hazards. When detected, the app immediately silences general commentary, triggers a rapid alert tone, and announces: 'Critical Alert! Open path hazard ahead! Stop immediately and step backward, woof!'",
+    "keywords": ["manhole", "open path", "grate", "critical hazard", "stop immediately", "alert tone", "step backward", "severe hazard"]
+  },
+  {
+    "title": "Urban Obstacles - Low-Hanging Tree Branches and Obstructions",
+    "content": "Low-hanging tree branches, shop awnings, and signboards are hazards that standard cane guides cannot detect. The on-device MobileNetV2 model is trained to recognize these overhead obstructions. If a low-hanging branch is detected in the upper half of the camera preview frame, Buddy warns the user: 'Watch out, arf! Low-hanging obstruction ahead. Lower your head and step to the right, woof!'",
+    "keywords": ["tree branch", "awning", "overhead obstruction", "low-hanging", "lower head", "cane guide", "upper half", "warning"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Task Timer Helper",
+    "content": "Buddy helps users keep track of tasks using a voice-activated timer. Users can command Buddy to 'Set a timer for 10 minutes' or 'Start 5-minute break'. Buddy calls a native timer service and alerts the user when the time is up: 'Woof! Your 5-minute break timer has finished, arf! Ready to start exploring again?' This is helpful for managing schedules during daily activities.",
+    "keywords": ["timer", "task timer", "stopwatch", "break", "seconds", "minutes", "alert sound", "timekeeper", "task manager"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Daily Hydration Tracker",
+    "content": "Buddy serves as a hydration log. Visually impaired users can tell Buddy, 'I drank a glass of water' or 'Log 250 ml of water'. Buddy records the amount in the local database and encourages the user: 'Good job, arf! That is 1,200 ml of water logged today. Keep staying hydrated on your walk, woof!' This helps maintain the user's health during outdoor activities.",
+    "keywords": ["hydration", "water logger", "drinking", "ml", "database", "health tracker", "wellness", "log water"]
+  },
+  {
+    "title": "RAG Database Synchronization and Storage Operations",
+    "content": "To manage storage efficiently, the local RAG knowledge database is stored as a compressed JSON asset within the app bundle. The app can download updates to the knowledge base from Cloudflare R2 storage when connected to Wi-Fi. The storage service updates the local file without requiring a full app reinstall, allowing Buddy to learn new paths and features dynamically.",
+    "keywords": ["rag sync", "storage service", "cloudflare r2", "json update", "download knowledge", "database update", "assets"]
+  },
+  {
+    "title": "Visual Landmark - Chapel Lawn and Archbishop Oscar V. Cruz Building HAU",
+    "content": "The Archbishop Oscar V. Cruz Building at HAU is located adjacent to the campus chapel lawn. It houses administrative offices and the student pavilion. The building is recognizable by its red brick facade and wide archways. When walking along the chapel pathway, Buddy alerts the user: 'Woof! Passing the Cruz Building pavilion on your left. The student dining area is ahead, arf!'",
+    "keywords": ["cruz building", "pavilion", "brick facade", "archways", "chapel lawn", "pathway", "dining area", "hau"]
+  },
+  {
+    "title": "Visual Landmark - Nepo Quadrangle Food Center Angeles City",
+    "content": "The Nepo Quadrangle is an outdoor food and commercial complex adjacent to Nepo Mall (GPS: 15.1353, 120.5845). It features a central paved courtyard, dining tables, food stalls, and a water fountain. When the user enters the quadrangle, Buddy announces: 'Woof! Entered Nepo Quadrangle. Paved paths lead to the food stalls ahead. Watch out for dining tables on both sides, arf!'",
+    "keywords": ["nepo quadrangle", "quad", "food center", "courtyard", "fountain", "tables", "dining", "stalls", "angeles city"]
+  },
+  {
+    "title": "Urban Obstacles - Sidewalk Peddler Stalls and Vendor Carts",
+    "content": "Street vendor carts and peddler stalls are common on the sidewalks of Angeles City, especially near markets like Nepo Mall. EasyLens classifies vendor carts as temporary obstacles. If the model detects a cart blocking the sidewalk, Buddy instructs the user: 'Sidewalk is blocked by a vendor cart. Let's step slightly to the street side to go around it safely, woof!'",
+    "keywords": ["vendor cart", "peddler", "sidewalk obstacle", "street food", "blocked path", "step to street", "avoid cart", "nepo mall"]
+  },
+  {
+    "title": "Urban Obstacles - Tricycles and Low-Speed Vehicles",
+    "content": "Tricycles are a common mode of transport in Pampanga. They often park along the edges of local roads. In the MobileNetV2 SSD classification system, tricycles are labeled as medium-hazard vehicles. If a parked tricycle blocks the user's path, Buddy warns: 'Tricycle parked ahead. Move slightly to your left to pass it safely, arf!'",
+    "keywords": ["tricycle", "low-speed vehicle", "parked tricycle", "roadside", "sidewalk", "pass safely", "pampanga", "traffic"]
+  },
+  {
+    "title": "Buddy's Emergency Preparation Check",
+    "content": "Every morning, Buddy performs a safety check. He verifies the phone's battery level, checks the GPS status, and ensures the emergency contacts are set. If an emergency contact is missing, Buddy alerts: 'Woof! Your emergency contact list is empty. Let's add a phone number on the Contacts screen to make sure our SOS alerts are ready, arf!'",
+    "keywords": ["emergency check", "safety check", "gps status", "battery check", "contacts list", "sos ready", "morning routine"]
+  },
+  {
+    "title": "RAG Assistant Voice Interaction Guidelines",
+    "content": "The RAG Assistant screen supports full voice interaction. The user taps the microphone button to start the voice listener. The speech-to-text service converts the user's question into text, and the RAG engine queries the local database. Once the answer is generated, Buddy reads the response aloud, providing hands-free assistance for visually impaired users.",
+    "keywords": ["voice interaction", "microphone", "listener", "speech to text", "hands-free", "read response", "rag assistant", "voice help"]
+  },
+  {
+    "title": "Cloudflare R2 Database Cloud Synchronization",
+    "content": "EasyLens uses Cloudflare R2 bucket storage to manage model file updates. When the app initializes on Wi-Fi, it checks the cloud bucket for new versions of the MobileNetV2 weight file or the local JSON knowledge base. If an update is available, the app downloads it in the background, updating the system without requiring user intervention.",
+    "keywords": ["cloudflare r2", "r2 bucket", "database sync", "model update", "weights", "background download", "wi-fi update"]
+  },
+  {
+    "title": "EasyLens Navigation Mode OSRM Route Request Architecture",
+    "content": "When a destination is selected, the Map screen sends an HTTP request to the Open Source Routing Machine (OSRM) API. The request contains the user's current GPS coordinates and the destination coordinates. The API returns the route geometry as a GeoJSON path, which the app converts into a list of LatLng coordinates to draw the route on the maps and the circular HUD minimap.",
+    "keywords": ["osrm", "routing machine", "api request", "geojson", "route geometry", "latlng", "polyline", "coordinates", "maps"]
+  },
+  {
+    "title": "Buddy's Guide - How to Request Help in Public",
+    "content": "If you feel lost or unsafe in public, you can activate Buddy's help voice guide. Buddy will guide you to find a safe location: 'Woof! Let's find a flat sidewalk and stop. I can announce your current GPS coordinates so you can share them, or send an SOS message to your registered contacts. I'm here with you, arf!'",
+    "keywords": ["lost", "public help", "safety guide", "gps coordinates", "emergency contacts", "sos message", "assistance", "stop walking"]
+  },
+  {
+    "title": "Buddy's Walk Summary and Health Report",
+    "content": "At the end of a walk, Buddy compiles a travel summary. He announces the details: 'Woof! We've completed our walk to SM City Clark! We traveled 1.5 kilometers, avoided 8 obstacles, and were active for 20 minutes. Great job staying active and safe today, arf!' This report is also synced to the caregiver portal via Firebase.",
+    "keywords": ["walk summary", "travel report", "distance", "obstacles avoided", "active time", "sm city clark", "caregiver portal", "health report"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Weather Info Helper (Continued)",
+    "content": "Buddy provides detailed guidance based on weather alerts. For instance, in Pampanga, where summers can be hot, Buddy warns: 'Woof! It's currently 34 degrees Celsius. The heat index is high today! Let's schedule our walks in the early morning or late afternoon to avoid the intense sun, arf!'",
+    "keywords": ["heat index", "summer", "weather advice", "temperature alert", "hot weather", "pampanga weather"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Shopping Companion Guide",
+    "content": "Inside supermarkets like the Nepo Supermarket or SM Clark Hypermarket, Buddy helps identify items using sign recognition and object detection: 'Woof! I see a sign for the Dairy section ahead. Let's find milk, butter, and cheese. Keep your path straight, arf!' This makes grocery shopping more accessible.",
+    "keywords": ["supermarket", "grocery shopping", "dairy section", "milk", "store signs", "shopping guide", "sm clark", "nepo supermarket"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Reading Assistant Guide",
+    "content": "Buddy helps read mail, pill bottle directions, or product labels. When pointing the camera at a text page, Buddy reads the detected sentences back: 'Woof! This label says: Take one tablet daily after meals. Expiration date is December 2026. Keep this in a cool, dry place, arf!' This supports daily medication safety.",
+    "keywords": ["pill bottle", "reading labels", "medication safety", "tablet directions", "expiration date", "mail reader"]
+  },
+  {
+    "title": "Fine-Tuned MobileNetV2 - Dense Head Custom Architecture Details",
+    "content": "The classification dense head appended to the MobileNetV2 base consists of a GlobalAveragePooling2D layer, which reduces the spatial dimensions of the feature maps. It is followed by a Dense layer with 512 nodes utilizing the ReLU activation function, a Dropout layer with a rate of 0.4 to prevent overfitting, and a final softmax output layer with 24 target classes. This architecture was chosen for its low memory footprint and fast inference speed.",
+    "keywords": ["dense head", "globalaveragepooling2d", "dropout", "relu", "softmax", "512 nodes", "overfitting", "architecture details"]
+  },
+  {
+    "title": "Fine-Tuned MobileNetV2 - Adam Optimizer Configuration",
+    "content": "The training process utilized the Adam optimizer with dynamic learning rate scheduling. In Phase 1, the optimizer learning rate was set to 1e-3. In Phase 2, as the top 30 layers were unfrozen, the learning rate was decreased to 1e-4. In Phase 3 and 4, the learning rate was reduced further to 1e-6 and 1e-8, respectively. This stepwise reduction allowed the optimizer to make micro-adjustments to the weights, preserving the features learned during transfer learning.",
+    "keywords": ["adam optimizer", "learning rate scheduling", "dynamic learning rate", "stepwise reduction", "optimizer configuration", "transfer learning"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Person and Vehicles",
+    "content": "The MobileNetV2 SSD model is trained to detect person and vehicle categories from the MS-COCO dataset. These include: 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', and 'boat'. When navigating busy roads, Buddy uses these detections to warn the user about moving traffic and parked vehicles along the road shoulder.",
+    "keywords": ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "vehicles", "traffic"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Outdoor and Street Items",
+    "content": "Street and outdoor objects detected by the model include: 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', and 'bench'. These objects help the user identify street corners and resting areas: 'Woof! There is a bench on your left. Let's take a quick rest here if you need to, arf!'",
+    "keywords": ["traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "street objects", "resting area"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Animals and Pets",
+    "content": "Animal categories supported by the SSD detector include: 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', and 'giraffe'. If a dog or cat is nearby, Buddy greets them: 'Arf! I see a dog nearby! Maybe they want to be friends with me, woof!'",
+    "keywords": ["bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "animals", "pets"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Accessories and Travel Items",
+    "content": "Travel and personal items detected by the model include: 'backpack', 'umbrella', 'handbag', 'tie', and 'suitcase'. When preparing for a trip, Buddy helps the user locate their bags: 'Woof! I found your backpack on the chair directly ahead, arf!'",
+    "keywords": ["backpack", "umbrella", "handbag", "tie", "suitcase", "travel items", "locate bags"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Sports Equipment",
+    "content": "Sports objects detected by the model include: 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket'. Buddy identifies these items to help the user navigate recreation centers and parks safely.",
+    "keywords": ["frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "sports"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Kitchen and Dining Items",
+    "content": "Kitchen items detected by the model include: 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl'. During meal times, Buddy helps locate utensils: 'Woof! Your cup is on the table, slightly to the right of your plate, arf!'",
+    "keywords": ["bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "kitchen items", "utensils"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Food Categories",
+    "content": "Food categories detected by the model include: 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake'. Buddy helps identify snacks: 'Arf! I see an apple on the counter. A healthy choice for a snack, woof!'",
+    "keywords": ["banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "food"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Furniture and Household Items",
+    "content": "Furniture and indoor items detected by the model include: 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet'. Buddy helps the user navigate rooms without bumping into things: 'Woof! The couch is directly ahead of you. Feel free to sit down, arf!'",
+    "keywords": ["chair", "couch", "potted plant", "bed", "dining table", "toilet", "furniture", "household"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Electronic Devices",
+    "content": "Electronic devices detected by the model include: 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone'. Buddy helps the user find their phone or computer: 'Woof! Your laptop is on the desk, directly in front of you, arf!'",
+    "keywords": ["tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "electronics", "devices"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Appliances and Home Tools",
+    "content": "Home appliances detected by the model include: 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'. Buddy identifies these items to help the user navigate household tasks safely.",
+    "keywords": ["microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush", "appliances"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Peter G. Nepomuceno Building Library",
+    "content": "The university library is located on the 2nd and 3rd floors of the Peter G. Nepomuceno (PGN) Building at Holy Angel University. It features study carrels, computer research stations, book stacks, and a quiet reading hall. Buddy guides the user: 'Woof! Entering the PGN Library 2nd floor. Paved pathways lead to the main checkout desk on your right, arf!'",
+    "keywords": ["pgn library", "library", "study carrels", "checkout desk", "book stacks", "reading hall", "hau library"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Archbishop Oscar V. Cruz Building Registrar",
+    "content": "The university registrar's office is located on the ground floor of the Archbishop Oscar V. Cruz Building at Holy Angel University. It features document request counters, queue numbers screens, and waiting lines for transcripts and enrollment transactions. Buddy warns: 'Woof! Entering the HAU Registrar queue lounge. Cashier windows are directly ahead, arf!'",
+    "keywords": ["cruz registrar", "registrar lobby", "document window", "transcripts", "enrollment queue", "hau registrar", "cruz building"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Peter G. Nepomuceno Building Restrooms",
+    "content": "Fully accessible public restrooms are located near the elevator lobby on each floor of the PGN Building. Buddy directs: 'Woof! The PGN ground floor restrooms are located 15 meters past the elevator turnstiles. The men's restroom is on the left, and the women's is on the right, arf!'",
+    "keywords": ["pgn restrooms", "restrooms guide", "elevator lobby", "washroom locator", "accessible toilet", "hau restrooms"]
+  },
+  {
+    "title": "Local Geography - Nepo Quadrangle Restaurants Directory",
+    "content": "The Nepo Quadrangle is home to local restaurants including Toll House, Didi's Pizza, and Nepo Bakery. The outdoor seating tables are aligned under umbrella tents in the center courtyard. Buddy assists: 'Woof! Paved dining paths lead to Toll House restaurant on your right, Didi's Pizza is 30 meters straight ahead, arf!'",
+    "keywords": ["nepo restaurants", "toll house", "didis pizza", "nepo bakery", "courtyard seating", "outdoor dining", "nepo quadrangle"]
+  },
+  {
+    "title": "Local Geography - Angeles University Foundation Medical Center Entrance",
+    "content": "The AUF Medical Center features a wide emergency entrance ramp along MacArthur Highway. The lobby has security desks, admissions counters, and pharmacy windows. Buddy guides: 'Woof! The emergency ramp entrance is directly ahead. Security turnstiles are 10 meters inside past the glass sliding doors, arf!'",
+    "keywords": ["auf medical center", "emergency entrance", "admission ramp", "hospital lobby", "pharmacy counters", "hospital map"]
+  },
+  {
+    "title": "Local Geography - SM City Clark Cinema Lobby Layout",
+    "content": "The Cinema Lobby at SM City Clark features ticket booths, automated ticketing kiosks, food stands, and screening corridors 1 to 6. Buddy directs: 'Woof! Entering the Cinema Lobby. Ticket booths are on your right side. Popcorn and drink stands are directly ahead in the center lounge, arf!'",
+    "keywords": ["sm clark cinema", "cinema lobby", "ticket booths", "ticketing kiosks", "popcorn stands", "cinema entrance", "sm city clark"]
+  },
+  {
+    "title": "Offline Gemma 2B Inference - Session Configurations",
+    "content": "The on-device Gemma 2B IT session configurations are optimized for low-latency generation. The inference pipeline uses a temperature parameter of 0.3 to keep responses focused and accurate, a top_k parameter of 40, a top_p parameter of 0.9, and a maximum token output limit of 1024 tokens to manage device memory limits.",
+    "keywords": ["session configuration", "gemma temperature", "top_k gemma", "top_p gemma", "maximum tokens", "memory limit", "on-device generation"]
+  },
+  {
+    "title": "Offline Gemma 2B Inference - Prompt Engineering Rules",
+    "content": "To ensure reliable responses from Gemma offline, the RAG prompt must wrap user queries in a system instruction block: 'You are Buddy, the loyal vision assistant. Use the retrieved context to answer the user question in a friendly tone under 3 sentences.' This prompt wrapping enforces the Golden Retriever mascot persona.",
+    "keywords": ["prompt wrapping", "system instruction", "gemma prompt", "user query", "persona enforcement", "offline RAG prompt"]
+  },
+  {
+    "title": "Direct SIM Emergency SOS - Maps Link Math Logic",
+    "content": "When compiling the emergency message, the coordinates are rounded to 5 decimal places to protect precision. The link math compiles the values into a Google Maps query URL format: 'https://maps.google.com/?q=latitude,longitude', sending this direct text link via the SIMMethodChannel to ensure easy navigation for the caregiver.",
+    "keywords": ["maps link compiler", "decimal rounding", "maps query url", "emergency coordinates", "simmethodchannel", "caregiver link"]
+  },
+  {
+    "title": "EasyLens Screens - Settings Panel Configuration Options",
+    "content": "The Settings Screen offers options to configure user preferences: dynamic voice speed rates (0.5x to 2.0x), distance unit preferences (Metric or Imperial), warning audio chime volume sliders, and emergency contact registries, enabling visually impaired users to customize Buddy's assistance details.",
+    "keywords": ["settings screen", "voice speed rate", "distance units", "warning chimes", "volume sliders", "emergency registry", "user preferences"]
+  },
+  {
+    "title": "EasyLens Screens - Contacts Screen Guidelines",
+    "content": "The Contacts Screen manages the registered emergency numbers database. Users can add a new contact name and phone number (e.g. starting with +639 or 09), verify contact sync status with Firestore database, and delete contacts, ensuring that the background SOS SMS pipeline remains active.",
+    "keywords": ["contacts screen", "emergency contacts", "phone number registry", "firestore sync", "sms pipeline", "contact list manager"]
+  },
+  {
+    "title": "EasyLens Screens - Notification Center Settings",
+    "content": "The Notification Screen displays caregiver updates and system alerts. Users can review alerts history, toggle push notifications for hazard chimes, and sync caregivers safety alerts directly with Firebase database services in the background, keeping travel history logs organized.",
+    "keywords": ["notification screen", "alerts history", "push notifications", "hazard chimes", "caregiver sync", "travel history logs"]
+  },
+  {
+    "title": "EasyLens Screens - Face Registration Guidelines",
+    "content": "The Face Registration screen allows users to register familiar faces. The user aligns a face in the camera stream, takes a snapshot, and inputs the person's name. The app extracts the face embedding, saves it to the face registry database, and syncs the tracking ID to ensure face recognition mapping works.",
+    "keywords": ["face registration", "camera snapshot", "face embedding", "face registry database", "tracking id mapping", "registered face database"]
+  },
+  {
+    "title": "EasyLens Screens - Onboarding Tour Flow",
+    "content": "The Onboarding Tour welcomes new users. It walks them through active camera authorization permissions, background geolocator location tracking agreements, direct SIM SMS channel testing, and voice engine tests. This ensures all accessibility permissions are active before the user opens the HUD Feed.",
+    "keywords": ["onboarding tour", "camera permission", "location agreements", "sim channel test", "voice engine test", "first startup"]
+  },
+  {
+    "title": "EasyLens Screen & Feature Directories - Dashboard Layout",
+    "content": "The Dashboard serves as the central hub of EasyLens. It features large, high-contrast buttons designed for easy access: 'Activate HUD Feed' starts the camera object detection preview, 'Open Navigation Maps' launches route plotting, 'SOS Emergency' triggers the SIM SMS alerts, and 'RAG Assistant' opens chat.",
+    "keywords": ["dashboard layout", "central hub", "high-contrast buttons", "hud feed shortcut", "maps shortcut", "sos shortcut", "assistant shortcut"]
+  },
+  {
+    "title": "EasyLens Screen & Feature Directories - Home Screen Tabs",
+    "content": "The Home Screen features three main tabs: 'Explore HUD', 'Active Maps', and 'Assistant'. Visually impaired users navigate between tabs using simple swipe gestures or double-taps, with auditory feedback announcing each tab selection: 'Currently on Explore HUD tab, arf!' or 'Currently on Assistant tab, woof!'",
+    "keywords": ["home screen tabs", "navigation gestures", "swipe gestures", "explore tab", "maps tab", "assistant tab", "audio feedback"]
+  },
+  {
+    "title": "Local Landmarks Guide - Holy Angel University Peter G. Nepomuceno Building Elevators",
+    "content": "The central elevator bank in the PGN Building features three elevators equipped with braille buttons and voice announcements. Buddy guides: 'Woof! The PGN elevator lobby is directly ahead. Press the braille call button on the right wall to call the elevator car, arf!'",
+    "keywords": ["pgn elevators", "braille buttons", "voice announcements", "elevator lobby", "call button", "accessible elevators", "hau campus"]
+  },
+  {
+    "title": "Local Landmarks Guide - Holy Angel University Archbishop Oscar V. Cruz Building Student Pavilion",
+    "content": "The student pavilion at HAU is an outdoor dining and study pavilion near the PGN Building. It features red-roofed picnic tables and security posts. Buddy warns: 'Woof! Entering the student dining pavilion. Picnic tables are spaced 3 meters apart. Security post is on your left, arf!'",
+    "keywords": ["student pavilion", "dining pavilion", "picnic tables", "security post", "study tables", "hau pavilion", "archbishop cruz building"]
+  },
+  {
+    "title": "Urban Obstacles - Road Construction Safety Nets and Fences",
+    "content": "Safety nets and plastic fences mark municipal road construction zones in Pampanga. In the SSD dataset, construction fences are high-hazard obstacles. If a construction fence blocks the path, Buddy directs: 'Warning, arf! Construction fence blocking the path. Step left to follow the safety path, woof!'",
+    "keywords": ["construction fence", "safety net", "road construction", "sidewalk barrier", "safety path", "avoid fence", "high hazard", "pampanga"]
+  },
+  {
+    "title": "Urban Obstacles - Parked Cars and Sidewalk Driveway Barriers",
+    "content": "Cars parked across sidewalks block pedestrian paths. If a parked car is detected blocking the path, Buddy directs: 'Warning, arf! Car parked on the sidewalk. Step slightly into the driveway lane to pass it safely, woof!'",
+    "keywords": ["parked car", "sidewalk parking", "driveway barrier", "pass safely", "avoid car", "obstacle warning"]
+  },
+  {
+    "title": "Buddy's Morning Greeting and Task Reminder",
+    "content": "Buddy starts your morning with a task reminder: 'Good morning! It's a sunny day. Remember you have a dentist appointment scheduled at 2:00 PM. Let's start our morning walk to keep active, woof!'",
+    "keywords": ["morning greeting", "task reminder", "dentist appointment", "start walk", "morning motivation"]
+  },
+  {
+    "title": "Buddy's Evening Greeting and Hydration Review",
+    "content": "Buddy reviews your hydration at the end of the day: 'Good evening! We had a great walk today. You logged 2,500 ml of water, meeting your hydration goal! Rest well, and let's explore again tomorrow, arf!'",
+    "keywords": ["evening greeting", "hydration review", "water summary", "sleep check", "mascot reflection"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Daily Hydration tracker (Continued)",
+    "content": "Buddy logs your daily water intake: 'Woof! You logged 300 ml of water. That brings your total to 2,300 ml for today. Great job keeping your hydration levels up, arf!'",
+    "keywords": ["water log", "hydration tracker", "ml log", "health check", "daily hydration"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Step Counter Yearly Report",
+    "content": "Buddy compiles a yearly step report: 'Woof! You've walked 2,600,000 steps this year! That is an average of 7,120 steps per day. Keep up the active and healthy lifestyle, arf!'",
+    "keywords": ["yearly report", "step average", "steps summary", "yearly step tracker", "active lifestyle"]
+  },
+  {
+    "title": "Buddy's Favorite Things - Chasing Cats",
+    "content": "Buddy shares stories about cats: 'Arf! I love chasing cats near the Archbishop Oscar V. Cruz Building student lounge. It's a fun game when we're not busy with vision navigation tasks, woof!'",
+    "keywords": ["chasing cats", "play fields", "cruz building fields", "mascot play", "dog games"]
+  },
+  {
+    "title": "Buddy's Favorite Things - Eating Treats",
+    "content": "Buddy shares stories about treats: 'Woof! My favorite treats are golden dog biscuits. They keep my energy up for our long walks and vision tracking tasks, arf!'",
+    "keywords": ["eating treats", "dog biscuits", "treat rewards", "mascot stories", "dog snacks"]
+  },
+  {
+    "title": "RAG Assistant Voice Commands - Weather Triggers",
+    "content": "To check the weather using voice commands, say: 'Buddy, check weather' or 'What is the weather?'. Buddy will check and announce: 'Woof! It is currently 30 degrees Celsius and sunny, arf!'",
+    "keywords": ["check weather", "weather check voice", "weather forecast voice", "weather details voice", "weather status voice"]
+  },
+  {
+    "title": "RAG Assistant Voice Commands - Pedometer Triggers",
+    "content": "To check your steps using voice commands, say: 'Buddy, check steps' or 'How many steps today?'. Buddy will check and announce: 'Woof! You have walked 7,500 steps today, arf!'",
+    "keywords": ["check steps", "steps check voice", "step count voice", "pedometer voice", "steps status voice"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Gate 1 Main Entrance",
+    "content": "Gate 1 is the primary pedestrian entrance to Holy Angel University. It features electronic identification scanners, turnstiles, a visitor lounge, and a covered walkway. Buddy alerts: 'Woof! Approaching HAU Gate 1. Pave path leads directly to the covered walkway on your right, arf!'",
+    "keywords": ["gate 1", "main entrance", "scanners", "turnstiles", "visitor lounge", "covered walkway", "hau gate", "campus entrance"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Gate 2 Vehicle Entrance",
+    "content": "Gate 2 serves as the main vehicle entrance and exit at HAU. It features a security guard booth, speed bumps, and vehicle lane gates. Buddy directs: 'Arf! Passing Gate 2. Watch out for incoming vehicles. Keep to the pedestrian sidewalk on the left, woof!'",
+    "keywords": ["gate 2", "vehicle entrance", "security booth", "speed bumps", "vehicle lane", "sidewalk", "hau gate"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Chapel Bell Tower",
+    "content": "The Chapel of the Holy Guardian Angel bell tower rises 30 meters high. It contains three brass bells that ring every hour. Buddy explains: 'Woof! That sound is the Chapel bell tower ringing. It means it is exactly the hour. The chapel lawn is directly on your left, arf!'",
+    "keywords": ["bell tower", "chapel bell", "brass bells", "hourly ring", "chapel lawn", "rose window", "hau campus"]
+  },
+  {
+    "title": "Local Geography - Nepo Quadrangle Central Fountain Layout",
+    "content": "The central fountain at Nepo Quadrangle is surrounded by concrete flowerbeds, benches, and outdoor seating. Buddy warns: 'Woof! Approaching the central water fountain. Concrete flowerbed borders are ahead. Let's walk around the right side of the circle, arf!'",
+    "keywords": ["fountain", "water fountain", "nepo fountain", "flowerbeds", "benches", "courtyard", "nepo quadrangle"]
+  },
+  {
+    "title": "Local Geography - SM City Clark Department Store Entrance",
+    "content": "The SM Clark Department Store entrance features glass doors, a customer service desk, and cosmetic counters. Buddy directs: 'Woof! Entering the Department Store. The customer service desk is on your left. Cosmetic aisles start directly in front of you, arf!'",
+    "keywords": ["department store entrance", "sm clark department", "customer service", "cosmetics", "aisles", "glass doors"]
+  },
+  {
+    "title": "Offline Gemma 2B Inference - Sampling Options",
+    "content": "For offline inference, Gemma uses top-k and top-p sampling. A top-k of 40 limits the model to select from the 40 most probable next tokens, while top-p of 0.9 accumulates tokens up to 90% probability, ensuring diverse but coherent assistant answers.",
+    "keywords": ["top_k sampling", "top_p sampling", "next token", "vocabulary selection", "on-device gemma", "inference parameters"]
+  },
+  {
+    "title": "EasyLens Screens - Personal Profile Panel Settings",
+    "content": "The Profile Screen contains the user's name, registered voice biometric model details, database synchronization stamps, and account settings, allowing visually impaired users to verify their registration history and cloud status.",
+    "keywords": ["profile screen", "user profile", "voice biometrics", "sync stamps", "account settings", "registration history"]
+  },
+  {
+    "title": "EasyLens Screens - RAG Assistant Chat Log History",
+    "content": "The RAG Assistant screen manages past conversation history logs. Conversation logs are saved in a local SQLite file to ensure they can be reviewed fully offline, helping Buddy remember context between app sessions.",
+    "keywords": ["chat logs", "conversation history", "assistant history", "sqlite storage", "offline chat log", "rag chat screen"]
+  },
+  {
+    "title": "EasyLens Screens - Navigation Maps Screen Landmarks List",
+    "content": "The Maps tab displays a scrolling panel of nearby landmarks like Nepo Mall and HAU. Visually impaired users can select any item to calculate OSRM routes, showing distances, walking times, and launching the circular HUD minimap.",
+    "keywords": ["maps landmarks", "maps screen panel", "route calculation", "walking times", "nearby places", "osrm path", "launch minimap"]
+  },
+  {
+    "title": "EasyLens Screens - Emergency Alert Custom Messages Creator",
+    "content": "The Emergency settings screen lets users create custom emergency alert messages: 'This is an alert from EasyLens. I need help. My current location is at this link'. The text is appended to the GPS link during SOS alerts.",
+    "keywords": ["emergency settings", "custom alert message", "message editor", "sos text editor", "emergency messaging config"]
+  },
+  {
+    "title": "EasyLens Screens - Face Registry Profiles Database",
+    "content": "The Face Registry database is loaded from local storage on startup. It maps the face tracking IDs of ML Kit's detector to registered name strings, ensuring that Buddy speaks the correct greeting name when someone is recognized.",
+    "keywords": ["face registry database", "registered names", "profile dictionary", "sqlite face registry", "tracking id mapping"]
+  },
+  {
+    "title": "EasyLens Screens - Onboarding Permissions Approvals Guide",
+    "content": "The onboarding guide checks for active camera permissions, geolocator location tracking authorizations, and background SMS permissions. If any permission is denied, Buddy guides the user through the settings steps.",
+    "keywords": ["onboarding permissions", "camera authorization", "location authorization", "sms permission guide", "accessibility permission"]
+  },
+  {
+    "title": "Multipurpose Assistant - Daily Shopping Checklist Helper",
+    "content": "Buddy serves as a shopping checklist tracker: 'Woof! Your checklist has: Milk, Bread, Apples. You have already checked off Bread. Let's find Milk next, arf!' This helps visually impaired users track shopping items.",
+    "keywords": ["shopping checklist", "grocery list", "check list", "item tracker", "supermarket checklist", "voice checklist"]
+  },
+  {
+    "title": "Multipurpose Assistant - Time Management Schedule Reminders",
+    "content": "Buddy plays schedule reminder alerts: 'Woof! Reminder: You have a meeting with your research advisor in 15 minutes at the PGN Building ground floor lounge. Let's start heading there, arf!'",
+    "keywords": ["schedule reminder", "meeting alert", "task countdown", "pgn building meeting", "calendar alarm", "voice reminder"]
+  },
+  {
+    "title": "Buddy's Guide - How to Navigate Elevator Cabs",
+    "content": "Buddy guides you inside elevators: 'Woof! Bounding boxes indicate the elevator door is open. Step inside the cab, locate the button panel on your left side, and find the braille button for floor 4, arf!'",
+    "keywords": ["elevator cab", "elevator buttons", "braille locator", "find elevator door", "floor selection", "elevator guide"]
+  },
+  {
+    "title": "Buddy's Guide - How to Find Restrooms in Public Mall",
+    "content": "Buddy helps locate restrooms in shopping malls: 'Woof! In SM City Clark, the restrooms are located in the corridor next to the department store customer service desk. Walk straight for 15 meters, arf!'",
+    "keywords": ["restroom locator", "mall restrooms", "sm clark restroom", "find washroom", "restroom guide"]
+  },
+  {
+    "title": "Buddy's Guide - How to Find Main Entrances in Markets",
+    "content": "Buddy helps locate market entrances: 'Woof! The main entrance to Nepo Supermarket is 20 meters ahead. Watch out for shopping carts on your right and checkout queues on your left, arf!'",
+    "keywords": ["market entrance", "supermarket gate", "nepo entrance", "locate entrance", "market guide"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Shopping Checklist (Continued)",
+    "content": "Buddy logs purchased items: 'Woof! Logged Milk as purchased. Your checklist is now complete! Let's head to the cashier counters directly ahead of you, arf!'",
+    "keywords": ["shopping checklist", "item logged", "checklist complete", "cashier counters", "checkout help"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Daily Weather Forecast Review",
+    "content": "Buddy reviews the weekly weather forecast: 'Woof! The forecast shows dry weather for the next three days. Perfect conditions for outdoor walks to the monastery, arf!'",
+    "keywords": ["weekly forecast", "weather summary", "dry weather", "walk forecast", "weather advisor"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Voice Calendar Schedule Checker",
+    "content": "Buddy checks calendar events: 'Woof! You have no events scheduled for tomorrow. Feel free to schedule a walk to SM City Clark or rest, arf!'",
+    "keywords": ["calendar checker", "event schedule", "tomorrow calendar", "voice calendar", "schedule analyzer"]
+  },
+  {
+    "title": "Buddy's Guide - How to Navigate Ramps Safely",
+    "content": "When navigating ramps, Buddy advises: 'Woof! Bounding boxes indicate a ramp ahead. Step carefully and maintain your balance. Hold the handrail if one is available, arf!'",
+    "keywords": ["ramp safety", "handrail guide", "navigating ramps", "ramp step", "balance guide", "ramp warning"]
+  },
+  {
+    "title": "Buddy's Guide - How to Navigate Doorways Safely",
+    "content": "Buddy helps locate doorways: 'Woof! I see a doorway directly ahead, about 3 meters away. The door opens outward. Reach out your hand to locate the handle on the left side, arf!'",
+    "keywords": ["doorway locator", "door opens outward", "door handle locator", "find door handle", "doorway step"]
+  },
+  {
+    "title": "Buddy's Guide - How to Find Seating Areas",
+    "content": "Buddy helps locate chairs and seating areas: 'Woof! Bounding boxes indicate a chair directly ahead, about 2 meters away. It is a wooden chair. Feel free to sit down and rest, arf!'",
+    "keywords": ["chair locator", "seating area locator", "sit down", "wooden chair", "find chair", "rest area"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Shopping Mall Guide (Continued)",
+    "content": "Inside shopping malls like SM City Clark, Buddy helps locate directories: 'Woof! Bounding boxes indicate the mall directory map is 10 meters ahead on your left, arf!'",
+    "keywords": ["mall directory", "directory map", "sm city clark directory", "mall helper", "find directory"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Reading Labels in Pharmacies",
+    "content": "Inside pharmacies like Nepo Pharmacy, Buddy helps read product labels: 'Woof! This label says: Multivitamins - 30 capsules. Dosage: Take one capsule daily. Expiration: June 2027, arf!'",
+    "keywords": ["pharmacy labels", "multivitamins label", "capsule dosage", "expiration date", "nepo pharmacy helper"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Daily Weather and Umbrella Guide",
+    "content": "Buddy warns about changes in weather: 'Woof! Dark clouds are forming. Let's make sure our umbrella is ready in case it starts raining during our walk to Nepo Mall, arf!'",
+    "keywords": ["weather check", "umbrella warning", "dark clouds", "rain warning", "nepomall walk"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Peter G. Nepomuceno Building CICT Labs",
+    "content": "The College of Information and Communications Technology (CICT) labs are on the 4th and 5th floors of the PGN Building. Buddy guides: 'Woof! Approaching CICT Computer Lab 1 on the 4th floor, arf!'",
+    "keywords": ["cict labs", "computer lab", "pgn building 4th floor", "cict computer lab", "hau computer science"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Archbishop Oscar V. Cruz Building Student Council Office",
+    "content": "The Student Council Office is located on the ground floor of the Cruz Building. It is recognizable by its glass entrance door. Buddy alerts: 'Woof! Passing the Student Council Office on your left, arf!'",
+    "keywords": ["student council office", "cruz building ground floor", "student leaders", "office entrance", "cruz building"]
+  },
+  {
+    "title": "Urban Obstacles - Construction Cones and Safety Barriers",
+    "content": "Safety barriers and construction cones block construction areas. If barriers are detected, Buddy directs: 'Warning, arf! Safety barriers ahead. Let's turn right to avoid the construction zone, woof!'",
+    "keywords": ["safety barriers", "construction cones", "construction zone", "avoid construction", "path turn", "high hazard"]
+  },
+  {
+    "title": "Urban Obstacles - Parked Motorcycles and Roadside Barriers (Continued)",
+    "content": "Parked motorcycles can block sidewalks. If a motorcycle is detected blocking the path, Buddy directs: 'Warning, arf! Motorcycle parked ahead. Move slightly to your right to pass it safely, woof!'",
+    "keywords": ["parked motorcycle", "motorcycle block", "sidewalk barrier", "pass safely", "avoid motorcycle"]
+  },
+  {
+    "title": "Buddy's Morning Greeting and Weather Review",
+    "content": "Buddy starts your morning with a weather review: 'Good morning! It's a sunny morning, 28 degrees Celsius. Let's head out for our walk. I'm ready to keep you safe and watch your path, woof!'",
+    "keywords": ["morning greeting", "weather review", "sunny morning", "start walk", "explore morning"]
+  },
+  {
+    "title": "Buddy's Evening Greeting and Walk Summary",
+    "content": "Buddy concludes your day with a walk summary: 'Good evening! We completed our walk to SM Clark today. You traveled 2.5 kilometers and avoided 6 obstacles. Ready to rest, arf!'",
+    "keywords": ["evening greeting", "walk summary", "travel report", "obstacles avoided", "rest check"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Daily Hydration tracker (Continued)",
+    "content": "Buddy logs your daily water intake: 'Woof! You logged 500 ml of water. That brings your total to 2,000 ml for today. Excellent job staying hydrated on your walk, arf!'",
+    "keywords": ["water log", "hydration tracker", "ml log", "health check", "daily hydration"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Step Counter Monthly Report",
+    "content": "Buddy compiles a monthly step report: 'Woof! You've walked 220,000 steps this month! That is an average of 7,330 steps per day. Keep up the active lifestyle, arf!'",
+    "keywords": ["monthly report", "step average", "steps summary", "monthly step tracker", "active lifestyle"]
+  },
+  {
+    "title": "Buddy's Favorite Things - Barking at Birds",
+    "content": "Buddy shares stories about birds: 'Arf! I love barking at birds on the grass fields of Holy Angel University. It's my favorite game when we're not busy with vision navigation tasks, woof!'",
+    "keywords": ["barking birds", "play field", "hau fields", "mascot play", "dog games"]
+  },
+  {
+    "title": "Buddy's Favorite Things - Running in the Park",
+    "content": "Buddy shares stories about running: 'Woof! My favorite park is Nepo Park. Running on the grass field is the best way to rest after a long walk, arf!'",
+    "keywords": ["running park", "nepo park fields", "play fields", "mascot stories", "dog runs"]
+  },
+  {
+    "title": "RAG Assistant Voice Commands - Schedule Triggers",
+    "content": "To check your schedule using voice commands, say: 'Buddy, check schedule' or 'What is my schedule?'. Buddy will check and announce: 'Woof! You have a class at HAU at 10 AM, arf!'",
+    "keywords": ["check schedule", "schedule check voice", "task schedule voice", "calendar details voice", "schedule status voice"]
+  },
+  {
+    "title": "RAG Assistant Voice Commands - Time Check Triggers",
+    "content": "To check the time using voice commands, say: 'Buddy, check time' or 'What time is it?'. Buddy will check and announce: 'Woof! The time is 9:15 AM, arf!'",
+    "keywords": ["check time", "time check voice", "time level voice", "device clock voice", "time status voice"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Shopping Checklist (Continued 2)",
+    "content": "Buddy helps you calculate lists: 'Woof! Your items total 320 Pesos. You have a 500 Peso bill, so you will receive 180 Pesos in change, arf! I will monitor the coins for you, woof!'",
+    "keywords": ["shopping math", "mall calculation", "cash change", "coins count", "grocery price total"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Local News Updates Helper",
+    "content": "Buddy announces local events or announcements when requested online: 'Woof! There is an upcoming university activity at the HAU field this Friday. The paths might be crowded, arf!'",
+    "keywords": ["local news", "hau activity", "university events", "crowded paths warning", "announcements"]
+  },
+  {
+    "title": "General Multipurpose Assistant - Reading Signs in public terminals",
+    "content": "Buddy reads signs in transportation terminals: 'Woof! This sign says: Balibago Jeepney Terminal. Boarding lanes are directly ahead. Fare is 15 Pesos, arf!'",
+    "keywords": ["terminal signs", "balibago terminal", "jeepney fare", "boarding lanes", "sign translator"]
+  },
+  {
+    "title": "Buddy's Safety Guide - How to Walk on Wet Concrete",
+    "content": "Buddy advises on wet concrete: 'Woof! Wet floor signs detected. Take short steps and place your feet flat. Keep your hand near the side wall or railing to avoid slipping, arf!'",
+    "keywords": ["wet concrete", "wet floor signs", "slipping warning", "flat steps", "railing helper", "pavement safety"]
+  },
+  {
+    "title": "Buddy's Safety Guide - How to Deal with Loud Traffic Noise",
+    "content": "Buddy advises on noise: 'Woof! Traffic noise is high. I will increase my volume level to 90 percent. Walk slowly and keep your cane extended to feel street borders, arf!'",
+    "keywords": ["traffic noise", "volume level increase", "loud streets", "cane navigation", "border guidance"]
+  },
+  {
+    "title": "Buddy's Safety Guide - How to Navigate Roadside Parking Lots",
+    "content": "Buddy guides in parking lots: 'Woof! Entering a parking area. Watch out for backup lights and engine sounds. Walk along the main pedestrian corridor on the right side, arf!'",
+    "keywords": ["parking lot safety", "backup lights", "pedestrian corridor", "engine sounds", "parking spaces"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Gate 3 Exit gate",
+    "content": "Gate 3 is the exit gate for HAU. It features a security checkpoint and leads to the J A Santos Ave sidewalks. Buddy alerts: 'Woof! Approaching Gate 3. sidewalk is directly past the gate turnstile, arf!'",
+    "keywords": ["gate 3", "exit gate", "hau gate 3", "checkpoint", "j a santos sidewalk"]
+  },
+  {
+    "title": "Visual Landmark - Holy Angel University Archbishop Oscar V. Cruz Building Admissions Desk",
+    "content": "The admissions desk is located on the ground floor of the Cruz Building. It features visitor desks and inquiry windows. Buddy alerts: 'Woof! The Admissions inquiry desks are on your right, arf!'",
+    "keywords": ["admissions desk", "cruz admissions", "visitor inquiry", "enrollment info", "ground floor admissions"]
+  },
+  {
+    "title": "Visual Landmark - Peter G. Nepomuceno Building ground floor lounge HAU",
+    "content": "The ground floor lounge of the PGN Building features wooden benches and notice boards. Buddy guides: 'Woof! Entering PGN ground floor lobby lounge. Benches are located along the brick columns, arf!'",
+    "keywords": ["pgn lounge", "lobby lounge", "wooden benches", "notice boards", "pgn building", "hau"]
+  },
+  {
+    "title": "Local Geography - Nepo Quadrangle Central Courtyard Entrance",
+    "content": "The entrance to the Nepo Quadrangle courtyard features stone steps and potted plants. Buddy directs: 'Woof! Courtyard entrance steps are directly ahead. Watch out for stone flowerpots on your sides, arf!'",
+    "keywords": ["courtyard entrance", "nepo quadrangle courtyard", "stone steps", "flowerpots", "nepo entrance"]
+  },
+  {
+    "title": "Local Geography - SM City Clark Department Store Cashier Layout",
+    "content": "SM Department Store Cashier queues feature rope barriers. Buddy guides: 'Woof! Cashier queue lines are 10 meters ahead. Let's follow the rope line on the right side to queue up, arf!'",
+    "keywords": ["sm cashier", "department store cashier", "cashier queues", "rope barriers", "checkout queue"]
+  },
+  {
+    "title": "Local Geography - Angeles University Foundation main lobby registration desk",
+    "content": "The main lobby registration desk at AUF features security logbooks and ID scanners. Buddy guides: 'Woof! The registry counter desk is 5 meters ahead in the center lobby, arf!'",
+    "keywords": ["auf registry", "registration desk", "security desk", "id scanners", "lobby registry"]
+  },
+  {
+    "title": "Offline Gemma 2B Inference - Model Quantization details",
+    "content": "The Gemma 2B IT model weights are quantized using 8-bit precision (int8). Quantization compresses the model file from 4.5 GB to 1.5 GB, enabling efficient execution on mobile GPUs without crashing.",
+    "keywords": ["model quantization", "8-bit precision", "int8", "gemma weights size", "gpu execution", "file compression"]
+  },
+  {
+    "title": "Offline Gemma 2B Inference - System Prompts Wrapper format",
+    "content": "System prompt wraps prompts in token delimiters: '<start_of_turn>user\\nprompt<end_of_turn>\\n<start_of_turn>model\\n'. This wrapper triggers the instruction-following weights of Gemma.",
+    "keywords": ["token delimiters", "gemma system prompt", "instruction following", "turn delimiters", "prompt wrapping"]
+  },
+  {
+    "title": "EasyLens Screens - Custom Preferences Config keys list",
+    "content": "The configuration keys in shared preferences are: 'unit_system' (metric/imperial), 'voice_speed' (double), 'sound_alerts' (bool), and 'emergency_phone_numbers' (string list), syncing on change.",
+    "keywords": ["shared preferences keys", "config keys list", "sync settings", "local configuration parameters"]
+  },
+  {
+    "title": "EasyLens Screens - RAG Assistant Voice Input button rules",
+    "content": "The voice input button uses the stt_service. It records audio, converts speech, and updates the chat field: 'Tap to start recording. Double tap to lock the microphone. Tap again to send query'.",
+    "keywords": ["voice input button", "microphone button", "audio record", "stt service input", "hands-free chat"]
+  },
+  {
+    "title": "EasyLens Screens - Navigation Maps Screen Search Results listing",
+    "content": "The search results scroll panel lists matched landmarks with distance metrics. Selecting a search result plots the OSRM route path and updates the ActiveNavigationService state.",
+    "keywords": ["search results listing", "maps search result", "route plotting panel", "osrm route sync"]
+  },
+  {
+    "title": "EasyLens Screens - SOS Emergency Alert customization keys",
+    "content": "The customization keys for SOS alert SMS are: 'custom_message_body' and 'include_gps_maps_link'. These values compile the final emergency text message body sent to the MethodChannel.",
+    "keywords": ["sos alert config", "custom message body", "gps maps link select", "methodchannel sms config"]
+  },
+  {
+    "title": "EasyLens Screens - Face Biometrics snapshot rules",
+    "content": "Face biometrics snapshot requires: high lighting, face centered in the preview circle, and zero occlusions. Buddy warns: 'Woof! Center your face and hold the camera steady for snapshot, arf!'",
+    "keywords": ["face snapshot rules", "camera alignment", "occlusions warning", "face center guidance"]
+  },
+  {
+    "title": "EasyLens Screens - Onboarding Permissions Troubleshooting Guide",
+    "content": "If permissions are denied, Buddy guides: 'Woof! Please open your phone Settings app, navigate to Apps, select EasyLens, open Permissions, and enable Camera and Location, arf!'",
+    "keywords": ["permissions troubleshooting", "app settings permission", "enable camera location", "denied permission helper"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Umbrella Details",
+    "content": "Umbrellas are personal travel accessories detected by the model. When raining, Buddy ensures you carry it safely, warning about low-hanging awnings: 'Woof! Bounding boxes indicate an umbrella is active. Watch your head, arf!'",
+    "keywords": ["umbrella", "rain protection", "personal accessories", "umbrella tracking", "outdoor item"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Handbag Details",
+    "content": "Handbags are personal accessories detected by the MobileNetV2 SSD model. Buddy warns: 'Woof! I spotted a handbag on the chair directly ahead of you. Keep your personal items close, arf!'",
+    "keywords": ["handbag", "purse", "bag tracking", "personal items", "chair detector", "accessories"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Tie Details",
+    "content": "Ties are neckwear accessories classified in the MS-COCO dataset. Buddy identifies neckties during profile scans: 'Woof! You look very professional today with that red tie, arf!'",
+    "keywords": ["tie", "neckwear", "professional wear", "profile scan", "accessories check"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Suitcase Details",
+    "content": "Suitcases are large luggage accessories detected by the vision model. Buddy warns: 'Arf! Large suitcase detected in the middle of the hallway. Let's step left to avoid tripping over it, woof!'",
+    "keywords": ["suitcase", "luggage", "travel bag", "trip hazard", "hallway block", "avoid suitcase"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Frisbee Details",
+    "content": "Frisbees are flying disc toys detected in parks. Buddy shares: 'Woof! Someone is playing with a frisbee on the lawn. Let's make sure it doesn't fly toward our path, arf!'",
+    "keywords": ["frisbee", "toy", "flying disc", "park play", "lawn activity", "avoid frisbee"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Skis Details",
+    "content": "Skis are outdoor sports equipment recognized by the MobileNetV2 model. Buddy explains: 'Arf! I see skis in the storage rack. Perfect gear for snowy mountains, though we don't need them in Pampanga, woof!'",
+    "keywords": ["skis", "sport gear", "snow equipment", "storage rack", "skiing helper"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Snowboard Details",
+    "content": "Snowboards are winter sports boards classified in COCO. Buddy notices: 'Woof! A snowboard is leaning against the wall. That's a cool winter sports gear, arf!'",
+    "keywords": ["snowboard", "winter sports", "leaning board", "wall detector", "sports gear"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Sports Ball Details",
+    "content": "Sports balls (soccer, basketball, tennis) are active hazards. Buddy warns: 'Arf! A sports ball is rolling near your feet. Step carefully to avoid losing your balance, woof!'",
+    "keywords": ["sports ball", "basketball", "soccer ball", "rolling hazard", "watch step", "avoid ball"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Kite Details",
+    "content": "Kites are flying toys detected in open skies. Buddy notes: 'Woof! There is a kite flying high over the campus lawn. A windy day is great for flying kites, arf!'",
+    "keywords": ["kite", "flying toy", "sky detector", "campus lawn", "outdoor fun"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Baseball Bat Details",
+    "content": "Baseball bats are sports gear detected by the network. Buddy guides: 'Arf! I see a baseball bat leaning on the bench. Watch out for sports equipment on the ground, woof!'",
+    "keywords": ["baseball bat", "bat", "sports equipment", "bench locator", "floor hazard"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Baseball Glove Details",
+    "content": "Baseball gloves are leather mitts detected in sports fields. Buddy explains: 'Woof! Someone left a baseball glove on the grass field. I'll help you navigate around it, arf!'",
+    "keywords": ["baseball glove", "mitt", "leather mitt", "grass field", "avoid glove"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Skateboard Details",
+    "content": "Skateboards are moving target hazards on sidewalks. Buddy warns: 'Arf! Fast skateboard approaching on your right. Let's stop at the side and wait for them to pass, woof!'",
+    "keywords": ["skateboard", "skater", "sidewalk hazard", "stop and wait", "sidewalk traffic"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Surfboard Details",
+    "content": "Surfboards are water sports boards recognized by the model. Buddy notes: 'Woof! A surfboard is displayed in the surf shop window. Great for riding waves at the beach, arf!'",
+    "keywords": ["surfboard", "board", "surf shop", "display window", "beach gear"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Tennis Racket Details",
+    "content": "Tennis rackets are sports gear detected by the system. Buddy directs: 'Arf! Tennis racket detected on the court bench. Let's make sure we don't trip over the bag nearby, woof!'",
+    "keywords": ["tennis racket", "racket", "tennis court", "bench locator", "avoid racket"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Wine Glass Details",
+    "content": "Wine glasses are fragile dining wares. Buddy warns: 'Woof! There is a fragile wine glass on the table edge. Move carefully to avoid knocking it over, arf!'",
+    "keywords": ["wine glass", "glassware", "dining table", "table edge", "fragile item", "avoid glass"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Fork Details",
+    "content": "Forks are dining utensils. Buddy helps locate them: 'Woof! Your fork is located on the left side of your plate. Ready for lunch, arf!'",
+    "keywords": ["fork", "utensil", "dining helper", "left of plate", "table layout"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Knife Details",
+    "content": "Knives are sharp kitchen tools classified as high-hazard dining items. Buddy cautions: 'Warning, arf! Sharp knife detected on the counter. Handle with caution to stay safe, woof!'",
+    "keywords": ["knife", "sharp tool", "kitchen counter", "high hazard", "handle caution", "safety warning"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Spoon Details",
+    "content": "Spoons are dining utensils. Buddy assists: 'Woof! The spoon is on the right side of the bowl. Enjoy your soup, arf!'",
+    "keywords": ["spoon", "utensil", "dining helper", "right of bowl", "table layout"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Bowl Details",
+    "content": "Bowls are food containers. Buddy guides: 'Woof! A bowl of warm soup is in the center of the dining table. Let's place our hand carefully to locate it, arf!'",
+    "keywords": ["bowl", "soup bowl", "dining table", "table center", "hand guidance"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Banana Details",
+    "content": "Bananas are fruit items. Buddy notes: 'Woof! Fresh yellow bananas are in the fruit bowl. A great source of potassium, arf!'",
+    "keywords": ["banana", "fruit bowl", "potassium", "fresh fruit", "food identify"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Apple Details",
+    "content": "Apples are round fruits. Buddy notes: 'Arf! I see a red apple on the kitchen desk. An apple a day keeps the doctor away, woof!'",
+    "keywords": ["apple", "red apple", "kitchen desk", "fruit identify", "healthy snack"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Sandwich Details",
+    "content": "Sandwiches are lunch food items. Buddy notes: 'Woof! A sandwich is packed in your lunchbox. Ready for class breaks, arf!'",
+    "keywords": ["sandwich", "lunchbox", "snack check", "class break", "food identify"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Orange Details",
+    "content": "Oranges are citrus fruits. Buddy notes: 'Arf! I see fresh oranges on the kitchen table. Loaded with Vitamin C, woof!'",
+    "keywords": ["orange", "citrus fruit", "vitamin c", "fresh orange", "food identify"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Broccoli Details",
+    "content": "Broccoli is a green vegetable. Buddy notes: 'Woof! I spotted broccoli in the shopping bag. A very healthy green vegetable, arf!'",
+    "keywords": ["broccoli", "green vegetable", "shopping bag", "healthy food", "vegetable identify"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Carrot Details",
+    "content": "Carrots are root vegetables. Buddy notes: 'Arf! I see carrots on the chopping board. Carrots are excellent for your eyes, woof!'",
+    "keywords": ["carrot", "vegetable", "chopping board", "eye health", "vegetable identify"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Hot Dog Details",
+    "content": "Hot dogs are fast food items. Buddy notes: 'Woof! I see a hot dog vendor stall ahead. Smells delicious, arf!'",
+    "keywords": ["hot dog", "vendor stall", "fast food", "street food", "food identify"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Pizza Details",
+    "content": "Pizzas are popular group food items. Buddy notes: 'Arf! I see a pizza box on the dining counter. Pizza party time, woof!'",
+    "keywords": ["pizza", "pizza box", "dining counter", "food party", "food identify"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Donut Details",
+    "content": "Donuts are sweet dessert treats. Buddy notes: 'Woof! Donuts are inside the pink box. A sweet treat for our break, arf!'",
+    "keywords": ["donut", "sweet treat", "pink box", "break snack", "food identify"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Cake Details",
+    "content": "Cakes are celebration food items. Buddy notes: 'Arf! A birthday cake is on the central table. Blow out the candles and make a wish, woof!'",
+    "keywords": ["cake", "birthday cake", "central table", "candles", "celebration food"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Bed Details",
+    "content": "Beds are large furniture items. Buddy notes: 'Woof! The bed is on your left side. Time to rest after a long day of travel, arf!'",
+    "keywords": ["bed", "rest time", "bedroom furniture", "sleeping area", "room navigate"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Couch Details",
+    "content": "Couches are large soft seating items. Buddy notes: 'Woof! There is a couch directly ahead of you. You can sit down and take a rest, arf!'",
+    "keywords": ["couch", "sofa", "furniture", "living room", "seating area"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Potted Plant Details",
+    "content": "Potted plants are decorative greenery. Buddy notes: 'Arf! Potted plant detected near the window. Watch your elbow to avoid knocking it over, woof!'",
+    "keywords": ["potted plant", "plant", "greenery", "window desk", "decoration"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Toilet Details",
+    "content": "Toilets are bathroom fixtures. Buddy directs: 'Woof! Bathroom toilet is directly ahead of you. Clean and accessible, arf!'",
+    "keywords": ["toilet", "bathroom", "restroom fixture", "accessible toilet"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Microwave Details",
+    "content": "Microwaves are fast heating appliances. Buddy notes: 'Arf! Microwave detected on the counter. Always cover your food before heating it, woof!'",
+    "keywords": ["microwave", "appliance", "heating food", "kitchen counter"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Oven Details",
+    "content": "Ovens are large baking appliances. Buddy warns: 'Woof! Oven is on the right. Be careful as it can get extremely hot during baking, arf!'",
+    "keywords": ["oven", "baking appliance", "hot surfaces", "kitchen safety"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Toaster Details",
+    "content": "Toasters are bread heating devices. Buddy notes: 'Arf! Toaster is next to the bread box. Perfect for making crunchy breakfast toasts, woof!'",
+    "keywords": ["toaster", "breakfast toaster", "bread heating", "appliance"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Sink Details",
+    "content": "Sinks are washing fixtures. Buddy guides: 'Woof! Kitchen sink detected. Keep your hands clean by washing them regularly, arf!'",
+    "keywords": ["sink", "washing fixture", "faucet", "kitchen wash", "hand hygiene"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Refrigerator Details",
+    "content": "Refrigerators are cooling storage appliances. Buddy notes: 'Arf! Refrigerator is directly ahead. I hope there are some dog treats inside, woof!'",
+    "keywords": ["refrigerator", "fridge", "cooling storage", "kitchen fridge", "food store"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Book Details",
+    "content": "Books are reading materials. Buddy notes: 'Woof! I found a book on the desk. Let's read some stories later tonight, arf!'",
+    "keywords": ["book", "reading material", "desk item", "literature", "education"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Clock Details",
+    "content": "Clocks are timepieces. Buddy announces: 'Arf! The wall clock is directly above the door. It helps us stay on schedule, woof!'",
+    "keywords": ["clock", "wall clock", "timepiece", "schedule tracker"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Vase Details",
+    "content": "Vases are decorative flower holders. Buddy warns: 'Woof! Glass flower vase detected on the shelf. Keep a safe distance, arf!'",
+    "keywords": ["vase", "flower holder", "glass vase", "shelf decoration", "fragile item"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Scissors Details",
+    "content": "Scissors are sharp cutting tools. Buddy warns: 'Warning, arf! Sharp scissors detected on the study table. Keep them closed when not in use, woof!'",
+    "keywords": ["scissors", "sharp tool", "study table", "cutting tools", "safety check"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Teddy Bear Details",
+    "content": "Teddy bears are soft plush toys. Buddy shares: 'Woof! I found a cute teddy bear on the armchair. A soft companion just like me, arf!'",
+    "keywords": ["teddy bear", "plush toy", "soft toy", "armchair item", "companionship"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Hair Drier Details",
+    "content": "Hair driers are personal grooming devices. Buddy notes: 'Arf! Hair drier is in the drawer. Useful for drying your hair after a fresh shower, woof!'",
+    "keywords": ["hair drier", "grooming", "bathroom drawer", "drying hair"]
+  },
+  {
+    "title": "MS-COCO Dataset - 80 Detected Classes - Toothbrush Details",
+    "content": "Toothbrushes are dental cleaning tools. Buddy guides: 'Woof! Toothbrush is in the ceramic cup. Let's keep our teeth clean and healthy, arf!'",
+    "keywords": ["toothbrush", "dental health", "ceramic cup", "bathroom counter"]
   }
 ]
