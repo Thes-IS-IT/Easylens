@@ -1008,5 +1008,81 @@
     "title": "MS-COCO Dataset - 80 Detected Classes - Toothbrush Details",
     "content": "Toothbrushes are dental cleaning tools. Buddy guides: 'Woof! Toothbrush is in the ceramic cup. Let's keep our teeth clean and healthy, arf!'",
     "keywords": ["toothbrush", "dental health", "ceramic cup", "bathroom counter"]
+  },
+  {
+    "title": "OSRM Route Step Parsing and Turn Directions",
+    "content": "EasyLens parses OSRM JSON route responses to extract exact step instructions, bearings, and turn modifiers. When navigating, the system detects modifiers like 'left', 'right', 'slight left', 'slight right', 'sharp left', 'sharp right', or 'straight'. Buddy maps these to clear audio prompts, such as 'In 10 meters, turn sharp left', or 'Continue straight on the path'. This step-by-step guidance ensures that the user is always aware of upcoming path adjustments well before they reach the intersection.",
+    "keywords": ["osrm parsing", "turn instructions", "left turn", "right turn", "bearing", "direction prompts", "navigation steps"]
+  },
+  {
+    "title": "GPS Accuracy Thresholds and Filtering",
+    "content": "To prevent route jumps and coordinates flickering, EasyLens implements strict Geolocator accuracy filtering. The system checks the horizontal accuracy (in meters) of incoming position updates. GPS updates with an accuracy rating of over 15 meters are discarded as noise. Only stable coordinates with high-precision accuracy (under 10 meters) are sent to the navigation engine and OSRM route synchronization pipelines, keeping the PIP minimap marker stable and preventing incorrect turn announcements.",
+    "keywords": ["gps accuracy", "geolocator filtering", "horizontal accuracy", "gps noise", "location precision", "minimap stability"]
+  },
+  {
+    "title": "Compass Heading and Device Rotation Alignment",
+    "content": "EasyLens aligns the navigation path with the user's physical orientation using the device's magnetometer and compass sensors (via flutter_sensors or flutter_compass). The app compares the current route segment bearing against the user's magnetic heading. If the user rotates away from the target path, Buddy alerts: 'Woof! You are facing the wrong direction. Rotate 45 degrees to your right to realign with the route, arf!' This real-time alignment allows hands-free correction.",
+    "keywords": ["compass heading", "magnetometer", "device rotation", "bearing alignment", "wrong direction", "realign path"]
+  },
+  {
+    "title": "Pedestrian Crossing Safety and Traffic Light Cues",
+    "content": "When approaching crosswalks, Buddy switches to pedestrian safety mode. The app identifies pedestrian crossing zones ('zebra lines') and traffic light changes using native ML Kit object labels. Buddy instructs the user: 'Approaching pedestrian crossing. Stop at the curb, listen for vehicular traffic flow, and wait for the pedestrian walk sign to turn green before crossing, woof!' This audio guide helps confirm environmental sounds.",
+    "keywords": ["pedestrian crossing", "zebra crossing", "traffic lights", "crosswalk safety", "curb stop", "traffic noise"]
+  },
+  {
+    "title": "Dynamic Route Recalculation Thresholds",
+    "content": "If the user deviates from the active path, EasyLens performs dynamic route recalculation. The system continuously calculates the perpendicular distance between the user's current GPS position and the nearest segment of the route polyline. If this distance exceeds a threshold of 15 meters for more than 5 seconds, Buddy announces: 'Woof! Recalculating your route to keep you on track, arf!' and sends a new HTTP request to the OSRM API using the new coordinates.",
+    "keywords": ["recalculation", "off-route", "polyline deviation", "osrm request", "route update", "navigation recovery"]
+  },
+  {
+    "title": "Indoor BLE Beacon Integration and Navigation",
+    "content": "For navigating inside buildings like the HAU PGN building where GPS signals are weak, EasyLens is designed to integrate with Bluetooth Low Energy (BLE) beacons. The app scans for nearby beacon UUIDs and RSSI signal strengths to determine the user's room-level location. Buddy accesses local indoor mapping databases to provide directions, saying: 'Woof! Beacon detected on floor 2. Turn right to enter the computer research lab corridor, arf!'",
+    "keywords": ["ble beacon", "bluetooth low energy", "indoor navigation", "pgn building indoor", "signal strength", "room location"]
+  },
+  {
+    "title": "Tactile Paving Identification and Cane Coordination",
+    "content": "Tactile paving tiles (yellow blister/directional tiles) are critical sidewalk guides for visually impaired pedestrians. EasyLens uses the camera feed to detect tactile paving paths on sidewalks. When detected, Buddy confirms: 'Woof! Tactile paving path detected. Keep your cane aligned with the yellow textured tiles to walk straight down the sidewalk safely, arf!' this coordinates with the user's physical white cane.",
+    "keywords": ["tactile paving", "yellow tiles", "white cane", "sidewalk guide", "textured paving", "cane coordination"]
+  },
+  {
+    "title": "Emergency SOS Navigation Broadcast to Caregiver",
+    "content": "During active navigation, EasyLens offers real-time location broadcasting to registered caregivers. When active navigation is running, the app can sync the current route geometry, destination name, travel speed, and estimated arrival time to the Firestore database. Caregivers can view this live progress on the web dashboard, ensuring that they can monitor the user's safety throughout their entire walk.",
+    "keywords": ["caregiver broadcast", "real-time tracking", "firestore sync", "eta update", "route progress", "location sharing"]
+  },
+  {
+    "title": "Low-Visibility/Night Navigation Safety Guidelines",
+    "content": "When walking after sunset or in dimly lit conditions, Buddy adjusts warning thresholds and sensitivity. The app prompts: 'Night mode active, arf! Sidewalk visibility is low. I will alert you to hazards earlier. Keep your flash on if needed and walk slowly, woof!' This ensures that the user is extra cautious around curbs, street lamps, and parked vehicles.",
+    "keywords": ["night navigation", "low-visibility", "hazard detection", "night safety", "flashlight prompt", "evening walk"]
+  },
+  {
+    "title": "Crowded Sidewalk Navigation and Space Optimization",
+    "content": "When navigating busy market streets near Nepo Mall, the camera identifies human clusters to estimate pedestrian density. If a crowd is detected blocking the sidewalk, Buddy instructs the user: 'Crowded area ahead, arf! Let's slow down, walk closer to the wall on the left side, and keep your cane extended to navigate past pedestrians safely, woof!'",
+    "keywords": ["crowded sidewalk", "pedestrian density", "nepo mall crowd", "space optimization", "slow down", "wall alignment"]
+  },
+  {
+    "title": "Staircase and Step-Edge Navigation Safety",
+    "content": "Staircases and curb edges are high-risk hazards for visually impaired users. EasyLens identifies step-up and step-down transitions. When approaching stairs, Buddy speaks specific instructions: 'Approaching stairs descending, arf! Stop at the edge, locate the metal handrail on your right side, and proceed down step-by-step, woof!' This prevents missteps and falls.",
+    "keywords": ["staircase safety", "descending stairs", "step edge", "handrail locator", "curb transition", "curb mount"]
+  },
+  {
+    "title": "Public Transit Jeepney Boarding and Stop Detection",
+    "content": "For travel across Angeles City, Buddy helps locate jeepney loading zones and identify jeepney routes. When waiting at a jeepney stop near HAU, the camera scans approaching vehicles for route signs (e.g. 'Balibago' or 'Pampang'). Buddy announces: 'Woof! Approaching jeepney with Balibago sign detected. Let's prepare to board, arf!' and guides the boarding step height.",
+    "keywords": ["jeepney boarding", "transit stops", "route signs", "balibago sign", "angeles transport", "jeepney color"]
+  },
+  {
+    "title": "Audio-Beacon Landmark Localization",
+    "content": "To help users find doorways or checkpoints, EasyLens uses audio pings. When the user is within 5 meters of their destination, the app plays spatial audio chime alerts from the direction of the target (e.g. left speaker for left side). Buddy explains: 'Woof! Follow the sound chime to locate the entrance doors directly on your left side, arf!'",
+    "keywords": ["audio beacon", "spatial audio", "direction chime", "destination locator", "entrance chime", "landmark sound"]
+  },
+  {
+    "title": "Geofencing Safety Boundaries",
+    "content": "EasyLens supports geofencing to protect users from high-traffic zones. The app maps boundaries around safe zones like the Holy Angel University campus grounds. If the user wanders out of these bounds toward busy highways like MacArthur Highway without navigation active, Buddy issues a prompt: 'Alert, arf! You are leaving the safe campus boundary. Please start navigation, woof!'",
+    "keywords": ["geofencing", "safety boundary", "campus bounds", "macarthur highway hazard", "high-traffic warning"]
+  },
+  {
+    "title": "Offline Maps Cache and Fallback Navigation",
+    "content": "To ensure navigation remains operational in dead zones, EasyLens caches map tile layers and OSRM node lists. When internet access is disconnected during a walk, the navigation engine falls back to cached route geometry, using raw Geolocator GPS coordinates and compass bearings to maintain orientation indicators on the PIP minimap and voice prompts.",
+    "keywords": ["offline navigation", "map cache", "osrm fallback", "dead zone", "gps tracking", "offline bearing"]
   }
 ]
+
