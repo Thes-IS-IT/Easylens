@@ -31,9 +31,9 @@ class DashboardButton extends StatelessWidget {
       fg = Colors.white;
       border = BorderSide.none;
     } else {
-      bg = AppColors.primaryBackground;
-      fg = AppColors.primaryText;
-      border = BorderSide(color: AppColors.cardBorder, width: 2.0);
+      bg = AppColors.primaryButton;
+      fg = AppColors.primaryButtonText;
+      border = BorderSide.none;
     }
 
     return Padding(
@@ -57,11 +57,15 @@ class DashboardButton extends StatelessWidget {
             children: [
               Icon(icon, size: 24),
               const SizedBox(width: 16),
-              Text(
-                title,
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

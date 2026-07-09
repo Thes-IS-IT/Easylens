@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/firebase_service.dart';
+import '../../services/settings_service.dart';
 import '../../constants/colors.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -55,166 +56,184 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Floating Pill Back Button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  width: 95,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.chevron_left, color: Color(0xFF002663), size: 24),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Back',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF002663),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        final isDefault = SettingsService().selectedContrastTheme == 'Default';
+        final headerColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
+        final tileTextColor = isDefault ? Colors.black : AppColors.primaryText;
+        final cardColor = AppColors.primaryBackground;
+        final inputFill = isDefault ? const Color(0xFFF8FAFC) : const Color(0xFF1A1A1A);
+
+        return Scaffold(
+          backgroundColor: AppColors.lightBackground,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Floating Pill Back Button
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isDefault ? Colors.white : AppColors.primaryBackground,
+                        borderRadius: BorderRadius.circular(22),
+                        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                        boxShadow: isDefault ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          )
+                        ] : null,
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // 2. Title Header
-              Text(
-                'Password',
-                style: GoogleFonts.inter(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF002663),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // 3. Form Input Container Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Current Password
-                    Text(
-                      'Current Password',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _currentPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        hintText: 'Enter current password',
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // New Password
-                    Text(
-                      'New Password',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _newPasswordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        hintText: 'Enter new password',
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Update Password Action Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryButton,
-                          foregroundColor: AppColors.primaryButtonText,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chevron_left, color: headerColor, size: 24),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Back',
+                            style: GoogleFonts.inter(
+                              color: headerColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                        onPressed: _handleUpdatePassword,
-                        child: Text(
-                          'Update Password',
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // 2. Title Header
+                  Text(
+                    'Password',
+                    style: GoogleFonts.inter(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: headerColor,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // 3. Form Input Container Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20.0),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(24.0),
+                      border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                      boxShadow: isDefault ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        )
+                      ] : null,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Current Password
+                        Text(
+                          'Current Password',
                           style: GoogleFonts.inter(
-                            fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: tileTextColor,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _currentPasswordController,
+                          obscureText: true,
+                          style: TextStyle(color: tileTextColor),
+                          decoration: InputDecoration(
+                            hintText: 'Enter current password',
+                            hintStyle: TextStyle(color: AppColors.textMuted),
+                            filled: true,
+                            fillColor: inputFill,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // New Password
+                        Text(
+                          'New Password',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: tileTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _newPasswordController,
+                          obscureText: true,
+                          style: TextStyle(color: tileTextColor),
+                          decoration: InputDecoration(
+                            hintText: 'Enter new password',
+                            hintStyle: TextStyle(color: AppColors.textMuted),
+                            filled: true,
+                            fillColor: inputFill,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // Update Password Action Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryButton,
+                              foregroundColor: AppColors.primaryButtonText,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(28.0),
+                              ),
+                            ),
+                            onPressed: _handleUpdatePassword,
+                            child: Text(
+                              'Update Password',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

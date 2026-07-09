@@ -22,6 +22,15 @@ class SettingsService extends ChangeNotifier {
   String selectedUnit = 'Metric';
   String selectedMobilityAid = 'None (Hands-Free)';
 
+  // New Appearance, Navigation and UI properties
+  String appearanceTheme = 'Default';
+  int accentColorIndex = 0;
+  bool faceIdUnlock = false;
+  bool shakeToUndo = true;
+  double speechRate = 0.5;
+  double speechPitch = 0.5;
+  List<String> homeScreenCards = ['buddy', 'easylens', 'text', 'objects', 'navigation', 'sos'];
+
   // Load preferences from local storage (public so TtsService can reload on demand)
   Future<void> loadSettingsFromLocal() async {
     try {
@@ -34,6 +43,15 @@ class SettingsService extends ChangeNotifier {
       selectedVoicePersona = prefs.getString('selectedVoicePersona') ?? 'Aria (Calm)';
       selectedUnit = prefs.getString('selectedUnit') ?? 'Metric';
       selectedMobilityAid = prefs.getString('selectedMobilityAid') ?? 'None (Hands-Free)';
+
+      appearanceTheme = prefs.getString('appearanceTheme') ?? 'Default';
+      accentColorIndex = prefs.getInt('accentColorIndex') ?? 0;
+      faceIdUnlock = prefs.getBool('faceIdUnlock') ?? false;
+      shakeToUndo = prefs.getBool('shakeToUndo') ?? true;
+      speechRate = prefs.getDouble('speechRate') ?? 0.5;
+      speechPitch = prefs.getDouble('speechPitch') ?? 0.5;
+      homeScreenCards = prefs.getStringList('homeScreenCards') ?? ['buddy', 'easylens', 'text', 'objects', 'navigation', 'sos'];
+
       notifyListeners();
     } catch (e) {
       print('Error loading settings from local storage: $e');
@@ -50,6 +68,13 @@ class SettingsService extends ChangeNotifier {
     String? selectedVoicePersona,
     String? selectedUnit,
     String? selectedMobilityAid,
+    String? appearanceTheme,
+    int? accentColorIndex,
+    bool? faceIdUnlock,
+    bool? shakeToUndo,
+    double? speechRate,
+    double? speechPitch,
+    List<String>? homeScreenCards,
   }) async {
     if (voiceFeedback != null) this.voiceFeedback = voiceFeedback;
     if (hapticFeedback != null) this.hapticFeedback = hapticFeedback;
@@ -59,6 +84,14 @@ class SettingsService extends ChangeNotifier {
     if (selectedVoicePersona != null) this.selectedVoicePersona = selectedVoicePersona;
     if (selectedUnit != null) this.selectedUnit = selectedUnit;
     if (selectedMobilityAid != null) this.selectedMobilityAid = selectedMobilityAid;
+
+    if (appearanceTheme != null) this.appearanceTheme = appearanceTheme;
+    if (accentColorIndex != null) this.accentColorIndex = accentColorIndex;
+    if (faceIdUnlock != null) this.faceIdUnlock = faceIdUnlock;
+    if (shakeToUndo != null) this.shakeToUndo = shakeToUndo;
+    if (speechRate != null) this.speechRate = speechRate;
+    if (speechPitch != null) this.speechPitch = speechPitch;
+    if (homeScreenCards != null) this.homeScreenCards = homeScreenCards;
     
     notifyListeners();
 
@@ -72,6 +105,14 @@ class SettingsService extends ChangeNotifier {
       if (selectedVoicePersona != null) await prefs.setString('selectedVoicePersona', selectedVoicePersona);
       if (selectedUnit != null) await prefs.setString('selectedUnit', selectedUnit);
       if (selectedMobilityAid != null) await prefs.setString('selectedMobilityAid', selectedMobilityAid);
+
+      if (appearanceTheme != null) await prefs.setString('appearanceTheme', appearanceTheme);
+      if (accentColorIndex != null) await prefs.setInt('accentColorIndex', accentColorIndex);
+      if (faceIdUnlock != null) await prefs.setBool('faceIdUnlock', faceIdUnlock);
+      if (shakeToUndo != null) await prefs.setBool('shakeToUndo', shakeToUndo);
+      if (speechRate != null) await prefs.setDouble('speechRate', speechRate);
+      if (speechPitch != null) await prefs.setDouble('speechPitch', speechPitch);
+      if (homeScreenCards != null) await prefs.setStringList('homeScreenCards', homeScreenCards);
     } catch (e) {
       print('Error saving settings to local storage: $e');
     }

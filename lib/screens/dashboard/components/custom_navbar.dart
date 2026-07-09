@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../constants/colors.dart';
+import '../../../services/settings_service.dart';
 
 class CustomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -15,6 +17,15 @@ class CustomNavbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = SettingsService();
+    final theme = settings.selectedContrastTheme;
+    final isDefault = theme == 'Default';
+
+    final navBg = isDefault ? Colors.white : AppColors.primaryBackground;
+    final navBorderColor = isDefault ? Colors.black.withOpacity(0.04) : AppColors.cardBorder;
+    final visibilityBtnBg = isDefault ? Colors.white : AppColors.primaryBackground;
+    final visibilityIconColor = isDefault ? Colors.black : AppColors.primaryText;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 24.0),
       child: Row(
@@ -24,19 +35,19 @@ class CustomNavbar extends StatelessWidget {
             child: Container(
               height: 74,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: navBg,
                 borderRadius: BorderRadius.circular(37),
                 border: Border.all(
-                  color: Colors.black.withOpacity(0.04),
+                  color: navBorderColor,
                   width: 1.5,
                 ),
-                boxShadow: [
+                boxShadow: isDefault ? [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.04),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
-                ],
+                ] : null,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -68,24 +79,24 @@ class CustomNavbar extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: visibilityBtnBg,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.black.withOpacity(0.04),
+                  color: navBorderColor,
                   width: 1.5,
                 ),
-                boxShadow: [
+                boxShadow: isDefault ? [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.06),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
-                ],
+                ] : null,
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.visibility_outlined,
-                  color: Colors.black,
+                  color: visibilityIconColor,
                   size: 28,
                 ),
               ),
@@ -101,14 +112,32 @@ class CustomNavbar extends StatelessWidget {
     required IconData icon,
     required String label,
   }) {
+    final settings = SettingsService();
+    final theme = settings.selectedContrastTheme;
+    final isDefault = theme == 'Default';
     final isSelected = currentIndex == index;
+
+    Color bg;
+    Color fg;
+    Color unselectedFg;
+
+    if (isDefault) {
+      bg = isSelected ? const Color(0xFFECEFF1) : Colors.transparent;
+      fg = isSelected ? const Color(0xFF1E88E5) : Colors.black;
+      unselectedFg = Colors.black;
+    } else {
+      bg = isSelected ? AppColors.primaryButton : Colors.transparent;
+      fg = isSelected ? AppColors.primaryButtonText : AppColors.primaryText;
+      unselectedFg = AppColors.primaryText;
+    }
+
     return GestureDetector(
       onTap: () => onTap(index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFECEFF1) : Colors.transparent, // Light grey background pill S01
+          color: bg,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
@@ -117,7 +146,7 @@ class CustomNavbar extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? const Color(0xFF1E88E5) : Colors.black, // Blue when active, black when inactive
+              color: isSelected ? fg : unselectedFg,
               size: 24,
             ),
             const SizedBox(height: 2),
@@ -126,7 +155,7 @@ class CustomNavbar extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? const Color(0xFF1E88E5) : Colors.black,
+                color: isSelected ? fg : unselectedFg,
               ),
             ),
           ],

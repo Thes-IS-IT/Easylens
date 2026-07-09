@@ -168,6 +168,124 @@ Easylens connects directly to a custom head-mounted ESP32-CAM device:
 
 ---
 
+## 6. Buddy AI Language Routing
+
+`RagService` acts as a smart router that selects the correct LLM backend based on the active app language:
+
+```mermaid
+flowchart TD
+    UserMsg[User Message] --> IsFilipino{Language == Filipino?}
+    IsFilipino -- Yes --> Gemini[Gemini 2.0 Flash API\nSystem prompt in Tagalog\nNatively responds in Filipino]
+    IsFilipino -- No --> GemmaCheck{model.bin present?}
+    GemmaCheck -- Yes --> Gemma[Gemma-IT 2B On-Device\nFully offline\nEnglish response]
+    GemmaCheck -- No --> Offline[Offline Instructions\nADB push guide shown]
+    Gemini --> NavParse[Parse NAVIGATE tags]
+    Gemma --> NavParse
+    NavParse --> TTS[TtsService.speak]
+    NavParse --> Route[Navigate to screen]
+```
+
+### Filipino Gemini Prompt Design
+The `askBuddyGemini` method sends a **system instruction written entirely in Tagalog** to Gemini. This guarantees the model responds in Filipino regardless of the user's question language. Navigation tags (`[NAVIGATE: x]`) are embedded in the system prompt so Buddy can still open any screen.
+
+### TTS Locale for Filipino
+The TTS voice locale is set to `en-US` even when Filipino is active, because:
+- Filipino (Tagalog) contains many English loanwords that `en-US` pronounces correctly
+- Android's `fil-PH` TTS voice is robotic and unintelligible on most devices
+- The selected voice persona's pitch/rate applies normally on the English voice engine
+
+---
+
+## 7. Translation & Localization Architecture
+
+UI string translation is handled by `TranslationService`, a static class with a map of language keys to English/Filipino strings.
+
+### Live Update Pattern
+Every screen that displays translated content is wrapped in:
+```dart
+ListenableBuilder(
+  listenable: SettingsService(),
+  builder: (context, _) {
+    final lang = SettingsService().selectedLanguage;
+    // ... read TranslationService.translate(key, lang)
+  },
+)
+```
+This ensures that changing the language in Settings instantly re-renders all visible text without navigating away.
+
+### Translation Key Map (core keys)
+| Key | English | Filipino |
+|---|---|---|
+| `talk_to_buddy` | Talk to Buddy (Local AI) | Kausapin si Buddy (Lokal AI) |
+| `nearby_text` | Nearby Text | Teksto sa Malapit |
+| `nearby_objects` | Nearby Objects | Bagay sa Malapit |
+| `audio_navigation` | Audio Navigation | Audio Nabigasyon |
+| `sos_emergency` | SOS Emergency | SOS Emerhensya |
+| `metric` | Metric | Metriko |
+| `imperial` | Imperial | Imperial |
+
+---
+
+## 8. Proximity Navigation TTS System
+
+During active navigation (`_navState == 1`), the GPS position stream triggers `_checkNavigationProgress()` on every location update.
+
+### Anti-spam mechanism
+A timestamp-based cooldown (`_navAlertCooldownMs = 8000 ms`) ensures TTS is never spoken more than once per 8 seconds regardless of GPS update frequency.
+
+### Distance thresholds
+| Distance | Action |
+|---|---|
+| < 200 m to next waypoint | Repeats current step instruction |
+| < 80 m to next waypoint | Warns "In X meters, [step]" |
+| < 30 m to next waypoint | Auto-advances step index + reads next step |
+| < 80 m to destination | "Almost there! X meters away" |
+| < 20 m to destination | "You have arrived!" + transitions to navState 2 |
+
+Step waypoints are estimated by interpolating the OSRM `_routePoints` array using the current step index fraction. This gives a smooth positional estimate even when step coordinate data is not available.
+
+---
+
+## 9. Dynamic Theming Architecture
+
+All color values in the app are resolved at runtime through `AppColors` — a class of static getters that query `SettingsService` on every access:
+
+```dart
+static Color get primaryBackground =>
+    SettingsService().appearanceTheme == 'Black'
+        ? const Color(0xFF111111)
+        : Colors.white;
+```
+
+This means no widget needs to be rebuilt from the root when the theme changes. Any widget that reads `AppColors.*` will display the correct color on its next paint cycle. Combined with `ListenableBuilder`, theme switches are instant app-wide.
+
+### Theme Token Table
+| Token | Default (light) | Black (dark) |
+|---|---|---|
+| `lightBackground` | `#F5F7FF` | `#000000` |
+| `primaryBackground` | `#FFFFFF` | `#111111` |
+| `primaryText` | `#000000` | `#FFFFFF` |
+| `primaryButton` | `#002663` (navy) | Accent color |
+| `cardBorder` | transparent | `#333333` |
+| `textMuted` | `#6B7280` | `#9CA3AF` |
+
+---
+
+## 10. Audio Cue System
+
+EasyLens uses `audioplayers` (separate from `flutter_tts`) for non-speech audio feedback:
+
+*   **`AudioPlayer`** is instantiated per screen that needs sound cues and disposed with the widget lifecycle.
+*   All tab switches in `DashboardScreen` are routed through `_onTabChanged(index)` — the single authoritative handler for tab navigation. This ensures the bark cue fires exactly once regardless of whether the user tapped the navbar, a dashboard button, or Buddy navigated them home.
+
+### Registered Sound Assets
+```
+assets/sounds/
+└── bark_dashboard.mp3   # Plays once when returning to Dashboard Home tab
+```
+
+---
+
 ## 5. Storage & Sync Layers
 
 *   **Cloudflare D1 Database:** Serverless SQLite database. Synchronizes user profiles, configurations, and contacts securely using token authorized HTTP payloads.

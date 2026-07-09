@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../constants/colors.dart';
+import '../../../services/settings_service.dart';
 
 class MascotBanner extends StatefulWidget {
   final double bannerHeight;
@@ -26,10 +28,10 @@ class MascotBanner extends StatefulWidget {
 
 class _MascotBannerState extends State<MascotBanner> {
   bool _isExpanded = false;
-  late String _activeMessage;
+  int _activeMessageIndex = 0;
 
-  // 20 sweet persona messages from Buddy the guide dog
-  static const List<String> _sweetMessages = [
+  // 20 sweet persona messages from Buddy the guide dog in English S01
+  static const List<String> _sweetMessagesEn = [
     "I'm actively scanning your surroundings. Stay safe, buddy!",
     "You are doing amazing today! Let's explore the world together.",
     "No matter where we walk, I've got your back. Lead the way!",
@@ -52,14 +54,75 @@ class _MascotBannerState extends State<MascotBanner> {
     "Breathe in the fresh air, trust your direction, and enjoy the walk!",
   ];
 
+  // 20 sweet persona messages from Buddy in Tagalog S01
+  static const List<String> _sweetMessagesTl = [
+    "Kasalukuyan kong sinusuri ang iyong paligid. Mag-ingat ka, kaibigan!",
+    "Mahusay ang ginagawa mo ngayon! Sabay nating galugarin ang mundo.",
+    "Saan man tayo maglakad, kasama mo ako. Ikaw ang mamuno!",
+    "Ang iyong kaligtasan ang aking pangunahing priyoridad. Maglakad tayo nang may tiwala!",
+    "Puno ng kagandahan ang mundo, at masaya akong tulungan kang mahanap ito.",
+    "Handa na ba para sa susunod nating pakikipagsapalaran? Kunin ang iyong salamin at tara na!",
+    "Pinapadali mo ang bawat lakbayin. Patuloy na maglakad nang matatag!",
+    "Dahan-dahan lang, babalaan kita sa anumang mga harang sa harap.",
+    "Napakaswerte ko na maging iyong virtual na kasamang gabay!",
+    "Magtiwala sa iyong mga hakbang. Nakabantay ako sa landas para sa iyo.",
+    "Binibigyan mo ako ng inspirasyon! Sabay nating lakbayin ang mga daan ngayon.",
+    "Humakbang nang maingat, huminga nang malalim. Perpekto ang ating paglalakbay.",
+    "Laging tandaan, hindi ka nag-iisa sa paglalakad. Narito lang ako!",
+    "Panatilihin ang magandang ngiti na iyan! Malinis at maganda ang daan sa harap.",
+    "Tuklasin natin ang mga bagong lugar! Gagabayan kita step by step.",
+    "Narito ako para gabayan ang iyong landas at iligtas ka sa mga panganib.",
+    "Ang bawat hakbang mo ay hakbang patungo sa higit na kalayaan!",
+    "Walang makakapigil sa iyo! Gawin nating ligtas at kahanga-hanga ang araw na ito.",
+    "Handa na ang iyong gabay! Sabihin mo sa akin kung saan mo gustong maglakbay susunod.",
+    "Langhapin ang sariwang hangin, magtiwala sa iyong direksyon, at tamasahin ang lakad!",
+  ];
+
   @override
   void initState() {
     super.initState();
-    _activeMessage = _sweetMessages[Random().nextInt(_sweetMessages.length)];
+    _activeMessageIndex = Random().nextInt(_sweetMessagesEn.length);
   }
 
   @override
   Widget build(BuildContext context) {
+    final settings = SettingsService();
+    final theme = settings.selectedContrastTheme;
+    final isDefault = theme == 'Default';
+    final isBlack = settings.appearanceTheme == 'Black';
+
+    final isFilipino = settings.selectedLanguage.toLowerCase().contains('tagalog') || settings.selectedLanguage.toLowerCase().contains('filipino');
+    final activeMessage = isFilipino 
+        ? _sweetMessagesTl[_activeMessageIndex] 
+        : _sweetMessagesEn[_activeMessageIndex];
+
+    final bannerColor = isDefault 
+        ? const Color(0xFF3B82F6) 
+        : (isBlack ? AppColors.primaryBackground : Colors.black);
+        
+    final bubbleBg = isDefault 
+        ? Colors.white 
+        : AppColors.primaryBackground;
+        
+    final headerColor = isDefault 
+        ? const Color(0xFF002663) 
+        : AppColors.primaryText;
+        
+    final subtextColor = isDefault 
+        ? const Color(0xFF4A5568) 
+        : AppColors.primaryText;
+
+    final bannerBorder = isDefault
+        ? null
+        : Border(
+            top: BorderSide(color: AppColors.cardBorder, width: 1.5),
+            bottom: BorderSide(color: AppColors.cardBorder, width: 1.5),
+          );
+
+    final bubbleBorder = isDefault
+        ? null
+        : Border.all(color: AppColors.cardBorder, width: 1.5);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
@@ -77,7 +140,10 @@ class _MascotBannerState extends State<MascotBanner> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
-              color: const Color(0xFF3B82F6), // Brand blue background banner
+              decoration: BoxDecoration(
+                color: bannerColor,
+                border: bannerBorder,
+              ),
             ),
           ),
           
@@ -90,8 +156,12 @@ class _MascotBannerState extends State<MascotBanner> {
               child: Container(
                 width: 12,
                 height: 12,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: bubbleBg,
+                  border: isDefault ? null : Border(
+                    left: BorderSide(color: AppColors.cardBorder, width: 1.5),
+                    bottom: BorderSide(color: AppColors.cardBorder, width: 1.5),
+                  ),
                 ),
               ),
             ),
@@ -107,15 +177,16 @@ class _MascotBannerState extends State<MascotBanner> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: bubbleBg,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
+                border: bubbleBorder,
+                boxShadow: isDefault ? [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   )
-                ],
+                ] : null,
               ),
               child: GestureDetector(
                 onTap: () {
@@ -131,7 +202,7 @@ class _MascotBannerState extends State<MascotBanner> {
                       'Buddy',
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF002663),
+                        color: headerColor,
                         fontSize: 17,
                       ),
                     ),
@@ -142,19 +213,19 @@ class _MascotBannerState extends State<MascotBanner> {
                           ? CrossFadeState.showSecond
                           : CrossFadeState.showFirst,
                       firstChild: Text(
-                        _activeMessage,
+                        activeMessage,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF4A5568),
+                          color: subtextColor,
                           fontSize: 13,
                           height: 1.3,
                         ),
                       ),
                       secondChild: Text(
-                        _activeMessage,
+                        activeMessage,
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF4A5568),
+                          color: subtextColor,
                           fontSize: 13,
                           height: 1.3,
                         ),

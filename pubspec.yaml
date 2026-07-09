@@ -58,6 +58,9 @@ dependencies:
   confetti: ^0.7.0
   google_maps_flutter: ^2.5.3
   geolocator: ^11.0.0
+  sensors_plus: ^5.0.1
+  battery_plus: ^6.0.2
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +89,7 @@ flutter:
     - assets/Mascots/
     - assets/models/
     - assets/images/
+    - assets/sounds/
     - .env
 
 

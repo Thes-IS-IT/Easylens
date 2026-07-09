@@ -144,132 +144,145 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Floating Pill Back Button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  width: 95,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      )
-                    ],
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        final isDefault = SettingsService().selectedContrastTheme == 'Default';
+        final headerColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
+        final tileTextColor = isDefault ? Colors.black : AppColors.primaryText;
+        final cardColor = AppColors.primaryBackground;
+
+        return Scaffold(
+          backgroundColor: AppColors.lightBackground,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Floating Pill Back Button
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isDefault ? Colors.white : AppColors.primaryBackground,
+                        borderRadius: BorderRadius.circular(22),
+                        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                        boxShadow: isDefault ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          )
+                        ] : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chevron_left, color: headerColor, size: 24),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Back',
+                            style: GoogleFonts.inter(
+                              color: headerColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.chevron_left, color: Color(0xFF002663), size: 24),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Back',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF002663),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+
+                  const SizedBox(height: 32),
+
+                  // 2. Title Header
+                  Text(
+                    'Voice Feedback',
+                    style: GoogleFonts.inter(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: headerColor,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 3. Top Info Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(24.0),
+                      border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                      boxShadow: isDefault ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        )
+                      ] : null,
+                    ),
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/Mascots/App Mascot.png',
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.contain,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        Text(
+                          'Voice Persona',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: tileTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Choose Buddy\'s voice personality for safety alerts, route distractions, and settings.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: const Color(0xFF64748B),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // 2. Title Header
-              Text(
-                'Voice Feedback',
-                style: GoogleFonts.inter(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF002663),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // 3. Top Info Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/Mascots/App Mascot.png',
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Voice Persona',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Choose Buddy\'s voice personality for safety alerts, route distractions, and settings.',
-                      textAlign: TextAlign.center,
+
+                  const SizedBox(height: 24),
+
+                  // 4. Section Title
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
+                    child: Text(
+                      'CHOOSE A PERSONALITY',
                       style: GoogleFonts.inter(
                         fontSize: 12,
+                        fontWeight: FontWeight.bold,
                         color: const Color(0xFF64748B),
-                        height: 1.4,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // 4. Section Title
-              Padding(
-                padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
-                child: Text(
-                  'CHOOSE A PERSONALITY',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
-                    letterSpacing: 0.5,
                   ),
-                ),
+
+                  // 5. Selectable list cards
+                  ..._personas.map(_buildPersonaCard),
+                ],
               ),
-              
-              // 5. Selectable list cards
-              ..._personas.map(_buildPersonaCard),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

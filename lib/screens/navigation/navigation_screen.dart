@@ -14,6 +14,7 @@ import '../settings/settings_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
+import '../../services/settings_service.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -23,6 +24,48 @@ class NavigationScreen extends StatefulWidget {
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
+  final _firebaseService = FirebaseService();
+  late String _displayName;
+  int _currentIndex = 0;
+
+  String _formatDistance(String distanceStr, String unit) {
+    if (unit == 'Imperial') {
+      final kmReg = RegExp(r'([\d.]+)\s*km', caseSensitive: false);
+      final mReg = RegExp(r'([\d.]+)\s*(?:meters|meter|m\b)', caseSensitive: false);
+      
+      if (kmReg.hasMatch(distanceStr)) {
+        final match = kmReg.firstMatch(distanceStr);
+        final kmVal = double.tryParse(match?.group(1) ?? '');
+        if (kmVal != null) {
+          final miles = kmVal * 0.621371;
+          return "${miles.toStringAsFixed(1)} mi";
+        }
+      } else if (mReg.hasMatch(distanceStr)) {
+        final match = mReg.firstMatch(distanceStr);
+        final mVal = double.tryParse(match?.group(1) ?? '');
+        if (mVal != null) {
+          final feet = (mVal * 3.28084).round();
+          return "$feet ft";
+        }
+      }
+    }
+    return distanceStr;
+  }
+
+  String _formatStep(String stepText, String unit) {
+    if (unit == 'Imperial') {
+      final mReg = RegExp(r'(\d+)\s*(?:meters|meter|m\b)', caseSensitive: false);
+      return stepText.replaceAllMapped(mReg, (match) {
+        final mVal = double.tryParse(match.group(1) ?? '');
+        if (mVal != null) {
+          final feet = (mVal * 3.28084).round();
+          return "$feet feet";
+        }
+        return match.group(0) ?? '';
+      });
+    }
+    return stepText;
+  }
   // Navigation states
   // 0 = Initial map (Figma screen 1/2) with search card overlay
   // 1 = Navigation Active status (Figma screen 3)
@@ -43,6 +86,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
   bool _isLoadingLocation = true;
   List<LatLng> _routePoints = [];
   bool _isFetchingRoute = false;
+
+  // Obstacle / proximity guidance
+  int _lastNavAlertTime = 0;
+  static const int _navAlertCooldownMs = 8000; // 8 s between spoken alerts
+  bool _hasAnnouncedArrival = false;
 
   // HAU Location coordinates (Pampanga, PH)
   static const LatLng _hauLatLng = LatLng(15.1325, 120.5901);
@@ -175,7 +223,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           setState(() {
             _currentLocation = LatLng(position.latitude, position.longitude);
           });
-          
+
           if (_selectedPlace != null) {
             _fetchRoadRoute();
             // Smoothly track current location if navigating
@@ -183,6 +231,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
               _mapController?.animateCamera(
                 CameraUpdate.newLatLng(_currentLocation),
               );
+              // Check proximity to current step / destination
+              _checkNavigationProgress();
             }
           }
         }
@@ -198,6 +248,95 @@ class _NavigationScreenState extends State<NavigationScreen> {
         }
       } catch (_) {}
       setState(() => _isLoadingLocation = false);
+    }
+  }
+
+  /// Checks how close the user is to the destination and the next step waypoint.
+  /// Speaks a guidance prompt when within threshold, respecting the cooldown
+  /// to avoid spamming the user.
+  void _checkNavigationProgress() {
+    if (_selectedPlace == null || _navState != 1) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastNavAlertTime < _navAlertCooldownMs) return;
+
+    final steps = _selectedPlace!['steps'] as List<String>;
+    final destination = _selectedPlace!['latLng'] as LatLng;
+    final unit = SettingsService().selectedUnit;
+
+    // --- 1. Check distance to final destination ---
+    final distToDestM = Geolocator.distanceBetween(
+      _currentLocation.latitude,
+      _currentLocation.longitude,
+      destination.latitude,
+      destination.longitude,
+    );
+
+    if (distToDestM < 20 && !_hasAnnouncedArrival) {
+      _hasAnnouncedArrival = true;
+      _lastNavAlertTime = now;
+      TtsService().speak(
+        'You have arrived at your destination, ${_selectedPlace!["name"]}. Well done!',
+      );
+      setState(() => _navState = 2);
+      return;
+    }
+
+    if (distToDestM < 80 && !_hasAnnouncedArrival) {
+      _lastNavAlertTime = now;
+      final approachDist = unit == 'Imperial'
+          ? '${(distToDestM * 3.28084).round()} feet'
+          : '${distToDestM.round()} meters';
+      TtsService().speak(
+        'You are $approachDist away from ${_selectedPlace!["name"]}. Almost there!',
+      );
+      return;
+    }
+
+    // --- 2. Announce upcoming turn for current step ---
+    if (_currentStepIndex < steps.length) {
+      final currentStep = _formatStep(steps[_currentStepIndex], unit);
+
+      // Estimate position along the route using step index ratio
+      final routeLen = _routePoints.length;
+      if (routeLen > 1) {
+        final stepFraction = routeLen > 0
+            ? (_currentStepIndex / steps.length).clamp(0.0, 1.0)
+            : 0.0;
+        final nextWaypointIndex =
+            ((stepFraction + 1 / steps.length) * routeLen).round()
+                .clamp(0, routeLen - 1);
+        final nextWaypoint = _routePoints[nextWaypointIndex];
+
+        final distToTurnM = Geolocator.distanceBetween(
+          _currentLocation.latitude,
+          _currentLocation.longitude,
+          nextWaypoint.latitude,
+          nextWaypoint.longitude,
+        );
+
+        if (distToTurnM < 30) {
+          // Auto-advance to next step when very close
+          if (_currentStepIndex < steps.length - 1) {
+            _lastNavAlertTime = now;
+            setState(() => _currentStepIndex++);
+            TtsService().speak(
+              _formatStep(steps[_currentStepIndex], unit),
+            );
+          }
+        } else if (distToTurnM < 80) {
+          // Warn upcoming turn
+          _lastNavAlertTime = now;
+          final warnDist = unit == 'Imperial'
+              ? '${(distToTurnM * 3.28084).round()} feet'
+              : '${distToTurnM.round()} meters';
+          TtsService().speak('In $warnDist, $currentStep');
+        } else if (distToTurnM < 200) {
+          // Remind step
+          _lastNavAlertTime = now;
+          TtsService().speak(currentStep);
+        }
+      }
     }
   }
 
@@ -351,7 +490,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
     setState(() {
       _selectedPlace = place;
       _currentStepIndex = 0;
-      _navState = 1; // Open Guideline View (Figma Screen 3)
+      _hasAnnouncedArrival = false;
+      _lastNavAlertTime = 0;
+      _navState = 1;
     });
     _fetchRoadRoute();
 
@@ -400,8 +541,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
     // Speak initial direction with user configuration preference
     final firstDirection = place['steps'][0] as String;
+    final unit = SettingsService().selectedUnit;
+    final formattedDist = _formatDistance(place['dist'] as String, unit);
+    final formattedStep = _formatStep(firstDirection, unit);
+
     TtsService().speak(
-      "Starting navigation guidance to ${place['name']}. Distance is ${place['dist']}, estimated time is ${place['time']}. $firstDirection.",
+      "Starting navigation guidance to ${place['name']}. Distance is $formattedDist, estimated time is ${place['time']}. $formattedStep.",
     );
   }
 
@@ -412,7 +557,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
       setState(() {
         _currentStepIndex++;
       });
-      TtsService().speak(steps[_currentStepIndex]);
+      final unit = SettingsService().selectedUnit;
+      TtsService().speak(_formatStep(steps[_currentStepIndex], unit));
     } else {
       setState(() {
         _navState = 2; // Arrived map view (Figma Screen 4)
@@ -428,6 +574,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _navState = 0;
       _selectedPlace = null;
       _currentStepIndex = 0;
+      _hasAnnouncedArrival = false;
       _searchController.clear();
       _searchResults = List.from(_allPlaces);
     });
@@ -794,7 +941,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade400),
               ),
               trailing: Text(
-                '${place['dist']} • ${place['time']}',
+                '${_formatDistance(place['dist'] as String, SettingsService().selectedUnit)} • ${place['time']}',
                 style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
               ),
               onTap: () => _startGuidance(place),
@@ -831,7 +978,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          '${_selectedPlace!['dist']} • ${_selectedPlace!['time']}',
+          '${_formatDistance(_selectedPlace!['dist'] as String, SettingsService().selectedUnit)} • ${_selectedPlace!['time']}',
           style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
         ),
         const Divider(height: 32),
@@ -857,7 +1004,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                stepText,
+                _formatStep(stepText, SettingsService().selectedUnit),
                 style: GoogleFonts.inter(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,

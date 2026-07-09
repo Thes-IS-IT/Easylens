@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../constants/colors.dart';
+import '../../../services/settings_service.dart';
 
 class HeaderBar extends StatelessWidget {
   final VoidCallback onSOSSelected;
@@ -16,6 +18,12 @@ class HeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = SettingsService().selectedContrastTheme;
+    final isDefault = theme == 'Default';
+    
+    final pillBg = isDefault ? Colors.white : AppColors.primaryBackground;
+    final iconColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -25,13 +33,14 @@ class HeaderBar extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFE53E3E),
+              color: isDefault ? const Color(0xFFE53E3E) : AppColors.primaryButton,
               borderRadius: BorderRadius.circular(12),
+              border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
             ),
-            child: const Text(
+            child: Text(
               'SOS',
               style: TextStyle(
-                color: Colors.white,
+                color: isDefault ? Colors.white : AppColors.primaryButtonText,
                 fontWeight: FontWeight.w900,
                 fontSize: 16,
               ),
@@ -43,32 +52,33 @@ class HeaderBar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: pillBg,
             borderRadius: BorderRadius.circular(30),
-            boxShadow: [
+            border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+            boxShadow: isDefault ? [
               BoxShadow(
                 color: Colors.black.withOpacity(0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               )
-            ],
+            ] : null,
           ),
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_none, color: Color(0xFF002663)),
+                icon: Icon(Icons.notifications_none, color: iconColor),
                 onPressed: onNotificationsSelected,
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.symmetric(horizontal: 8),
               ),
               IconButton(
-                icon: const Icon(Icons.people_outline, color: Color(0xFF002663)),
+                icon: Icon(Icons.people_outline, color: iconColor),
                 onPressed: onContactsSelected, // Wired contacts screen trigger
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.symmetric(horizontal: 8),
               ),
               IconButton(
-                icon: const Icon(Icons.settings_outlined, color: Color(0xFF002663)),
+                icon: Icon(Icons.settings_outlined, color: iconColor),
                 onPressed: onSettingsSelected,
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.symmetric(horizontal: 8),

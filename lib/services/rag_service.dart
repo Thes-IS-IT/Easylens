@@ -216,6 +216,8 @@ Provide a clear, simple, and friendly explanation of the following text scanned 
 
 Explain what it is (e.g. food label, safety sign, direction sign) and highlight key information like product name, weight, or warnings. Keep the response direct and under 3 sentences.
 """;
+    } else if (question.contains("You are Buddy")) {
+      promptText = question;
     } else {
       final context = retrieveContext(question);
       promptText = """
@@ -242,6 +244,126 @@ Buddy's Answer:
           "1. Run this ADB command on your Mac to push the model file to the device:\n"
           "   adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin\n"
           "2. Restart the app to run fully offline Gemma AI!";
+    }
+  }
+
+  /// Builds a Tagalog-language Gemma prompt.
+  /// Writing the entire prompt in Filipino forces Gemma's instruction-tuned
+  /// model to mirror the language and respond in Tagalog.
+  String _buildFilipinoPrompt(String userQuestion, String userName, String mobilityAid) {
+    return """
+Ikaw si Buddy, ang tapat na golden retriever na gabay ng EasyLens app.
+Lagi kang sumasagot sa wikang Filipino/Tagalog — hindi ka gumagamit ng Ingles.
+Ikaw ay masaya, matulungin, at maaasahan tulad ng isang aso.
+Pangalan ng gumagamit: $userName. Gamit niya: $mobilityAid.
+
+Mga utos ng navigation — isama sa DULO ng iyong sagot (opsyonal):
+[NAVIGATE: home] — para sa Home screen
+[NAVIGATE: nav] — para sa Audio Navigation
+[NAVIGATE: hardware] — para sa EasyLens Camera/Sensor
+[NAVIGATE: text] — para sa Text Scanner
+[NAVIGATE: objects] — para sa Object Detector
+[NAVIGATE: emergency] — para sa SOS Emergency
+[NAVIGATE: settings] — para sa Settings
+[NAVIGATE: notifications] — para sa Mga Abiso
+[NAVIGATE: contacts] — para sa Mga Kontak
+
+Halimbawa ng tamang sagot:
+Tanong: Kumusta ka?
+Buddy: Mabuti naman, $userName! Masaya akong makita ka ngayon. 🐾 Paano kita matutulungan?
+
+Tanong: $userQuestion
+Buddy:""";
+  }
+
+  /// Sends a question to Gemma using a fully Filipino prompt so the model
+  /// responds in Tagalog. Falls back to the offline instructions if the model
+  /// file is not present on the device.
+  Future<String> askBuddyFilipino(String question, String userName, String mobilityAid) async {
+    final promptText = _buildFilipinoPrompt(question, userName, mobilityAid);
+    final modelPath = await _getLocalModelPath();
+    if (modelPath != null) {
+      return await _queryGemmaOffline(promptText);
+    } else {
+      return "Hindi pa naka-install ang lokal na modelo. \n\n"
+          "Patakbuhin ang command na ito sa Mac mo:\n"
+          "adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin\n"
+          "Tapos i-restart ang app.";
+    }
+  }
+
+  /// Translates an English Gemma response to Filipino using Gemini API.
+  /// Preserves any [NAVIGATE: x] tags so app routing still works after translation.
+  Future<String> translateToFilipino(String englishText) async {
+    try {
+      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+      if (apiKey.isEmpty) return englishText;
+
+      // Extract [NAVIGATE: x] tag before translating so it isn't mangled
+      final navRegex = RegExp(r'\[NAVIGATE:[^\]]+\]', caseSensitive: false);
+      final navMatch = navRegex.firstMatch(englishText);
+      final navTag = navMatch?.group(0) ?? '';
+      final textOnly = englishText.replaceAll(navRegex, '').trim();
+
+      final model = GenerativeModel(
+        model: 'gemini-2.0-flash',
+        apiKey: apiKey,
+      );
+
+      final prompt = 'Translate the following text to Filipino/Tagalog. '
+          'Keep the same friendly, enthusiastic tone. '
+          'Do NOT translate proper nouns like app names. '
+          'Return ONLY the translated text, nothing else.\n\n'
+          'Text: $textOnly';
+
+      final content = [Content.text(prompt)];
+      final response = await model.generateContent(content);
+      final translated = response.text?.trim() ?? textOnly;
+
+      // Reattach navigation tag at the end if it existed
+      return navTag.isNotEmpty ? '$translated $navTag' : translated;
+    } catch (e) {
+      print('[Translation] Failed: $e');
+      return englishText; // fallback to English on error
+    }
+  }
+
+  /// Sends a message directly to Gemini API in Filipino mode.
+  /// Used when the app language is set to Tagalog/Filipino so the response
+  /// is naturally in Tagalog without any translation step.
+  Future<String> askBuddyGemini(String question, String userName, String mobilityAid) async {
+    try {
+      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+      if (apiKey.isEmpty) return 'Hindi available ang Gemini API key.';
+
+      final model = GenerativeModel(
+        model: 'gemini-2.0-flash',
+        apiKey: apiKey,
+        systemInstruction: Content.system(
+          'Ikaw si Buddy, ang tapat at masayang golden retriever na gabay ng EasyLens app. '
+          'Lagi kang sumasagot sa wikang Filipino/Tagalog — huwag kang gumamit ng Ingles. '
+          'Ikaw ay palaging masaya, matulungin, at maaasahan. '
+          'Pangalan ng gumagamit: $userName. Gumagamit siya ng: $mobilityAid. '
+          'Magsagot nang maikli at malinaw (2-3 pangungusap lang). '
+          'Kung kailangang mag-navigate sa isang screen, idagdag ang isa sa mga tag na ito sa DULO ng iyong sagot:\n'
+          '[NAVIGATE: home] — Home screen\n'
+          '[NAVIGATE: nav] — Audio Navigation\n'
+          '[NAVIGATE: hardware] — EasyLens Camera/Sensor\n'
+          '[NAVIGATE: text] — Text Scanner\n'
+          '[NAVIGATE: objects] — Object Detector\n'
+          '[NAVIGATE: emergency] — SOS Emergency\n'
+          '[NAVIGATE: settings] — Settings\n'
+          '[NAVIGATE: notifications] — Mga Abiso\n'
+          '[NAVIGATE: contacts] — Mga Kontak',
+        ),
+      );
+
+      final content = [Content.text(question)];
+      final response = await model.generateContent(content);
+      return response.text?.trim() ?? 'Walang natanggap na sagot.';
+    } catch (e) {
+      print('[Gemini Filipino] Error: $e');
+      return 'May problema sa koneksyon. Subukan muli mamaya.';
     }
   }
 

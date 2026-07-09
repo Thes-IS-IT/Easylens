@@ -1,4 +1,5 @@
 import 'package:speech_to_text/speech_to_text.dart';
+import 'settings_service.dart';
 
 class SttService {
   static final SttService _instance = SttService._internal();
@@ -39,8 +40,16 @@ class SttService {
       return;
     }
 
+    // Determine correct locale dynamically
+    final settings = SettingsService();
+    String localeId = 'en_US';
+    if (settings.selectedLanguage == 'Tagalog') {
+      localeId = 'fil_PH';
+    }
+
     onListeningStateChanged(true);
     await _speechToText.listen(
+      localeId: localeId,
       pauseFor: const Duration(milliseconds: 2500),
       listenFor: const Duration(seconds: 30),
       onResult: (result) {

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+import 'dart:math';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import '../../services/firebase_service.dart';
 import '../../constants/colors.dart';
 import '../onboarding/onboarding_screen.dart';
@@ -15,6 +19,8 @@ import '../object_detection/object_detection_screen.dart';
 import '../image_labeling/image_labeling_screen.dart';
 import 'dashboard_home.dart';
 import '../../utils/app_route.dart';
+import '../../services/tts_service.dart';
+import '../../services/settings_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -27,12 +33,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _firebaseService = FirebaseService();
   late String _displayName;
   int _currentIndex = 0;
+  final _barkPlayer = AudioPlayer();
+
+  StreamSubscription? _accelerometerSubscription;
+  int _lastShakeTime = 0;
 
   @override
   void initState() {
     super.initState();
     _displayName = "User";
     _loadUserDisplayName();
+    _startShakeListening();
+  }
+
+  @override
+  void dispose() {
+    _stopShakeListening();
+    _barkPlayer.dispose();
+    super.dispose();
+  }
+
+  /// Plays bark_dashboard.mp3 once when the user arrives on the Home tab.
+  Future<void> _playDashboardBark() async {
+    try {
+      await _barkPlayer.stop();
+      await _barkPlayer.play(
+        AssetSource('sounds/bark_dashboard.mp3'),
+        volume: 1.0,
+      );
+    } catch (e) {
+      // Non-fatal — audio failure should never block navigation
+    }
+  }
+
+  /// Central tab-change handler. Plays bark when navigating to dashboard.
+  void _onTabChanged(int index) {
+    final wasOnHome = _currentIndex == 0;
+    final goingHome = index == 0;
+    setState(() => _currentIndex = index);
+    if (goingHome && !wasOnHome) {
+      _playDashboardBark();
+    }
   }
 
   Future<void> _loadUserDisplayName() async {
@@ -75,16 +116,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _startShakeListening() {
+    _accelerometerSubscription = userAccelerometerEvents.listen((UserAccelerometerEvent event) {
+      if (!mounted) return;
+      if (!SettingsService().shakeToUndo) return;
+
+      final double gX = event.x / 9.80665;
+      final double gY = event.y / 9.80665;
+      final double gZ = event.z / 9.80665;
+      final double gForce = sqrt(gX * gX + gY * gY + gZ * gZ);
+
+      if (gForce > 2.5) {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (now - _lastShakeTime > 1500) {
+          _lastShakeTime = now;
+          _onShakeDetected();
+        }
+      }
+    });
+  }
+
+  void _stopShakeListening() {
+    _accelerometerSubscription?.cancel();
+  }
+
+  void _onShakeDetected() {
+    TtsService().speak("Shake gesture detected. Action undone.");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          SettingsService().selectedLanguage.toLowerCase().contains('filipino') || SettingsService().selectedLanguage.toLowerCase().contains('tagalog')
+              ? 'Na-detect ang pag-shake! Na-undo ang huling aksyon.'
+              : 'Shake gesture detected! Last action undone.',
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _openBuddyAssistant() {
     BuddyAssistantSheet.show(
       context,
       onNavigate: (screenKey) {
         if (screenKey == 'home') {
-          setState(() => _currentIndex = 0);
+          _onTabChanged(0);
         } else if (screenKey == 'nav') {
-          setState(() => _currentIndex = 1);
+          _onTabChanged(1);
         } else if (screenKey == 'hardware') {
-          setState(() => _currentIndex = 2);
+          _onTabChanged(2);
         } else if (screenKey == 'text') {
           Navigator.of(context).push(
             AppRoute.to(ImageLabelingScreen(
@@ -120,97 +200,102 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Define bottom tabs
-    final List<Widget> tabs = [
-      DashboardHome(
-        displayName: _displayName,
-        onTabSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        onSOSSelected: () {
-          Navigator.of(context).push(
-            AppRoute.to(const EmergencyScreen()),
-          );
-        },
-        onSettingsSelected: () {
-          Navigator.of(context).push(
-            AppRoute.to(const SettingsScreen()),
-          );
-        },
-        onNotificationsSelected: () {
-          Navigator.of(context).push(
-            AppRoute.to(const NotificationsScreen()),
-          );
-        },
-        onContactsSelected: () {
-          Navigator.of(context).push(
-            AppRoute.to(const ContactsScreen()),
-          );
-        },
-        onBuddyAssistantTap: _openBuddyAssistant,
-      ),
-      const NavigationScreen(),
-      HardwareScreen(isActive: _currentIndex == 2),
-    ];
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        final settings = SettingsService();
+        final appearance = settings.appearanceTheme;
+        final bg = (appearance == 'Black') ? Colors.black : AppColors.lightBackground;
 
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: Stack(
-        children: [
-          // Tabs stacked content
-          SafeArea(
-            bottom: false,
-            child: IndexedStack(
-              index: _currentIndex,
-              children: tabs.map((tab) {
-                if (tab is DashboardHome) {
-                  return SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 120.0),
+        // Define bottom tabs
+        final List<Widget> tabs = [
+          DashboardHome(
+            displayName: _displayName,
+            onTabSelected: (index) {
+              _onTabChanged(index);
+            },
+            onSOSSelected: () {
+              Navigator.of(context).push(
+                AppRoute.to(const EmergencyScreen()),
+              );
+            },
+            onSettingsSelected: () {
+              Navigator.of(context).push(
+                AppRoute.to(const SettingsScreen()),
+              );
+            },
+            onNotificationsSelected: () {
+              Navigator.of(context).push(
+                AppRoute.to(const NotificationsScreen()),
+              );
+            },
+            onContactsSelected: () {
+              Navigator.of(context).push(
+                AppRoute.to(const ContactsScreen()),
+              );
+            },
+            onBuddyAssistantTap: _openBuddyAssistant,
+          ),
+          const NavigationScreen(),
+          HardwareScreen(isActive: _currentIndex == 2),
+        ];
+
+        return Scaffold(
+          backgroundColor: bg,
+          body: Stack(
+            children: [
+              // Tabs stacked content
+              SafeArea(
+                bottom: false,
+                child: IndexedStack(
+                  index: _currentIndex,
+                  children: tabs.map((tab) {
+                    if (tab is DashboardHome) {
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 120.0),
+                          child: tab,
+                        ),
+                      );
+                    }
+                    if (tab is NavigationScreen) {
+                      return tab;
+                    }
+                    if (tab is HardwareScreen) {
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 90.0),
+                        child: tab,
+                      );
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 120.0),
                       child: tab,
-                    ),
-                  );
-                }
-                if (tab is NavigationScreen) {
-                  return tab;
-                }
-                if (tab is HardwareScreen) {
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 90.0),
-                    child: tab,
-                  );
-                }
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 120.0),
-                  child: tab,
-                );
-              }).toList(),
-            ),
-          ),
-          
-          // Custom Floating Bottom Navigation Bar
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: CustomNavbar(
-              currentIndex: _currentIndex,
-              onTap: (index) {
-                setState(() {
-                  _currentIndex = index;
-                });
-              },
-              onEasyLensTap: _openBuddyAssistant,
-            ),
-          ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              
+              // Custom Floating Bottom Navigation Bar
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: CustomNavbar(
+                  currentIndex: _currentIndex,
+                  onTap: (index) {
+                    _onTabChanged(index);
+                  },
+                  onEasyLensTap: _openBuddyAssistant,
+                ),
+              ),
 
-          // Draggable Floating Mascot Button S01
-          DraggableBuddyButton(onTap: _openBuddyAssistant),
-        ],
-      ),
+              // Draggable Floating Mascot Button S01
+              DraggableBuddyButton(onTap: _openBuddyAssistant),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -236,6 +321,19 @@ class _DraggableBuddyButtonState extends State<DraggableBuddyButton> {
       _top = size.height - 220.0;
     }
 
+    final settings = SettingsService();
+    final theme = settings.selectedContrastTheme;
+    final isDefault = theme == 'Default';
+    final isBlack = settings.appearanceTheme == 'Black';
+
+    final buttonColor = isDefault 
+        ? const Color(0xFF6B21A8) 
+        : (isBlack ? AppColors.primaryButton : Colors.black);
+        
+    final borderColor = isDefault 
+        ? Colors.white 
+        : AppColors.primaryButtonText;
+
     return Positioned(
       left: _left,
       top: _top,
@@ -258,16 +356,16 @@ class _DraggableBuddyButtonState extends State<DraggableBuddyButton> {
           height: 72,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0xFF6B21A8),
-            boxShadow: [
+            color: buttonColor,
+            boxShadow: isDefault ? [
               BoxShadow(
                 color: const Color(0xFF6B21A8).withOpacity(0.35),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
-            ],
+            ] : null,
             border: Border.all(
-              color: Colors.white,
+              color: borderColor,
               width: 2.5,
             ),
           ),

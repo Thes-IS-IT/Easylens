@@ -41,12 +41,18 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
     // Add initial welcome message
     final user = FirebaseService().currentUser;
     final name = user?.displayName ?? "friend";
-    
+    final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+        SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+
+    final welcomeMsg = isFilipino
+        ? "Aw! Kumusta $name! Ako si Buddy, ang iyong lokal na AI katulong. Sabihin mo sa akin kung ano ang gusto mong ipaliwanag o kung saan mo gustong pumunta!"
+        : "Woof! Hi $name! I'm Buddy, your local on-device LLM helper. Tell me what to explain or where to navigate!";
+
     _messages.add({
-      'text': "Woof! Hi $name! I'm Buddy, your local on-device LLM helper. Tell me what to explain or where to navigate!",
+      'text': welcomeMsg,
       'isUser': false,
     });
-    
+
     // Read welcome message aloud and auto-listen S01
     _initializeAssistant();
   }
@@ -97,17 +103,18 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
 
     await TtsService().stop();
 
-    // Call Gemma local LLM with context
     final user = FirebaseService().currentUser;
     final name = user?.displayName ?? "User";
     final aid = SettingsService().selectedMobilityAid;
     final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') ||
+        lang.toLowerCase().contains('filipino');
 
     final prompt = """
 You are Buddy, the friendly golden retriever dog mascot and visual assistant.
 You help visually impaired users navigate this app and explain features.
-User Info: Name is '$name', using mobility aid '$aid', language is '$lang'.
-Be loyal, friendly, and enthusiastic (like a happy dog).
+User Info: Name is '$name', using mobility aid '$aid'.
+Be loyal, friendly, and enthusiastic (like a happy dog). Keep responses short.
 
 You have MCP navigation abilities. To open a screen, append exactly one of these tags to the end of your response:
 - Home tab: [NAVIGATE: home]
@@ -124,7 +131,14 @@ User Question: $text
 Buddy's Answer:
 """;
 
-    final response = await RagService().askBuddy(prompt);
+    // Filipino → Gemini API (natively responds in Tagalog)
+    // English  → Gemma on-device LLM
+    String response;
+    if (isFilipino) {
+      response = await RagService().askBuddyGemini(text, name, aid);
+    } else {
+      response = await RagService().askBuddy(prompt);
+    }
 
     if (mounted) {
       setState(() {
@@ -133,43 +147,102 @@ Buddy's Answer:
       });
       _scrollToBottom();
 
-      // Check if LLM requested navigation
-      final navMatch = RegExp(r'\[NAVIGATE:\s*([^\]]+)\]', caseSensitive: false).firstMatch(response);
-      
+      // Detect dynamic navigation target
+      final matchedKey = _detectNavigationTarget(text, response);
+
       // Speak response concurrently (do not await so navigation is instantaneous)
       _speakText(response);
 
-      if (navMatch != null) {
-        final targetScreen = navMatch.group(1)?.trim().toLowerCase();
-        if (targetScreen != null) {
-          String matchedKey = '';
-          if (targetScreen.contains('home')) {
-            matchedKey = 'home';
-          } else if (targetScreen.contains('nav')) {
-            matchedKey = 'nav';
-          } else if (targetScreen.contains('hardware') || targetScreen.contains('sens') || targetScreen.contains('camera')) {
-            matchedKey = 'hardware';
-          } else if (targetScreen.contains('text') || targetScreen.contains('ocr') || targetScreen.contains('scan')) {
-            matchedKey = 'text';
-          } else if (targetScreen.contains('object') || targetScreen.contains('detect')) {
-            matchedKey = 'objects';
-          } else if (targetScreen.contains('emergency') || targetScreen.contains('sos') || targetScreen.contains('phone')) {
-            matchedKey = 'emergency';
-          } else if (targetScreen.contains('setting')) {
-            matchedKey = 'settings';
-          } else if (targetScreen.contains('notification')) {
-            matchedKey = 'notifications';
-          } else if (targetScreen.contains('contact')) {
-            matchedKey = 'contacts';
-          }
-
-          if (matchedKey.isNotEmpty && mounted) {
-            Navigator.of(context).pop();
-            widget.onNavigate(matchedKey);
-          }
-        }
+      if (matchedKey != null && matchedKey.isNotEmpty && mounted) {
+        Navigator.of(context).pop();
+        widget.onNavigate(matchedKey);
       }
     }
+  }
+
+  String? _detectNavigationTarget(String userQuery, String llmResponse) {
+    // 1. First check if LLM response has explicit NAVIGATE tag
+    final navMatch = RegExp(r'\[NAVIGATE:\s*([^\]]+)\]', caseSensitive: false).firstMatch(llmResponse);
+    if (navMatch != null) {
+      final target = navMatch.group(1)?.trim().toLowerCase() ?? '';
+      final key = _mapTargetToKey(target);
+      if (key != null) return key;
+    }
+
+    final query = userQuery.toLowerCase();
+    final response = llmResponse.toLowerCase();
+
+    // 2. Fall back to scanning the user query for navigation intents
+    final containsGoAction = query.contains('go to') || 
+                             query.contains('navigate') || 
+                             query.contains('open') || 
+                             query.contains('show') || 
+                             query.contains('switch to') || 
+                             query.contains('move to') ||
+                             query.contains('pumunta') || // Tagalog
+                             query.contains('buksan');    // Tagalog
+
+    if (containsGoAction) {
+      if (query.contains('setting')) return 'settings';
+      if (query.contains('notification') || query.contains('alert')) return 'notifications';
+      if (query.contains('contact') || query.contains('phonebook') || query.contains('directory') || query.contains('tawagan') || query.contains('contacts')) return 'contacts';
+      if (query.contains('emergency') || query.contains('sos') || query.contains('saklolo') || query.contains('tulong')) return 'emergency';
+      if (query.contains('home') || query.contains('dashboard') || query.contains('welcome') || query.contains('umpisa')) return 'home';
+      if (query.contains('navig') || query.contains('gps') || query.contains('map') || query.contains('direction') || query.contains('audio nav')) return 'nav';
+      if (query.contains('hardware') || query.contains('sensor') || query.contains('camera') || query.contains('cam') || query.contains('lens')) return 'hardware';
+      if (query.contains('text') || query.contains('ocr') || query.contains('scan text') || query.contains('basa')) return 'text';
+      if (query.contains('object') || query.contains('detect') || query.contains('scan object') || query.contains('bagay')) return 'objects';
+    }
+
+    // 3. Fall back to scanning the LLM response context for screen keywords combined with navigation advice
+    if (response.contains('settings tab') || response.contains('settings screen') || response.contains('tap "settings"') || response.contains('go to the settings') || response.contains('go to settings')) {
+      return 'settings';
+    }
+    if (response.contains('notification') || response.contains('alerts')) {
+      if (response.contains('open') || response.contains('go to') || response.contains('check')) {
+        return 'notifications';
+      }
+    }
+    if (response.contains('contact') || response.contains('phonebook') || response.contains('contacts')) {
+      if (response.contains('open') || response.contains('go to') || response.contains('call') || response.contains('tap')) {
+        return 'contacts';
+      }
+    }
+    if (response.contains('emergency') || response.contains('sos')) {
+      if (response.contains('open') || response.contains('go to') || response.contains('trigger') || response.contains('call')) {
+        return 'emergency';
+      }
+    }
+    if (response.contains('home tab') || response.contains('dashboard') || response.contains('main screen')) {
+      return 'home';
+    }
+    if (response.contains('audio navigation') || response.contains('nav tab') || response.contains('gps')) {
+      return 'nav';
+    }
+    if (response.contains('sensor') || response.contains('camera tab') || response.contains('hardware')) {
+      return 'hardware';
+    }
+    if (response.contains('text scanner') || response.contains('scan text') || response.contains('ocr')) {
+      return 'text';
+    }
+    if (response.contains('object detector') || response.contains('detect objects') || response.contains('object detection')) {
+      return 'objects';
+    }
+
+    return null;
+  }
+
+  String? _mapTargetToKey(String target) {
+    if (target.contains('home')) return 'home';
+    if (target.contains('nav')) return 'nav';
+    if (target.contains('hardware') || target.contains('sens') || target.contains('camera')) return 'hardware';
+    if (target.contains('text') || target.contains('ocr') || target.contains('scan')) return 'text';
+    if (target.contains('object') || target.contains('detect')) return 'objects';
+    if (target.contains('emergency') || target.contains('sos') || target.contains('phone')) return 'emergency';
+    if (target.contains('setting')) return 'settings';
+    if (target.contains('notification')) return 'notifications';
+    if (target.contains('contact')) return 'contacts';
+    return null;
   }
 
   void _toggleListening() async {
@@ -263,8 +336,7 @@ Buddy's Answer:
             ),
           ),
           
-          // ── Mascot & Header ────────────────────────────────────────────
-          Padding(
+        Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
               children: [
@@ -282,32 +354,39 @@ Buddy's Answer:
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Buddy local LLM',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: AppColors.primaryText,
+                  child: Builder(builder: (context) {
+                    final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+                        SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                    final thinkingText = isFilipino ? 'Nag-iisip si Buddy…' : 'Buddy is thinking…';
+                    final listeningText = isFilipino ? 'Nakikinig si Buddy…' : 'Buddy is listening…';
+                    final readyText = isFilipino ? 'Handa si Buddy na tumulong' : 'Buddy is ready to help';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isFilipino ? 'Buddy Lokal LLM' : 'Buddy local LLM',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            color: AppColors.primaryText,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _isThinking 
-                            ? 'Buddy is thinking…' 
-                            : _isListening 
-                                ? 'Buddy is listening…' 
-                                : 'Buddy is ready to help',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: _isListening ? Colors.red : AppColors.textMuted,
+                        const SizedBox(height: 4),
+                        Text(
+                          _isThinking
+                              ? thinkingText
+                              : _isListening
+                                  ? listeningText
+                                  : readyText,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: _isListening ? Colors.red : AppColors.textMuted,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  }),
                 ),
                 IconButton(
                   icon: Icon(Icons.close, color: AppColors.primaryText),
@@ -404,7 +483,12 @@ Buddy's Answer:
                       controller: _textController,
                       style: GoogleFonts.inter(color: AppColors.primaryText),
                       decoration: InputDecoration(
-                        hintText: _isListening ? 'Speak now…' : 'Ask Buddy anything…',
+                        hintText: (() {
+                          final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+                              SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                          if (_isListening) return isFilipino ? 'Magsalita na…' : 'Speak now…';
+                          return isFilipino ? 'Tanungin si Buddy ng kahit ano…' : 'Ask Buddy anything…';
+                        })(),
                         hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
                         border: InputBorder.none,
                       ),

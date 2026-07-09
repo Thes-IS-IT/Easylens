@@ -3,6 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audioplayers_windows
+  battery_plus
   cloud_firestore
   file_selector_windows
   firebase_auth

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
+import '../../services/settings_service.dart';
+import '../../services/translation_service.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../notifications/notifications_screen.dart';
 import 'profile_details_screen.dart';
@@ -9,6 +11,7 @@ import 'help_guide_screen.dart';
 import 'units_screen.dart';
 import 'change_password_screen.dart';
 import 'preferences_screen.dart';
+import 'customize_home_screen.dart';
 import '../../utils/app_route.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -21,7 +24,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _firebaseService = FirebaseService();
 
-  // Local interactive states to match the mockups
+  // Local interactive states linked to settings service
   String _selectedLanguage = 'English';
   bool _faceIdUnlock = false;
   String _selectedAppearance = 'Black';
@@ -35,7 +38,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
     const Color(0xFF06B6D4), // Cyan S01
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    final settings = SettingsService();
+    _selectedLanguage = settings.selectedLanguage.toLowerCase().contains('tagalog') ? 'Filipino' : 'English';
+    _faceIdUnlock = settings.faceIdUnlock;
+    _selectedAppearance = settings.appearanceTheme;
+    _selectedAccentColorIndex = settings.accentColorIndex;
+    _shakeToUndo = settings.shakeToUndo;
+  }
+
+  void _saveSettings() {
+    String theme = 'Default';
+    if (_selectedAppearance == 'White') {
+      theme = 'Black on White';
+    } else if (_selectedAppearance == 'Black') {
+      switch (_selectedAccentColorIndex) {
+        case 0:
+          theme = 'Green on Black';
+          break;
+        case 1:
+          theme = 'Yellow on Black';
+          break;
+        case 2:
+          theme = 'White on Black';
+          break;
+        case 3:
+          theme = 'Cyan on Black';
+          break;
+      }
+    }
+
+    final languageString = _selectedLanguage == 'Filipino' ? 'Tagalog' : 'English (US)';
+
+    SettingsService().updateSettings(
+      selectedLanguage: languageString,
+      selectedContrastTheme: theme,
+      appearanceTheme: _selectedAppearance,
+      accentColorIndex: _selectedAccentColorIndex,
+      faceIdUnlock: _faceIdUnlock,
+      shakeToUndo: _shakeToUndo,
+    );
+
+    // Sync user preferences to Cloud
+    final user = _firebaseService.currentUser;
+    if (user != null) {
+      _firebaseService.syncPreferencesToCloud(user.uid, {
+        'selectedLanguage': languageString,
+        'selectedContrastTheme': theme,
+        'appearanceTheme': _selectedAppearance,
+        'accentColorIndex': _selectedAccentColorIndex,
+        'faceIdUnlock': _faceIdUnlock,
+        'shakeToUndo': _shakeToUndo,
+      });
+    }
+  }
+
   Widget _buildSectionTitle(String title) {
+    final settings = SettingsService();
+    final isDefault = settings.selectedContrastTheme == 'Default';
     return Padding(
       padding: const EdgeInsets.only(left: 4.0, bottom: 8.0, top: 24.0),
       child: Text(
@@ -43,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: GoogleFonts.inter(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: const Color(0xFF64748B),
+          color: isDefault ? const Color(0xFF64748B) : AppColors.primaryText,
           letterSpacing: 0.5,
         ),
       ),
@@ -51,18 +113,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildCardContainer({required List<Widget> children}) {
+    final settings = SettingsService();
+    final isDefault = settings.selectedContrastTheme == 'Default';
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.primaryBackground,
         borderRadius: BorderRadius.circular(20.0),
-        boxShadow: [
+        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+        boxShadow: isDefault ? [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
             blurRadius: 16,
             offset: const Offset(0, 4),
           )
-        ],
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,85 +138,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Floating Pill Back Button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  width: 95,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      )
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.chevron_left, color: Color(0xFF002663), size: 24),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Back',
-                        style: GoogleFonts.inter(
-                          color: Color(0xFF002663),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        final settings = SettingsService();
+        final lang = settings.selectedLanguage;
+        final isDefault = settings.selectedContrastTheme == 'Default';
+        final headerTextColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
+        final iconColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
+        final tileTextColor = isDefault ? Colors.black : AppColors.primaryText;
+
+        final currentUnitText = settings.selectedUnit == 'Metric'
+            ? TranslationService.translate('metric', lang)
+            : TranslationService.translate('imperial', lang);
+
+        return Scaffold(
+          backgroundColor: AppColors.lightBackground,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Floating Pill Back Button
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isDefault ? Colors.white : AppColors.primaryBackground,
+                        borderRadius: BorderRadius.circular(22),
+                        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                        boxShadow: isDefault ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          )
+                        ] : null,
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min, // Wrap content tightly S01
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chevron_left, color: isDefault ? const Color(0xFF002663) : AppColors.primaryText, size: 24),
+                          const SizedBox(width: 4),
+                          Text(
+                            TranslationService.translate('back', lang),
+                            style: GoogleFonts.inter(
+                              color: isDefault ? const Color(0xFF002663) : AppColors.primaryText,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // 2. Settings Header
-              Text(
-                'Settings',
-                style: GoogleFonts.inter(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF002663),
-                ),
-              ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // 2. Settings Header
+                  Text(
+                    TranslationService.translate('settings', lang),
+                    style: GoogleFonts.inter(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: headerTextColor,
+                    ),
+                  ),
 
               // 3. PROFILE Section
-              _buildSectionTitle('Profile'),
+              _buildSectionTitle(TranslationService.translate('profile', lang)),
               _buildCardContainer(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.person_outline, color: Color(0xFF002663)),
+                    leading: Icon(Icons.person_outline, color: iconColor),
                     title: Text(
-                      'Profile Details',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black),
+                      TranslationService.translate('profile_details', lang),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor),
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
                       Navigator.of(context).push(
                         AppRoute.to(const ProfileDetailsScreen()),
-                      );
+                      ).then((_) => setState(() {}));
                     },
                   ),
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   ListTile(
-                    leading: const Icon(Icons.lock_outline, color: Color(0xFF002663)),
+                    leading: Icon(Icons.lock_outline, color: iconColor),
                     title: Text(
-                      'Change Password',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black),
+                      TranslationService.translate('change_password', lang),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor),
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
@@ -164,7 +245,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               // 4. LANGUAGE Section
-              _buildSectionTitle('Language'),
+              _buildSectionTitle(TranslationService.translate('language', lang)),
               _buildCardContainer(
                 children: [
                   Padding(
@@ -172,19 +253,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.chat_bubble_outline, color: Color(0xFF002663)),
+                        Icon(Icons.chat_bubble_outline, color: iconColor),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Language',
-                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                                TranslationService.translate('language', lang),
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16, color: tileTextColor),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Choose how Buddy talks in the app.',
+                                TranslationService.translate('language_subtitle', lang),
                                 style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 12),
                               ),
                             ],
@@ -205,7 +286,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => setState(() => _selectedLanguage = 'English'),
+                              onTap: () {
+                                setState(() => _selectedLanguage = 'English');
+                                _saveSettings();
+                              },
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
@@ -229,7 +313,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => setState(() => _selectedLanguage = 'Filipino'),
+                              onTap: () {
+                                setState(() => _selectedLanguage = 'Filipino');
+                                _saveSettings();
+                              },
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
@@ -259,17 +346,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               // 5. NOTIFICATIONS Section
-              _buildSectionTitle('Notifications'),
+              _buildSectionTitle(TranslationService.translate('notifications', lang)),
               _buildCardContainer(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.notifications_none_outlined, color: Color(0xFF002663)),
+                    leading: Icon(Icons.notifications_none_outlined, color: iconColor),
                     title: Text(
-                      'Notifications',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black),
+                      TranslationService.translate('notifications', lang),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor),
                     ),
                     subtitle: Text(
-                      'Manage obstacle and battery alerts.',
+                      TranslationService.translate('notifications_subtitle', lang),
                       style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
@@ -283,17 +370,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               // 6. PREFERENCES Section
-              _buildSectionTitle('Preferences'),
+              _buildSectionTitle(TranslationService.translate('preferences', lang)),
               _buildCardContainer(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.tune_outlined, color: Color(0xFF002663)),
+                    leading: Icon(Icons.tune_outlined, color: iconColor),
                     title: Text(
-                      'Preferences',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black),
+                      TranslationService.translate('preferences', lang),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor),
                     ),
                     subtitle: Text(
-                      'Voice feedback, haptics, pitch, and voice persona.',
+                      TranslationService.translate('preferences_subtitle', lang),
                       style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
@@ -307,7 +394,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               // 7. SECURITY Section
-              _buildSectionTitle('Security'),
+              _buildSectionTitle(TranslationService.translate('security', lang)),
               _buildCardContainer(
                 children: [
                   Padding(
@@ -320,16 +407,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Face ID unlock',
+                                TranslationService.translate('face_id', lang),
                                 style: GoogleFonts.inter(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
-                                  color: Colors.black,
+                                  color: tileTextColor,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Require Face ID when opening Buddy and whenever you come back after leaving the app.',
+                                TranslationService.translate('face_id_subtitle', lang),
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   color: const Color(0xFF64748B),
@@ -342,7 +429,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(width: 16),
                         Switch(
                           value: _faceIdUnlock,
-                          onChanged: (val) => setState(() => _faceIdUnlock = val),
+                          onChanged: (val) {
+                            setState(() => _faceIdUnlock = val);
+                            _saveSettings();
+                          },
                           activeColor: Colors.white,
                           activeTrackColor: const Color(0xFF48BB78),
                           inactiveThumbColor: Colors.white,
@@ -355,7 +445,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               // 8. APPEARANCE Section
-              _buildSectionTitle('Appearance'),
+              _buildSectionTitle(TranslationService.translate('appearance', lang)),
               _buildCardContainer(
                 children: [
                   Padding(
@@ -364,12 +454,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Appearance',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+                          TranslationService.translate('appearance', lang),
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16, color: tileTextColor),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Match your device or switch between light and dark mode anytime.',
+                          TranslationService.translate('appearance_subtitle', lang),
                           style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 12),
                         ),
                       ],
@@ -387,7 +477,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => setState(() => _selectedAppearance = 'Default'),
+                              onTap: () {
+                                setState(() => _selectedAppearance = 'Default');
+                                _saveSettings();
+                              },
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
@@ -402,14 +495,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Icon(Icons.phone_android_outlined,
                                         size: 16,
-                                        color: _selectedAppearance == 'Default' ? const Color(0xFF3B82F6) : Colors.black), // Black when unselected S01
+                                        color: _selectedAppearance == 'Default' ? const Color(0xFF3B82F6) : Colors.black),
                                     const SizedBox(width: 6),
                                     Text(
                                       'Default',
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
-                                        color: _selectedAppearance == 'Default' ? const Color(0xFF3B82F6) : Colors.black, // Black when unselected S01
+                                        color: _selectedAppearance == 'Default' ? const Color(0xFF3B82F6) : Colors.black,
                                       ),
                                     ),
                                   ],
@@ -419,7 +512,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => setState(() => _selectedAppearance = 'White'),
+                              onTap: () {
+                                setState(() => _selectedAppearance = 'White');
+                                _saveSettings();
+                              },
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
@@ -434,14 +530,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Icon(Icons.wb_sunny_outlined,
                                         size: 16,
-                                        color: _selectedAppearance == 'White' ? const Color(0xFF3B82F6) : Colors.black), // Black when unselected S01
+                                        color: _selectedAppearance == 'White' ? const Color(0xFF3B82F6) : Colors.black),
                                     const SizedBox(width: 6),
                                     Text(
                                       'White',
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
-                                        color: _selectedAppearance == 'White' ? const Color(0xFF3B82F6) : Colors.black, // Black when unselected S01
+                                        color: _selectedAppearance == 'White' ? const Color(0xFF3B82F6) : Colors.black,
                                       ),
                                     ),
                                   ],
@@ -451,7 +547,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => setState(() => _selectedAppearance = 'Black'),
+                              onTap: () {
+                                setState(() => _selectedAppearance = 'Black');
+                                _saveSettings();
+                              },
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
@@ -466,14 +565,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Icon(Icons.nightlight_round,
                                         size: 16,
-                                        color: _selectedAppearance == 'Black' ? const Color(0xFF3B82F6) : Colors.black), // Black when unselected S01
+                                        color: _selectedAppearance == 'Black' ? const Color(0xFF3B82F6) : Colors.black),
                                     const SizedBox(width: 6),
                                     Text(
                                       'Black',
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
-                                        color: _selectedAppearance == 'Black' ? const Color(0xFF3B82F6) : Colors.black, // Black when unselected S01
+                                        color: _selectedAppearance == 'Black' ? const Color(0xFF3B82F6) : Colors.black,
                                       ),
                                     ),
                                   ],
@@ -485,99 +584,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: Text(
-                      'Black Accent Colors',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                  if (_selectedAppearance == 'Black') ...[
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: Text(
+                        TranslationService.translate('black_accent_colors', lang),
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 20.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center, // Centered circles S01
-                      children: List.generate(_accentColors.length, (idx) {
-                        final isSelected = _selectedAccentColorIndex == idx;
-                        final color = _accentColors[idx];
-                        
-                        // Circle 3 (index 2) is white and has a dark green/black outline S01
-                        final ringColor = idx == 2 ? const Color(0xFF1B4332) : Colors.black;
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 20.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(_accentColors.length, (idx) {
+                          final isSelected = _selectedAccentColorIndex == idx;
+                          final color = _accentColors[idx];
+                          final ringColor = idx == 2 ? const Color(0xFF1B4332) : Colors.black;
 
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedAccentColorIndex = idx),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            margin: const EdgeInsets.symmetric(horizontal: 12.0), // Symmetric horizontal spacing S01
-                            width: isSelected ? 40 : 36,
-                            height: isSelected ? 40 : 36,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: ringColor,
-                                width: 4.0, // Thick border layout matching mockup S01
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() => _selectedAccentColorIndex = idx);
+                              _saveSettings();
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              margin: const EdgeInsets.symmetric(horizontal: 12.0),
+                              width: isSelected ? 40 : 36,
+                              height: isSelected ? 40 : 36,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: ringColor,
+                                  width: 4.0,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(isSelected ? 0.35 : 0.2),
+                                    blurRadius: isSelected ? 8 : 4,
+                                    offset: const Offset(0, 3),
+                                  )
+                                ],
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(isSelected ? 0.35 : 0.2),
-                                  blurRadius: isSelected ? 8 : 4,
-                                  offset: const Offset(0, 3),
-                                )
-                              ],
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        }),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
 
               // 9. UNITS Section
-              _buildSectionTitle('Units'),
+              _buildSectionTitle(TranslationService.translate('units', lang)),
               _buildCardContainer(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.straighten, color: Color(0xFF002663)),
+                    leading: Icon(Icons.straighten, color: iconColor),
                     title: Text(
-                      'Units',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black),
+                      TranslationService.translate('units', lang),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor),
                     ),
                     subtitle: Text(
-                      'Metric (Meters, km)',
+                      currentUnitText,
                       style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
                       Navigator.of(context).push(
                         AppRoute.to(const UnitsScreen()),
-                      );
+                      ).then((_) => setState(() {}));
                     },
                   ),
                 ],
               ),
 
               // 10. QUICK ACTIONS Section
-              _buildSectionTitle('Quick Actions'),
+              _buildSectionTitle(TranslationService.translate('quick_actions', lang)),
               _buildCardContainer(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.dns_outlined, color: Color(0xFF002663)),
+                    leading: Icon(Icons.dns_outlined, color: iconColor),
                     title: Text(
-                      'Customize Home Screen',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black),
+                      TranslationService.translate('customize_home', lang),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor),
                     ),
                     subtitle: Text(
-                      'Reorder and customize action cards on your dashboard.',
+                      TranslationService.translate('customize_home_subtitle', lang),
                       style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.of(context).push(
+                        AppRoute.to(const CustomizeHomeScreen()),
+                      ).then((_) => setState(() {}));
+                    },
                   ),
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   Padding(
@@ -590,16 +696,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Shake to undo',
+                                TranslationService.translate('shake_to_undo', lang),
                                 style: GoogleFonts.inter(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
-                                  color: Colors.black,
+                                  color: tileTextColor,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'After logging an event, shaking your phone can undo it for a short time.',
+                                TranslationService.translate('shake_to_undo_subtitle', lang),
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   color: const Color(0xFF64748B),
@@ -612,7 +718,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(width: 16),
                         Switch(
                           value: _shakeToUndo,
-                          onChanged: (val) => setState(() => _shakeToUndo = val),
+                          onChanged: (val) {
+                            setState(() => _shakeToUndo = val);
+                            _saveSettings();
+                          },
                           activeColor: Colors.white,
                           activeTrackColor: const Color(0xFF48BB78),
                           inactiveThumbColor: Colors.white,
@@ -625,7 +734,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               // 11. HELP Section
-              _buildSectionTitle('Help'),
+              _buildSectionTitle(TranslationService.translate('help', lang)),
               _buildCardContainer(
                 children: [
                   Padding(
@@ -642,10 +751,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
-                                Icons.info_outline,
-                                color: Color(0xFF0284C7),
-                                size: 24,
-                              ),
+                                  Icons.info_outline,
+                                  color: Color(0xFF0284C7),
+                                  size: 24,
+                                ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -653,7 +762,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'How to use Buddy',
+                                    TranslationService.translate('how_to_use', lang),
                                     style: GoogleFonts.inter(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -661,7 +770,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'A detailed guide for navigation, voice systems, settings, and more.',
+                                    TranslationService.translate('how_to_use_subtitle', lang),
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       color: const Color(0xFF64748B),
@@ -689,7 +798,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                             },
                             icon: Text(
-                              'Open help guide',
+                              TranslationService.translate('open_help', lang),
                               style: GoogleFonts.inter(
                                 color: const Color(0xFF3B82F6),
                                 fontWeight: FontWeight.bold,
@@ -710,7 +819,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               // 12. ABOUT Section
-              _buildSectionTitle('About'),
+              _buildSectionTitle(TranslationService.translate('about', lang)),
               _buildCardContainer(
                 children: [
                   Padding(
@@ -721,7 +830,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 1. Transparent sitting dog mascot (no circle avatar) S01
                             Image.asset(
                               'assets/Mascots/App Mascot.png',
                               width: 64,
@@ -763,7 +871,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Meet Buddy, your AI guide. Inspired by the loyalty and guidance of a Golden Retriever.',
+                                    TranslationService.translate('about_desc', lang),
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       color: const Color(0xFF64748B),
@@ -778,7 +886,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         
                         const SizedBox(height: 16),
                         
-                        // 2. Link Row - buddy.cloud is raw text, Contributors has light blue container S01
                         Row(
                           children: [
                             GestureDetector(
@@ -809,7 +916,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF), // Capsule background for Contributors S01
+                                  color: const Color(0xFFEFF6FF),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -834,7 +941,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   
-                  // 3. Standalone grey Check for updates Sub-Card S01
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                     decoration: BoxDecoration(
@@ -842,13 +948,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ListTile(
-                      leading: const Icon(Icons.cloud_download_outlined, color: Color(0xFF3B82F6)), // Blue icon S01
+                      leading: const Icon(Icons.cloud_download_outlined, color: Color(0xFF3B82F6)),
                       title: Text(
-                        'Check for updates',
+                        TranslationService.translate('check_updates', lang),
                         style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
                       ),
                       subtitle: Text(
-                        'You are on the latest public version, v1.0.0.',
+                        TranslationService.translate('updates_subtitle', lang),
                         style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
                       ),
                       trailing: const Icon(Icons.refresh, color: Color(0xFF94A3B8)),
@@ -856,7 +962,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   
-                  // 4. Standalone grey Buddy Community Sub-Card S01
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                     decoration: BoxDecoration(
@@ -866,11 +971,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: ListTile(
                       leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
                       title: Text(
-                        'Buddy Community',
+                        TranslationService.translate('community', lang),
                         style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Join the Facebook community for updates, feedback, and fellow Buddy users.',
+                        TranslationService.translate('community_subtitle', lang),
                         style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
                       ),
                       trailing: const Icon(Icons.open_in_new, color: Color(0xFF94A3B8), size: 16),
@@ -878,7 +983,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   
-                  // 5. Bordered Send Feedback Box S01
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                     decoration: BoxDecoration(
@@ -886,13 +990,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ListTile(
-                      leading: const Icon(Icons.edit_outlined, color: Color(0xFF3B82F6)), // Blue icon S01
+                      leading: const Icon(Icons.edit_outlined, color: Color(0xFF3B82F6)),
                       title: Text(
-                        'Send feedback',
+                        TranslationService.translate('send_feedback', lang),
                         style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Share your ideas or report a bug to help us improve.',
+                        TranslationService.translate('feedback_subtitle', lang),
                         style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
                       ),
                       trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
@@ -900,7 +1004,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   
-                  // 6. Privacy Notice block S01
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                     padding: const EdgeInsets.all(16.0),
@@ -923,7 +1026,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               const Icon(Icons.shield_outlined, color: Color(0xFF2563EB), size: 14),
                               const SizedBox(width: 6),
                               Text(
-                                'Privacy notice',
+                                TranslationService.translate('privacy_notice', lang),
                                 style: GoogleFonts.inter(
                                   color: const Color(0xFF2563EB),
                                   fontSize: 12,
@@ -935,7 +1038,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Your navigation data stays on this device by default. If you choose to sign in and use Buddy Cloud, your active profile data and subscription status are sent to our server so sync can work across devices.',
+                          TranslationService.translate('privacy_desc', lang),
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             color: const Color(0xFF64748B),
@@ -957,8 +1060,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 56,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFEE2E2), // Soft pink/red S01
-                    foregroundColor: const Color(0xFF991B1B), // Dark red S01
+                    backgroundColor: const Color(0xFFFEE2E2),
+                    foregroundColor: const Color(0xFF991B1B),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28.0),
@@ -975,7 +1078,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   icon: const Icon(Icons.exit_to_app, color: Color(0xFF991B1B)),
                   label: Text(
-                    'Log Out',
+                    TranslationService.translate('log_out', lang),
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -988,7 +1091,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 36.0, horizontal: 8.0),
                 child: Text(
-                  'Meet Buddy, your AI guide. Inspired by the loyalty and guidance of a Golden Retriever—a remarkable service animal known for its keen awareness and protective nature—EasyLens acts as your eyes. Just as a guide dog leads the way to keep you safe, our mission is to protect your independence and keep you safely navigating the world.',
+                  TranslationService.translate('bottom_bio', lang),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 11,
@@ -1001,6 +1104,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
+    );
+      },
     );
   }
 }

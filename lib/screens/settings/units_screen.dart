@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
+import '../../services/settings_service.dart';
+import '../../services/firebase_service.dart';
 
 class UnitsScreen extends StatefulWidget {
   const UnitsScreen({super.key});
@@ -11,6 +13,23 @@ class UnitsScreen extends StatefulWidget {
 
 class _UnitsScreenState extends State<UnitsScreen> {
   String _selectedUnit = 'Metric';
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedUnit = SettingsService().selectedUnit;
+  }
+
+  void _saveSettings(String unit) {
+    SettingsService().updateSettings(selectedUnit: unit);
+
+    final user = FirebaseService().currentUser;
+    if (user != null) {
+      FirebaseService().syncPreferencesToCloud(user.uid, {
+        'selectedUnit': unit,
+      });
+    }
+  }
 
   Widget _buildUnitCard({
     required String title,
@@ -23,7 +42,10 @@ class _UnitsScreenState extends State<UnitsScreen> {
     final borderColor = isSelected ? Colors.transparent : const Color(0xFF002663);
 
     return GestureDetector(
-      onTap: () => setState(() => _selectedUnit = title),
+      onTap: () {
+        setState(() => _selectedUnit = title);
+        _saveSettings(title);
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16.0),
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),

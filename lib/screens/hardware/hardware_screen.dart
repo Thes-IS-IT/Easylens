@@ -21,8 +21,15 @@ import '../notifications/notifications_screen.dart';
 import '../../services/notification_service.dart';
 import '../../services/esp32_service.dart';
 import '../devices/devices_screen.dart';
+import 'package:battery_plus/battery_plus.dart';
 import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
+
+enum HudMode {
+  navigation,
+  objectDetection,
+  scenery,
+}
 
 class HardwareScreen extends StatefulWidget {
   final bool isActive;
@@ -48,7 +55,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
   final IsolateRunner _isolateRunner = IsolateRunner();
   bool _isModelLoaded = false;
   bool _isDetectingObjects = false;
-  Timer? _batteryTimer;
+  StreamSubscription<BatteryState>? _batterySubscription;
+  final Battery _battery = Battery();
   Timer? _objectDetectionTimer;
   int _lastMobileNetRun = 0;
 
@@ -79,6 +87,16 @@ class _HardwareScreenState extends State<HardwareScreen> {
   String _geminiSpokenQuestion = "";
   String _geminiAssistantResponse = "";
   bool _isThinking = false;
+
+  List<String> _latestMLKitLabels = [];
+  bool _isCameraCovered = false;
+  bool _isDetectionEnabled = true;
+  HudMode _selectedHudMode = HudMode.objectDetection;
+  bool _isPaused = false;
+
+  String _lastGuidanceText = "";
+  DateTime? _lastGuidanceTime;
+  final Map<String, double> _objectLastAreas = {};
 
   // Dynamic Hazard simulation lists
   final List<Map<String, dynamic>> _hazardSimulations = [
@@ -201,55 +219,38 @@ class _HardwareScreenState extends State<HardwareScreen> {
     super.initState();
     _initializeMLKitLabeler();
     _loadObjectDetectionModel();
-    _startBatterySimulator();
+    _initBatteryTracker();
   }
 
   @override
   void didUpdateWidget(covariant HardwareScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isActive != oldWidget.isActive) {
-      if (widget.isActive) {
-        _resumeStreamAndSpeaker();
-      } else {
-        _pauseStreamAndSpeaker();
+      setState(() {
+        _isPaused = !widget.isActive;
+      });
+      if (!widget.isActive) {
+        TtsService().stop();
       }
     }
   }
 
   Future<void> _pauseStreamAndSpeaker() async {
-    final wasStreaming = _cameraController?.value.isStreamingImages ?? false;
-    if (wasStreaming) {
-      try {
-        await _cameraController?.stopImageStream();
-      } catch (e) {
-        print("Error pausing image stream: $e");
-      }
-    }
+    setState(() {
+      _isPaused = true;
+    });
     await TtsService().stop();
   }
 
   Future<void> _resumeStreamAndSpeaker() async {
-    if (mounted && _cameraController != null && _isCameraInitialized) {
-      try {
-        await _cameraController!.startImageStream((CameraImage image) {
-          if (!_isProcessingFrame) {
-            _isProcessingFrame = true;
-            _processCameraImage(image);
-          }
-          if (!_isDetectingObjects && _isModelLoaded) {
-            _isDetectingObjects = true;
-            _detectObjectsOnFrame(image);
-          }
-        });
-      } catch (e) {
-        print("Error resuming camera stream: $e");
-      }
-    }
+    setState(() {
+      _isPaused = false;
+    });
   }
 
   @override
   void dispose() {
-    _batteryTimer?.cancel();
+    _batterySubscription?.cancel();
     _objectDetectionTimer?.cancel();
     _isolateRunner.close();
     _cameraController?.dispose();
@@ -273,19 +274,129 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
-  void _startBatterySimulator() {
-    // Dynamically update battery level to simulate device discharge
-    _batteryTimer = Timer.periodic(const Duration(seconds: 40), (timer) {
+  Future<void> _initBatteryTracker() async {
+    // Get initial battery level S01
+    try {
+      final level = await _battery.batteryLevel;
       if (mounted) {
         setState(() {
-          if (_batteryPercent > 1) {
-            _batteryPercent--;
-          } else {
-            _batteryPercent = 100; // Reset for demo if it hits zero
-          }
+          _batteryPercent = level;
         });
       }
+    } catch (e) {
+      print("Error getting initial battery level: $e");
+    }
+
+    // Subscribe to battery level/state changes S01
+    _batterySubscription = _battery.onBatteryStateChanged.listen((BatteryState state) async {
+      try {
+        final level = await _battery.batteryLevel;
+        if (mounted) {
+          setState(() {
+            _batteryPercent = level;
+          });
+        }
+      } catch (e) {
+        print("Error getting battery level: $e");
+      }
     });
+  }
+
+  void _toggleDetection(bool enabled) {
+    setState(() {
+      _isDetectionEnabled = enabled;
+      if (!enabled) {
+        _detections = [];
+        _detectedObjectLabels = [];
+        _detectedObjectRects = [];
+        _activeTitle = "Detection Disabled";
+        _activeDescription = "Hazards scanning is currently paused.";
+        _statusCardBg = Colors.grey.shade100;
+        _statusIcon = Icons.pause_circle_outline;
+        _statusIconColor = Colors.grey;
+      } else {
+        _activeTitle = "Path Clear";
+        _activeDescription = "No hazards detected nearby.";
+        _statusCardBg = const Color(0xFFE8F5E9);
+        _statusIcon = Icons.check_circle_outline;
+        _statusIconColor = Colors.green;
+      }
+    });
+  }
+
+  void _applyModeChange(HudMode mode) {
+    String voiceMessage = "";
+    switch (mode) {
+      case HudMode.navigation:
+        voiceMessage = "Navigation Mode activated. Guidance warnings enabled.";
+        _activeTitle = "Navigation Mode Active";
+        _activeDescription = "Focusing on path clearance and walking guidance.";
+        _statusCardBg = const Color(0xFFEBF8FF);
+        _statusIcon = Icons.directions_walk;
+        _statusIconColor = const Color(0xFF3182CE);
+        break;
+      case HudMode.objectDetection:
+        voiceMessage = "Object Detection Mode activated. Scanning surrounds.";
+        _activeTitle = "Object Detection Active";
+        _activeDescription = "Scanning and highlighting all objects in view.";
+        _statusCardBg = const Color(0xFFE6FFFA);
+        _statusIcon = Icons.radar;
+        _statusIconColor = const Color(0xFF38A169);
+        break;
+      case HudMode.scenery:
+        voiceMessage = "Scenery Mode activated. Environment descriptions enabled.";
+        _activeTitle = "Scenery Mode Active";
+        _activeDescription = "Analyzing general scene layout and ambient details.";
+        _statusCardBg = const Color(0xFFFEFCBF);
+        _statusIcon = Icons.photo_size_select_actual;
+        _statusIconColor = const Color(0xFFD69E2E);
+        break;
+    }
+    TtsService().speak(voiceMessage);
+  }
+
+  Widget _buildModeButton(HudMode mode, String label, IconData icon, Color activeColor) {
+    final isSelected = _selectedHudMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedHudMode = mode;
+            _applyModeChange(mode);
+          });
+        },
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: isSelected ? activeColor : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? Colors.transparent : Colors.grey.shade200,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : Colors.black54,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _initializeMLKitLabeler() {
@@ -309,6 +420,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
         
         // Start streaming frames continuously for ML Kit labeling and SSD MobileNet V2
         _cameraController!.startImageStream((CameraImage image) {
+          if (_isPaused) return;
+          if (!_isDetectionEnabled) return;
           if (!_isProcessingFrame) {
             _isProcessingFrame = true;
             _processCameraImage(image);
@@ -355,9 +468,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
           _detections = results;
         });
 
-        // ── Proximity Alert: too-close object directional guidance ──────────
+        // ── Mode-based Warning / Announcement system ──────────
         if (results.isNotEmpty) {
-          // Find the largest detected box (closest object)
           final closest = results.reduce((a, b) {
             final aArea = (a.xMax - a.xMin) * (a.yMax - a.yMin);
             final bArea = (b.xMax - b.xMin) * (b.yMax - b.yMin);
@@ -366,48 +478,85 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
           final boxArea = (closest.xMax - closest.xMin) * (closest.yMax - closest.yMin);
 
-          // Object covers >28% of frame → it is too close
-          if (boxArea > 0.28) {
-            final centerX = (closest.xMin + closest.xMax) / 2.0;
+          final now = DateTime.now();
 
-            String direction;
-            String guidance;
-            if (centerX < 0.38) {
-              // Object is on the LEFT side → move right
-              direction = 'left';
-              guidance = 'Stop! ${closest.label} on your left. Move right to avoid it.';
-            } else if (centerX > 0.62) {
-              // Object is on the RIGHT side → move left
-              direction = 'right';
-              guidance = 'Stop! ${closest.label} on your right. Move left to avoid it.';
+          if (_selectedHudMode == HudMode.navigation) {
+            if (boxArea > 0.15) {
+              final centerX = (closest.xMin + closest.xMax) / 2.0;
+              String direction = centerX < 0.35 ? 'left' : (centerX > 0.65 ? 'right' : 'center');
+              
+              String guidance;
+              if (direction == 'center') {
+                guidance = 'Obstacle ahead: ${closest.label} is directly in your path. Please halt or steer aside.';
+              } else if (direction == 'left') {
+                guidance = 'Caution: ${closest.label} detected on your left. Steer slightly right.';
+              } else {
+                guidance = 'Caution: ${closest.label} detected on your right. Steer slightly left.';
+              }
+
+              final lastArea = _objectLastAreas[closest.label] ?? 0.0;
+              final isRapidlyApproaching = boxArea > lastArea + 0.05 && boxArea > 0.22;
+              
+              final isDifferentMessage = guidance != _lastGuidanceText;
+              final timeSinceLastGuidance = _lastGuidanceTime == null 
+                  ? const Duration(seconds: 99) 
+                  : now.difference(_lastGuidanceTime!);
+                  
+              bool shouldSpeak = false;
+              if (isRapidlyApproaching) {
+                guidance = 'Alert: Approaching ${closest.label} rapidly! Stop immediately.';
+                shouldSpeak = true;
+              } else if (isDifferentMessage) {
+                shouldSpeak = timeSinceLastGuidance.inSeconds >= 3;
+              } else {
+                shouldSpeak = timeSinceLastGuidance.inSeconds >= 8;
+              }
+
+              if (shouldSpeak) {
+                _lastGuidanceText = guidance;
+                _lastGuidanceTime = now;
+                _objectLastAreas[closest.label] = boxArea;
+                
+                TtsService().speak(guidance);
+                NotificationService().pushObstacleAlert(direction, closest.label);
+
+                setState(() {
+                  _activeTitle = direction == 'center' ? 'Obstacle Directly Ahead' : 'Obstacle on ${direction[0].toUpperCase()}${direction.substring(1)}';
+                  _activeDescription = guidance;
+                  _statusCardBg = isRapidlyApproaching ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
+                  _statusIcon = isRapidlyApproaching ? Icons.report_problem : Icons.warning_amber_rounded;
+                  _statusIconColor = isRapidlyApproaching ? Colors.red : Colors.orange;
+                });
+              }
             } else {
-              // Object is centered → back up
-              direction = 'center';
-              guidance = 'Stop! ${closest.label} directly ahead. Back up slowly.';
+              // Path clear if no close objects S01
+              if (_lastGuidanceTime != null && now.difference(_lastGuidanceTime!).inSeconds >= 6) {
+                _lastGuidanceText = "";
+                _lastGuidanceTime = null;
+                setState(() {
+                  _activeTitle = "Path Clear";
+                  _activeDescription = "No hazards detected nearby.";
+                  _statusCardBg = const Color(0xFFE8F5E9);
+                  _statusIcon = Icons.check_circle_outline;
+                  _statusIconColor = Colors.green;
+                });
+              }
             }
-
-            // Cooldown: map-based per-direction tracker to avoid repetitiveness
-            final now = DateTime.now();
-            final alertKey = 'proximity_$direction';
+          } else if (_selectedHudMode == HudMode.objectDetection) {
+            // General object listing on screen S01
+            final detectedNames = results.take(3).map((r) => r.label).join(", ");
+            final alertKey = 'detection_list';
             final lastSpoken = _lastSpokenMap[alertKey];
-            final cooldownElapsed = lastSpoken == null ||
-                now.difference(lastSpoken).inSeconds >= 12;
-
-            if (cooldownElapsed) {
+            if (lastSpoken == null || now.difference(lastSpoken).inSeconds >= 12) {
               _lastSpokenMap[alertKey] = now;
-              TtsService().speak(guidance);
-              // Push real notification
-              NotificationService().pushObstacleAlert(direction, closest.label);
-
-              // Also update HUD card visually
+              TtsService().speak("Detected objects in view: $detectedNames.");
+              
               setState(() {
-                _activeTitle = direction == 'center'
-                    ? 'Object Ahead — Back Up'
-                    : 'Object on ${direction[0].toUpperCase()}${direction.substring(1)} — Move ${direction == 'left' ? 'Right' : 'Left'}';
-                _activeDescription = guidance;
-                _statusCardBg = const Color(0xFFFFEBEE);
-                _statusIcon = Icons.warning_amber_rounded;
-                _statusIconColor = Colors.red;
+                _activeTitle = "Objects Detected";
+                _activeDescription = "Detected: $detectedNames";
+                _statusCardBg = const Color(0xFFE6FFFA);
+                _statusIcon = Icons.search;
+                _statusIconColor = const Color(0xFF38A169);
               });
             }
           }
@@ -457,15 +606,10 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   Future<void> _navigateTo(Widget screen) async {
-    // 1. Pause camera streaming
-    final wasStreaming = _cameraController?.value.isStreamingImages ?? false;
-    if (wasStreaming) {
-      try {
-        await _cameraController?.stopImageStream();
-      } catch (e) {
-        print("Error pausing image stream: $e");
-      }
-    }
+    // 1. Pause frame processing S01
+    setState(() {
+      _isPaused = true;
+    });
     
     // 2. Stop TTS speaking
     await TtsService().stop();
@@ -475,23 +619,10 @@ class _HardwareScreenState extends State<HardwareScreen> {
       await Navigator.push(context, AppRoute.to(screen));
     }
     
-    // 4. Resume camera streaming and object detection on return
-    if (mounted && _cameraController != null && _isCameraInitialized) {
-      try {
-        await _cameraController!.startImageStream((CameraImage image) {
-          if (!_isProcessingFrame) {
-            _isProcessingFrame = true;
-            _processCameraImage(image);
-          }
-          if (!_isDetectingObjects && _isModelLoaded) {
-            _isDetectingObjects = true;
-            _detectObjectsOnFrame(image);
-          }
-        });
-      } catch (e) {
-        print("Error resuming camera stream: $e");
-      }
-    }
+    // 4. Resume frame processing after coming back
+    setState(() {
+      _isPaused = false;
+    });
   }
 
   // Processes each streaming camera frame through Google ML Kit Labeler continuously
@@ -513,6 +644,12 @@ class _HardwareScreenState extends State<HardwareScreen> {
       if (_imageLabeler != null) {
         final List<ImageLabel> labels = await _imageLabeler!.processImage(inputImage);
         
+        if (mounted) {
+          setState(() {
+            _latestMLKitLabels = labels.take(5).map((l) => l.label).toList();
+          });
+        }
+        
         if (labels.isNotEmpty && mounted) {
           final topLabelText = labels[0].label;
           final topLabel = topLabelText.toLowerCase();
@@ -531,97 +668,120 @@ class _HardwareScreenState extends State<HardwareScreen> {
           final avgLuminance = count > 0 ? sum / count : 128.0;
           final isCovered = avgLuminance < 15.0;
 
-          Map<String, dynamic>? selectedSim;
-          if (isCovered) {
-            selectedSim = {
-              'title': 'Camera Covered',
-              'desc': 'Please check your camera lens.',
-              'bg': const Color(0xFFFFEBEE),
-              'icon': Icons.block,
-              'iconColor': Colors.red,
-              'speech': 'The camera is covered. Please remove any obstruction.'
-            };
-          } else if (topLabel.contains('fire') || topLabel.contains('smoke') || topLabel.contains('flame')) {
-            selectedSim = _hazardSimulations[10]; // Fire
-          } else if (topLabel.contains('car') || topLabel.contains('bus') || topLabel.contains('truck') || topLabel.contains('vehicle') || topLabel.contains('traffic')) {
-            selectedSim = _hazardSimulations[6]; // Vehicle
-          } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
-            selectedSim = _hazardSimulations[3]; // Stairs
-          } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel.contains('board') || topLabel.contains('billboard') || topLabel.contains('banner')) {
-            try {
-              final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
-              final String signText = recognizedText.text.toUpperCase();
-              if (signText.contains('STOP')) {
-                selectedSim = _hazardSimulations[11]; // STOP!
-                selectedSim = Map<String, dynamic>.from(selectedSim!)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
-              } else if (signText.contains('GO') || signText.contains('WALK') || signText.contains('CROSS')) {
-                selectedSim = _hazardSimulations[13]; // GO Signal Detected
-              } else {
-                selectedSim = _hazardSimulations[1]; // General Traffic Sign
-                if (recognizedText.text.trim().isNotEmpty) {
-                  final words = recognizedText.text.split('\n').first.trim();
-                  selectedSim = Map<String, dynamic>.from(selectedSim!)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
-                }
-              }
-            } catch (e) {
-              selectedSim = _hazardSimulations[1]; // General Traffic Sign
-            }
-          } else if (topLabel.contains('pothole') || topLabel.contains('crack') || topLabel.contains('hole') || topLabel.contains('depression')) {
-            selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
-          } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
-            selectedSim = _hazardSimulations[12]; // Person Detected
-          } else if (topLabel.contains('tree') || topLabel.contains('branch') || topLabel.contains('pole') || topLabel.contains('wall') || topLabel.contains('obstacle') || topLabel.contains('post') || topLabel.contains('barrier')) {
-            selectedSim = _hazardSimulations[9]; // Obstacle ahead
-          } else {
-            // Dynamically generate a warning category matching the everyday object!
-            final cleanLabel = topLabelText[0].toUpperCase() + topLabelText.substring(1);
-            selectedSim = {
-              'title': '$cleanLabel Detected',
-              'desc': '$cleanLabel located in front of you.',
-              'bg': const Color(0xFFE8F5E9),
-              'icon': Icons.check_circle_outline,
-              'iconColor': Colors.green,
-              'speech': '$cleanLabel detected.'
-            };
+          if (mounted) {
+            setState(() {
+              _isCameraCovered = isCovered;
+            });
           }
 
-          setState(() {
-            // Draw simulated bounding boxes around detected items dynamically
-            _detectedObjectLabels = labels.take(3).map((l) => l.label).toList();
-            _detectedObjectRects = List.generate(
-              _detectedObjectLabels.length,
-              (index) {
-                // Generate semi-random logical layout positions for overlay display
-                double xOffset = 20.0 + (index * 40.0);
-                double yOffset = 50.0 + (index * 30.0);
-                return Rect.fromLTWH(xOffset, yOffset, 150, 100);
-              },
-            );
+          if (_selectedHudMode == HudMode.navigation) {
+            Map<String, dynamic>? selectedSim;
+            if (isCovered) {
+              selectedSim = {
+                'title': 'Camera Covered',
+                'desc': 'Please check your camera lens.',
+                'bg': const Color(0xFFFFEBEE),
+                'icon': Icons.block,
+                'iconColor': Colors.red,
+                'speech': 'The camera is covered. Please remove any obstruction.'
+              };
+            } else if (topLabel.contains('fire') || topLabel.contains('smoke') || topLabel.contains('flame')) {
+              selectedSim = _hazardSimulations[10]; // Fire
+            } else if (topLabel.contains('car') || topLabel.contains('bus') || topLabel.contains('truck') || topLabel.contains('vehicle') || topLabel.contains('traffic')) {
+              selectedSim = _hazardSimulations[6]; // Vehicle
+            } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
+              selectedSim = _hazardSimulations[3]; // Stairs
+            } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel.contains('board') || topLabel.contains('billboard') || topLabel.contains('banner')) {
+              try {
+                final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+                final String signText = recognizedText.text.toUpperCase();
+                if (signText.contains('STOP')) {
+                  selectedSim = _hazardSimulations[11]; // STOP!
+                  selectedSim = Map<String, dynamic>.from(selectedSim!)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
+                } else if (signText.contains('GO') || signText.contains('WALK') || signText.contains('CROSS')) {
+                  selectedSim = _hazardSimulations[13]; // GO Signal Detected
+                } else {
+                  selectedSim = _hazardSimulations[1]; // General Traffic Sign
+                  if (recognizedText.text.trim().isNotEmpty) {
+                    final words = recognizedText.text.split('\n').first.trim();
+                    selectedSim = Map<String, dynamic>.from(selectedSim!)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
+                  }
+                }
+              } catch (e) {
+                selectedSim = _hazardSimulations[1]; // General Traffic Sign
+              }
+            } else if (topLabel.contains('pothole') || topLabel.contains('crack') || topLabel.contains('hole') || topLabel.contains('depression')) {
+              selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
+            } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
+              selectedSim = _hazardSimulations[12]; // Person Detected
+            } else if (topLabel.contains('tree') || topLabel.contains('branch') || topLabel.contains('pole') || topLabel.contains('wall') || topLabel.contains('obstacle') || topLabel.contains('post') || topLabel.contains('barrier')) {
+              selectedSim = _hazardSimulations[9]; // Obstacle ahead
+            } else {
+              final cleanLabel = topLabelText[0].toUpperCase() + topLabelText.substring(1);
+              selectedSim = {
+                'title': '$cleanLabel Detected',
+                'desc': '$cleanLabel located in front of you.',
+                'bg': const Color(0xFFE8F5E9),
+                'icon': Icons.check_circle_outline,
+                'iconColor': Colors.green,
+                'speech': '$cleanLabel detected.'
+              };
+            }
 
-            _activeTitle = selectedSim!['title'];
-            _activeDescription = selectedSim['desc'];
-            _statusCardBg = selectedSim['bg'];
-            _statusIcon = selectedSim['icon'];
-            _statusIconColor = selectedSim['iconColor'];
-          });
+            setState(() {
+              _detectedObjectLabels = labels.take(3).map((l) => l.label).toList();
+              _detectedObjectRects = List.generate(
+                _detectedObjectLabels.length,
+                (index) {
+                  double xOffset = 20.0 + (index * 40.0);
+                  double yOffset = 50.0 + (index * 30.0);
+                  return Rect.fromLTWH(xOffset, yOffset, 150, 100);
+                },
+              );
 
-          // Speak warning using map-based per-category tracker S01
-          final now = DateTime.now();
-          final String title = selectedSim!['title'];
-          final String speech = selectedSim['speech'];
+              _activeTitle = selectedSim!['title'];
+              _activeDescription = selectedSim['desc'];
+              _statusCardBg = selectedSim['bg'];
+              _statusIcon = selectedSim['icon'];
+              _statusIconColor = selectedSim['iconColor'];
+            });
 
-          final isImmediate = title == 'STOP!' || title == 'Fire Hazard!';
-          final cooldownLimit = isImmediate ? 5 : 15;
+            final now = DateTime.now();
+            final String title = selectedSim!['title'];
+            final String speech = selectedSim['speech'];
 
-          final lastSpoken = _lastSpokenMap[title];
-          final cooldownElapsed = lastSpoken == null ||
-              now.difference(lastSpoken).inSeconds >= cooldownLimit;
+            final isImmediate = title == 'STOP!' || title == 'Fire Hazard!';
+            final cooldownLimit = isImmediate ? 5 : 15;
 
-          if (cooldownElapsed) {
-            _lastSpokenMap[title] = now;
-            TtsService().speak(speech);
-            // Push real notification for safety warning
-            NotificationService().pushWarning(title, speech);
+            final lastSpoken = _lastSpokenMap[title];
+            final cooldownElapsed = lastSpoken == null ||
+                now.difference(lastSpoken).inSeconds >= cooldownLimit;
+
+            if (cooldownElapsed) {
+              _lastSpokenMap[title] = now;
+              TtsService().speak(speech);
+              NotificationService().pushWarning(title, speech);
+            }
+          } else if (_selectedHudMode == HudMode.scenery) {
+            final now = DateTime.now();
+            final alertKey = 'scenery_details';
+            final lastSpoken = _lastSpokenMap[alertKey];
+            if (lastSpoken == null || now.difference(lastSpoken).inSeconds >= 15) {
+              _lastSpokenMap[alertKey] = now;
+              final ambientLabels = _latestMLKitLabels.take(3).join(" and ");
+              if (ambientLabels.isNotEmpty) {
+                final speech = "Surroundings resemble a $ambientLabels scenery.";
+                TtsService().speak(speech);
+                
+                setState(() {
+                  _activeTitle = "Scenery Mode";
+                  _activeDescription = "Resembles $ambientLabels";
+                  _statusCardBg = const Color(0xFFFEFCBF);
+                  _statusIcon = Icons.nature_people;
+                  _statusIconColor = const Color(0xFFD69E2E);
+                });
+              }
+            }
           }
         }
       }
@@ -666,39 +826,42 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _showGeminiVoiceAssistantBottomSheet(context);
   }
 
-  Future<List<Detection>> _runRealObjectDetection() async {
-    if (_cameraController == null || !_isCameraInitialized) return [];
-    try {
-      final xFile = await _cameraController!.takePicture();
-      final File file = File(xFile.path);
-      final detector = ObjectDetectorService();
-      final detections = await detector.detectObjects(file, threshold: 0.35);
-      return detections;
-    } catch (e) {
-      print("SSD MobileNet V2 Object Detection Error: $e");
-      return [];
-    }
-  }
+
 
   Future<void> _describeSurroundings(StateSetter modalSetState) async {
     modalSetState(() {
       _isThinking = true;
-      _geminiAssistantResponse = "Scanning surroundings with SSD MobileNet V2...";
+      _geminiAssistantResponse = "Scanning surroundings...";
     });
     TtsService().speak("Analyzing surroundings. Please hold steady.");
 
-    final detections = await _runRealObjectDetection();
+    // Simulate scanning delay without freezing the camera
+    await Future.delayed(const Duration(milliseconds: 900));
+
+    if (_isCameraCovered) {
+      final response = "Woof! It looks completely dark! It seems the camera lens is covered. Please check it so I can see your surroundings.";
+      if (mounted) {
+        modalSetState(() {
+          _geminiAssistantResponse = response;
+          _isThinking = false;
+        });
+        TtsService().speak(response);
+      }
+      return;
+    }
+
+    final detections = _detections;
     
     // Draw real bounding boxes on screen dynamically if found
     if (detections.isNotEmpty && mounted) {
       setState(() {
         _detectedObjectLabels = detections.map((d) => d.label).toList();
         _detectedObjectRects = detections.map((d) {
-          // Normalized bounds to screen pixels (using approximate width 350, height 400 for overlay context)
-          double ymin = d.boundingBox[0];
-          double xmin = d.boundingBox[1];
-          double ymax = d.boundingBox[2];
-          double xmax = d.boundingBox[3];
+          // Normalized bounds to screen pixels (using approximate width 300, height 250 for overlay context)
+          double ymin = d.yMin;
+          double xmin = d.xMin;
+          double ymax = d.yMax;
+          double xmax = d.xMax;
           
           double left = xmin * 300.0;
           double top = ymin * 250.0;
@@ -709,10 +872,10 @@ class _HardwareScreenState extends State<HardwareScreen> {
       });
     }
 
-    final mlKitLabels = _detectedObjectLabels.join(", ");
+    final mlKitLabels = _latestMLKitLabels.join(", ");
     final detectedItems = [
       if (detections.isNotEmpty)
-        detections.map((d) => "${d.label} (${(d.score * 100).toInt()}% confidence)").join(", "),
+        detections.map((d) => "${d.label} (${(d.confidence * 100).toInt()}% confidence)").join(", "),
       if (mlKitLabels.isNotEmpty)
         "general environment labels: $mlKitLabels"
     ].join("; ");
@@ -755,6 +918,9 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
             modalSetState(() {
               _isGeminiListening = listening;
             });
+            if (!listening && !_isThinking) {
+              _stopListeningAndQuery(modalSetState);
+            }
           }
         },
       );
@@ -811,6 +977,12 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter modalSetState) {
+            // Automatically start listening upon build S01
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!_isGeminiListening && !_isThinking && _geminiSpokenQuestion.isEmpty) {
+                _startListening(modalSetState);
+              }
+            });
             return Container(
               height: MediaQuery.of(context).size.height * 0.75,
               decoration: const BoxDecoration(
@@ -985,7 +1157,19 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
           },
         );
       },
-    );
+    ).then((_) {
+      // Clean up on modal dismissed S01
+      SttService().stopListening((_) {});
+      TtsService().stop();
+      if (mounted) {
+        setState(() {
+          _isGeminiListening = false;
+          _geminiSpokenQuestion = "";
+          _geminiAssistantResponse = "";
+          _isThinking = false;
+        });
+      }
+    });
   }
 
   @override
@@ -1435,7 +1619,6 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
 
         // Live Camera Preview with bounding boxes overlay
         Expanded(
-          flex: 4,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: LayoutBuilder(
@@ -1566,6 +1749,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
 
         // Bottom Dashboard Card Controls matching mockups exactly
         Container(
+          height: 230, // Fixed height for visual consistency and larger camera S01
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
@@ -1589,290 +1773,399 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
               ),
               const SizedBox(height: 12),
 
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Battery controller tile (left side card)
-                  Expanded(
-                    child: Container(
-                      height: 110,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black.withOpacity(0.04)),
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
+              // Scrollable content area S01
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${_batteryPercent}%',
-                                style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
+                          // Battery controller tile (left side card)
+                          Expanded(
+                            child: Container(
+                              height: 110,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.black.withOpacity(0.04)),
                               ),
-                              Icon(Icons.battery_std, color: Colors.green.shade600, size: 20),
-                            ],
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '${_batteryPercent}%',
+                                        style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
+                                      ),
+                                      Icon(Icons.battery_std, color: Colors.green.shade600, size: 20),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    'Battery',
+                                    style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(2),
+                                    child: LinearProgressIndicator(
+                                      value: _batteryPercent / 100.0,
+                                      backgroundColor: Colors.grey.shade200,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green.shade600),
+                                      minHeight: 4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          const Spacer(),
-                          Text(
-                            'Battery',
-                            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: LinearProgressIndicator(
-                              value: _batteryPercent / 100,
-                              backgroundColor: Colors.grey.shade200,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.green.shade600),
-                              minHeight: 6,
+                          const SizedBox(width: 6),
+
+                          // Right side Column (contains Bluetooth, Gemini, Wifi, Audio, Hazards Scan)
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    // Bluetooth card
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _isBluetoothConnected = !_isBluetoothConnected;
+                                          });
+                                        },
+                                        child: Container(
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: _isBluetoothConnected ? const Color(0xFF002663) : Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.bluetooth, size: 18, color: _isBluetoothConnected ? Colors.white : Colors.black54),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Bluetooth',
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        color: _isBluetoothConnected ? Colors.white70 : Colors.black54,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _isBluetoothConnected ? 'Connected' : 'Off',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: _isBluetoothConnected ? Colors.white : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+
+                                    // Gemini card S01
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _isGeminiEnabled = !_isGeminiEnabled;
+                                          });
+                                          if (_isGeminiEnabled) {
+                                            _queryGeminiSurroundings();
+                                          }
+                                        },
+                                        child: Container(
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: _isGeminiEnabled ? Colors.orange.shade600 : Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.auto_awesome, size: 18, color: _isGeminiEnabled ? Colors.white : Colors.black54),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Gemini',
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        color: _isGeminiEnabled ? Colors.white70 : Colors.black54,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _isGeminiEnabled ? 'Active' : 'Disabled',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: _isGeminiEnabled ? Colors.white : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    // Network Wifi card
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _isWifiOn = !_isWifiOn;
+                                          });
+                                        },
+                                        child: Container(
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: _isWifiOn ? Colors.teal.shade600 : Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.wifi, size: 18, color: _isWifiOn ? Colors.white : Colors.black54),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Network',
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        color: _isWifiOn ? Colors.white70 : Colors.black54,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _isWifiOn ? 'Wifi On' : 'Wifi Off',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: _isWifiOn ? Colors.white : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+
+                                    // Audio speaker card
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _isAudioSpeaker = !_isAudioSpeaker;
+                                          });
+                                        },
+                                        child: Container(
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: _isAudioSpeaker ? const Color(0xFF1E88E5) : Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.volume_up, size: 18, color: _isAudioSpeaker ? Colors.white : Colors.black54),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Audio',
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        color: _isAudioSpeaker ? Colors.white70 : Colors.black54,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _isAudioSpeaker ? 'Speaker' : 'Glasses',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: _isAudioSpeaker ? Colors.white : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    // Detection Toggle card S01
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          _toggleDetection(!_isDetectionEnabled);
+                                        },
+                                        child: Container(
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: _isDetectionEnabled ? const Color(0xFF48BB78) : Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                _isDetectionEnabled ? Icons.radar : Icons.radar_outlined,
+                                                size: 18,
+                                                color: _isDetectionEnabled ? Colors.white : Colors.black54,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Hazards Scan',
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        color: _isDetectionEnabled ? Colors.white70 : Colors.black54,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _isDetectionEnabled ? 'Enabled' : 'Paused',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: _isDetectionEnabled ? Colors.white : Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    // Placeholder to keep row alignment
+                                    const Spacer(),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // Remaining four controls (2x2 Grid) on the right
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Row(
+                      const SizedBox(height: 12),
+                      // Mode selection section S01
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Bluetooth card
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isBluetoothConnected = !_isBluetoothConnected;
-                                  });
-                                },
-                                child: Container(
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: _isBluetoothConnected ? const Color(0xFF002663) : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.bluetooth, size: 18, color: _isBluetoothConnected ? Colors.white : Colors.black54),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Bluetooth',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.inter(
-                                                fontSize: 9,
-                                                color: _isBluetoothConnected ? Colors.white70 : Colors.black54,
-                                              ),
-                                            ),
-                                            Text(
-                                              _isBluetoothConnected ? 'Connected' : 'Off',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.bold,
-                                                color: _isBluetoothConnected ? Colors.white : Colors.black87,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                            Text(
+                              'HUD MODE',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.grey.shade500,
+                                letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(width: 6),
-
-                            // Gemini card S01
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isGeminiEnabled = !_isGeminiEnabled;
-                                  });
-                                  if (_isGeminiEnabled) {
-                                    _queryGeminiSurroundings();
-                                  }
-                                },
-                                child: Container(
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: _isGeminiEnabled ? Colors.orange.shade600 : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.auto_awesome, size: 18, color: _isGeminiEnabled ? Colors.white : Colors.black54),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Gemini',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.inter(
-                                                fontSize: 9,
-                                                color: _isGeminiEnabled ? Colors.white70 : Colors.black54,
-                                              ),
-                                            ),
-                                            Text(
-                                              _isGeminiEnabled ? 'Active' : 'Disabled',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.bold,
-                                                color: _isGeminiEnabled ? Colors.white : Colors.black87,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                _buildModeButton(HudMode.navigation, 'Navigation', Icons.directions_walk, const Color(0xFF1E88E5)),
+                                const SizedBox(width: 6),
+                                _buildModeButton(HudMode.objectDetection, 'Detection', Icons.radar, const Color(0xFF43A047)),
+                                const SizedBox(width: 6),
+                                _buildModeButton(HudMode.scenery, 'Scenery', Icons.photo_size_select_actual, const Color(0xFFF4511E)),
+                              ],
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            // Network Wifi card
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isWifiOn = !_isWifiOn;
-                                  });
-                                },
-                                child: Container(
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: _isWifiOn ? Colors.teal.shade600 : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.wifi, size: 18, color: _isWifiOn ? Colors.white : Colors.black54),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Network',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.inter(
-                                                fontSize: 9,
-                                                color: _isWifiOn ? Colors.white70 : Colors.black54,
-                                              ),
-                                            ),
-                                            Text(
-                                              _isWifiOn ? 'Wifi On' : 'Wifi Off',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.bold,
-                                                color: _isWifiOn ? Colors.white : Colors.black87,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
+                      ),
+                      const SizedBox(height: 12),
 
-                            // Audio speaker card
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isAudioSpeaker = !_isAudioSpeaker;
-                                  });
-                                },
-                                child: Container(
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: _isAudioSpeaker ? const Color(0xFF1E88E5) : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.volume_up, size: 18, color: _isAudioSpeaker ? Colors.white : Colors.black54),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Audio',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.inter(
-                                                fontSize: 9,
-                                                color: _isAudioSpeaker ? Colors.white70 : Colors.black54,
-                                              ),
-                                            ),
-                                            Text(
-                                              _isAudioSpeaker ? 'Speaker' : 'Glasses',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.bold,
-                                                color: _isAudioSpeaker ? Colors.white : Colors.black87,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                      // Done back button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF002663),
+                            side: const BorderSide(color: Color(0xFF002663), width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          ),
+                          onPressed: _onCancelOrBack,
+                          child: Text(
+                            'Disconnect HUD Feed',
+                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Done back button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF002663),
-                    side: const BorderSide(color: Color(0xFF002663), width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  ),
-                  onPressed: _onCancelOrBack,
-                  child: Text(
-                    'Disconnect HUD Feed',
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
               ),

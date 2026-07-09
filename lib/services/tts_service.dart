@@ -71,6 +71,10 @@ class TtsService {
     await _flutterTts.stop();
   }
 
+  /// Returns the TTS language/locale code.
+  /// NOTE: Tagalog/Filipino UI language intentionally maps to 'en-US' so that
+  /// voice personas (Aria, Max, Nova, etc.) always resolve to clear English
+  /// voices. The UI language is independent from the TTS voice locale.
   String _getLangCode() {
     switch (_settingsService.selectedLanguage) {
       case 'English (US)':
@@ -88,7 +92,9 @@ class TtsService {
       case 'Mandarin':
         return 'zh-CN';
       case 'Tagalog':
-        return 'fil-PH';
+        // Intentionally use English voice for Tagalog UI mode so that persona
+        // voice styles (pitch, rate, gender) are applied consistently.
+        return 'en-US';
       default:
         return 'en-US';
     }
@@ -238,7 +244,10 @@ class TtsService {
         rate = 0.5;
     }
 
-    await _flutterTts.setPitch(pitch);
-    await _flutterTts.setSpeechRate(rate);
+    final double pitchMultiplier = 0.5 + _settingsService.speechPitch;
+    final double rateMultiplier = 0.5 + _settingsService.speechRate;
+
+    await _flutterTts.setPitch(pitch * pitchMultiplier);
+    await _flutterTts.setSpeechRate(rate * rateMultiplier);
   }
 }
