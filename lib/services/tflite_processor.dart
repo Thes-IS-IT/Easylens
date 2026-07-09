@@ -20,10 +20,10 @@ class TfliteProcessor {
   int _maxDetections = 10;
   List<List<int>> _outputShapes = [];
 
-  Future<void> init(String modelPath, String labelsPath) async {
+  Future<void> init(Uint8List modelBuffer, String labelsContent) async {
     try {
-      final options = InterpreterOptions()..threads = 4;
-      _interpreter = await Interpreter.fromAsset(modelPath, options: options);
+      final options = InterpreterOptions()..threads = 2;
+      _interpreter = Interpreter.fromBuffer(modelBuffer, options: options);
       
       final inputTensors = _interpreter!.getInputTensors();
       final outputTensors = _interpreter!.getOutputTensors();
@@ -31,7 +31,17 @@ class TfliteProcessor {
       _inputSize = inputTensors[0].shape[1];
       _isInputUint8 = inputTensors[0].type.toString().toLowerCase().contains('uint8');
       
+      print('[SSD] Output tensors:');
+      for (int i = 0; i < outputTensors.length; i++) {
+        print('[SSD Output Tensor $i] shape=${outputTensors[i].shape}, type=${outputTensors[i].type}');
+      }
+      
       _outputShapes = [];
+      _locIdx = -1;
+      _clsIdx = -1;
+      _scrIdx = -1;
+      _cntIdx = -1;
+
       for (int i = 0; i < outputTensors.length; i++) {
         _outputShapes.add(outputTensors[i].shape);
         final s = outputTensors[i].shape;
@@ -45,12 +55,27 @@ class TfliteProcessor {
       
       for (int i = 0; i < _outputShapes.length; i++) {
         if (i == _locIdx || i == _cntIdx) continue;
-        if (_clsIdx == -1) _clsIdx = i;
-        else if (_scrIdx == -1) _scrIdx = i;
+        if (_clsIdx == -1) {
+          _clsIdx = i;
+        } else if (_scrIdx == -1) {
+          _scrIdx = i;
+        }
       }
+
+      if (_locIdx == -1 || _clsIdx == -1 || _scrIdx == -1 || _cntIdx == -1) {
+        print('[SSD] Shape-based indexing failed. Falling back to standard order (0, 1, 2, 3).');
+        _locIdx = 0;
+        _clsIdx = 1;
+        _scrIdx = 2;
+        _cntIdx = 3;
+        _maxDetections = 10;
+        if (outputTensors.isNotEmpty && outputTensors[0].shape.length >= 2) {
+          _maxDetections = outputTensors[0].shape[1];
+        }
+      }
+      print('[SSD] Mapped output indexes: loc=$_locIdx, cls=$_clsIdx, scr=$_scrIdx, cnt=$_cntIdx');
       
-      final raw = await rootBundle.loadString(labelsPath);
-      _labels = raw.split('\n')
+      _labels = labelsContent.split('\n')
           .where((l) => l.trim().isNotEmpty)
           .map((l) => l.replaceFirst(RegExp(r'^\d+\s*'), '').trim())
           .toList();
@@ -66,7 +91,16 @@ class TfliteProcessor {
     if (!_isReady || _interpreter == null) return [];
     
     try {
-      final input = rgbData.reshape([1, _inputSize, _inputSize, 3]);
+      final Object input;
+      if (!_isInputUint8) {
+        final floatData = Float32List(rgbData.length);
+        for (int i = 0; i < rgbData.length; i++) {
+          floatData[i] = (rgbData[i] - 127.5) / 127.5;
+        }
+        input = floatData.reshape([1, _inputSize, _inputSize, 3]);
+      } else {
+        input = rgbData.reshape([1, _inputSize, _inputSize, 3]);
+      }
       final outputs = <int, Object>{};
       
       for (int i = 0; i < _outputShapes.length; i++) {
@@ -124,21 +158,68 @@ class TfliteProcessor {
   }
 
   double _getScalar(Object t) {
-    if (t is List) {
-      var v = t;
-      while (v is List && v.isNotEmpty && v[0] is List) v = v[0];
-      return (v[0] as num).toDouble();
-    }
+    try {
+      if (t is List) {
+        var v = t;
+        while (v is List && v.isNotEmpty) {
+          final first = v[0];
+          if (first is List) {
+            v = first;
+          } else {
+            return (first as num).toDouble();
+          }
+        }
+      } else if (t is num) {
+        return t.toDouble();
+      }
+    } catch (_) {}
     return 0.0;
   }
 
   double _getVal(Object t, int i) {
-    if (t is List) return (t[0][i] as num).toDouble();
+    try {
+      if (t is List) {
+        if (t.isEmpty) return 0.0;
+        final first = t[0];
+        if (first is List) {
+          if (i < first.length) {
+            final val = first[i];
+            if (val is List) {
+              return (val[0] as num).toDouble();
+            }
+            return (val as num).toDouble();
+          }
+        } else {
+          if (i < t.length) {
+            return (t[i] as num).toDouble();
+          }
+        }
+      } else if (t is num) {
+        return t.toDouble();
+      }
+    } catch (_) {}
     return 0.0;
   }
 
   double _getBox(Object t, int i, int c) {
-    if (t is List) return (t[0][i][c] as num).toDouble();
+    try {
+      if (t is List) {
+        if (t.isEmpty) return 0.0;
+        final first = t[0];
+        if (first is List) {
+          if (i < first.length) {
+            final second = first[i];
+            if (second is List) {
+              if (c < second.length) {
+                return (second[c] as num).toDouble();
+              }
+            } else {
+              return (second as num).toDouble();
+            }
+          }
+        }
+      }
+    } catch (_) {}
     return 0.0;
   }
   

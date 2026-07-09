@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import '../../../services/tts_service.dart';
@@ -33,6 +34,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
   bool _isListening = false;
   bool _isThinking = false;
   bool _isSpeaking = false;
+  bool _isAutoPilotEnabled = true;
   String _buddyState = 'idle'; // 'idle', 'thinking', 'speaking', 'error'
 
   @override
@@ -87,6 +89,15 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
         _isSpeaking = false;
         _buddyState = 'idle';
       });
+
+      // Auto-Pilot hands-free listening loop
+      if (_isAutoPilotEnabled && !_isListening && !_isThinking) {
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted && !_isListening && !_isThinking && !_isSpeaking) {
+            _toggleListening();
+          }
+        });
+      }
     }
   }
 
@@ -154,6 +165,8 @@ Buddy's Answer:
       _speakText(response);
 
       if (matchedKey != null && matchedKey.isNotEmpty && mounted) {
+        // Trigger haptic vibration for successful auto-pilot action S01
+        HapticFeedback.mediumImpact();
         Navigator.of(context).pop();
         widget.onNavigate(matchedKey);
       }
@@ -246,6 +259,7 @@ Buddy's Answer:
   }
 
   void _toggleListening() async {
+    HapticFeedback.lightImpact();
     if (_isListening) {
       await SttService().stopListening((listening) {
         setState(() => _isListening = listening);
@@ -264,19 +278,22 @@ Buddy's Answer:
           }
         },
         onListeningStateChanged: (listening) {
-          setState(() {
-            _isListening = listening;
-            if (listening) {
-              _buddyState = 'speaking';
-              messageSent = false;
-            } else {
-              _buddyState = 'idle';
-              if (_textController.text.isNotEmpty && !messageSent) {
-                messageSent = true;
-                _handleSendMessage(_textController.text);
+          if (mounted) {
+            HapticFeedback.lightImpact();
+            setState(() {
+              _isListening = listening;
+              if (listening) {
+                _buddyState = 'speaking';
+                messageSent = false;
+              } else {
+                _buddyState = 'idle';
+                if (_textController.text.isNotEmpty && !messageSent) {
+                  messageSent = true;
+                  _handleSendMessage(_textController.text);
+                }
               }
-            }
-          });
+            });
+          }
         },
       );
     }
@@ -333,6 +350,70 @@ Buddy's Answer:
             decoration: BoxDecoration(
               color: AppColors.unselectedBorder,
               borderRadius: BorderRadius.circular(2.5),
+            ),
+          ),
+          
+          // Auto-Pilot Mode Status & Toggle
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _isAutoPilotEnabled ? Icons.bolt : Icons.power_settings_new_rounded,
+                      color: _isAutoPilotEnabled ? const Color(0xFF10B981) : Colors.grey,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _isAutoPilotEnabled ? 'AUTO-PILOT ACTIVE' : 'AUTO-PILOT INACTIVE',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: _isAutoPilotEnabled ? const Color(0xFF10B981) : Colors.grey,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    setState(() {
+                      _isAutoPilotEnabled = !_isAutoPilotEnabled;
+                      // If enabled and not listening, start listening automatically
+                      if (_isAutoPilotEnabled && !_isListening && !_isThinking && !_isSpeaking) {
+                        _toggleListening();
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _isAutoPilotEnabled
+                          ? const Color(0xFF10B981).withOpacity(0.12)
+                          : Colors.grey.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _isAutoPilotEnabled
+                            ? const Color(0xFF10B981)
+                            : Colors.grey,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Text(
+                      _isAutoPilotEnabled ? 'Hands-Free' : 'Tap to Talk',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: _isAutoPilotEnabled ? const Color(0xFF10B981) : Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           

@@ -17,6 +17,7 @@ import 'components/custom_navbar.dart';
 import 'components/buddy_assistant_sheet.dart';
 import '../object_detection/object_detection_screen.dart';
 import '../image_labeling/image_labeling_screen.dart';
+import '../face_registration/face_registration_screen.dart';
 import 'dashboard_home.dart';
 import '../../utils/app_route.dart';
 import '../../services/tts_service.dart';
@@ -44,6 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _displayName = "User";
     _loadUserDisplayName();
     _startShakeListening();
+    _playDashboardBark();
   }
 
   @override
@@ -235,6 +237,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             },
             onBuddyAssistantTap: _openBuddyAssistant,
+            onFaceRegistrationSelected: () {
+              Navigator.of(context).push(
+                AppRoute.to(const FaceRegistrationScreen()),
+              );
+            },
           ),
           const NavigationScreen(),
           HardwareScreen(isActive: _currentIndex == 2),

@@ -10,16 +10,22 @@ class IsolateRunner {
   final ReceivePort _receivePort = ReceivePort();
   bool _isReady = false;
 
-  Future<void> init(String modelPath, String labelsPath) async {
+  Future<void> init(Uint8List modelBuffer, String labelsContent) async {
     _isolate = await Isolate.spawn(_worker, [
       _receivePort.sendPort,
-      modelPath,
-      labelsPath
+      modelBuffer,
+      labelsContent
     ]);
     
-    _sendPort = await _receivePort.first as SendPort;
-    _isReady = true;
-    print('[Isolate] SSD Isolate Worker ready');
+    final res = await _receivePort.first;
+    if (res is SendPort) {
+      _sendPort = res;
+      _isReady = true;
+      print('[Isolate] SSD Isolate Worker ready');
+    } else {
+      _isReady = false;
+      print('[Isolate] SSD Isolate Worker failed to initialize');
+    }
   }
 
   Future<List<SSDResult>> runInference({
@@ -64,38 +70,47 @@ class IsolateRunner {
 
   static void _worker(List<dynamic> args) async {
     final mainSend = args[0] as SendPort;
-    final modelPath = args[1] as String;
-    final labelsPath = args[2] as String;
-    
-    final processor = TfliteProcessor();
-    await processor.init(modelPath, labelsPath);
-    
-    final port = ReceivePort();
-    mainSend.send(port.sendPort);
-    
-    port.listen((msg) async {
-      final cmd = msg['cmd'];
-      if (cmd == 'close') {
-        processor.dispose();
-      } else if (cmd == 'run') {
-        final replyTo = msg['replyTo'] as SendPort;
-        final int tS = msg['tS'];
-        final int rot = msg['rot'] ?? 90;
-        
-        // 1. Process YUV to RGB (with built in rotation mapping)
-        final rgb = _yuvToRgb(
-          msg['y'], msg['u'], msg['v'], 
-          msg['w'], msg['h'], 
-          msg['yS'], msg['uvS'], msg['uvP'], 
-          tS, rot
-        );
-        
-        // 2. Run SSD
-        final results = processor.runInference(rgb);
-        // 3. Send results as Maps (Classes don't survive isolate transfer)
-        replyTo.send(results.map((r) => r.toMap()).toList());
-      }
-    });
+    try {
+      final modelBuffer = args[1] as Uint8List;
+      final labelsContent = args[2] as String;
+      
+      final processor = TfliteProcessor();
+      await processor.init(modelBuffer, labelsContent);
+      
+      final port = ReceivePort();
+      mainSend.send(port.sendPort);
+      
+      port.listen((msg) async {
+        try {
+          final cmd = msg['cmd'];
+          if (cmd == 'close') {
+            processor.dispose();
+          } else if (cmd == 'run') {
+            final replyTo = msg['replyTo'] as SendPort;
+            final int tS = msg['tS'];
+            final int rot = msg['rot'] ?? 90;
+            
+            // 1. Process YUV to RGB (with built in rotation mapping)
+            final rgb = _yuvToRgb(
+              msg['y'], msg['u'], msg['v'], 
+              msg['w'], msg['h'], 
+              msg['yS'], msg['uvS'], msg['uvP'], 
+              tS, rot
+            );
+            
+            // 2. Run SSD
+            final results = processor.runInference(rgb);
+            // 3. Send results as Maps (Classes don't survive isolate transfer)
+            replyTo.send(results.map((r) => r.toMap()).toList());
+          }
+        } catch (e) {
+          print('[Isolate Worker Loop] Error: $e');
+        }
+      });
+    } catch (e) {
+      print('[Isolate Worker Init] Error: $e');
+      mainSend.send(null);
+    }
   }
 
   static Uint8List _yuvToRgb(Uint8List yP, Uint8List uP, Uint8List vP, 

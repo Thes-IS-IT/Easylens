@@ -240,10 +240,14 @@ Buddy's Answer:
     if (modelPath != null) {
       return await _queryGemmaOffline(promptText);
     } else {
-      return "Buddy local LLM Offline Instructions:\n\n"
-          "1. Run this ADB command on your Mac to push the model file to the device:\n"
-          "   adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin\n"
-          "2. Restart the app to run fully offline Gemma AI!";
+      // Fallback 1: Online Gemini
+      final onlineRes = await askBuddyOnlineGemini(promptText);
+      if (onlineRes.isNotEmpty) {
+        return onlineRes;
+      }
+      
+      // Fallback 2: Dynamic local RAG response generator
+      return generateSmartFallback(question);
     }
   }
 
@@ -285,10 +289,29 @@ Buddy:""";
     if (modelPath != null) {
       return await _queryGemmaOffline(promptText);
     } else {
-      return "Hindi pa naka-install ang lokal na modelo. \n\n"
-          "Patakbuhin ang command na ito sa Mac mo:\n"
-          "adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin\n"
-          "Tapos i-restart ang app.";
+      // Fallback 1: Online Gemini
+      final onlineRes = await askBuddyGemini(question, userName, mobilityAid);
+      if (onlineRes.isNotEmpty &&
+          !onlineRes.contains("Hindi available") &&
+          !onlineRes.contains("May problema")) {
+        return onlineRes;
+      }
+      
+      // Fallback 2: Dynamic local RAG response generator in Filipino
+      final context = retrieveContext(question);
+      final greetings = [
+        "Aw aw! Ako si Buddy! 🐾",
+        "Arf! Heto ang alam ko tungkol diyan: 🐶",
+        "Kumusta! Bilang iyong gabay, narito ang impormasyon: 🐾",
+        "Aw aw! Heto ang sagot ko sa iyo: 🐕"
+      ];
+      final randomGreeting = greetings[DateTime.now().millisecond % greetings.length];
+      
+      if (context.startsWith("Buddy is the EasyLens")) {
+        return "$randomGreeting Ako si Buddy, ang iyong tapat na gabay! Matutulungan kita sa pag-navigate, pagbasa ng teksto, at pagkilala ng mga bagay o mukha gamit ang camera. Sabihin mo lang kung saan natin gusto pumunta! 🐾";
+      } else {
+        return "$randomGreeting Mula sa aking kaalaman:\n\n$context\n\nSana ay nakatulong ito sa iyo! 🐾";
+      }
     }
   }
 
@@ -306,7 +329,7 @@ Buddy:""";
       final textOnly = englishText.replaceAll(navRegex, '').trim();
 
       final model = GenerativeModel(
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.5-flash',
         apiKey: apiKey,
       );
 
@@ -337,7 +360,7 @@ Buddy:""";
       if (apiKey.isEmpty) return 'Hindi available ang Gemini API key.';
 
       final model = GenerativeModel(
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.5-flash',
         apiKey: apiKey,
         systemInstruction: Content.system(
           'Ikaw si Buddy, ang tapat at masayang golden retriever na gabay ng EasyLens app. '
@@ -364,6 +387,42 @@ Buddy:""";
     } catch (e) {
       print('[Gemini Filipino] Error: $e');
       return 'May problema sa koneksyon. Subukan muli mamaya.';
+    }
+  }
+
+  Future<String> askBuddyOnlineGemini(String prompt) async {
+    try {
+      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+      if (apiKey.isEmpty) return "";
+
+      final model = GenerativeModel(
+        model: 'gemini-3.5-flash',
+        apiKey: apiKey,
+      );
+
+      final content = [Content.text(prompt)];
+      final response = await model.generateContent(content);
+      return response.text?.trim() ?? "";
+    } catch (e) {
+      print('[Gemini Online] Error: $e');
+      return "";
+    }
+  }
+
+  String generateSmartFallback(String question) {
+    final context = retrieveContext(question);
+    final greetings = [
+      "Woof! Buddy here! 🐾",
+      "Arf! I'd love to help you with that! 🐶",
+      "Hello! As your vision companion, here is what I know: 🐾",
+      "Hi there! Buddy is on it! 🐕"
+    ];
+    final randomGreeting = greetings[DateTime.now().millisecond % greetings.length];
+
+    if (context.startsWith("Buddy is the EasyLens")) {
+      return "$randomGreeting I'm Buddy, your local vision assistant. I help you navigate safely, read text signs, and recognize objects or faces in real time! How can I assist you today?";
+    } else {
+      return "$randomGreeting Based on my database:\n\n$context\n\nHope that helps! Let me know if you want me to navigate there or launch any scanner! 🐾";
     }
   }
 

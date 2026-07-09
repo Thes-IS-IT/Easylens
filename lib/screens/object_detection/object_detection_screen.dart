@@ -15,6 +15,8 @@ class ObjectDetectionScreen extends StatefulWidget {
 
 class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
   File? _image;
+  int _imageWidth = 1;
+  int _imageHeight = 1;
   final _picker = ImagePicker();
   final _detectorService = ObjectDetectorService();
   List<Detection> _detections = [];
@@ -36,8 +38,14 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
     try {
       final pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        final bytes = await file.readAsBytes();
+        final decoded = await decodeImageFromList(bytes);
+
         setState(() {
-          _image = File(pickedFile.path);
+          _image = file;
+          _imageWidth = decoded.width;
+          _imageHeight = decoded.height;
           _detections = [];
           _isLoading = true;
         });
@@ -136,6 +144,26 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
                             )
                           : LayoutBuilder(
                               builder: (context, constraints) {
+                                double imageRatio = _imageWidth / _imageHeight;
+                                double containerRatio = constraints.maxWidth / constraints.maxHeight;
+
+                                double renderWidth;
+                                double renderHeight;
+                                double offsetLeft = 0;
+                                double offsetTop = 0;
+
+                                if (imageRatio > containerRatio) {
+                                  // Image is wider than container (width constrained)
+                                  renderWidth = constraints.maxWidth;
+                                  renderHeight = constraints.maxWidth / imageRatio;
+                                  offsetTop = (constraints.maxHeight - renderHeight) / 2;
+                                } else {
+                                  // Image is taller than container (height constrained)
+                                  renderHeight = constraints.maxHeight;
+                                  renderWidth = constraints.maxHeight * imageRatio;
+                                  offsetLeft = (constraints.maxWidth - renderWidth) / 2;
+                                }
+
                                 return Stack(
                                   children: [
                                     // The Image itself
@@ -153,10 +181,10 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
                                       final ymax = detection.boundingBox[2];
                                       final xmax = detection.boundingBox[3];
 
-                                      final boxTop = ymin * constraints.maxHeight;
-                                      final boxLeft = xmin * constraints.maxWidth;
-                                      final boxWidth = (xmax - xmin) * constraints.maxWidth;
-                                      final boxHeight = (ymax - ymin) * constraints.maxHeight;
+                                      final boxTop = offsetTop + (ymin * renderHeight);
+                                      final boxLeft = offsetLeft + (xmin * renderWidth);
+                                      final boxWidth = (xmax - xmin) * renderWidth;
+                                      final boxHeight = (ymax - ymin) * renderHeight;
 
                                       return Positioned(
                                         top: boxTop,

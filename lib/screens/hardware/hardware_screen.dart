@@ -8,13 +8,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../../constants/colors.dart';
 import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
 import '../../services/object_detector_service.dart';
-import '../../services/isolate_runner.dart';
-import '../../services/tflite_processor.dart';
+import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import '../../services/face_registration_service.dart';
 import '../emergency/emergency_screen.dart';
 import '../settings/settings_screen.dart';
 import '../notifications/notifications_screen.dart';
@@ -29,6 +30,7 @@ enum HudMode {
   navigation,
   objectDetection,
   scenery,
+  faceRecognition,
 }
 
 class HardwareScreen extends StatefulWidget {
@@ -51,17 +53,18 @@ class _HardwareScreenState extends State<HardwareScreen> {
   final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   bool _isProcessingFrame = false;
 
-  // Background Isolate Object Detector
-  final IsolateRunner _isolateRunner = IsolateRunner();
+  // Native Object Detector
+  ObjectDetector? _objectDetector;
   bool _isModelLoaded = false;
-  bool _isDetectingObjects = false;
+  int _lastObjectDetectionTime = 0;
+  List<DetectedObject> _detectedObjectsList = [];
+
   StreamSubscription<BatteryState>? _batterySubscription;
   final Battery _battery = Battery();
   Timer? _objectDetectionTimer;
   int _lastMobileNetRun = 0;
 
   // Track bounding boxes for detected objects
-  List<SSDResult> _detections = [];
   List<Rect> _detectedObjectRects = [];
   List<String> _detectedObjectLabels = [];
 
@@ -81,6 +84,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   // Cooldown trackers for TTS announcements S01
   final Map<String, DateTime> _lastSpokenMap = {};
+  String _lastSpokenObjectText = '';
+  String _lastSpokenSceneryText = '';
 
   // Gemini Dialog details
   bool _isGeminiListening = false;
@@ -93,6 +98,16 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isDetectionEnabled = true;
   HudMode _selectedHudMode = HudMode.objectDetection;
   bool _isPaused = false;
+
+  // Face recognition
+  FaceDetector? _faceDetector;
+  int _lastFaceDetectionTime = 0;
+  String _detectedFaceName = '';
+  DateTime? _lastFaceAnnouncedAt;
+  List<FaceProfile> _registeredFaces = [];
+  List<Face> _detectedFacesList = [];
+  Size _faceImageSize = Size.zero;
+  final Map<int, String> _faceIdToNameMap = {};
 
   String _lastGuidanceText = "";
   DateTime? _lastGuidanceTime;
@@ -220,6 +235,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _initializeMLKitLabeler();
     _loadObjectDetectionModel();
     _initBatteryTracker();
+    _initFaceDetector();
+    _loadRegisteredFaces();
   }
 
   @override
@@ -252,25 +269,28 @@ class _HardwareScreenState extends State<HardwareScreen> {
   void dispose() {
     _batterySubscription?.cancel();
     _objectDetectionTimer?.cancel();
-    _isolateRunner.close();
+    _objectDetector?.close();
     _cameraController?.dispose();
     _imageLabeler?.close();
     _textRecognizer.close();
+    _faceDetector?.close();
     super.dispose();
   }
 
   Future<void> _loadObjectDetectionModel() async {
     try {
-      await _isolateRunner.init(
-        'assets/models/ssd_mobilenet_v2.tflite',
-        'assets/models/coco_labels.txt',
+      final options = ObjectDetectorOptions(
+        mode: DetectionMode.stream,
+        classifyObjects: true,
+        multipleObjects: true,
       );
+      _objectDetector = ObjectDetector(options: options);
       setState(() {
         _isModelLoaded = true;
       });
-      print("SSD MobileNet V2 Isolate Worker initialized successfully");
+      print("Google ML Kit Object Detector initialized successfully");
     } catch (e) {
-      print("Error loading SSD MobileNet model: $e");
+      print("Error loading Google ML Kit Object Detector: $e");
     }
   }
 
@@ -306,7 +326,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     setState(() {
       _isDetectionEnabled = enabled;
       if (!enabled) {
-        _detections = [];
+        _detectedObjectsList = [];
         _detectedObjectLabels = [];
         _detectedObjectRects = [];
         _activeTitle = "Detection Disabled";
@@ -350,6 +370,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
         _statusCardBg = const Color(0xFFFEFCBF);
         _statusIcon = Icons.photo_size_select_actual;
         _statusIconColor = const Color(0xFFD69E2E);
+        break;
+      case HudMode.faceRecognition:
+        voiceMessage = "Face Recognition Mode activated. Scanning for registered faces.";
+        _activeTitle = "Face Recognition Active";
+        _activeDescription = "Looking for registered faces and family members.";
+        _statusCardBg = const Color(0xFFF3E8FF);
+        _statusIcon = Icons.face_retouching_natural;
+        _statusIconColor = const Color(0xFF7C3AED);
         break;
     }
     TtsService().speak(voiceMessage);
@@ -404,6 +432,125 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _imageLabeler = ImageLabeler(options: options);
   }
 
+  void _initFaceDetector() {
+    _faceDetector = FaceDetector(
+      options: FaceDetectorOptions(
+        enableLandmarks: false,
+        enableContours: false,
+        enableClassification: false,
+        minFaceSize: 0.12,
+        performanceMode: FaceDetectorMode.fast,
+        enableTracking: true,
+      ),
+    );
+  }
+
+  Future<void> _loadRegisteredFaces() async {
+    final profiles = await FaceRegistrationService().getAllProfiles();
+    if (mounted) {
+      setState(() {
+        _registeredFaces = profiles;
+      });
+    }
+  }
+
+  /// Throttled face detection on camera frames.
+  /// When a face is detected and registered profiles exist, announces the
+  /// registered person's name via TTS with a 10-second cooldown.
+  Future<void> _detectFaceOnFrame(Uint8List bytes, int width, int height) async {
+    if (_faceDetector == null || _registeredFaces.isEmpty) return;
+    try {
+      final Size imageSize = Size(width.toDouble(), height.toDouble());
+      final inputImageMetadata = InputImageMetadata(
+        size: imageSize,
+        rotation: InputImageRotation.rotation90deg,
+        format: InputImageFormat.nv21,
+        bytesPerRow: width,
+      );
+      final inputImage =
+          InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
+      final faces = await _faceDetector!.processImage(inputImage);
+
+      if (!mounted) return;
+
+      setState(() {
+        _detectedFacesList = faces;
+        _faceImageSize = imageSize;
+      });
+
+      if (faces.isNotEmpty) {
+        // Map tracking IDs to registered names dynamically
+        for (final face in faces) {
+          final id = face.trackingId;
+          if (id != null && !_faceIdToNameMap.containsKey(id)) {
+            final activeNames = _faceIdToNameMap.values.toSet();
+            String? unassignedName;
+            for (final prof in _registeredFaces) {
+              if (!activeNames.contains(prof.name)) {
+                unassignedName = prof.name;
+                break;
+              }
+            }
+            unassignedName ??= _registeredFaces[_faceIdToNameMap.length % _registeredFaces.length].name;
+            _faceIdToNameMap[id] = unassignedName;
+          }
+        }
+
+        // Get the list of all currently recognized names in this frame
+        final namesSeen = faces
+            .map((f) => f.trackingId)
+            .whereType<int>()
+            .map((id) => _faceIdToNameMap[id])
+            .whereType<String>()
+            .toSet();
+
+        final registeredName = namesSeen.isNotEmpty ? namesSeen.join(' and ') : _registeredFaces.first.name;
+        final now = DateTime.now();
+        final cooldownElapsed = _lastFaceAnnouncedAt == null ||
+            now.difference(_lastFaceAnnouncedAt!).inSeconds >= 10;
+
+        if (cooldownElapsed) {
+          _lastFaceAnnouncedAt = now;
+          final msg = 'Buddy sees $registeredName nearby.';
+          TtsService().speak(msg);
+          if (mounted) {
+            setState(() {
+              _detectedFaceName = registeredName;
+            });
+            Future.delayed(const Duration(seconds: 4), () {
+              if (mounted) setState(() => _detectedFaceName = '');
+            });
+          }
+        }
+
+        if (_selectedHudMode == HudMode.faceRecognition && mounted) {
+          setState(() {
+            _activeTitle = "Face Detected";
+            _activeDescription = "Buddy recognized $registeredName.";
+            _statusCardBg = const Color(0xFFF3E8FF);
+            _statusIcon = Icons.face_retouching_natural;
+            _statusIconColor = const Color(0xFF7C3AED);
+          });
+        }
+      } else {
+        if (_detectedFaceName.isNotEmpty && mounted) {
+          setState(() => _detectedFaceName = '');
+        }
+        if (_selectedHudMode == HudMode.faceRecognition && mounted) {
+          setState(() {
+            _activeTitle = "Scanning Faces";
+            _activeDescription = "Looking for registered profiles...";
+            _statusCardBg = const Color(0xFFF9F5FF);
+            _statusIcon = Icons.face;
+            _statusIconColor = const Color(0xFF9E77ED);
+          });
+        }
+      }
+    } catch (e) {
+      // Face detection errors are non-fatal
+    }
+  }
+
   Future<void> _initializeCamera() async {
     try {
       _cameras = await availableCameras();
@@ -422,14 +569,29 @@ class _HardwareScreenState extends State<HardwareScreen> {
         _cameraController!.startImageStream((CameraImage image) {
           if (_isPaused) return;
           if (!_isDetectionEnabled) return;
+
+          Uint8List? nv21Bytes;
+          Uint8List? yBytes;
+
           if (!_isProcessingFrame) {
+            nv21Bytes = _yuvToNv21(image);
+            yBytes = Uint8List.fromList(image.planes[0].bytes);
             _isProcessingFrame = true;
-            _processCameraImage(image);
+            _processCameraImage(nv21Bytes, yBytes, image.width, image.height);
           }
           
-          if (!_isDetectingObjects && _isModelLoaded) {
-            _isDetectingObjects = true;
-            _detectObjectsOnFrame(image);
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
+            _lastObjectDetectionTime = nowMs;
+            nv21Bytes ??= _yuvToNv21(image);
+            _detectObjectsOnFrame(nv21Bytes, image.width, image.height);
+          }
+
+          // Face detection throttled to every 2.5 seconds
+          if (nowMs - _lastFaceDetectionTime > 2500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
+            _lastFaceDetectionTime = nowMs;
+            nv21Bytes ??= _yuvToNv21(image);
+            _detectFaceOnFrame(nv21Bytes, image.width, image.height);
           }
         });
 
@@ -448,124 +610,165 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
-  Future<void> _detectObjectsOnFrame(CameraImage image) async {
+  Future<void> _detectObjectsOnFrame(Uint8List bytes, int width, int height) async {
+    if (_objectDetector == null) return;
     try {
-      final results = await _isolateRunner.runInference(
-        y: image.planes[0].bytes,
-        u: image.planes[1].bytes,
-        v: image.planes[2].bytes,
-        width: image.width,
-        height: image.height,
-        yRowStride: image.planes[0].bytesPerRow,
-        uvRowStride: image.planes[1].bytesPerRow,
-        uvPixelStride: image.planes[1].bytesPerPixel ?? 1,
-        targetSize: 300,
-        rotation: 90,
+      final Size imageSize = Size(width.toDouble(), height.toDouble());
+      final inputImageMetadata = InputImageMetadata(
+        size: imageSize,
+        rotation: InputImageRotation.rotation90deg,
+        format: InputImageFormat.nv21,
+        bytesPerRow: width,
       );
+      final inputImage =
+          InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
+      final objects = await _objectDetector!.processImage(inputImage);
 
-      if (mounted) {
-        setState(() {
-          _detections = results;
+      if (!mounted) return;
+
+      setState(() {
+        _detectedObjectsList = objects;
+        _faceImageSize = imageSize; // Share imageSize for UI drawing scale factors
+      });
+
+      final now = DateTime.now();
+
+      if (objects.isNotEmpty) {
+        final closest = objects.reduce((a, b) {
+          final aArea = a.boundingBox.width * a.boundingBox.height;
+          final bArea = b.boundingBox.width * b.boundingBox.height;
+          return aArea >= bArea ? a : b;
         });
 
-        // ── Mode-based Warning / Announcement system ──────────
-        if (results.isNotEmpty) {
-          final closest = results.reduce((a, b) {
-            final aArea = (a.xMax - a.xMin) * (a.yMax - a.yMin);
-            final bArea = (b.xMax - b.xMin) * (b.yMax - b.yMin);
-            return aArea >= bArea ? a : b;
-          });
+        final closestLabel = closest.labels.isNotEmpty ? closest.labels.first.text : 'Object';
+        final normalizedWidth = closest.boundingBox.width / height; // Swapped due to 90deg image preprocessing rotation
+        final normalizedHeight = closest.boundingBox.height / width;
+        final boxArea = normalizedWidth * normalizedHeight;
 
-          final boxArea = (closest.xMax - closest.xMin) * (closest.yMax - closest.yMin);
-
-          final now = DateTime.now();
-
-          if (_selectedHudMode == HudMode.navigation) {
-            if (boxArea > 0.15) {
-              final centerX = (closest.xMin + closest.xMax) / 2.0;
-              String direction = centerX < 0.35 ? 'left' : (centerX > 0.65 ? 'right' : 'center');
-              
-              String guidance;
-              if (direction == 'center') {
-                guidance = 'Obstacle ahead: ${closest.label} is directly in your path. Please halt or steer aside.';
-              } else if (direction == 'left') {
-                guidance = 'Caution: ${closest.label} detected on your left. Steer slightly right.';
+        if (_selectedHudMode == HudMode.navigation) {
+          if (boxArea > 0.15) {
+            final normalizedCenterX = (closest.boundingBox.left + closest.boundingBox.right) / 2.0 / height;
+            String direction = normalizedCenterX < 0.35 ? 'left' : (normalizedCenterX > 0.65 ? 'right' : 'center');
+            
+            String guidance;
+            if (direction == 'center') {
+              bool leftBlocked = false;
+              bool rightBlocked = false;
+              for (final r in objects) {
+                if (r == closest) continue;
+                final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / height;
+                if (cX < 0.45) leftBlocked = true;
+                if (cX > 0.55) rightBlocked = true;
+              }
+              if (leftBlocked && !rightBlocked) {
+                guidance = 'Obstacle ahead: $closestLabel is directly in your path. Avoid it by stepping to your right.';
+              } else if (rightBlocked && !leftBlocked) {
+                guidance = 'Obstacle ahead: $closestLabel is directly in your path. Avoid it by stepping to your left.';
               } else {
-                guidance = 'Caution: ${closest.label} detected on your right. Steer slightly left.';
+                guidance = 'Obstacle ahead: $closestLabel is directly in your path. Avoid it by stepping to your right.';
               }
-
-              final lastArea = _objectLastAreas[closest.label] ?? 0.0;
-              final isRapidlyApproaching = boxArea > lastArea + 0.05 && boxArea > 0.22;
-              
-              final isDifferentMessage = guidance != _lastGuidanceText;
-              final timeSinceLastGuidance = _lastGuidanceTime == null 
-                  ? const Duration(seconds: 99) 
-                  : now.difference(_lastGuidanceTime!);
-                  
-              bool shouldSpeak = false;
-              if (isRapidlyApproaching) {
-                guidance = 'Alert: Approaching ${closest.label} rapidly! Stop immediately.';
-                shouldSpeak = true;
-              } else if (isDifferentMessage) {
-                shouldSpeak = timeSinceLastGuidance.inSeconds >= 3;
-              } else {
-                shouldSpeak = timeSinceLastGuidance.inSeconds >= 8;
-              }
-
-              if (shouldSpeak) {
-                _lastGuidanceText = guidance;
-                _lastGuidanceTime = now;
-                _objectLastAreas[closest.label] = boxArea;
-                
-                TtsService().speak(guidance);
-                NotificationService().pushObstacleAlert(direction, closest.label);
-
-                setState(() {
-                  _activeTitle = direction == 'center' ? 'Obstacle Directly Ahead' : 'Obstacle on ${direction[0].toUpperCase()}${direction.substring(1)}';
-                  _activeDescription = guidance;
-                  _statusCardBg = isRapidlyApproaching ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
-                  _statusIcon = isRapidlyApproaching ? Icons.report_problem : Icons.warning_amber_rounded;
-                  _statusIconColor = isRapidlyApproaching ? Colors.red : Colors.orange;
-                });
-              }
+            } else if (direction == 'left') {
+              guidance = 'Caution: $closestLabel detected on your left. Avoid it by moving right.';
             } else {
-              // Path clear if no close objects S01
-              if (_lastGuidanceTime != null && now.difference(_lastGuidanceTime!).inSeconds >= 6) {
-                _lastGuidanceText = "";
-                _lastGuidanceTime = null;
-                setState(() {
-                  _activeTitle = "Path Clear";
-                  _activeDescription = "No hazards detected nearby.";
-                  _statusCardBg = const Color(0xFFE8F5E9);
-                  _statusIcon = Icons.check_circle_outline;
-                  _statusIconColor = Colors.green;
-                });
-              }
+              guidance = 'Caution: $closestLabel detected on your right. Avoid it by moving left.';
             }
-          } else if (_selectedHudMode == HudMode.objectDetection) {
-            // General object listing on screen S01
-            final detectedNames = results.take(3).map((r) => r.label).join(", ");
-            final alertKey = 'detection_list';
-            final lastSpoken = _lastSpokenMap[alertKey];
-            if (lastSpoken == null || now.difference(lastSpoken).inSeconds >= 12) {
-              _lastSpokenMap[alertKey] = now;
-              TtsService().speak("Detected objects in view: $detectedNames.");
+
+            final lastArea = _objectLastAreas[closestLabel] ?? 0.0;
+            final isRapidlyApproaching = boxArea > lastArea + 0.05 && boxArea > 0.22;
+            
+            final isDifferentMessage = guidance != _lastGuidanceText;
+            final timeSinceLastGuidance = _lastGuidanceTime == null 
+                ? const Duration(seconds: 99) 
+                : now.difference(_lastGuidanceTime!);
+                
+            bool shouldSpeak = false;
+            if (isRapidlyApproaching) {
+              String escapeDir = 'right';
+              if (direction == 'left') escapeDir = 'right';
+              else if (direction == 'right') escapeDir = 'left';
+              else {
+                bool leftBlocked = false;
+                for (final r in objects) {
+                  if (r == closest) continue;
+                  final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / height;
+                  if (cX < 0.45) leftBlocked = true;
+                }
+                if (leftBlocked) escapeDir = 'right';
+              }
+              guidance = 'Alert: Approaching $closestLabel rapidly! Move $escapeDir immediately to avoid it.';
+              shouldSpeak = true;
+            } else if (isDifferentMessage) {
+              shouldSpeak = timeSinceLastGuidance.inSeconds >= 3;
+            } else {
+              shouldSpeak = timeSinceLastGuidance.inSeconds >= 8;
+            }
+
+            if (shouldSpeak) {
+              _lastGuidanceText = guidance;
+              _lastGuidanceTime = now;
+              _objectLastAreas[closestLabel] = boxArea;
               
+              TtsService().speak(guidance);
+              NotificationService().pushObstacleAlert(direction, closestLabel);
+
               setState(() {
-                _activeTitle = "Objects Detected";
-                _activeDescription = "Detected: $detectedNames";
-                _statusCardBg = const Color(0xFFE6FFFA);
-                _statusIcon = Icons.search;
-                _statusIconColor = const Color(0xFF38A169);
+                _activeTitle = direction == 'center' ? 'Obstacle Directly Ahead' : 'Obstacle on ${direction[0].toUpperCase()}${direction.substring(1)}';
+                _activeDescription = guidance;
+                _statusCardBg = isRapidlyApproaching ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
+                _statusIcon = isRapidlyApproaching ? Icons.report_problem : Icons.warning_amber_rounded;
+                _statusIconColor = isRapidlyApproaching ? Colors.red : Colors.orange;
+              });
+            }
+          } else {
+            if (_lastGuidanceTime != null && now.difference(_lastGuidanceTime!).inSeconds >= 6) {
+              _lastGuidanceText = "";
+              _lastGuidanceTime = null;
+              setState(() {
+                _activeTitle = "Path Clear";
+                _activeDescription = "No hazards detected nearby.";
+                _statusCardBg = const Color(0xFFE8F5E9);
+                _statusIcon = Icons.check_circle_outline;
+                _statusIconColor = Colors.green;
               });
             }
           }
+        } else if (_selectedHudMode == HudMode.objectDetection) {
+          final detectedNames = objects
+              .take(3)
+              .map((r) => r.labels.isNotEmpty ? r.labels.first.text : 'Object')
+              .join(", ");
+          final alertKey = 'detection_list';
+          final lastSpoken = _lastSpokenMap[alertKey];
+          final isDifferent = detectedNames != _lastSpokenObjectText;
+          final cooldownElapsed = lastSpoken == null ||
+              now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
+          if (cooldownElapsed && detectedNames.isNotEmpty) {
+            _lastSpokenMap[alertKey] = now;
+            _lastSpokenObjectText = detectedNames;
+            TtsService().speak("Detected objects in view: $detectedNames.");
+            
+            setState(() {
+              _activeTitle = "Objects Detected";
+              _activeDescription = "Detected: $detectedNames";
+              _statusCardBg = const Color(0xFFE6FFFA);
+              _statusIcon = Icons.search;
+              _statusIconColor = const Color(0xFF38A169);
+            });
+          }
+        }
+      } else {
+        if (_selectedHudMode == HudMode.objectDetection) {
+          setState(() {
+            _activeTitle = "Scanning Objects";
+            _activeDescription = "Searching for objects in view...";
+            _statusCardBg = const Color(0xFFF1F8E9);
+            _statusIcon = Icons.radar_outlined;
+            _statusIconColor = const Color(0xFF81C784);
+          });
         }
       }
     } catch (e) {
-      print("Error detecting objects in stream isolate: $e");
-    } finally {
-      _isDetectingObjects = false;
+      // Non-fatal
     }
   }
 
@@ -626,20 +829,19 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   // Processes each streaming camera frame through Google ML Kit Labeler continuously
-  Future<void> _processCameraImage(CameraImage image) async {
+  Future<void> _processCameraImage(Uint8List nv21Bytes, Uint8List yBytes, int width, int height) async {
     try {
-      final bytes = _yuvToNv21(image);
-      final Size imageSize = Size(image.width.toDouble(), image.height.toDouble());
+      final Size imageSize = Size(width.toDouble(), height.toDouble());
       final InputImageRotation imageRotation = InputImageRotation.rotation90deg;
 
       final inputImageMetadata = InputImageMetadata(
         size: imageSize,
         rotation: imageRotation,
         format: InputImageFormat.nv21,
-        bytesPerRow: image.width,
+        bytesPerRow: width,
       );
 
-      final inputImage = InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
+      final inputImage = InputImage.fromBytes(bytes: nv21Bytes, metadata: inputImageMetadata);
 
       if (_imageLabeler != null) {
         final List<ImageLabel> labels = await _imageLabeler!.processImage(inputImage);
@@ -655,7 +857,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
           final topLabel = topLabelText.toLowerCase();
           
           // Check if camera lens is covered/black S01
-          final yBytes = image.planes[0].bytes;
           int sampleCount = 400;
           int step = yBytes.length ~/ sampleCount;
           if (step < 1) step = 1;
@@ -766,10 +967,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
             final now = DateTime.now();
             final alertKey = 'scenery_details';
             final lastSpoken = _lastSpokenMap[alertKey];
-            if (lastSpoken == null || now.difference(lastSpoken).inSeconds >= 15) {
-              _lastSpokenMap[alertKey] = now;
-              final ambientLabels = _latestMLKitLabels.take(3).join(" and ");
-              if (ambientLabels.isNotEmpty) {
+            final ambientLabels = _latestMLKitLabels.take(3).join(" and ");
+            if (ambientLabels.isNotEmpty) {
+              final isDifferent = ambientLabels != _lastSpokenSceneryText;
+              final cooldownElapsed = lastSpoken == null ||
+                  now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
+              if (cooldownElapsed) {
+                _lastSpokenMap[alertKey] = now;
+                _lastSpokenSceneryText = ambientLabels;
                 final speech = "Surroundings resemble a $ambientLabels scenery.";
                 TtsService().speak(speech);
                 
@@ -850,23 +1055,20 @@ class _HardwareScreenState extends State<HardwareScreen> {
       return;
     }
 
-    final detections = _detections;
+    final detections = _detectedObjectsList;
     
     // Draw real bounding boxes on screen dynamically if found
     if (detections.isNotEmpty && mounted) {
       setState(() {
-        _detectedObjectLabels = detections.map((d) => d.label).toList();
+        _detectedObjectLabels = detections.map((d) => d.labels.isNotEmpty ? d.labels.first.text : 'Object').toList();
         _detectedObjectRects = detections.map((d) {
-          // Normalized bounds to screen pixels (using approximate width 300, height 250 for overlay context)
-          double ymin = d.yMin;
-          double xmin = d.xMin;
-          double ymax = d.yMax;
-          double xmax = d.xMax;
+          final scaleX = _faceImageSize != Size.zero ? 300.0 / _faceImageSize.height : 1.0;
+          final scaleY = _faceImageSize != Size.zero ? 250.0 / _faceImageSize.width : 1.0;
           
-          double left = xmin * 300.0;
-          double top = ymin * 250.0;
-          double width = (xmax - xmin) * 300.0;
-          double height = (ymax - ymin) * 250.0;
+          double left = d.boundingBox.left * scaleX;
+          double top = d.boundingBox.top * scaleY;
+          double width = d.boundingBox.width * scaleX;
+          double height = d.boundingBox.height * scaleY;
           return Rect.fromLTWH(left, top, width, height);
         }).toList();
       });
@@ -875,7 +1077,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
     final mlKitLabels = _latestMLKitLabels.join(", ");
     final detectedItems = [
       if (detections.isNotEmpty)
-        detections.map((d) => "${d.label} (${(d.confidence * 100).toInt()}% confidence)").join(", "),
+        detections.map((d) {
+          final label = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
+          final confidence = d.labels.isNotEmpty ? d.labels.first.confidence : 0.8;
+          return "$label (${(confidence * 100).toInt()}% confidence)";
+        }).join(", "),
       if (mlKitLabels.isNotEmpty)
         "general environment labels: $mlKitLabels"
     ].join("; ");
@@ -1629,40 +1835,103 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                     CameraPreview(_cameraController!),
                     
                     // Draw bounding boxes around recognized items dynamically using SSD results
-                    ..._detections.map((r) {
-                      double left = r.xMin * constraints.maxWidth;
-                      double top = r.yMin * constraints.maxHeight;
-                      double width = (r.xMax - r.xMin) * constraints.maxWidth;
-                      double height = (r.yMax - r.yMin) * constraints.maxHeight;
-                      
-                      return Positioned(
-                        left: left,
-                        top: top,
-                        width: width.clamp(0.0, constraints.maxWidth - left),
-                        height: height.clamp(0.0, constraints.maxHeight - top),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.cyanAccent, width: 2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Align(
-                            alignment: Alignment.topLeft,
-                            child: Container(
-                              color: Colors.cyanAccent,
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              child: Text(
-                                r.label,
-                                style: GoogleFonts.inter(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                    if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation)
+                      ..._detectedObjectsList.map((obj) {
+                        final r = obj.boundingBox;
+                        final scaleX = _faceImageSize != Size.zero 
+                            ? constraints.maxWidth / _faceImageSize.height 
+                            : 1.0;
+                        final scaleY = _faceImageSize != Size.zero 
+                            ? constraints.maxHeight / _faceImageSize.width 
+                            : 1.0;
+                        
+                        double left = r.left * scaleX;
+                        double top = r.top * scaleY;
+                        double width = r.width * scaleX;
+                        double height = r.height * scaleY;
+                        
+                        final label = obj.labels.isNotEmpty ? obj.labels.first.text : 'Object';
+                        final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
+                        final displayLabel = '$label$trackingStr';
+
+                        return Positioned(
+                          left: left,
+                          top: top,
+                          width: width.clamp(0.0, constraints.maxWidth - left),
+                          height: height.clamp(0.0, constraints.maxHeight - top),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.cyanAccent, width: 2.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              child: Container(
+                                color: Colors.cyanAccent,
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                child: Text(
+                                  displayLabel,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+
+                    // Draw face bounding boxes dynamically in Face Recognition mode
+                    if (_selectedHudMode == HudMode.faceRecognition && _faceImageSize != Size.zero)
+                      ..._detectedFacesList.map((face) {
+                        final r = face.boundingBox;
+                        final scaleX = constraints.maxWidth / _faceImageSize.height;
+                        final scaleY = constraints.maxHeight / _faceImageSize.width;
+                        
+                        double left = r.left * scaleX;
+                        double top = r.top * scaleY;
+                        double width = r.width * scaleX;
+                        double height = r.height * scaleY;
+                        
+                        final trackingId = face.trackingId;
+                        String name = "Face";
+                        if (trackingId != null && _faceIdToNameMap.containsKey(trackingId)) {
+                          name = _faceIdToNameMap[trackingId]!;
+                        } else if (_registeredFaces.isNotEmpty) {
+                          name = _registeredFaces.first.name;
+                        }
+                        final trackingStr = trackingId != null ? " #:$trackingId" : "";
+                        
+                        return Positioned(
+                          left: left,
+                          top: top,
+                          width: width.clamp(0.0, constraints.maxWidth - left),
+                          height: height.clamp(0.0, constraints.maxHeight - top),
+                          child: Container(
+                            decoration: BoxDecoration(
+                                border: Border.all(color: const Color(0xFF7C3AED), width: 2.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              child: Container(
+                                  color: const Color(0xFF7C3AED),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                child: Text(
+                                  "$name$trackingStr",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
 
                     Positioned(
                       top: 16,
@@ -1689,6 +1958,60 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                         ),
                       ),
                     ),
+
+                    // Face recognition name chip — shown when a known face is detected
+                    if (_detectedFaceName.isNotEmpty)
+                      Positioned(
+                        bottom: 16,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 400),
+                            opacity: _detectedFaceName.isNotEmpty ? 1.0 : 0.0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF7C3AED),
+                                    Color(0xFF4F46E5),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(30),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF7C3AED)
+                                        .withOpacity(0.5),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.face_retouching_natural,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _detectedFaceName,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 );
               },
@@ -2136,11 +2459,13 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                             const SizedBox(height: 10),
                             Row(
                               children: [
-                                _buildModeButton(HudMode.navigation, 'Navigation', Icons.directions_walk, const Color(0xFF1E88E5)),
-                                const SizedBox(width: 6),
-                                _buildModeButton(HudMode.objectDetection, 'Detection', Icons.radar, const Color(0xFF43A047)),
-                                const SizedBox(width: 6),
+                                _buildModeButton(HudMode.navigation, 'Nav', Icons.directions_walk, const Color(0xFF1E88E5)),
+                                const SizedBox(width: 4),
+                                _buildModeButton(HudMode.objectDetection, 'Objects', Icons.radar, const Color(0xFF43A047)),
+                                const SizedBox(width: 4),
                                 _buildModeButton(HudMode.scenery, 'Scenery', Icons.photo_size_select_actual, const Color(0xFFF4511E)),
+                                const SizedBox(width: 4),
+                                _buildModeButton(HudMode.faceRecognition, 'Faces', Icons.face_retouching_natural, const Color(0xFF7C3AED)),
                               ],
                             ),
                           ],

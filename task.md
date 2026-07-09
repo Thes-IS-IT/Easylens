@@ -1,10 +1,10 @@
 - [x] Implement settings_screen.dart file structure
 - [x] Add Profile details and Change Password card
 - [x] Add Language segmented controls
-- [x] Update 'talk_to_buddy' translations in `lib/services/translation_service.dart`
-- [x] Add `Expanded` wrapper to layout in `lib/screens/dashboard/components/dashboard_button.dart`
-- [x] Implement English and Tagalog mascot sweet messages lists and index selection in `lib/screens/dashboard/components/mascot_banner.dart`
-- [x] Verify functionality and run `flutter analyze`r buttons
+- [x] Step 1: Create `EmergencyContactService` in `lib/services/emergency_contact_service.dart`
+- [x] Step 2: Update `ContactsScreen` in `lib/screens/contacts/contacts_screen.dart` to load and save contacts via the service
+- [x] Step 3: Update `EmergencyScreen` in `lib/screens/emergency/emergency_screen.dart` to fetch location, check location services, and send emergency SMS to all active contacts
+- [x] Step 4: Run `flutter analyze` to verify the codebase compiles successfully
 - [x] Add About block with mascot, update cards, external links, privacy disclaimer
 - [x] Add Log Out red action pill button
 - [x] Add full bottom text footer

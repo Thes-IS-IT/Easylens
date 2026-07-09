@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../object_detection/object_detection_screen.dart';
 import '../image_labeling/image_labeling_screen.dart';
+import '../face_registration/face_registration_screen.dart';
 import 'components/header_bar.dart';
 import 'components/mascot_banner.dart';
 import 'components/dashboard_button.dart';
@@ -18,6 +19,7 @@ class DashboardHome extends StatelessWidget {
   final VoidCallback onNotificationsSelected;
   final VoidCallback onContactsSelected;
   final VoidCallback onBuddyAssistantTap;
+  final VoidCallback onFaceRegistrationSelected;
 
   const DashboardHome({
     super.key,
@@ -28,6 +30,7 @@ class DashboardHome extends StatelessWidget {
     required this.onNotificationsSelected,
     required this.onContactsSelected,
     required this.onBuddyAssistantTap,
+    required this.onFaceRegistrationSelected,
   });
 
   String _getFormattedDateText(String language) {
@@ -77,6 +80,12 @@ class DashboardHome extends StatelessWidget {
             icon: Icons.visibility,
             color: const Color(0xFF002663),
             onTap: () => onTabSelected(2),
+          ),
+          'faces': DashboardButton(
+            title: 'Register Face',
+            icon: Icons.face_retouching_natural,
+            color: const Color(0xFF7C3AED),
+            onTap: onFaceRegistrationSelected,
           ),
           'text': DashboardButton(
             title: TranslationService.translate('nearby_text', lang),
