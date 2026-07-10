@@ -203,7 +203,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     }
 
     // 3. EasyLens camera tab navigation
-    if (cleanText.contains("go to camera") || cleanText.contains("open camera") || cleanText.contains("go to easylens") || cleanText.contains("easylens") || cleanText.contains("camera") || cleanText.contains("pumunta sa camera")) {
+    if (cleanText.contains("go to camera") || cleanText.contains("open camera") || cleanText.contains("go to easylens") || cleanText.contains("easylens") || cleanText.contains("go to easy lens") || cleanText.contains("easy lens") || cleanText.contains("camera") || cleanText.contains("pumunta sa camera")) {
       SpeechNavigationNotifier.changeTab(2);
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
       return isFilipino ? "Binubuksan ang camera" : "Navigating to EasyLens camera";
