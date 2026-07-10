@@ -30,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedAppearance = 'Black';
   int _selectedAccentColorIndex = 0; // Index 0 represents Green S01
   bool _shakeToUndo = true;
+  bool _speechNavigation = false;
 
   final List<Color> _accentColors = [
     const Color(0xFF10B981), // Green S01
@@ -47,6 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _selectedAppearance = settings.appearanceTheme;
     _selectedAccentColorIndex = settings.accentColorIndex;
     _shakeToUndo = settings.shakeToUndo;
+    _speechNavigation = settings.speechNavigation;
   }
 
   void _saveSettings() {
@@ -79,6 +81,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       accentColorIndex: _selectedAccentColorIndex,
       faceIdUnlock: _faceIdUnlock,
       shakeToUndo: _shakeToUndo,
+      speechNavigation: _speechNavigation,
     );
 
     // Sync user preferences to Cloud
@@ -91,6 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'accentColorIndex': _selectedAccentColorIndex,
         'faceIdUnlock': _faceIdUnlock,
         'shakeToUndo': _shakeToUndo,
+        'speechNavigation': _speechNavigation,
       });
     }
   }
@@ -720,6 +724,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           value: _shakeToUndo,
                           onChanged: (val) {
                             setState(() => _shakeToUndo = val);
+                            _saveSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Speech Navigation",
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "Navigate screens and click buttons using voice commands",
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _speechNavigation,
+                          onChanged: (val) {
+                            setState(() => _speechNavigation = val);
                             _saveSettings();
                           },
                           activeColor: Colors.white,

@@ -22,6 +22,7 @@ import 'dashboard_home.dart';
 import '../../utils/app_route.dart';
 import '../../services/tts_service.dart';
 import '../../services/settings_service.dart';
+import '../../widgets/speech_navigation_overlay.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -46,13 +47,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadUserDisplayName();
     _startShakeListening();
     _playDashboardBark();
+    SpeechNavigationNotifier.tabChangeNotifier.addListener(_onSpeechTabChange);
   }
 
   @override
   void dispose() {
+    SpeechNavigationNotifier.tabChangeNotifier.removeListener(_onSpeechTabChange);
     _stopShakeListening();
     _barkPlayer.dispose();
     super.dispose();
+  }
+
+  void _onSpeechTabChange() {
+    final idx = SpeechNavigationNotifier.tabChangeNotifier.value;
+    if (idx != null && mounted) {
+      _onTabChanged(idx);
+    }
   }
 
   /// Plays bark_dashboard.mp3 once when the user arrives on the Home tab.

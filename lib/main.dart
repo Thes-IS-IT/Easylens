@@ -7,6 +7,7 @@ import 'services/rag_service.dart';
 import 'screens/welcome/welcome_screen.dart';
 import 'services/notification_service.dart';
 import 'services/esp32_service.dart';
+import 'widgets/speech_navigation_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,8 @@ void main() async {
   runApp(const EasyLensApp());
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class EasyLensApp extends StatelessWidget {
   const EasyLensApp({super.key});
 
@@ -58,6 +61,7 @@ class EasyLensApp extends StatelessWidget {
         return MaterialApp(
           title: 'EasyLens',
           debugShowCheckedModeBanner: false,
+          navigatorKey: navigatorKey,
           theme: ThemeData(
             useMaterial3: true,
             primaryColor: const Color(0xFF002663),
@@ -67,6 +71,9 @@ class EasyLensApp extends StatelessWidget {
             ),
           ),
           home: const WelcomeScreen(),
+          builder: (context, child) {
+            return SpeechNavigationOverlay(child: child!);
+          },
         );
       },
     );
