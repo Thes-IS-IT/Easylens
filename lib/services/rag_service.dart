@@ -344,6 +344,34 @@ Buddy:
     return responseText;
   }
 
+  Future<String> askBuddyLocalOnly(String question) async {
+    String promptText = "";
+    if (question.contains("scanned nearby:")) {
+      final regExp = RegExp(r"scanned nearby:\s*'(.*)'", caseSensitive: false);
+      final match = regExp.firstMatch(question);
+      final scannedText = match != null ? match.group(1) : question;
+      promptText = """
+You are Buddy, the loyal vision assistant. 
+Provide a clear, simple, and friendly explanation of the following text scanned nearby:
+'$scannedText'
+
+Explain what it is (e.g. food label, safety sign, direction sign) and highlight key information. Keep the response direct and under 3 sentences.
+""";
+    } else {
+      final context = await retrieveContextAsync(question);
+      promptText = """
+You are Buddy, the friendly dog mascot and EasyLens assistant.
+Here is the environment information and memory:
+$context
+
+User Question: $question
+Buddy:
+""";
+    }
+
+    return await _queryGemmaOffline(promptText);
+  }
+
   /// Builds a Tagalog-language Gemma prompt.
   /// Writing the entire prompt in Filipino forces Gemma's instruction-tuned
   /// model to mirror the language and respond in Tagalog.
