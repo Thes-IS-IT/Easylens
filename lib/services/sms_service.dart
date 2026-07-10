@@ -42,34 +42,61 @@ class SmsService {
     return cleaned;
   }
 
-  /// Sends an SMS directly through the device's SIM card carrier (using user load credits).
-  /// Returns `true` if successful, `false` otherwise.
+  /// Sends an SMS. It dynamically attempts to send directly through the device's SIM card
+  /// carrier first (using user load credits). If that fails, is denied, or is not supported (e.g. iOS/simulator),
+  /// it automatically falls back to sending via the online MensaHero gateway API.
   Future<bool> sendSMS({
     required String to,
     required String message,
     String? from,
   }) async {
-    try {
-      final formattedTo = formatPhoneNumber(to);
-      print('[SmsService] Attempting to send SMS automatically via user SIM load to $formattedTo...');
+    final formattedTo = formatPhoneNumber(to);
+    print('[SmsService] Attempting to send SMS to $formattedTo...');
 
-      // On Android, use the native platform method channel that interacts with SmsManager
-      if (Platform.isAndroid) {
+    // 1. Try native SIM SMS sending first (Android only)
+    if (Platform.isAndroid) {
+      try {
+        print('[SmsService] Trying native SIM SMS load sending...');
         final bool success = await _channel.invokeMethod<bool>('sendSMS', {
           'to': formattedTo,
           'message': message,
         }) ?? false;
-        print('[SmsService] Native SMS channel returned: $success');
-        return success;
-      } else {
-        // Fallback for non-Android platforms (e.g. testing or iOS)
-        print('[SmsService] Non-Android platform detected. Simulating successful local SMS send.');
-        print('[SIM SMS SIMULATION] To: $formattedTo, Message: $message');
+        
+        if (success) {
+          print('[SmsService] Native SIM SMS sent successfully!');
+          return true;
+        }
+        print('[SmsService] Native SIM SMS returned false. Falling back...');
+      } catch (e) {
+        print('[SmsService] Native SIM SMS error: $e. Falling back to online gateway...');
+      }
+    }
+
+    // 2. Fallback to online MensaHero gateway API
+    print('[SmsService] Attempting online MensaHero API sending to $formattedTo...');
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/messages/create'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'apiKey': _apiKey,
+          'from': _deviceName,
+          'to': formattedTo,
+          'message': message,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('[SmsService] Online MensaHero gateway sent SMS successfully.');
         return true;
+      } else {
+        print('[SmsService] Online MensaHero gateway failed with status ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      print('Error sending SMS via native channel: $e');
-      return false;
+      print('[SmsService] Online MensaHero gateway error: $e');
     }
+
+    return false;
   }
 }
+

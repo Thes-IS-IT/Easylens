@@ -44,10 +44,14 @@ class MainActivity : FlutterActivity() {
 
     private fun sendDirectSms(to: String, message: String, result: MethodChannel.Result) {
         try {
-            val smsManager: SmsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                this.getSystemService(SmsManager::class.java)
-            } else {
-                @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION")
+            val smsManager: SmsManager = try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    this.getSystemService(SmsManager::class.java) ?: SmsManager.getDefault()
+                } else {
+                    SmsManager.getDefault()
+                }
+            } catch (ex: Exception) {
                 SmsManager.getDefault()
             }
             
@@ -62,6 +66,7 @@ class MainActivity : FlutterActivity() {
             result.error("SMS_SEND_FAILED", e.localizedMessage, null)
         }
     }
+
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
