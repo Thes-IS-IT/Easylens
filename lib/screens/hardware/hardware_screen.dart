@@ -323,10 +323,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _loadObjectDetectionModel() async {
     try {
       await _loadCocoLabels();
-      final modelBytes = await rootBundle.load('assets/models/mobilenetv2.tflite');
-      final labelsContent = await rootBundle.loadString('assets/models/mobilenetv2.txt');
-      await _tfliteProcessor.init(modelBytes.buffer.asUint8List(), labelsContent);
-
       final options = ObjectDetectorOptions(
         mode: DetectionMode.stream,
         classifyObjects: true,
@@ -336,9 +332,18 @@ class _HardwareScreenState extends State<HardwareScreen> {
       setState(() {
         _isModelLoaded = true;
       });
-      print("Google ML Kit and SSD MobileNet V2 initialized successfully");
+      print("Google ML Kit Base Object Detector initialized successfully");
     } catch (e) {
-      print("Error loading SSD MobileNet V2: $e");
+      print("Error loading Google ML Kit Base Object Detector: $e");
+    }
+
+    try {
+      final modelBytes = await rootBundle.load('assets/models/mobilenetv2.tflite');
+      final labelsContent = await rootBundle.loadString('assets/models/mobilenetv2.txt');
+      await _tfliteProcessor.init(modelBytes.buffer.asUint8List(), labelsContent);
+      print("SSD MobileNet V2 initialized successfully");
+    } catch (e) {
+      print("Non-fatal: SSD MobileNet V2 assets not loaded: $e");
     }
   }
 
@@ -1167,17 +1172,21 @@ class _HardwareScreenState extends State<HardwareScreen> {
       return;
     }
 
-    final detections = _tfliteDetections;
+    final detections = _detectedObjectsList;
     
     // Draw real bounding boxes on screen dynamically if found
     if (detections.isNotEmpty && mounted) {
       setState(() {
-        _detectedObjectLabels = detections.map((d) => d.label).toList();
+        _detectedObjectLabels = detections.map((d) => d.labels.isNotEmpty ? d.labels.first.text : 'Object').toList();
         _detectedObjectRects = detections.map((d) {
-          double left = d.xMin * 300.0;
-          double top = d.yMin * 250.0;
-          double width = (d.xMax - d.xMin) * 300.0;
-          double height = (d.yMax - d.yMin) * 250.0;
+          final r = d.boundingBox;
+          final double imgWidth = _faceImageSize != Size.zero ? _faceImageSize.width : 640.0;
+          final double imgHeight = _faceImageSize != Size.zero ? _faceImageSize.height : 480.0;
+          
+          double left = ((1.0 - (r.bottom / imgHeight)) * 300.0).clamp(0.0, 300.0);
+          double top = ((r.left / imgWidth) * 250.0).clamp(0.0, 250.0);
+          double width = ((r.height / imgHeight) * 300.0).clamp(0.0, 300.0 - left);
+          double height = ((r.width / imgWidth) * 250.0).clamp(0.0, 250.0 - top);
           return Rect.fromLTWH(left, top, width, height);
         }).toList();
       });
@@ -1187,7 +1196,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
     final detectedItems = [
       if (detections.isNotEmpty)
         detections.map((d) {
-          return "${d.label} (${(d.confidence * 100).toInt()}% confidence)";
+          final label = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
+          final confidence = d.labels.isNotEmpty ? d.labels.first.confidence : 0.85;
+          return "$label (${(confidence * 100).toInt()}% confidence)";
         }).join(", "),
       if (mlKitLabels.isNotEmpty)
         "general environment labels: $mlKitLabels"
@@ -1944,13 +1955,13 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                       if (_detectedObjectsList.isNotEmpty)
                         ..._detectedObjectsList.map((obj) {
                             final r = obj.boundingBox;
-                            final double imgWidth = _faceImageSize != Size.zero ? _faceImageSize.width : 480.0;
-                            final double imgHeight = _faceImageSize != Size.zero ? _faceImageSize.height : 640.0;
+                            final double imgWidth = _faceImageSize != Size.zero ? _faceImageSize.width : 640.0;
+                            final double imgHeight = _faceImageSize != Size.zero ? _faceImageSize.height : 480.0;
                             
-                            double left = (1.0 - (r.bottom / imgHeight)) * constraints.maxWidth;
-                            double top = (r.left / imgWidth) * constraints.maxHeight;
-                            double width = (r.height / imgHeight) * constraints.maxWidth;
-                            double height = (r.width / imgWidth) * constraints.maxHeight;
+                            double left = ((1.0 - (r.bottom / imgHeight)) * constraints.maxWidth).clamp(0.0, constraints.maxWidth);
+                            double top = ((r.left / imgWidth) * constraints.maxHeight).clamp(0.0, constraints.maxHeight);
+                            double width = ((r.height / imgHeight) * constraints.maxWidth).clamp(0.0, constraints.maxWidth - left);
+                            double height = ((r.width / imgWidth) * constraints.maxHeight).clamp(0.0, constraints.maxHeight - top);
                             
                             String label = 'Object';
                             if (obj.labels.isNotEmpty) {
