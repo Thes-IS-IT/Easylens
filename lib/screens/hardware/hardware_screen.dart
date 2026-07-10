@@ -1013,14 +1013,32 @@ class _HardwareScreenState extends State<HardwareScreen> {
               selectedSim = _hazardSimulations[9]; // Obstacle ahead
             } else {
               final cleanLabel = topLabelText[0].toUpperCase() + topLabelText.substring(1);
-              selectedSim = {
-                'title': '$cleanLabel Detected',
-                'desc': '$cleanLabel located in front of you.',
-                'bg': const Color(0xFFE8F5E9),
-                'icon': Icons.check_circle_outline,
-                'iconColor': Colors.green,
-                'speech': '$cleanLabel detected.'
-              };
+              final isPathway = topLabel.contains('floor') || 
+                                topLabel.contains('ground') || 
+                                topLabel.contains('sky') || 
+                                topLabel.contains('ceiling') || 
+                                topLabel.contains('indoor') ||
+                                topLabel.contains('room');
+
+              if (_selectedHudMode == HudMode.navigation && !isPathway) {
+                selectedSim = {
+                  'title': '$cleanLabel Obstacle',
+                  'desc': '$cleanLabel is blocking your path. Step aside.',
+                  'bg': const Color(0xFFFFF3E0),
+                  'icon': Icons.warning_amber_rounded,
+                  'iconColor': Colors.orange,
+                  'speech': 'Caution: $cleanLabel detected directly in front of you. Please step aside to avoid it.'
+                };
+              } else {
+                selectedSim = {
+                  'title': '$cleanLabel Detected',
+                  'desc': '$cleanLabel located in front of you.',
+                  'bg': const Color(0xFFE8F5E9),
+                  'icon': Icons.check_circle_outline,
+                  'iconColor': Colors.green,
+                  'speech': '$cleanLabel detected.'
+                };
+              }
             }
 
             setState(() {
@@ -1922,57 +1940,104 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   fit: StackFit.expand,
                   children: [
                     CameraPreview(_cameraController!),
-                    if ((_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) && _detectedObjectsList.isNotEmpty)
-                      ..._detectedObjectsList.map((obj) {
-                          final r = obj.boundingBox;
-                          final double imgWidth = _faceImageSize != Size.zero ? _faceImageSize.width : 480.0;
-                          final double imgHeight = _faceImageSize != Size.zero ? _faceImageSize.height : 640.0;
-                          
-                          double left = (1.0 - (r.bottom / imgHeight)) * constraints.maxWidth;
-                          double top = (r.left / imgWidth) * constraints.maxHeight;
-                          double width = (r.height / imgHeight) * constraints.maxWidth;
-                          double height = (r.width / imgWidth) * constraints.maxHeight;
-                          
-                          String label = 'Object';
-                          if (obj.labels.isNotEmpty) {
-                            final firstLabel = obj.labels.first;
-                            if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-                              label = firstLabel.text;
-                            } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-                              label = _cocoLabels[firstLabel.index];
+                    if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation)
+                      if (_detectedObjectsList.isNotEmpty)
+                        ..._detectedObjectsList.map((obj) {
+                            final r = obj.boundingBox;
+                            final double imgWidth = _faceImageSize != Size.zero ? _faceImageSize.width : 480.0;
+                            final double imgHeight = _faceImageSize != Size.zero ? _faceImageSize.height : 640.0;
+                            
+                            double left = (1.0 - (r.bottom / imgHeight)) * constraints.maxWidth;
+                            double top = (r.left / imgWidth) * constraints.maxHeight;
+                            double width = (r.height / imgHeight) * constraints.maxWidth;
+                            double height = (r.width / imgWidth) * constraints.maxHeight;
+                            
+                            String label = 'Object';
+                            if (obj.labels.isNotEmpty) {
+                              final firstLabel = obj.labels.first;
+                              if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
+                                label = firstLabel.text;
+                              } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
+                                label = _cocoLabels[firstLabel.index];
+                              }
                             }
-                          }
-                          final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
-                          final displayLabel = '$label$trackingStr';
+                            final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
+                            final displayLabel = '$label$trackingStr';
 
-                          return Positioned(
-                            left: left,
-                            top: top,
-                            width: width.clamp(0.0, constraints.maxWidth - left),
-                            height: height.clamp(0.0, constraints.maxHeight - top),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.cyanAccent, width: 2.5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Align(
-                                alignment: Alignment.topLeft,
-                                child: Container(
-                                  color: Colors.cyanAccent,
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  child: Text(
-                                    displayLabel,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
+                            return Positioned(
+                              left: left,
+                              top: top,
+                              width: width.clamp(0.0, constraints.maxWidth - left),
+                              height: height.clamp(0.0, constraints.maxHeight - top),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.cyanAccent, width: 2.5),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Container(
+                                    color: Colors.cyanAccent,
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    child: Text(
+                                      displayLabel,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          })
+                      else if (_latestMLKitLabels.isNotEmpty)
+                        Builder(
+                          builder: (context) {
+                            final topLabel = _latestMLKitLabels.first;
+                            final isPathway = topLabel.toLowerCase().contains('floor') || 
+                                              topLabel.toLowerCase().contains('ground') || 
+                                              topLabel.toLowerCase().contains('sky') ||
+                                              topLabel.toLowerCase().contains('ceiling') ||
+                                              topLabel.toLowerCase().contains('indoor') ||
+                                              topLabel.toLowerCase().contains('room');
+                            if (isPathway) return const SizedBox.shrink();
+                            
+                            double left = constraints.maxWidth * 0.15;
+                            double top = constraints.maxHeight * 0.20;
+                            double width = constraints.maxWidth * 0.70;
+                            double height = constraints.maxHeight * 0.50;
+                            
+                            return Positioned(
+                              left: left,
+                              top: top,
+                              width: width,
+                              height: height,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.orangeAccent, width: 2.5),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Container(
+                                    color: Colors.orangeAccent,
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    child: Text(
+                                      "$topLabel (Tracked)",
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
 
                     // Draw face bounding boxes dynamically in Face Recognition mode
                     if (_selectedHudMode == HudMode.faceRecognition && _faceImageSize != Size.zero)
