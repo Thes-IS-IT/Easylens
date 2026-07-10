@@ -48,6 +48,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
   bool _isLoopActive = false;
   Timer? _silenceTimer;
+  double? _btnLeft;
+  double? _btnTop;
 
   @override
   void dispose() {
@@ -288,6 +290,12 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
         final settings = SettingsService();
         final isEnabled = settings.speechNavigation;
 
+        if (_btnLeft == null || _btnTop == null) {
+          final size = MediaQuery.of(context).size;
+          _btnLeft = 20.0;
+          _btnTop = size.height - 106.0;
+        }
+
         if (!isEnabled) {
           return widget.child;
         }
@@ -362,13 +370,26 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
                 ),
               ),
 
-            // Global Floating Microphone Button (Bottom Left) S01
+            // Global Floating Microphone Button (Bottom Left & Draggable) S01
             Positioned(
-              left: 20,
-              bottom: 24,
+              left: _btnLeft,
+              top: _btnTop,
               child: Material(
                 color: Colors.transparent,
                 child: GestureDetector(
+                  onPanUpdate: (details) {
+                    setState(() {
+                      final size = MediaQuery.of(context).size;
+                      _btnTop = (_btnTop! + details.delta.dy).clamp(
+                        50.0,
+                        size.height - 100.0,
+                      );
+                      _btnLeft = (_btnLeft! + details.delta.dx).clamp(
+                        10.0,
+                        size.width - 90.0,
+                      );
+                    });
+                  },
                   onTap: _toggleSpeechNavigation,
                   child: Container(
                     width: 72,
