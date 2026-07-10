@@ -1917,9 +1917,8 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   fit: StackFit.expand,
                   children: [
                     CameraPreview(_cameraController!),
-                    if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation)
-                      if (_detectedObjectsList.isNotEmpty)
-                        ..._detectedObjectsList.map((obj) {
+                    if ((_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) && _detectedObjectsList.isNotEmpty)
+                      ..._detectedObjectsList.map((obj) {
                           final r = obj.boundingBox;
                           final scaleX = _faceImageSize != Size.zero 
                               ? constraints.maxWidth / _faceImageSize.height 
