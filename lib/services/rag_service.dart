@@ -359,13 +359,15 @@ Buddy:""";
 
   static List<String> getGeminiApiKeys() {
     final List<String> keys = [];
-    final key1 = dotenv.env['GEMINI_API_KEY'] ?? '';
-    final key2 = dotenv.env['GEMINI_API_KEY2'] ?? '';
-    final key3 = dotenv.env['GEMINI_API_KEY3'] ?? '';
-    
-    if (key1.isNotEmpty) keys.add(key1);
-    if (key2.isNotEmpty) keys.add(key2);
-    if (key3.isNotEmpty) keys.add(key3);
+    final sortedKeys = dotenv.env.keys.toList()..sort();
+    for (var envKey in sortedKeys) {
+      if (envKey.startsWith('GEMINI_API_KEY')) {
+        final val = dotenv.env[envKey] ?? '';
+        if (val.trim().isNotEmpty) {
+          keys.add(val.trim());
+        }
+      }
+    }
     return keys;
   }
 
