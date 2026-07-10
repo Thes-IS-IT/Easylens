@@ -357,23 +357,46 @@ Buddy:""";
     }
   }
 
+  static List<String> getGeminiApiKeys() {
+    final List<String> keys = [];
+    final key1 = dotenv.env['GEMINI_API_KEY'] ?? '';
+    final key2 = dotenv.env['GEMINI_API_KEY2'] ?? '';
+    final key3 = dotenv.env['GEMINI_API_KEY3'] ?? '';
+    
+    if (key1.isNotEmpty) keys.add(key1);
+    if (key2.isNotEmpty) keys.add(key2);
+    if (key3.isNotEmpty) keys.add(key3);
+    return keys;
+  }
+
+  static Future<T> executeWithApiKeyFallback<T>(Future<T> Function(String apiKey) apiCall) async {
+    final keys = getGeminiApiKeys();
+    if (keys.isEmpty) {
+      throw Exception('No Gemini API keys found in environment variables.');
+    }
+    
+    Object? lastError;
+    for (var key in keys) {
+      try {
+        return await apiCall(key.trim());
+      } catch (e) {
+        final maskedKey = key.length > 4 ? '...${key.substring(key.length - 4)}' : '...';
+        print('[RagService] API Call failed with key $maskedKey: $e');
+        lastError = e;
+      }
+    }
+    throw lastError ?? Exception('All Gemini API keys failed.');
+  }
+
   /// Translates an English Gemma response to Filipino using Gemini API.
   /// Preserves any [NAVIGATE: x] tags so app routing still works after translation.
   Future<String> translateToFilipino(String englishText) async {
     try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-      if (apiKey.isEmpty) return englishText;
-
       // Extract [NAVIGATE: x] tag before translating so it isn't mangled
       final navRegex = RegExp(r'\[NAVIGATE:[^\]]+\]', caseSensitive: false);
       final navMatch = navRegex.firstMatch(englishText);
       final navTag = navMatch?.group(0) ?? '';
       final textOnly = englishText.replaceAll(navRegex, '').trim();
-
-      final model = GenerativeModel(
-        model: 'gemini-3.5-flash',
-        apiKey: apiKey,
-      );
 
       final prompt = 'Translate the following text to Filipino/Tagalog. '
           'Keep the same friendly, enthusiastic tone. '
@@ -381,9 +404,15 @@ Buddy:""";
           'Return ONLY the translated text, nothing else.\n\n'
           'Text: $textOnly';
 
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
-      final translated = response.text?.trim() ?? textOnly;
+      final translated = await executeWithApiKeyFallback((apiKey) async {
+        final model = GenerativeModel(
+          model: 'gemini-3.5-flash',
+          apiKey: apiKey,
+        );
+        final content = [Content.text(prompt)];
+        final response = await model.generateContent(content);
+        return response.text?.trim() ?? textOnly;
+      });
 
       // Reattach navigation tag at the end if it existed
       return navTag.isNotEmpty ? '$translated $navTag' : translated;
@@ -398,35 +427,34 @@ Buddy:""";
   /// is naturally in Tagalog without any translation step.
   Future<String> askBuddyGemini(String question, String userName, String mobilityAid) async {
     try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-      if (apiKey.isEmpty) return 'Hindi available ang Gemini API key.';
-
-      final model = GenerativeModel(
-        model: 'gemini-3.5-flash',
-        apiKey: apiKey,
-        systemInstruction: Content.system(
-          'Ikaw si Buddy, ang tapat at masayang golden retriever na gabay ng EasyLens app. '
-          'Lagi kang sumasagot sa wikang Filipino/Tagalog — huwag kang gumamit ng Ingles. '
-          'Ikaw ay palaging masaya, matulungin, at maaasahan. '
-          'Pangalan ng gumagamit: $userName. Gumagamit siya ng: $mobilityAid. '
-          'Magsagot nang maikli at malinaw (2-3 pangungusap lang). '
-          'Kung kailangang mag-navigate sa isang screen, idagdag ang isa sa mga tag na ito sa DULO ng iyong sagot:\n'
-          '[NAVIGATE: home] — Home screen\n'
-          '[NAVIGATE: nav] — Audio Navigation\n'
-          '[NAVIGATE: hardware] — EasyLens Camera/Sensor\n'
-          '[NAVIGATE: text] — Text Scanner\n'
-          '[NAVIGATE: objects] — Object Detector\n'
-          '[NAVIGATE: emergency] — SOS Emergency\n'
-          '[NAVIGATE: settings] — Settings\n'
-          '[NAVIGATE: notifications] — Mga Abiso\n'
-          '[NAVIGATE: contacts] — Mga Kontak\n'
-          '[NAVIGATE: journal] — Talaarawan ni Buddy',
-        ),
-      );
-
-      final content = [Content.text(question)];
-      final response = await model.generateContent(content);
-      final responseText = response.text?.trim() ?? 'Walang natanggap na sagot.';
+      final responseText = await executeWithApiKeyFallback((apiKey) async {
+        final model = GenerativeModel(
+          model: 'gemini-3.5-flash',
+          apiKey: apiKey,
+          systemInstruction: Content.system(
+            'Ikaw si Buddy, ang tapat at masayang golden retriever na gabay ng EasyLens app. '
+            'Lagi kang sumasagot sa wikang Filipino/Tagalog — huwag kang gumamit ng Ingles. '
+            'Ikaw ay palaging masaya, matulungin, at maaasahan. '
+            'Pangalan ng gumagamit: $userName. Gumagamit siya ng: $mobilityAid. '
+            'Magsagot nang maikli at malinaw (2-3 pangungusap lang). '
+            'Kung kailangang mag-navigate sa isang screen, idagdag ang isa sa mga tag na ito sa DULO ng iyong sagot:\n'
+            '[NAVIGATE: home] — Home screen\n'
+            '[NAVIGATE: nav] — Audio Navigation\n'
+            '[NAVIGATE: hardware] — EasyLens Camera/Sensor\n'
+            '[NAVIGATE: text] — Text Scanner\n'
+            '[NAVIGATE: objects] — Object Detector\n'
+            '[NAVIGATE: emergency] — SOS Emergency\n'
+            '[NAVIGATE: settings] — Settings\n'
+            '[NAVIGATE: notifications] — Mga Abiso\n'
+            '[NAVIGATE: contacts] — Mga Kontak\n'
+            '[NAVIGATE: journal] — Talaarawan ni Buddy',
+          ),
+        );
+        final content = [Content.text(question)];
+        final response = await model.generateContent(content);
+        return response.text?.trim() ?? 'Walang natanggap na sagot.';
+      });
+      
       _logToJournal(question, responseText);
       return responseText;
     } catch (e) {
@@ -437,17 +465,15 @@ Buddy:""";
 
   Future<String> askBuddyOnlineGemini(String prompt) async {
     try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-      if (apiKey.isEmpty) return "";
-
-      final model = GenerativeModel(
-        model: 'gemini-3.5-flash',
-        apiKey: apiKey,
-      );
-
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
-      return response.text?.trim() ?? "";
+      return await executeWithApiKeyFallback((apiKey) async {
+        final model = GenerativeModel(
+          model: 'gemini-3.5-flash',
+          apiKey: apiKey,
+        );
+        final content = [Content.text(prompt)];
+        final response = await model.generateContent(content);
+        return response.text?.trim() ?? "";
+      });
     } catch (e) {
       print('[Gemini Online] Error: $e');
       return "";

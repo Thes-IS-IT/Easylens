@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'rag_service.dart';
+
 
 class JournalService {
   static final JournalService _instance = JournalService._internal();
@@ -65,17 +67,6 @@ class JournalService {
   /// and updates the daily journal file.
   Future<void> generateAndAddInsight(String userMessage, String buddyResponse) async {
     try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-      if (apiKey.isEmpty) {
-        print('[Journal] Gemini API Key is empty. Skipping insight generation.');
-        return;
-      }
-
-      final model = GenerativeModel(
-        model: 'gemini-3.5-flash',
-        apiKey: apiKey,
-      );
-
       final cleanBuddyResponse = buddyResponse.replaceAll(RegExp(r'\[NAVIGATE:[^\]]+\]'), '').trim();
 
       final prompt = '''
@@ -90,8 +81,14 @@ Example: "- I learned that Arron needs help finding sharp objects and prefers ha
 Return ONLY the bullet point and nothing else.
 ''';
 
-      final response = await model.generateContent([Content.text(prompt)]);
-      final insight = response.text?.trim() ?? '';
+      final insight = await RagService.executeWithApiKeyFallback((apiKey) async {
+        final model = GenerativeModel(
+          model: 'gemini-3.5-flash',
+          apiKey: apiKey,
+        );
+        final response = await model.generateContent([Content.text(prompt)]);
+        return response.text?.trim() ?? '';
+      });
       
       if (insight.startsWith('-')) {
         await _insertInsightIntoTodayFile(insight);
