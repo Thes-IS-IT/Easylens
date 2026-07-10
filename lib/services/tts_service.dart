@@ -91,7 +91,12 @@ class TtsService {
     });
 
     await _flutterTts.speak(text);
-    await completer.future;
+    await completer.future.timeout(
+      Duration(milliseconds: (text.length * 80) + 2000),
+      onTimeout: () {
+        print("[TTS] speakAwait timed out.");
+      },
+    );
   }
 
   Future<void> stop() async {

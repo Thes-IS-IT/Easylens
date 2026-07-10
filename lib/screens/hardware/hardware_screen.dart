@@ -1077,6 +1077,15 @@ class _HardwareScreenState extends State<HardwareScreen> {
               selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
             } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
               selectedSim = _hazardSimulations[12]; // Person Detected
+            } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway')) {
+              selectedSim = {
+                'title': 'Door Detected',
+                'desc': 'Door or entrance located in front of you.',
+                'bg': const Color(0xFFE0F7FA),
+                'icon': Icons.meeting_room,
+                'iconColor': Colors.teal,
+                'speech': 'Door or entrance detected ahead.'
+              };
             } else if (topLabel.contains('tree') || topLabel.contains('branch') || topLabel.contains('pole') || topLabel.contains('wall') || topLabel.contains('obstacle') || topLabel.contains('post') || topLabel.contains('barrier')) {
               selectedSim = _hazardSimulations[9]; // Obstacle ahead
             } else {
