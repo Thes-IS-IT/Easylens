@@ -498,6 +498,24 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
+  InputImageRotation _getImageRotation() {
+    if (_cameraController == null || _cameras == null || _cameras!.isEmpty) {
+      return InputImageRotation.rotation90deg;
+    }
+    final sensorOrientation = _cameras![0].sensorOrientation;
+    switch (sensorOrientation) {
+      case 90:
+        return InputImageRotation.rotation90deg;
+      case 180:
+        return InputImageRotation.rotation180deg;
+      case 270:
+        return InputImageRotation.rotation270deg;
+      case 0:
+      default:
+        return InputImageRotation.rotation0deg;
+    }
+  }
+
   /// Throttled face detection on camera frames.
   /// When a face is detected and registered profiles exist, announces the
   /// registered person's name via TTS with a 10-second cooldown.
@@ -507,7 +525,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final Size imageSize = Size(width.toDouble(), height.toDouble());
       final inputImageMetadata = InputImageMetadata(
         size: imageSize,
-        rotation: InputImageRotation.rotation90deg,
+        rotation: _getImageRotation(),
         format: InputImageFormat.nv21,
         bytesPerRow: width,
       );
@@ -660,7 +678,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final Size imageSize = Size(width.toDouble(), height.toDouble());
       final inputImageMetadata = InputImageMetadata(
         size: imageSize,
-        rotation: InputImageRotation.rotation90deg,
+        rotation: _getImageRotation(),
         format: InputImageFormat.nv21,
         bytesPerRow: width,
       );
@@ -894,7 +912,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _processCameraImage(Uint8List nv21Bytes, Uint8List yBytes, int width, int height) async {
     try {
       final Size imageSize = Size(width.toDouble(), height.toDouble());
-      final InputImageRotation imageRotation = InputImageRotation.rotation90deg;
+      final InputImageRotation imageRotation = _getImageRotation();
 
       final inputImageMetadata = InputImageMetadata(
         size: imageSize,
