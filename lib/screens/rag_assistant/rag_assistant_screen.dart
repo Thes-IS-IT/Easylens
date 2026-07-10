@@ -142,7 +142,7 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
 
     try {
       const savePath = "/storage/emulated/0/Android/data/com.company.easylens/files/model.bin";
-      const url = "https://huggingface.co/MrHoang/LLM/resolve/main/gemma-2b-it-gpu-int8.bin";
+      const url = "https://huggingface.co/MrHoang/LLM/resolve/main/gemma-2b-it-cpu-int4.bin";
       
       final client = HttpClient();
       final request = await client.getUrl(Uri.parse(url));

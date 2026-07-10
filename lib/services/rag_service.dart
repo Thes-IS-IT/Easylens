@@ -261,17 +261,14 @@ Explain what it is (e.g. food label, safety sign, direction sign) and highlight 
     } else {
       final context = await retrieveContextAsync(question);
       promptText = """
-You are Buddy, the loyal vision assistant. 
-Use the following retrieved context to answer the user's question. 
-Keep the response friendly and concise (under 3 sentences).
+Buddy (loyal dog assistant).
+Use Context to answer Question (friendly, under 3 sentences).
 
 Context:
 $context
 
-User Question:
-$question
-
-Buddy's Answer:
+Question: $question
+Buddy:
 """;
     }
 
