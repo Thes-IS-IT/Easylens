@@ -345,6 +345,11 @@ Buddy:
   }
 
   Future<String> askBuddyLocalOnly(String question) async {
+    final modelPath = await _getLocalModelPath();
+    if (modelPath == null) {
+      return generateSmartLocalResponse(question);
+    }
+
     String promptText = "";
     if (question.contains("scanned nearby:")) {
       final regExp = RegExp(r"scanned nearby:\s*'(.*)'", caseSensitive: false);
@@ -370,6 +375,44 @@ Buddy:
     }
 
     return await _queryGemmaOffline(promptText);
+  }
+
+  String generateSmartLocalResponse(String question) {
+    final lowerQ = question.toLowerCase();
+    
+    // Extract detected labels from the prompt if possible
+    String detectedText = "";
+    if (lowerQ.contains("reports these environment labels:") || lowerQ.contains("reports these visual labels:") || lowerQ.contains("visual labels:")) {
+      final regExp = RegExp(r"labels:\s*([^.\n]+)", caseSensitive: false);
+      final match = regExp.firstMatch(question);
+      if (match != null) {
+        detectedText = match.group(1)?.trim() ?? "";
+      }
+    } else if (lowerQ.contains("environment labels:")) {
+      final regExp = RegExp(r"environment labels:\s*([^.\n]+)", caseSensitive: false);
+      final match = regExp.firstMatch(question);
+      if (match != null) {
+        detectedText = match.group(1)?.trim() ?? "";
+      }
+    }
+
+    if (detectedText.isEmpty) {
+      detectedText = "a clear pathway";
+    }
+
+    if (lowerQ.contains("what do you see") || lowerQ.contains("what is in front") || lowerQ.contains("see in") || lowerQ.contains("saw") || lowerQ.contains("nakikita") || lowerQ.contains("ano ang nakikita")) {
+      return "Buddy: I see $detectedText in front of you.";
+    } else if (lowerQ.contains("explain") || lowerQ.contains("describe") || lowerQ.contains("ipaliwanag")) {
+      return "Buddy: Looking closely, I can see $detectedText. These objects are directly in your view.";
+    } else if (lowerQ.contains("door") || lowerQ.contains("pinto")) {
+      if (detectedText.contains("door")) {
+        return "Buddy: Yes, a door or entrance is detected ahead.";
+      } else {
+        return "Buddy: I don't see any doors in front of you right now.";
+      }
+    }
+    
+    return "Buddy: I see $detectedText. How can I help you navigate or interact with them?";
   }
 
   /// Builds a Tagalog-language Gemma prompt.

@@ -1267,99 +1267,121 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _silenceTimer?.cancel();
     if (!_isContinuousVoiceEnabled || !mounted) return;
 
-    // Stop STT so we can process and speak S01
-    await SttService().stopListening((_) {});
+    try {
+      // Stop STT so we can process and speak S01
+      await SttService().stopListening((_) {});
 
-    final question = _continuousVoiceText.trim().toLowerCase();
-    
-    setState(() {
-      _activeTitle = "Buddy Thinking...";
-      _activeDescription = "Analyzing view context...";
-      _statusCardBg = const Color(0xFFFFF8E1);
-      _statusIcon = Icons.hourglass_empty;
-      _statusIconColor = Colors.orange;
-    });
+      final question = _continuousVoiceText.trim().toLowerCase();
+      
+      setState(() {
+        _activeTitle = "Buddy Thinking...";
+        _activeDescription = "Analyzing view context...";
+        _statusCardBg = const Color(0xFFFFF8E1);
+        _statusIcon = Icons.hourglass_empty;
+        _statusIconColor = Colors.orange;
+      });
 
-    final detections = _detectedObjectsList;
-    final mlKitLabels = _latestMLKitLabels.join(", ");
-    final detectedItems = [
-      if (detections.isNotEmpty)
-        detections.map((d) {
-          final label = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
-          final refined = _refineLabel(label);
-          return refined;
-        }).join(", "),
-      if (mlKitLabels.isNotEmpty)
-        "general surroundings: $mlKitLabels"
-    ].join("; ");
+      final detections = _detectedObjectsList;
+      final mlKitLabels = _latestMLKitLabels.join(", ");
+      final detectedItems = [
+        if (detections.isNotEmpty)
+          detections.map((d) {
+            final label = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
+            final refined = _refineLabel(label);
+            return refined;
+          }).join(", "),
+        if (mlKitLabels.isNotEmpty)
+          "general surroundings: $mlKitLabels"
+      ].join("; ");
 
-    final lang = SettingsService().selectedLanguage;
-    final isFilipino = lang.toLowerCase().contains('tagalog') ||
-        lang.toLowerCase().contains('filipino');
+      final lang = SettingsService().selectedLanguage;
+      final isFilipino = lang.toLowerCase().contains('tagalog') ||
+          lang.toLowerCase().contains('filipino');
 
-    String response = "";
-    bool handledByVoiceCommand = false;
+      String response = "";
+      bool handledByVoiceCommand = false;
 
-    if (_isFocusModeEnabled && question.isNotEmpty && question != "listening...") {
-      if (question.contains("object") || question.contains("bagay")) {
-        setState(() {
-          _selectedHudMode = HudMode.objectDetection;
-        });
-        _applyModeChange(HudMode.objectDetection);
-        response = isFilipino 
-            ? "Lumipat na sa Object Detection mode." 
-            : "Switched to Object Detection mode.";
-        handledByVoiceCommand = true;
-      } else if (question.contains("face") || question.contains("mukha") || question.contains("register")) {
-        setState(() {
-          _selectedHudMode = HudMode.faceRecognition;
-        });
-        _applyModeChange(HudMode.faceRecognition);
-        response = isFilipino 
-            ? "Lumipat na sa Face Recognition mode." 
-            : "Switched to Face Recognition mode.";
-        handledByVoiceCommand = true;
-      } else if (question.contains("navigation") || question.contains("lakad") || question.contains("map")) {
-        setState(() {
-          _selectedHudMode = HudMode.navigation;
-        });
-        _applyModeChange(HudMode.navigation);
-        response = isFilipino 
-            ? "Lumipat na sa Navigation mode." 
-            : "Switched to Navigation mode.";
-        handledByVoiceCommand = true;
-      } else if (question.contains("exit") || question.contains("turn off") || question.contains("mamatay") || question.contains("disable")) {
-        setState(() {
-          _isFocusModeEnabled = false;
-        });
-        response = isFilipino 
-            ? "Naka-off na ang Focus Mode." 
-            : "Focus Mode disabled.";
-        handledByVoiceCommand = true;
+      if (_isFocusModeEnabled && question.isNotEmpty && question != "listening...") {
+        if (question.contains("object") || question.contains("bagay")) {
+          setState(() {
+            _selectedHudMode = HudMode.objectDetection;
+          });
+          _applyModeChange(HudMode.objectDetection);
+          response = isFilipino 
+              ? "Lumipat na sa Object Detection mode." 
+              : "Switched to Object Detection mode.";
+          handledByVoiceCommand = true;
+        } else if (question.contains("face") || question.contains("mukha") || question.contains("register")) {
+          setState(() {
+            _selectedHudMode = HudMode.faceRecognition;
+          });
+          _applyModeChange(HudMode.faceRecognition);
+          response = isFilipino 
+              ? "Lumipat na sa Face Recognition mode." 
+              : "Switched to Face Recognition mode.";
+          handledByVoiceCommand = true;
+        } else if (question.contains("navigation") || question.contains("lakad") || question.contains("map")) {
+          setState(() {
+            _selectedHudMode = HudMode.navigation;
+          });
+          _applyModeChange(HudMode.navigation);
+          response = isFilipino 
+              ? "Lumipat na sa Navigation mode." 
+              : "Switched to Navigation mode.";
+          handledByVoiceCommand = true;
+        } else if (question.contains("exit") || question.contains("turn off") || question.contains("mamatay") || question.contains("disable")) {
+          setState(() {
+            _isFocusModeEnabled = false;
+          });
+          response = isFilipino 
+              ? "Naka-off na ang Focus Mode." 
+              : "Focus Mode disabled.";
+          handledByVoiceCommand = true;
+        }
       }
-    }
 
-    if (handledByVoiceCommand) {
-      // Do nothing, response is already set S01
-    } else if (question.isEmpty || question == "listening...") {
-      // 2 seconds of silence: describe scene automatically S01
-      if (detectedItems.trim().isEmpty) {
-        response = isFilipino 
-            ? "Wala akong makitang malinaw na bagay sa iyong harapan."
-            : "I don't see any clear objects in front of you.";
-      } else {
-        final prompt = isFilipino
-            ? """
+      if (handledByVoiceCommand) {
+        // Do nothing, response is already set S01
+      } else if (question.isEmpty || question == "listening...") {
+        // 2 seconds of silence: describe scene automatically S01
+        if (detectedItems.trim().isEmpty) {
+          response = isFilipino 
+              ? "Wala akong makitang malinaw na bagay sa iyong harapan."
+              : "I don't see any clear objects in front of you.";
+        } else {
+          final prompt = isFilipino
+              ? """
 You are Buddy, the visual assistant dog.
 Describe these environment labels in Tagalog: $detectedItems.
 Start the response with "Nakakita ako ng..." or "Nakikita ko ang...".
 Keep the response to exactly one natural, friendly sentence.
 """
-            : """
+              : """
 You are Buddy, the visual assistant dog.
 Describe the environment based on these visual labels: $detectedItems.
 Start the response with "I saw..." or "I see..." (e.g. "I saw a park with a tree" or "I see a laptop or keyboard").
 Keep the response to exactly one natural, friendly sentence.
+""";
+          if (_useLocalAI) {
+            response = await RagService().askBuddyLocalOnly(prompt);
+          } else {
+            response = await RagService().askBuddyOnlineGemini(prompt);
+          }
+        }
+      } else {
+        // User spoke: query Gemini/Buddy S01
+        final prompt = isFilipino
+            ? """
+You are Buddy, the visual assistant dog.
+The user asked: "$question".
+The camera reports these environment labels: $detectedItems.
+Answer the user's question directly in Tagalog based on the labels. Keep the response to 1 or 2 friendly sentences.
+"""
+            : """
+You are Buddy, the friendly dog mascot and EasyLens assistant.
+The user asked: "$question".
+The camera reports these environment labels: $detectedItems.
+Answer the user's question directly based on the labels. Keep the response to 1 or 2 friendly sentences.
 """;
         if (_useLocalAI) {
           response = await RagService().askBuddyLocalOnly(prompt);
@@ -1367,48 +1389,30 @@ Keep the response to exactly one natural, friendly sentence.
           response = await RagService().askBuddyOnlineGemini(prompt);
         }
       }
-    } else {
-      // User spoke: query Gemini/Buddy S01
-      final prompt = isFilipino
-          ? """
-You are Buddy, the visual assistant dog.
-The user asked: "$question".
-The camera reports these environment labels: $detectedItems.
-Answer the user's question directly in Tagalog based on the labels. Keep the response to 1 or 2 friendly sentences.
-"""
-          : """
-You are Buddy, the visual assistant dog.
-The user asked: "$question".
-The camera reports these environment labels: $detectedItems.
-Answer the user's question directly based on the labels. Keep the response to 1 or 2 friendly sentences.
-""";
-      if (_useLocalAI) {
-        response = await RagService().askBuddyLocalOnly(prompt);
-      } else {
-        response = await RagService().askBuddyOnlineGemini(prompt);
+
+      if (response.isEmpty) {
+        response = isFilipino ? "Pasensya na, hindi ko naintindihan." : "Sorry, I didn't catch that.";
       }
-    }
 
-    if (response.isEmpty) {
-      response = isFilipino ? "Pasensya na, hindi ko naintindihan." : "Sorry, I didn't catch that.";
-    }
-
-    if (mounted && _isContinuousVoiceEnabled) {
-      setState(() {
-        _activeTitle = "Buddy Speaking";
-        _activeDescription = response;
-        _statusCardBg = const Color(0xFFE6FFFA);
-        _statusIcon = Icons.volume_up;
-        _statusIconColor = const Color(0xFF38A169);
-      });
-      // Speak and wait for speech to finish completely!
-      await TtsService().speakAwait(response);
-    }
-
-    // Wait briefly and start next cycle S01
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted && _isContinuousVoiceEnabled) {
-      _runContinuousVoiceLoop();
+      if (mounted && _isContinuousVoiceEnabled) {
+        setState(() {
+          _activeTitle = "Buddy Speaking";
+          _activeDescription = response;
+          _statusCardBg = const Color(0xFFE6FFFA);
+          _statusIcon = Icons.volume_up;
+          _statusIconColor = const Color(0xFF38A169);
+        });
+        // Speak and wait for speech to finish completely!
+        await TtsService().speakAwait(response);
+      }
+    } catch (e) {
+      print("[Continuous Voice] Error in _processSilenceOrSpeech: $e");
+    } finally {
+      // Wait briefly and start next cycle S01
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted && _isContinuousVoiceEnabled) {
+        _runContinuousVoiceLoop();
+      }
     }
   }
 
@@ -2878,229 +2882,149 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                           ),
                           const SizedBox(width: 6),
 
-                          // Right side Column (contains Local AI, Gemini, Wifi, Audio, Hazards Scan)
+                          // Right side Column (contains Local AI, Gemini, Wifi, Audio, Hazards Scan) S01
                           Expanded(
                             child: Column(
                               children: [
                                 Row(
                                   children: [
-                                    // Local AI Card S01
+                                    // Local AI Button (Redesigned & Large) S01
                                     Expanded(
-                                      child: Container(
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.black.withOpacity(0.04)),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            // Left action: Voice chat S01
-                                            Expanded(
-                                              child: InkWell(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _useLocalAI = true;
-                                                    _isContinuousVoiceEnabled = !_isContinuousVoiceEnabled;
-                                                    _isGeminiEnabled = false;
-                                                  });
-                                                  if (_isContinuousVoiceEnabled) {
-                                                    _runContinuousVoiceLoop();
-                                                  } else {
-                                                    _silenceTimer?.cancel();
-                                                    SttService().stopListening((_) {});
-                                                    TtsService().stop();
-                                                    setState(() {
-                                                      _activeTitle = "Path Clear";
-                                                      _activeDescription = "No hazards detected nearby.";
-                                                      _statusCardBg = const Color(0xFFE8F5E9);
-                                                      _statusIcon = Icons.check_circle_outline;
-                                                      _statusIconColor = Colors.green;
-                                                    });
-                                                  }
-                                                },
-                                                borderRadius: const BorderRadius.only(
-                                                  topLeft: Radius.circular(12),
-                                                  bottomLeft: Radius.circular(12),
-                                                ),
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    color: (_isContinuousVoiceEnabled && _useLocalAI) ? const Color(0xFF7C3AED) : Colors.transparent,
-                                                    borderRadius: const BorderRadius.only(
-                                                      topLeft: Radius.circular(12),
-                                                      bottomLeft: Radius.circular(12),
-                                                    ),
-                                                  ),
-                                                  child: Center(
-                                                    child: Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      children: [
-                                                        Icon(Icons.mic, size: 16, color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white : const Color(0xFF7C3AED)),
-                                                        const SizedBox(height: 2),
-                                                        Text(
-                                                          (_isContinuousVoiceEnabled && _useLocalAI) ? 'Active' : 'Local AI',
-                                                          style: GoogleFonts.inter(
-                                                            fontSize: 8,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white : Colors.black87,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _useLocalAI = true;
+                                            _isContinuousVoiceEnabled = !_isContinuousVoiceEnabled;
+                                            _isGeminiEnabled = false;
+                                          });
+                                          if (_isContinuousVoiceEnabled) {
+                                            _runContinuousVoiceLoop();
+                                          } else {
+                                            _silenceTimer?.cancel();
+                                            SttService().stopListening((_) {});
+                                            TtsService().stop();
+                                            setState(() {
+                                              _activeTitle = "Path Clear";
+                                              _activeDescription = "No hazards detected nearby.";
+                                              _statusCardBg = const Color(0xFFE8F5E9);
+                                              _statusIcon = Icons.check_circle_outline;
+                                              _statusIconColor = Colors.green;
+                                            });
+                                          }
+                                        },
+                                        child: Container(
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: (_isContinuousVoiceEnabled && _useLocalAI) ? const Color(0xFF7C3AED) : const Color(0xFFF3E8FF),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.transparent : const Color(0xFFD8B4FE), width: 1.5),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                (_isContinuousVoiceEnabled && _useLocalAI) ? Icons.circle : Icons.power_settings_new,
+                                                size: 20,
+                                                color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white : const Color(0xFF7C3AED),
                                               ),
-                                            ),
-                                            // Divider S01
-                                            Container(
-                                              width: 1,
-                                              height: 30,
-                                              color: Colors.black12,
-                                            ),
-                                            // Right action: Describe Scene S01
-                                            Expanded(
-                                              child: InkWell(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _useLocalAI = true;
-                                                  });
-                                                  _describeActiveScene();
-                                                },
-                                                borderRadius: const BorderRadius.only(
-                                                  topRight: Radius.circular(12),
-                                                  bottomRight: Radius.circular(12),
-                                                ),
-                                                child: Center(
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    children: [
-                                                      Icon(Icons.remove_red_eye, size: 16, color: Colors.teal.shade700),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        'Describe',
-                                                        style: GoogleFonts.inter(
-                                                          fontSize: 8,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: Colors.black87,
-                                                        ),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Local AI',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white70 : const Color(0xFF5B21B6),
                                                       ),
-                                                    ],
-                                                  ),
+                                                    ),
+                                                    Text(
+                                                      (_isContinuousVoiceEnabled && _useLocalAI) ? 'Active' : 'Enable',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.black,
+                                                        color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white : const Color(0xFF7C3AED),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 6),
 
-                                    // Gemini Card S01
+                                    // Gemini Button (Redesigned & Large) S01
                                     Expanded(
-                                      child: Container(
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.black.withOpacity(0.04)),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            // Left action: Voice chat S01
-                                            Expanded(
-                                              child: InkWell(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _useLocalAI = false;
-                                                    _isContinuousVoiceEnabled = !_isContinuousVoiceEnabled;
-                                                    _isGeminiEnabled = _isContinuousVoiceEnabled;
-                                                  });
-                                                  if (_isContinuousVoiceEnabled) {
-                                                    _runContinuousVoiceLoop();
-                                                  } else {
-                                                    _silenceTimer?.cancel();
-                                                    SttService().stopListening((_) {});
-                                                    TtsService().stop();
-                                                    setState(() {
-                                                      _activeTitle = "Path Clear";
-                                                      _activeDescription = "No hazards detected nearby.";
-                                                      _statusCardBg = const Color(0xFFE8F5E9);
-                                                      _statusIcon = Icons.check_circle_outline;
-                                                      _statusIconColor = Colors.green;
-                                                    });
-                                                  }
-                                                },
-                                                borderRadius: const BorderRadius.only(
-                                                  topLeft: Radius.circular(12),
-                                                  bottomLeft: Radius.circular(12),
-                                                ),
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.orange.shade600 : Colors.transparent,
-                                                    borderRadius: const BorderRadius.only(
-                                                      topLeft: Radius.circular(12),
-                                                      bottomLeft: Radius.circular(12),
-                                                    ),
-                                                  ),
-                                                  child: Center(
-                                                    child: Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      children: [
-                                                        Icon(Icons.mic, size: 16, color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white : Colors.orange.shade700),
-                                                        const SizedBox(height: 2),
-                                                        Text(
-                                                          (_isContinuousVoiceEnabled && !_useLocalAI) ? 'Active' : 'Gemini',
-                                                          style: GoogleFonts.inter(
-                                                            fontSize: 8,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white : Colors.black87,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _useLocalAI = false;
+                                            _isContinuousVoiceEnabled = !_isContinuousVoiceEnabled;
+                                            _isGeminiEnabled = _isContinuousVoiceEnabled;
+                                          });
+                                          if (_isContinuousVoiceEnabled) {
+                                            _runContinuousVoiceLoop();
+                                          } else {
+                                            _silenceTimer?.cancel();
+                                            SttService().stopListening((_) {});
+                                            TtsService().stop();
+                                            setState(() {
+                                              _activeTitle = "Path Clear";
+                                              _activeDescription = "No hazards detected nearby.";
+                                              _statusCardBg = const Color(0xFFE8F5E9);
+                                              _statusIcon = Icons.check_circle_outline;
+                                              _statusIconColor = Colors.green;
+                                            });
+                                          }
+                                        },
+                                        child: Container(
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.orange.shade600 : const Color(0xFFFEF3C7),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.transparent : const Color(0xFFFDE047), width: 1.5),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                (_isContinuousVoiceEnabled && !_useLocalAI) ? Icons.circle : Icons.power_settings_new,
+                                                size: 20,
+                                                color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white : Colors.orange.shade700,
                                               ),
-                                            ),
-                                            // Divider S01
-                                            Container(
-                                              width: 1,
-                                              height: 30,
-                                              color: Colors.black12,
-                                            ),
-                                            // Right action: Describe Scene S01
-                                            Expanded(
-                                              child: InkWell(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _useLocalAI = false;
-                                                  });
-                                                  _describeActiveScene();
-                                                },
-                                                borderRadius: const BorderRadius.only(
-                                                  topRight: Radius.circular(12),
-                                                  bottomRight: Radius.circular(12),
-                                                ),
-                                                child: Center(
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    children: [
-                                                      Icon(Icons.remove_red_eye, size: 16, color: Colors.teal.shade700),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        'Describe',
-                                                        style: GoogleFonts.inter(
-                                                          fontSize: 8,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: Colors.black87,
-                                                        ),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Gemini',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white70 : Colors.orange.shade900,
                                                       ),
-                                                    ],
-                                                  ),
+                                                    ),
+                                                    Text(
+                                                      (_isContinuousVoiceEnabled && !_useLocalAI) ? 'Active' : 'Enable',
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.black,
+                                                        color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white : Colors.orange.shade700,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
