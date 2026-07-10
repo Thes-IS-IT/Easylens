@@ -279,10 +279,27 @@ class RagService {
 
   Future<String> askBuddy(String question) async {
     String promptText = "";
-    if (question.contains("scanned nearby:")) {
+    String rawQuestion = question;
+    String userName = "User";
+    String mobilityAid = "None";
+
+    if (question.contains("User Info:")) {
+      final nameMatch = RegExp(r"Name is '([^']+)'").firstMatch(question);
+      if (nameMatch != null) userName = nameMatch.group(1) ?? "User";
+      
+      final aidMatch = RegExp(r"using mobility aid '([^']+)'").firstMatch(question);
+      if (aidMatch != null) mobilityAid = aidMatch.group(1) ?? "None";
+      
+      final questionMatch = RegExp(r"Question:\s*(.*)\s*Buddy:", caseSensitive: false, dotAll: true).firstMatch(question);
+      if (questionMatch != null) {
+        rawQuestion = questionMatch.group(1)?.trim() ?? question;
+      }
+    }
+
+    if (rawQuestion.contains("scanned nearby:")) {
       final regExp = RegExp(r"scanned nearby:\s*'(.*)'", caseSensitive: false);
-      final match = regExp.firstMatch(question);
-      final scannedText = match != null ? match.group(1) : question;
+      final match = regExp.firstMatch(rawQuestion);
+      final scannedText = match != null ? match.group(1) : rawQuestion;
       
       promptText = """
 You are Buddy, the loyal vision assistant. 
@@ -291,18 +308,17 @@ Provide a clear, simple, and friendly explanation of the following text scanned 
 
 Explain what it is (e.g. food label, safety sign, direction sign) and highlight key information like product name, weight, or warnings. Keep the response direct and under 3 sentences.
 """;
-    } else if (question.contains("You are Buddy")) {
-      promptText = question;
     } else {
-      final context = await retrieveContextAsync(question);
+      final context = await retrieveContextAsync(rawQuestion);
       promptText = """
-Buddy (loyal dog assistant).
-Use Context to answer Question (friendly, under 3 sentences).
+You are Buddy, the friendly dog mascot and EasyLens assistant.
+User's Name: $userName
+Mobility Aid: $mobilityAid
 
-Context:
+Context & Memory:
 $context
 
-Question: $question
+Question: $rawQuestion
 Buddy:
 """;
     }
@@ -320,11 +336,11 @@ Buddy:
         responseText = onlineRes;
       } else {
         // Fallback 2: Dynamic local RAG response generator
-        responseText = generateSmartFallback(question);
+        responseText = generateSmartFallback(rawQuestion);
       }
     }
 
-    _logToJournal(question, responseText);
+    _logToJournal(rawQuestion, responseText);
     return responseText;
   }
 
