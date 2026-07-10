@@ -29,7 +29,7 @@ class SettingsService extends ChangeNotifier {
   bool shakeToUndo = true;
   double speechRate = 0.5;
   double speechPitch = 0.5;
-  List<String> homeScreenCards = ['buddy', 'easylens', 'faces', 'text', 'objects', 'navigation', 'sos'];
+  List<String> homeScreenCards = ['buddy', 'journal', 'easylens', 'faces', 'text', 'objects', 'navigation', 'sos'];
 
   // Load preferences from local storage (public so TtsService can reload on demand)
   Future<void> loadSettingsFromLocal() async {
@@ -50,7 +50,7 @@ class SettingsService extends ChangeNotifier {
       shakeToUndo = prefs.getBool('shakeToUndo') ?? true;
       speechRate = prefs.getDouble('speechRate') ?? 0.5;
       speechPitch = prefs.getDouble('speechPitch') ?? 0.5;
-      homeScreenCards = prefs.getStringList('homeScreenCards') ?? ['buddy', 'easylens', 'faces', 'text', 'objects', 'navigation', 'sos'];
+      homeScreenCards = prefs.getStringList('homeScreenCards') ?? ['buddy', 'journal', 'easylens', 'faces', 'text', 'objects', 'navigation', 'sos'];
 
       notifyListeners();
     } catch (e) {

@@ -10,6 +10,7 @@ import 'components/dashboard_button.dart';
 import '../../utils/app_route.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
+import '../journal/journal_screen.dart';
 
 class DashboardHome extends StatelessWidget {
   final String displayName;
@@ -117,6 +118,16 @@ class DashboardHome extends StatelessWidget {
             icon: Icons.near_me,
             color: const Color(0xFF85581A),
             onTap: () => onTabSelected(1),
+          ),
+          'journal': DashboardButton(
+            title: "Buddy's Journal",
+            icon: Icons.menu_book,
+            color: const Color(0xFF0F766E),
+            onTap: () {
+              Navigator.of(context).push(
+                AppRoute.to(const JournalScreen()),
+              );
+            },
           ),
           'sos': DashboardButton(
             title: TranslationService.translate('sos_emergency', lang),

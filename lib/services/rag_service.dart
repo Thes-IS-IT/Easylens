@@ -5,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:http/http.dart' as http;
+import 'journal_service.dart';
+
 
 class KnowledgeItem {
   final String title;
@@ -218,6 +220,28 @@ class RagService {
     return matchedContents.join("\n\n");
   }
 
+  Future<String> retrieveContextAsync(String query) async {
+    final baseContext = retrieveContext(query);
+    try {
+      final journalContexts = await JournalService().getJournalContextForQuery(query);
+      if (journalContexts.isNotEmpty) {
+        return "$baseContext\n\n[Buddy's Memory/Past Journals]:\n${journalContexts.join('\n')}";
+      }
+    } catch (e) {
+      print('[RAG] Error retrieving journal context: $e');
+    }
+    return baseContext;
+  }
+
+  void _logToJournal(String question, String answer) {
+    if (question.contains("You are Buddy")) return;
+    Future.microtask(() async {
+      final js = JournalService();
+      await js.appendToDailyJournal(question, answer);
+      await js.generateAndAddInsight(question, answer);
+    });
+  }
+
   Future<String> askBuddy(String question) async {
     String promptText = "";
     if (question.contains("scanned nearby:")) {
@@ -235,7 +259,7 @@ Explain what it is (e.g. food label, safety sign, direction sign) and highlight 
     } else if (question.contains("You are Buddy")) {
       promptText = question;
     } else {
-      final context = retrieveContext(question);
+      final context = await retrieveContextAsync(question);
       promptText = """
 You are Buddy, the loyal vision assistant. 
 Use the following retrieved context to answer the user's question. 
@@ -251,20 +275,25 @@ Buddy's Answer:
 """;
     }
 
+    String responseText = "";
+
     // Try local Gemma offline model (Google AI Edge) only
     final modelPath = await _getLocalModelPath();
     if (modelPath != null) {
-      return await _queryGemmaOffline(promptText);
+      responseText = await _queryGemmaOffline(promptText);
     } else {
       // Fallback 1: Online Gemini
       final onlineRes = await askBuddyOnlineGemini(promptText);
       if (onlineRes.isNotEmpty) {
-        return onlineRes;
+        responseText = onlineRes;
+      } else {
+        // Fallback 2: Dynamic local RAG response generator
+        responseText = generateSmartFallback(question);
       }
-      
-      // Fallback 2: Dynamic local RAG response generator
-      return generateSmartFallback(question);
     }
+
+    _logToJournal(question, responseText);
+    return responseText;
   }
 
   /// Builds a Tagalog-language Gemma prompt.
@@ -393,13 +422,16 @@ Buddy:""";
           '[NAVIGATE: emergency] — SOS Emergency\n'
           '[NAVIGATE: settings] — Settings\n'
           '[NAVIGATE: notifications] — Mga Abiso\n'
-          '[NAVIGATE: contacts] — Mga Kontak',
+          '[NAVIGATE: contacts] — Mga Kontak\n'
+          '[NAVIGATE: journal] — Talaarawan ni Buddy',
         ),
       );
 
       final content = [Content.text(question)];
       final response = await model.generateContent(content);
-      return response.text?.trim() ?? 'Walang natanggap na sagot.';
+      final responseText = response.text?.trim() ?? 'Walang natanggap na sagot.';
+      _logToJournal(question, responseText);
+      return responseText;
     } catch (e) {
       print('[Gemini Filipino] Error: $e');
       return 'May problema sa koneksyon. Subukan muli mamaya.';

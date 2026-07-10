@@ -50,3 +50,9 @@ app.*.map.json
 model.bin
 model.bin.tmp
 gemma-2b-it-cpu-int4.bin
+
+# Local AI journals
+journals/
+*.md.tmp
+journal_*.md
+

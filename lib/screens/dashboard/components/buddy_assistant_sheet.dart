@@ -137,6 +137,7 @@ You have MCP navigation abilities. To open a screen, append exactly one of these
 - Settings Screen: [NAVIGATE: settings]
 - Notifications Screen: [NAVIGATE: notifications]
 - Contacts Screen: [NAVIGATE: contacts]
+- Buddy's Journal Screen: [NAVIGATE: journal]
 
 User Question: $text
 Buddy's Answer:
@@ -178,17 +179,19 @@ Buddy's Answer:
     final navMatch = RegExp(r'\[NAVIGATE:\s*([^\]]+)\]', caseSensitive: false).firstMatch(llmResponse);
     if (navMatch != null) {
       final target = navMatch.group(1)?.trim().toLowerCase() ?? '';
-      final key = _mapTargetToKey(target);
-      if (key != null) return key;
+      return _mapTargetToKey(target);
     }
 
     final query = userQuery.toLowerCase();
     final response = llmResponse.toLowerCase();
 
-    // 2. Fall back to scanning the user query for navigation intents
+    // 2. Perform direct regex/sub-string heuristics based on User query
     final containsGoAction = query.contains('go to') || 
-                             query.contains('navigate') || 
                              query.contains('open') || 
+                             query.contains('launch') || 
+                             query.contains('start') || 
+                             query.contains('take me to') || 
+                             query.contains('navigate') || 
                              query.contains('show') || 
                              query.contains('switch to') || 
                              query.contains('move to') ||
@@ -205,6 +208,7 @@ Buddy's Answer:
       if (query.contains('hardware') || query.contains('sensor') || query.contains('camera') || query.contains('cam') || query.contains('lens')) return 'hardware';
       if (query.contains('text') || query.contains('ocr') || query.contains('scan text') || query.contains('basa')) return 'text';
       if (query.contains('object') || query.contains('detect') || query.contains('scan object') || query.contains('bagay')) return 'objects';
+      if (query.contains('journal') || query.contains('diary') || query.contains('logs') || query.contains('insights') || query.contains('memory') || query.contains('talaarawan')) return 'journal';
     }
 
     // 3. Fall back to scanning the LLM response context for screen keywords combined with navigation advice
@@ -241,6 +245,9 @@ Buddy's Answer:
     if (response.contains('object detector') || response.contains('detect objects') || response.contains('object detection')) {
       return 'objects';
     }
+    if (response.contains('journal') || response.contains('diary') || response.contains('logs') || response.contains('insights')) {
+      return 'journal';
+    }
 
     return null;
   }
@@ -255,6 +262,7 @@ Buddy's Answer:
     if (target.contains('setting')) return 'settings';
     if (target.contains('notification')) return 'notifications';
     if (target.contains('contact')) return 'contacts';
+    if (target.contains('journal')) return 'journal';
     return null;
   }
 

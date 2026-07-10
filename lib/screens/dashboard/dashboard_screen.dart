@@ -18,6 +18,7 @@ import 'components/buddy_assistant_sheet.dart';
 import '../object_detection/object_detection_screen.dart';
 import '../image_labeling/image_labeling_screen.dart';
 import '../face_registration/face_registration_screen.dart';
+import '../journal/journal_screen.dart';
 import 'dashboard_home.dart';
 import '../../utils/app_route.dart';
 import '../../services/tts_service.dart';
@@ -194,6 +195,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         } else if (screenKey == 'contacts') {
           Navigator.of(context).push(
             AppRoute.to(const ContactsScreen()),
+          );
+        } else if (screenKey == 'journal') {
+          Navigator.of(context).push(
+            AppRoute.to(const JournalScreen()),
           );
         }
       },
