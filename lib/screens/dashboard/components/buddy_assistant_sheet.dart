@@ -152,14 +152,36 @@ Buddy:
     }
 
     if (mounted) {
+      // Detect dynamic navigation target
+      final matchedKey = _detectNavigationTarget(text, response);
+
+      if (matchedKey != null && matchedKey.isNotEmpty) {
+        final isFilipino = lang.toLowerCase().contains('tagalog') ||
+            lang.toLowerCase().contains('filipino');
+            
+        final screenNames = {
+          'home': isFilipino ? 'Home screen' : 'Home screen',
+          'nav': isFilipino ? 'Audio Navigation screen' : 'Audio Navigation screen',
+          'hardware': isFilipino ? 'EasyLens Camera' : 'EasyLens Camera',
+          'text': isFilipino ? 'Text Scanner' : 'Text Scanner',
+          'objects': isFilipino ? 'Object Detector' : 'Object Detector',
+          'emergency': isFilipino ? 'SOS Emergency screen' : 'SOS Emergency screen',
+          'settings': isFilipino ? 'Settings screen' : 'Settings screen',
+          'notifications': isFilipino ? 'Notifications screen' : 'Notifications screen',
+          'contacts': isFilipino ? 'Contacts screen' : 'Contacts screen',
+          'journal': isFilipino ? 'Talaarawan ni Buddy' : "Buddy's Journal",
+        };
+        final screenName = screenNames[matchedKey] ?? matchedKey;
+        response = isFilipino 
+            ? "Aw! Nandito na tayo sa $screenName!" 
+            : "Woof! We're here on the $screenName now!";
+      }
+
       setState(() {
         _messages.add({'text': response, 'isUser': false});
         _isThinking = false;
       });
       _scrollToBottom();
-
-      // Detect dynamic navigation target
-      final matchedKey = _detectNavigationTarget(text, response);
 
       // Speak response concurrently (do not await so navigation is instantaneous)
       _speakText(response);
@@ -167,8 +189,12 @@ Buddy:
       if (matchedKey != null && matchedKey.isNotEmpty && mounted) {
         // Trigger haptic vibration for successful auto-pilot action S01
         HapticFeedback.mediumImpact();
-        Navigator.of(context).pop();
-        widget.onNavigate(matchedKey);
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            Navigator.of(context).pop();
+            widget.onNavigate(matchedKey);
+          }
+        });
       }
     }
   }
@@ -452,7 +478,7 @@ Buddy:
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isFilipino ? 'Buddy Lokal LLM' : 'Buddy local LLM',
+                          isFilipino ? 'Buddy Lokal AI' : 'Buddy Local AI',
                           style: GoogleFonts.inter(
                             fontWeight: FontWeight.bold,
                             fontSize: 20,
