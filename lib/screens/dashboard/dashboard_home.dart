@@ -111,6 +111,7 @@ class DashboardHome extends StatelessWidget {
                 AppRoute.to(const ObjectDetectionScreen()),
               );
             },
+          ),
           'navigation': DashboardButton(
             title: TranslationService.translate('audio_navigation', lang),
             icon: Icons.near_me,

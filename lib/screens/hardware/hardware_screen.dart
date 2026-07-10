@@ -14,6 +14,7 @@ import '../../constants/colors.dart';
 import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
+import '../../services/settings_service.dart';
 import '../../services/object_detector_service.dart';
 import '../../services/tflite_processor.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
