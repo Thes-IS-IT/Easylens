@@ -15,6 +15,7 @@ import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
 import '../../services/object_detector_service.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/active_navigation_service.dart';
 import '../../services/face_registration_service.dart';
