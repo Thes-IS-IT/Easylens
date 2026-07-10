@@ -68,6 +68,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isContinuousVoiceEnabled = false;
   String _continuousVoiceText = '';
   Timer? _silenceTimer;
+  bool _isFocusModeEnabled = false;
+  bool _isScreenLocked = false;
 
   StreamSubscription<BatteryState>? _batterySubscription;
   final Battery _battery = Battery();
@@ -1263,8 +1265,47 @@ class _HardwareScreenState extends State<HardwareScreen> {
         lang.toLowerCase().contains('filipino');
 
     String response = "";
+    bool handledByVoiceCommand = false;
 
-    if (question.isEmpty || question == "listening...") {
+    if (_isFocusModeEnabled && question.isNotEmpty && question != "listening...") {
+      if (question.contains("object") || question.contains("bagay")) {
+        setState(() {
+          _selectedHudMode = HudMode.objectDetection;
+        });
+        response = isFilipino 
+            ? "Lumipat na sa Object Detection mode." 
+            : "Switched to Object Detection mode.";
+        handledByVoiceCommand = true;
+      } else if (question.contains("face") || question.contains("mukha") || question.contains("register")) {
+        setState(() {
+          _selectedHudMode = HudMode.faceRecognition;
+        });
+        response = isFilipino 
+            ? "Lumipat na sa Face Recognition mode." 
+            : "Switched to Face Recognition mode.";
+        handledByVoiceCommand = true;
+      } else if (question.contains("navigation") || question.contains("lakad") || question.contains("map")) {
+        setState(() {
+          _selectedHudMode = HudMode.navigation;
+        });
+        response = isFilipino 
+            ? "Lumipat na sa Navigation mode." 
+            : "Switched to Navigation mode.";
+        handledByVoiceCommand = true;
+      } else if (question.contains("exit") || question.contains("turn off") || question.contains("mamatay") || question.contains("disable")) {
+        setState(() {
+          _isFocusModeEnabled = false;
+        });
+        response = isFilipino 
+            ? "Naka-off na ang Focus Mode." 
+            : "Focus Mode disabled.";
+        handledByVoiceCommand = true;
+      }
+    }
+
+    if (handledByVoiceCommand) {
+      // Do nothing, response is already set S01
+    } else if (question.isEmpty || question == "listening...") {
       // 2 seconds of silence: describe scene automatically S01
       if (detectedItems.trim().isEmpty) {
         response = isFilipino 
@@ -2391,6 +2432,78 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                       ),
                     ),
 
+                    // Floating Lock Button S01
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          TtsService().speak("Screen locked.");
+                          setState(() {
+                            _isScreenLocked = true;
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: const Icon(
+                            Icons.lock_open,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Touch Lock Screen Overlay S01
+                    if (_isScreenLocked)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onLongPress: () {
+                            HapticFeedback.mediumImpact();
+                            TtsService().speak("Screen unlocked.");
+                            setState(() {
+                              _isScreenLocked = false;
+                            });
+                          },
+                          child: Container(
+                            color: Colors.black.withOpacity(0.85),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.lock,
+                                  color: Colors.white,
+                                  size: 64,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "Screen Locked",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Long press the screen to unlock",
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: Colors.white60,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
                     // Face recognition name chip — shown when a known face is detected
                     if (_detectedFaceName.isNotEmpty)
                       Positioned(
@@ -2887,24 +3000,34 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    // Network Wifi card
+                                    // Focus Mode card S01
                                     Expanded(
                                       child: GestureDetector(
                                         onTap: () {
                                           setState(() {
-                                            _isWifiOn = !_isWifiOn;
+                                            _isFocusModeEnabled = !_isFocusModeEnabled;
+                                            if (_isFocusModeEnabled) {
+                                              _isContinuousVoiceEnabled = true;
+                                              _isGeminiEnabled = true;
+                                            }
                                           });
+                                          if (_isFocusModeEnabled) {
+                                            TtsService().speak("Focus Mode enabled. Speak to switch modes.");
+                                            _runContinuousVoiceLoop();
+                                          } else {
+                                            TtsService().speak("Focus Mode disabled.");
+                                          }
                                         },
                                         child: Container(
                                           height: 50,
                                           decoration: BoxDecoration(
-                                            color: _isWifiOn ? Colors.teal.shade600 : Colors.grey.shade100,
+                                            color: _isFocusModeEnabled ? const Color(0xFF7C3AED) : Colors.grey.shade100,
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           padding: const EdgeInsets.symmetric(horizontal: 8),
                                           child: Row(
                                             children: [
-                                              Icon(Icons.wifi, size: 18, color: _isWifiOn ? Colors.white : Colors.black54),
+                                              Icon(Icons.filter_center_focus, size: 18, color: _isFocusModeEnabled ? Colors.white : Colors.black54),
                                               const SizedBox(width: 4),
                                               Expanded(
                                                 child: Column(
@@ -2912,20 +3035,20 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
-                                                      'Network',
+                                                      'Focus Mode',
                                                       maxLines: 1,
                                                       overflow: TextOverflow.ellipsis,
                                                       style: GoogleFonts.inter(
                                                         fontSize: 9,
-                                                        color: _isWifiOn ? Colors.white70 : Colors.black54,
+                                                        color: _isFocusModeEnabled ? Colors.white70 : Colors.black54,
                                                       ),
                                                     ),
                                                     Text(
-                                                      _isWifiOn ? 'Wifi On' : 'Wifi Off',
+                                                      _isFocusModeEnabled ? 'Enabled' : 'Disabled',
                                                       style: GoogleFonts.inter(
                                                         fontSize: 9,
                                                         fontWeight: FontWeight.bold,
-                                                        color: _isWifiOn ? Colors.white : Colors.black87,
+                                                        color: _isFocusModeEnabled ? Colors.white : Colors.black87,
                                                       ),
                                                     ),
                                                   ],
