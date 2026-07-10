@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -293,12 +294,35 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
+  Future<String> _getOrExtractTfliteModel() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/ssd_mobilenet_v2.tflite');
+    
+    if (await file.exists()) {
+      final size = await file.length();
+      if (size > 10000000) {
+        return file.path;
+      }
+    }
+    
+    print('[ObjectDetector] Extracting ssd_mobilenet_v2.tflite from assets to ${file.path}...');
+    final byteData = await rootBundle.load('assets/models/ssd_mobilenet_v2.tflite');
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(
+      byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+      flush: true,
+    );
+    print('[ObjectDetector] Extraction complete.');
+    return file.path;
+  }
+
   Future<void> _loadObjectDetectionModel() async {
     try {
       await _loadCocoLabels();
+      final modelPath = await _getOrExtractTfliteModel();
       final options = LocalObjectDetectorOptions(
         mode: DetectionMode.stream,
-        modelPath: 'assets/models/ssd_mobilenet_v2.tflite',
+        modelPath: modelPath,
         classifyObjects: true,
         multipleObjects: true,
         maximumLabelsPerObject: 2,
@@ -308,7 +332,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
       setState(() {
         _isModelLoaded = true;
       });
-      print("Google ML Kit Local Object Detector initialized successfully");
+      print("Google ML Kit Local Object Detector initialized successfully at $modelPath");
     } catch (e) {
       print("Error loading Google ML Kit Local Object Detector: $e");
     }
