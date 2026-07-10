@@ -168,7 +168,7 @@ class _JournalScreenState extends State<JournalScreen> {
                               "Daily Entries",
                               style: GoogleFonts.inter(
                                 fontSize: 18,
-                                fontWeight: FontWeight.extrabold,
+                                fontWeight: FontWeight.w800,
                                 color: AppColors.primaryText,
                               ),
                             ),

@@ -119,7 +119,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
               trimmed.substring(3),
               style: GoogleFonts.inter(
                 fontSize: 18,
-                fontWeight: FontWeight.extrabold,
+                fontWeight: FontWeight.w800,
                 color: isDark ? Colors.tealAccent : const Color(0xFF0D9488),
               ),
             ),
