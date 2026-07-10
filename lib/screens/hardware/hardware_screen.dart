@@ -2945,7 +2945,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                                       (_isContinuousVoiceEnabled && _useLocalAI) ? 'Active' : 'Enable',
                                                       style: GoogleFonts.inter(
                                                         fontSize: 10,
-                                                        fontWeight: FontWeight.black,
+                                                        fontWeight: FontWeight.w900,
                                                         color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white : const Color(0xFF7C3AED),
                                                       ),
                                                     ),
@@ -3016,7 +3016,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                                       (_isContinuousVoiceEnabled && !_useLocalAI) ? 'Active' : 'Enable',
                                                       style: GoogleFonts.inter(
                                                         fontSize: 10,
-                                                        fontWeight: FontWeight.black,
+                                                        fontWeight: FontWeight.w900,
                                                         color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white : Colors.orange.shade700,
                                                       ),
                                                     ),
