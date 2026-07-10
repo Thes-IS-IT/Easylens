@@ -627,30 +627,38 @@ class _HardwareScreenState extends State<HardwareScreen> {
         _cameraController!.startImageStream((CameraImage image) {
           if (_isPaused) return;
           if (!_isDetectionEnabled) return;
+          if (_isProcessingFrame) return;
 
-          Uint8List? nv21Bytes;
-          Uint8List? yBytes;
+          _isProcessingFrame = true;
 
-          if (!_isProcessingFrame) {
-            nv21Bytes = _yuvToNv21(image);
-            yBytes = Uint8List.fromList(image.planes[0].bytes);
-            _isProcessingFrame = true;
-            _processCameraImage(nv21Bytes, yBytes, image.width, image.height);
-          }
-          
-          final nowMs = DateTime.now().millisecondsSinceEpoch;
-          if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
-            _lastObjectDetectionTime = nowMs;
-            nv21Bytes ??= _yuvToNv21(image);
-            _detectObjectsOnFrame(nv21Bytes, image.width, image.height);
-          }
+          Future.microtask(() async {
+            try {
+              final nv21Bytes = _yuvToNv21(image);
+              final yBytes = Uint8List.fromList(image.planes[0].bytes);
+              final width = image.width;
+              final height = image.height;
+              final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-          // Face detection throttled to every 2.5 seconds
-          if (nowMs - _lastFaceDetectionTime > 2500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
-            _lastFaceDetectionTime = nowMs;
-            nv21Bytes ??= _yuvToNv21(image);
-            _detectFaceOnFrame(nv21Bytes, image.width, image.height);
-          }
+              if (_selectedHudMode == HudMode.faceRecognition) {
+                if (nowMs - _lastFaceDetectionTime > 1500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
+                  _lastFaceDetectionTime = nowMs;
+                  await _detectFaceOnFrame(nv21Bytes, width, height);
+                }
+              } else if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) {
+                if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
+                  _lastObjectDetectionTime = nowMs;
+                  await _detectObjectsOnFrame(nv21Bytes, width, height);
+                }
+                await _processCameraImage(nv21Bytes, yBytes, width, height);
+              } else {
+                await _processCameraImage(nv21Bytes, yBytes, width, height);
+              }
+            } catch (e) {
+              print("ML Kit frame processing error: $e");
+            } finally {
+              _isProcessingFrame = false;
+            }
+          });
         });
 
         if (mounted) {
@@ -1965,53 +1973,6 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                             ),
                           );
                         })
-                      else
-                        ...List.generate(_detectedObjectRects.length, (index) {
-                          final r = _detectedObjectRects[index];
-                          final label = _detectedObjectLabels[index];
-                          
-                          // Convert normalized coords or scale static box coordinates S01
-                          double left = r.left;
-                          double top = r.top;
-                          double width = r.width;
-                          double height = r.height;
-                          
-                          // Ensure boxes are reasonably laid out on constraints
-                          if (left + width > constraints.maxWidth) {
-                            width = constraints.maxWidth - left;
-                          }
-                          if (top + height > constraints.maxHeight) {
-                            height = constraints.maxHeight - top;
-                          }
-
-                          return Positioned(
-                            left: left,
-                            top: top,
-                            width: width,
-                            height: height,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.cyanAccent, width: 2.5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Align(
-                                alignment: Alignment.topLeft,
-                                child: Container(
-                                  color: Colors.cyanAccent,
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  child: Text(
-                                    label,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
 
                     // Draw face bounding boxes dynamically in Face Recognition mode
                     if (_selectedHudMode == HudMode.faceRecognition && _faceImageSize != Size.zero)
