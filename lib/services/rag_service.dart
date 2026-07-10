@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
@@ -132,34 +133,38 @@ class RagService {
     return null;
   }
 
+  final _gemmaMutex = _Mutex();
+
   Future<String> _queryGemmaOffline(String prompt) async {
-    try {
-      final modelPath = await _getLocalModelPath();
-      if (modelPath == null) {
-        return "Buddy local LLM Offline Instructions:\n\n"
-            "1. Run this ADB command on your Mac to push the model file to the device:\n"
-            "   adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin\n"
-            "2. Restart the app to run fully offline Gemma AI!";
-      }
+    return _gemmaMutex.protect(() async {
+      try {
+        final modelPath = await _getLocalModelPath();
+        if (modelPath == null) {
+          return "Buddy local LLM Offline Instructions:\n\n"
+              "1. Run this ADB command on your Mac to push the model file to the device:\n"
+              "   adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin\n"
+              "2. Restart the app to run fully offline Gemma AI!";
+        }
 
-      if (!_gemmaInitialized) {
-        await FlutterGemma.initialize();
-        await FlutterGemma.installModel(
-          modelType: ModelType.gemmaIt,
-        ).fromFile(modelPath).install();
-        _gemmaInitialized = true;
-        _isGemmaModelInstalled = true;
-      }
+        if (!_gemmaInitialized) {
+          await FlutterGemma.initialize();
+          await FlutterGemma.installModel(
+            modelType: ModelType.gemmaIt,
+          ).fromFile(modelPath).install();
+          _gemmaInitialized = true;
+          _isGemmaModelInstalled = true;
+        }
 
-      final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
-      final session = await model.createSession();
-      await session.addQueryChunk(Message(text: prompt, isUser: true));
-      final response = await session.getResponse();
-      await session.close();
-      return response ?? "No response from offline local model.";
-    } catch (e) {
-      return "Local Gemma LLM failed: $e";
-    }
+        final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
+        final session = await model.createSession();
+        await session.addQueryChunk(Message(text: prompt, isUser: true));
+        final response = await session.getResponse();
+        await session.close();
+        return response ?? "No response from offline local model.";
+      } catch (e) {
+        return "Local Gemma LLM failed: $e";
+      }
+    });
   }
 
   String _getOllamaBaseUrl() {
@@ -531,5 +536,18 @@ Buddy:""";
 
   Future<void> simulateModelInstall() async {
     _isGemmaModelInstalled = true;
+  }
+}
+
+class _Mutex {
+  Future<void> _last = Future.value();
+
+  Future<T> protect<T>(Future<T> Function() criticalSection) {
+    final completer = Completer<void>();
+    final next = _last.then((_) => criticalSection()).whenComplete(() {
+      completer.complete();
+    });
+    _last = completer.future;
+    return next;
   }
 }
