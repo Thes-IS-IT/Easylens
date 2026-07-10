@@ -69,8 +69,38 @@ class RagService {
 
   bool get isGemmaReady => _gemmaInitialized && _isGemmaModelInstalled;
 
+  Future<void> extractModelFromAssets() async {
+    try {
+      const savePath = "/storage/emulated/0/Android/data/com.company.easylens/files/model.bin";
+      final file = File(savePath);
+      
+      if (await file.exists()) {
+        final size = await file.length();
+        if (size > 100000000) {
+          print('[RAG] Model already extracted at $savePath.');
+          return;
+        }
+      }
+
+      print('[RAG] Checking if model is bundled in assets...');
+      final byteData = await rootBundle.load('assets/models/model.bin');
+      print('[RAG] Extracting model from assets to $savePath (first launch setup)...');
+      await file.parent.create(recursive: true);
+      
+      final buffer = byteData.buffer;
+      await file.writeAsBytes(
+        buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+        flush: true,
+      );
+      print('[RAG] Model extraction complete!');
+    } catch (e) {
+      print('[RAG] Model asset not found or extraction skipped: $e');
+    }
+  }
+
   Future<void> initializeGemma() async {
     await loadKnowledgeBase();
+    await extractModelFromAssets();
     try {
       final modelPath = await _getLocalModelPath();
       if (modelPath != null) {

@@ -32,12 +32,10 @@ void main() async {
   final firebaseService = FirebaseService();
   await firebaseService.initialize();
 
-  // Initialize localized Gemma offline model engine
-  try {
-    await RagService().initializeGemma();
-  } catch (e) {
+  // Initialize localized Gemma offline model engine in background to prevent startup freeze S01
+  RagService().initializeGemma().catchError((e) {
     print("Gemma initialization warning: $e");
-  }
+  });
 
   // Initialize notification service (loads persisted notifications + daily Buddy follow-up)
   await NotificationService().initialize();
