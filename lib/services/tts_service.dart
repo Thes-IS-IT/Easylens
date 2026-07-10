@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'settings_service.dart';
 
@@ -65,6 +66,32 @@ class TtsService {
     await _applyLanguage();
     await _applyVoicePersona();
     await _flutterTts.speak(text);
+  }
+
+  Future<void> speakAwait(String text) async {
+    await _settingsService.loadSettingsFromLocal();
+    if (!_settingsService.voiceFeedback) return;
+
+    if (!_voicesLoaded) {
+      await _loadDeviceVoices();
+    }
+
+    await _applyLanguage();
+    await _applyVoicePersona();
+
+    final completer = Completer<void>();
+    _flutterTts.setCompletionHandler(() {
+      if (!completer.isCompleted) completer.complete();
+    });
+    _flutterTts.setCancelHandler(() {
+      if (!completer.isCompleted) completer.complete();
+    });
+    _flutterTts.setErrorHandler((_) {
+      if (!completer.isCompleted) completer.complete();
+    });
+
+    await _flutterTts.speak(text);
+    await completer.future;
   }
 
   Future<void> stop() async {

@@ -65,6 +65,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
   List<String> _cocoLabels = [];
   final TfliteProcessor _tfliteProcessor = TfliteProcessor();
   List<SSDResult> _tfliteDetections = [];
+  bool _isContinuousVoiceEnabled = false;
+  String _continuousVoiceText = '';
+  Timer? _silenceTimer;
 
   StreamSubscription<BatteryState>? _batterySubscription;
   final Battery _battery = Battery();
@@ -274,6 +277,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   @override
   void dispose() {
+    _silenceTimer?.cancel();
+    SttService().stopListening((_) {});
+    TtsService().stop();
     _batterySubscription?.cancel();
     _objectDetectionTimer?.cancel();
     _objectDetector?.close();
@@ -1181,6 +1187,152 @@ class _HardwareScreenState extends State<HardwareScreen> {
   // STT, Gemini & TTS Voice Assistant Integration
   void _queryGeminiSurroundings() {
     _showGeminiVoiceAssistantBottomSheet(context);
+  }
+
+  Future<void> _runContinuousVoiceLoop() async {
+    if (!_isContinuousVoiceEnabled || !mounted) return;
+
+    setState(() {
+      _activeTitle = "Buddy Listening...";
+      _activeDescription = "Say something or remain silent to scan.";
+      _statusCardBg = const Color(0xFFE8F5E9);
+      _statusIcon = Icons.mic;
+      _statusIconColor = Colors.green;
+    });
+
+    _continuousVoiceText = "";
+    _startSilenceTimer();
+
+    try {
+      await SttService().startListening(
+        onResult: (text, isFinal) {
+          if (!_isContinuousVoiceEnabled || !mounted) return;
+          _continuousVoiceText = text;
+          // Reset the silence timer because the user is speaking/active!
+          _startSilenceTimer();
+        },
+        onListeningStateChanged: (listening) {
+          // If STT stops externally without our timer firing, handle it S01
+        },
+      );
+    } catch (e) {
+      print("[Continuous Voice] STT Error: $e");
+    }
+  }
+
+  void _startSilenceTimer() {
+    _silenceTimer?.cancel();
+    if (!_isContinuousVoiceEnabled || !mounted) return;
+    _silenceTimer = Timer(const Duration(seconds: 2), () async {
+      await _processSilenceOrSpeech();
+    });
+  }
+
+  Future<void> _processSilenceOrSpeech() async {
+    _silenceTimer?.cancel();
+    if (!_isContinuousVoiceEnabled || !mounted) return;
+
+    // Stop STT so we can process and speak S01
+    await SttService().stopListening((_) {});
+
+    final question = _continuousVoiceText.trim().toLowerCase();
+    
+    setState(() {
+      _activeTitle = "Buddy Thinking...";
+      _activeDescription = "Analyzing view context...";
+      _statusCardBg = const Color(0xFFFFF8E1);
+      _statusIcon = Icons.hourglass_empty;
+      _statusIconColor = Colors.orange;
+    });
+
+    final detections = _detectedObjectsList;
+    final mlKitLabels = _latestMLKitLabels.join(", ");
+    final detectedItems = [
+      if (detections.isNotEmpty)
+        detections.map((d) {
+          final label = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
+          final refined = _refineLabel(label);
+          return refined;
+        }).join(", "),
+      if (mlKitLabels.isNotEmpty)
+        "general surroundings: $mlKitLabels"
+    ].join("; ");
+
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') ||
+        lang.toLowerCase().contains('filipino');
+
+    String response = "";
+
+    if (question.isEmpty || question == "listening...") {
+      // 2 seconds of silence: describe scene automatically S01
+      if (detectedItems.trim().isEmpty) {
+        response = isFilipino 
+            ? "Wala akong makitang malinaw na bagay sa iyong harapan."
+            : "I don't see any clear objects in front of you.";
+      } else {
+        final prompt = isFilipino
+            ? """
+You are Buddy, the visual assistant dog.
+Describe these environment labels in Tagalog: $detectedItems.
+Start the response with "Nakakita ako ng..." or "Nakikita ko ang...".
+Keep the response to exactly one natural, friendly sentence.
+"""
+            : """
+You are Buddy, the visual assistant dog.
+Describe the environment based on these visual labels: $detectedItems.
+Start the response with "I saw..." or "I see..." (e.g. "I saw a park with a tree" or "I see a laptop or keyboard").
+Keep the response to exactly one natural, friendly sentence.
+""";
+        if (isFilipino) {
+          response = await RagService().askBuddyOnlineGemini(prompt);
+        } else {
+          response = await RagService().askBuddy(prompt);
+        }
+      }
+    } else {
+      // User spoke: query Gemini/Buddy S01
+      final prompt = isFilipino
+          ? """
+You are Buddy, the visual assistant dog.
+The user asked: "$question".
+The camera reports these environment labels: $detectedItems.
+Answer the user's question directly in Tagalog based on the labels. Keep the response to 1 or 2 friendly sentences.
+"""
+          : """
+You are Buddy, the visual assistant dog.
+The user asked: "$question".
+The camera reports these environment labels: $detectedItems.
+Answer the user's question directly based on the labels. Keep the response to 1 or 2 friendly sentences.
+""";
+      if (isFilipino) {
+        response = await RagService().askBuddyOnlineGemini(prompt);
+      } else {
+        response = await RagService().askBuddy(prompt);
+      }
+    }
+
+    if (response.isEmpty) {
+      response = isFilipino ? "Pasensya na, hindi ko naintindihan." : "Sorry, I didn't catch that.";
+    }
+
+    if (mounted && _isContinuousVoiceEnabled) {
+      setState(() {
+        _activeTitle = "Buddy Speaking";
+        _activeDescription = response;
+        _statusCardBg = const Color(0xFFE6FFFA);
+        _statusIcon = Icons.volume_up;
+        _statusIconColor = const Color(0xFF38A169);
+      });
+      // Speak and wait for speech to finish completely!
+      await TtsService().speakAwait(response);
+    }
+
+    // Wait briefly and start next cycle S01
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted && _isContinuousVoiceEnabled) {
+      _runContinuousVoiceLoop();
+    }
   }
 
   Future<void> _describeActiveScene() async {
@@ -2643,29 +2795,52 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                               child: InkWell(
                                                 onTap: () {
                                                   setState(() {
-                                                    _isGeminiEnabled = true;
+                                                    _isContinuousVoiceEnabled = !_isContinuousVoiceEnabled;
+                                                    _isGeminiEnabled = _isContinuousVoiceEnabled;
                                                   });
-                                                  _queryGeminiSurroundings();
+                                                  if (_isContinuousVoiceEnabled) {
+                                                    _runContinuousVoiceLoop();
+                                                  } else {
+                                                    _silenceTimer?.cancel();
+                                                    SttService().stopListening((_) {});
+                                                    TtsService().stop();
+                                                    setState(() {
+                                                      _activeTitle = "Path Clear";
+                                                      _activeDescription = "No hazards detected nearby.";
+                                                      _statusCardBg = const Color(0xFFE8F5E9);
+                                                      _statusIcon = Icons.check_circle_outline;
+                                                      _statusIconColor = Colors.green;
+                                                    });
+                                                  }
                                                 },
                                                 borderRadius: const BorderRadius.only(
                                                   topLeft: Radius.circular(12),
                                                   bottomLeft: Radius.circular(12),
                                                 ),
-                                                child: Center(
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    children: [
-                                                      Icon(Icons.mic, size: 16, color: Colors.orange.shade700),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        'Voice',
-                                                        style: GoogleFonts.inter(
-                                                          fontSize: 8,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: Colors.black87,
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: _isContinuousVoiceEnabled ? Colors.orange.shade600 : Colors.transparent,
+                                                    borderRadius: const BorderRadius.only(
+                                                      topLeft: Radius.circular(12),
+                                                      bottomLeft: Radius.circular(12),
+                                                    ),
+                                                  ),
+                                                  child: Center(
+                                                    child: Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Icon(Icons.mic, size: 16, color: _isContinuousVoiceEnabled ? Colors.white : Colors.orange.shade700),
+                                                        const SizedBox(height: 2),
+                                                        Text(
+                                                          _isContinuousVoiceEnabled ? 'Active' : 'Voice',
+                                                          style: GoogleFonts.inter(
+                                                            fontSize: 8,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: _isContinuousVoiceEnabled ? Colors.white : Colors.black87,
+                                                          ),
                                                         ),
-                                                      ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
