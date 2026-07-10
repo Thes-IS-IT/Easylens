@@ -319,22 +319,18 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _loadObjectDetectionModel() async {
     try {
       await _loadCocoLabels();
-      final modelPath = await _getOrExtractTfliteModel();
-      final options = LocalObjectDetectorOptions(
+      final options = ObjectDetectorOptions(
         mode: DetectionMode.stream,
-        modelPath: modelPath,
         classifyObjects: true,
         multipleObjects: true,
-        maximumLabelsPerObject: 2,
-        confidenceThreshold: 0.35,
       );
       _objectDetector = ObjectDetector(options: options);
       setState(() {
         _isModelLoaded = true;
       });
-      print("Google ML Kit Local Object Detector initialized successfully at $modelPath");
+      print("Google ML Kit Base Object Detector initialized successfully");
     } catch (e) {
-      print("Error loading Google ML Kit Local Object Detector: $e");
+      print("Error loading Google ML Kit Base Object Detector: $e");
     }
   }
 
@@ -2015,13 +2011,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                               ),
                             ),
                           );
-                        }),                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                        }),
 
                     // Draw face bounding boxes dynamically in Face Recognition mode
                     if (_selectedHudMode == HudMode.faceRecognition && _faceImageSize != Size.zero)
