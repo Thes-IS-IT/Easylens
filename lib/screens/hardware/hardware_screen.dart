@@ -654,10 +654,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
                   await _detectFaceOnFrame(nv21Bytes, width, height);
                 }
               } else if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) {
-                if (nowMs - _lastObjectDetectionTime > 400) {
+                if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
                   _lastObjectDetectionTime = nowMs;
-                  final rgbData = _convertYUV420ToRgb300(image);
-                  _detectObjectsWithMobileNetV2(rgbData);
+                  await _detectObjectsOnFrame(nv21Bytes, width, height);
                 }
                 await _processCameraImage(nv21Bytes, yBytes, width, height);
               } else {
@@ -686,90 +685,62 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
-  Uint8List _convertYUV420ToRgb300(CameraImage image) {
-    final int width = image.width;
-    final int height = image.height;
-    
-    final yPlane = image.planes[0];
-    final uPlane = image.planes[1];
-    final vPlane = image.planes[2];
-    
-    final yBuffer = yPlane.bytes;
-    final uBuffer = uPlane.bytes;
-    final vBuffer = vPlane.bytes;
-    
-    final yRowStride = yPlane.bytesPerRow;
-    final uRowStride = uPlane.bytesPerRow;
-    final vRowStride = vPlane.bytesPerRow;
-    
-    final uPixelStride = uPlane.bytesPerPixel ?? 1;
-    final vPixelStride = vPlane.bytesPerPixel ?? 1;
-    
-    final outBytes = Uint8List(300 * 300 * 3);
-    
-    final double scaleX = width / 300.0;
-    final double scaleY = height / 300.0;
-    
-    int outIdx = 0;
-    for (int y = 0; y < 300; y++) {
-      final int srcY = (y * scaleY).toInt().clamp(0, height - 1);
-      final int uvRow = srcY ~/ 2;
-      
-      for (int x = 0; x < 300; x++) {
-        final int srcX = (x * scaleX).toInt().clamp(0, width - 1);
-        
-        final int yValue = yBuffer[srcY * yRowStride + srcX];
-        
-        final int uvCol = srcX ~/ 2;
-        final int uValue = uBuffer[uvRow * uRowStride + uvCol * uPixelStride];
-        final int vValue = vBuffer[uvRow * vRowStride + uvCol * vPixelStride];
-        
-        int r = (yValue + 1.370705 * (vValue - 128)).toInt();
-        int g = (yValue - 0.337633 * (uValue - 128) - 0.698001 * (vValue - 128)).toInt();
-        int b = (yValue + 1.732446 * (uValue - 128)).toInt();
-        
-        outBytes[outIdx++] = r.clamp(0, 255);
-        outBytes[outIdx++] = g.clamp(0, 255);
-        outBytes[outIdx++] = b.clamp(0, 255);
-      }
-    }
-    return outBytes;
-  }
-
-  void _detectObjectsWithMobileNetV2(Uint8List rgbData) {
+  Future<void> _detectObjectsOnFrame(Uint8List bytes, int width, int height) async {
+    if (_objectDetector == null) return;
     try {
-      final results = _tfliteProcessor.runInference(rgbData);
-      
+      final Size imageSize = Size(width.toDouble(), height.toDouble());
+      final inputImageMetadata = InputImageMetadata(
+        size: imageSize,
+        rotation: _getImageRotation(),
+        format: InputImageFormat.nv21,
+        bytesPerRow: width,
+      );
+      final inputImage =
+          InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
+      final objects = await _objectDetector!.processImage(inputImage);
+
       if (!mounted) return;
-      
+
       setState(() {
-        _tfliteDetections = results;
+        _detectedObjectsList = objects;
+        _faceImageSize = imageSize; // Share imageSize for UI drawing scale factors
       });
 
       final now = DateTime.now();
 
-      if (results.isNotEmpty) {
-        final closest = results.reduce((a, b) {
-          final aArea = (a.xMax - a.xMin) * (a.yMax - a.yMin);
-          final bArea = (b.xMax - b.xMin) * (b.yMax - b.yMin);
+      if (objects.isNotEmpty) {
+        final closest = objects.reduce((a, b) {
+          final aArea = a.boundingBox.width * a.boundingBox.height;
+          final bArea = b.boundingBox.width * b.boundingBox.height;
           return aArea >= bArea ? a : b;
         });
 
-        final closestLabel = closest.label;
-        final boxArea = (closest.xMax - closest.xMin) * (closest.yMax - closest.yMin);
+        String closestLabel = 'Object';
+        if (closest.labels.isNotEmpty) {
+          final firstLabel = closest.labels.first;
+          if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
+            closestLabel = firstLabel.text;
+          } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
+            closestLabel = _cocoLabels[firstLabel.index];
+          }
+        }
+        
+        final normalizedWidth = closest.boundingBox.width / width;
+        final normalizedHeight = closest.boundingBox.height / height;
+        final boxArea = normalizedWidth * normalizedHeight;
 
         if (_selectedHudMode == HudMode.navigation) {
           if (boxArea > 0.15) {
-            final centerX = (closest.xMin + closest.xMax) / 2.0;
-            String direction = centerX < 0.35 ? 'left' : (centerX > 0.65 ? 'right' : 'center');
+            final normalizedCenterX = (closest.boundingBox.left + closest.boundingBox.right) / 2.0 / width;
+            String direction = normalizedCenterX < 0.35 ? 'left' : (normalizedCenterX > 0.65 ? 'right' : 'center');
             
             String guidance;
             if (direction == 'center') {
               bool leftBlocked = false;
               bool rightBlocked = false;
-              for (final r in results) {
+              for (final r in objects) {
                 if (r == closest) continue;
-                final cX = (r.xMin + r.xMax) / 2.0;
+                final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / width;
                 if (cX < 0.45) leftBlocked = true;
                 if (cX > 0.55) rightBlocked = true;
               }
@@ -801,9 +772,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
               else if (direction == 'right') escapeDir = 'left';
               else {
                 bool leftBlocked = false;
-                for (final r in results) {
+                for (final r in objects) {
                   if (r == closest) continue;
-                  final cX = (r.xMin + r.xMax) / 2.0;
+                  final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / width;
                   if (cX < 0.45) leftBlocked = true;
                 }
                 if (leftBlocked) escapeDir = 'right';
@@ -846,9 +817,18 @@ class _HardwareScreenState extends State<HardwareScreen> {
             }
           }
         } else if (_selectedHudMode == HudMode.objectDetection) {
-          final detectedNames = results
+          final detectedNames = objects
               .take(3)
-              .map((r) => r.label)
+              .map((r) {
+                if (r.labels.isEmpty) return 'Object';
+                final label = r.labels.first;
+                if (label.text.isNotEmpty && label.text != 'Unknown') {
+                  return label.text;
+                } else if (_cocoLabels.isNotEmpty && label.index < _cocoLabels.length) {
+                  return _cocoLabels[label.index];
+                }
+                return 'Object';
+              })
               .where((name) => name != '???')
               .join(", ");
           final alertKey = 'detection_list';
@@ -882,7 +862,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         }
       }
     } catch (e) {
-      print("MobileNet inference runtime error: $e");
+      print("ML Kit object detection inference error: $e");
     }
   }
 
@@ -1942,14 +1922,28 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   fit: StackFit.expand,
                   children: [
                     CameraPreview(_cameraController!),
-                    if ((_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) && _tfliteDetections.isNotEmpty)
-                      ..._tfliteDetections.map((obj) {
-                          double left = (1.0 - obj.yMax) * constraints.maxWidth;
-                          double top = obj.xMin * constraints.maxHeight;
-                          double width = (obj.yMax - obj.yMin) * constraints.maxWidth;
-                          double height = (obj.xMax - obj.xMin) * constraints.maxHeight;
+                    if ((_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) && _detectedObjectsList.isNotEmpty)
+                      ..._detectedObjectsList.map((obj) {
+                          final r = obj.boundingBox;
+                          final double imgWidth = _faceImageSize != Size.zero ? _faceImageSize.width : 480.0;
+                          final double imgHeight = _faceImageSize != Size.zero ? _faceImageSize.height : 640.0;
                           
-                          final displayLabel = '${obj.label} ${(obj.confidence * 100).toInt()}%';
+                          double left = (1.0 - (r.bottom / imgHeight)) * constraints.maxWidth;
+                          double top = (r.left / imgWidth) * constraints.maxHeight;
+                          double width = (r.height / imgHeight) * constraints.maxWidth;
+                          double height = (r.width / imgWidth) * constraints.maxHeight;
+                          
+                          String label = 'Object';
+                          if (obj.labels.isNotEmpty) {
+                            final firstLabel = obj.labels.first;
+                            if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
+                              label = firstLabel.text;
+                            } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
+                              label = _cocoLabels[firstLabel.index];
+                            }
+                          }
+                          final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
+                          final displayLabel = '$label$trackingStr';
 
                           return Positioned(
                             left: left,
