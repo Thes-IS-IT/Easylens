@@ -351,22 +351,67 @@ class _NavigationScreenState extends State<NavigationScreen> {
       final url = Uri.parse(
         "https://router.project-osrm.org/route/v1/driving/"
         "${start.longitude},${start.latitude};${end.longitude},${end.latitude}"
-        "?overview=full&geometries=geojson"
+        "?overview=full&geometries=geojson&steps=true"
       );
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['routes'] != null && data['routes'].isNotEmpty) {
-          final coordinates = data['routes'][0]['geometry']['coordinates'] as List;
+          final route = data['routes'][0];
+          final coordinates = route['geometry']['coordinates'] as List;
           final List<LatLng> points = coordinates.map((coord) {
             final double lon = coord[0].toDouble();
             final double lat = coord[1].toDouble();
             return LatLng(lat, lon);
           }).toList();
           
+          final double distanceInMeters = (route['distance'] as num).toDouble();
+          final double durationInSeconds = (route['duration'] as num).toDouble();
+
+          final double kmVal = distanceInMeters / 1000.0;
+          final String distStr = "${kmVal.toStringAsFixed(1)} km";
+          final int minutes = (durationInSeconds / 60.0).round();
+          final String timeStr = "$minutes min";
+
+          // Parse dynamic steps from OSRM S01
+          final List<String> parsedSteps = [];
+          if (route['legs'] != null && route['legs'].isNotEmpty) {
+            final leg = route['legs'][0];
+            if (leg['steps'] != null && leg['steps'].isNotEmpty) {
+              final stepsList = leg['steps'] as List;
+              for (var step in stepsList) {
+                final maneuver = step['maneuver'];
+                String instruction = '';
+                if (maneuver != null && maneuver['instruction'] != null) {
+                  instruction = maneuver['instruction'] as String;
+                } else {
+                  final type = maneuver?['type'] ?? 'move';
+                  final modifier = maneuver?['modifier'] ?? '';
+                  final name = step['name'] ?? '';
+                  instruction = "${type.replaceAll('_', ' ')} ${modifier.replaceAll('_', ' ')} ${name.isNotEmpty ? 'onto $name' : ''}".trim();
+                }
+                if (instruction.isNotEmpty) {
+                  parsedSteps.add(instruction);
+                }
+              }
+            }
+          }
+
+          if (parsedSteps.isEmpty) {
+            parsedSteps.addAll([
+              'Head toward ${_selectedPlace!['name']}',
+              'Turn right onto closest main road',
+              'Follow directional signs',
+              'Arrive at ${_selectedPlace!['name']}'
+            ]);
+          }
+
           if (mounted) {
             setState(() {
               _routePoints = points;
+              _selectedPlace!['steps'] = parsedSteps;
+              _selectedPlace!['dist'] = distStr;
+              _selectedPlace!['time'] = timeStr;
             });
             ActiveNavigationService().startNavigation(
               destinationName: _selectedPlace!['name'],
@@ -374,9 +419,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
               routePoints: points,
             );
             ActiveNavigationService().updateProgress(
-              currentStepText: _selectedPlace!['steps'][_currentStepIndex],
-              distanceRemaining: _selectedPlace!['dist'],
-              timeRemaining: _selectedPlace!['time'],
+              currentStepText: _selectedPlace!['steps'][_currentStepIndex.clamp(0, parsedSteps.length - 1)],
+              distanceRemaining: distStr,
+              timeRemaining: timeStr,
               currentLocation: start,
             );
           }
@@ -394,7 +439,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           routePoints: [start, end],
         );
         ActiveNavigationService().updateProgress(
-          currentStepText: _selectedPlace!['steps'][_currentStepIndex],
+          currentStepText: _selectedPlace!['steps'][_currentStepIndex.clamp(0, _selectedPlace!['steps'].length - 1)],
           distanceRemaining: _selectedPlace!['dist'],
           timeRemaining: _selectedPlace!['time'],
           currentLocation: start,
