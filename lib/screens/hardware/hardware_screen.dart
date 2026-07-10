@@ -937,7 +937,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
             });
           }
 
-          if (_selectedHudMode == HudMode.navigation) {
+          if (_selectedHudMode == HudMode.navigation || _selectedHudMode == HudMode.objectDetection) {
             Map<String, dynamic>? selectedSim;
             if (isCovered) {
               selectedSim = {
@@ -1895,57 +1895,109 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   fit: StackFit.expand,
                   children: [
                     CameraPreview(_cameraController!),
-                    
-                    // Draw bounding boxes around recognized items dynamically using SSD results
                     if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation)
-                      ..._detectedObjectsList.map((obj) {
-                        final r = obj.boundingBox;
-                        final scaleX = _faceImageSize != Size.zero 
-                            ? constraints.maxWidth / _faceImageSize.height 
-                            : 1.0;
-                        final scaleY = _faceImageSize != Size.zero 
-                            ? constraints.maxHeight / _faceImageSize.width 
-                            : 1.0;
-                        
-                        double left = r.left * scaleX;
-                        double top = r.top * scaleY;
-                        double width = r.width * scaleX;
-                        double height = r.height * scaleY;
-                        
-                        String label = 'Object';
-                        if (obj.labels.isNotEmpty) {
-                          final firstLabel = obj.labels.first;
-                          if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-                            label = firstLabel.text;
-                          } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-                            label = _cocoLabels[firstLabel.index];
+                      if (_detectedObjectsList.isNotEmpty)
+                        ..._detectedObjectsList.map((obj) {
+                          final r = obj.boundingBox;
+                          final scaleX = _faceImageSize != Size.zero 
+                              ? constraints.maxWidth / _faceImageSize.height 
+                              : 1.0;
+                          final scaleY = _faceImageSize != Size.zero 
+                              ? constraints.maxHeight / _faceImageSize.width 
+                              : 1.0;
+                          
+                          double left = r.left * scaleX;
+                          double top = r.top * scaleY;
+                          double width = r.width * scaleX;
+                          double height = r.height * scaleY;
+                          
+                          String label = 'Object';
+                          if (obj.labels.isNotEmpty) {
+                            final firstLabel = obj.labels.first;
+                            if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
+                              label = firstLabel.text;
+                            } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
+                              label = _cocoLabels[firstLabel.index];
+                            }
                           }
-                        }
-                        final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
-                        final displayLabel = '$label$trackingStr';
+                          final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
+                          final displayLabel = '$label$trackingStr';
 
-                        return Positioned(
-                          left: left,
-                          top: top,
-                          width: width.clamp(0.0, constraints.maxWidth - left),
-                          height: height.clamp(0.0, constraints.maxHeight - top),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.cyanAccent, width: 2.5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Align(
-                              alignment: Alignment.topLeft,
-                              child: Container(
-                                color: Colors.cyanAccent,
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                child: Text(
-                                  displayLabel,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
+                          return Positioned(
+                            left: left,
+                            top: top,
+                            width: width.clamp(0.0, constraints.maxWidth - left),
+                            height: height.clamp(0.0, constraints.maxHeight - top),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.cyanAccent, width: 2.5),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Align(
+                                alignment: Alignment.topLeft,
+                                child: Container(
+                                  color: Colors.cyanAccent,
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  child: Text(
+                                    displayLabel,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
                                   ),
+                                ),
+                              ),
+                            ),
+                          );
+                        })
+                      else
+                        ...List.generate(_detectedObjectRects.length, (index) {
+                          final r = _detectedObjectRects[index];
+                          final label = _detectedObjectLabels[index];
+                          
+                          // Convert normalized coords or scale static box coordinates S01
+                          double left = r.left;
+                          double top = r.top;
+                          double width = r.width;
+                          double height = r.height;
+                          
+                          // Ensure boxes are reasonably laid out on constraints
+                          if (left + width > constraints.maxWidth) {
+                            width = constraints.maxWidth - left;
+                          }
+                          if (top + height > constraints.maxHeight) {
+                            height = constraints.maxHeight - top;
+                          }
+
+                          return Positioned(
+                            left: left,
+                            top: top,
+                            width: width,
+                            height: height,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.cyanAccent, width: 2.5),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Align(
+                                alignment: Alignment.topLeft,
+                                child: Container(
+                                  color: Colors.cyanAccent,
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  child: Text(
+                                    label,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),                                  ),
                                 ),
                               ),
                             ),
