@@ -409,6 +409,16 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   void _applyModeChange(HudMode mode) {
+    setState(() {
+      _detectedObjectsList = [];
+      _detectedObjectLabels = [];
+      _detectedObjectRects = [];
+      _latestMLKitLabels = [];
+      _detectedFacesList = [];
+      _detectedFaceName = '';
+      _lastSpokenSceneryText = '';
+    });
+
     String voiceMessage = "";
     switch (mode) {
       case HudMode.navigation:
@@ -444,7 +454,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
         _statusIconColor = const Color(0xFF7C3AED);
         break;
     }
-    TtsService().speak(voiceMessage);
+    if (!_isContinuousVoiceEnabled) {
+      TtsService().speak(voiceMessage);
+    }
   }
 
   Widget _buildModeButton(HudMode mode, String label, IconData icon, Color activeColor) {
@@ -594,7 +606,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
         if (cooldownElapsed) {
           _lastFaceAnnouncedAt = now;
           final msg = 'Buddy sees $registeredName nearby.';
-          TtsService().speak(msg);
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak(msg);
+          }
           if (mounted) {
             setState(() {
               _detectedFaceName = registeredName;
@@ -807,7 +821,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
               _lastGuidanceTime = now;
               _objectLastAreas[closestLabel] = boxArea;
               
-              TtsService().speak(guidance);
+              if (!_isContinuousVoiceEnabled) {
+                TtsService().speak(guidance);
+              }
               NotificationService().pushObstacleAlert(direction, closestLabel);
 
               setState(() {
@@ -854,7 +870,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
           if (cooldownElapsed && detectedNames.isNotEmpty) {
             _lastSpokenMap[alertKey] = now;
             _lastSpokenObjectText = detectedNames;
-            TtsService().speak("Detected objects in view: $detectedNames.");
+            if (!_isContinuousVoiceEnabled) {
+              TtsService().speak("Detected objects in view: $detectedNames.");
+            }
             
             setState(() {
               _activeTitle = "Objects Detected";
@@ -1122,7 +1140,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
             if (cooldownElapsed) {
               _lastSpokenMap[title] = now;
-              TtsService().speak(speech);
+              if (!_isContinuousVoiceEnabled) {
+                TtsService().speak(speech);
+              }
               NotificationService().pushWarning(title, speech);
             }
           } else if (_selectedHudMode == HudMode.scenery) {
@@ -1138,7 +1158,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
                 _lastSpokenMap[alertKey] = now;
                 _lastSpokenSceneryText = ambientLabels;
                 final speech = "Surroundings resemble a $ambientLabels scenery.";
-                TtsService().speak(speech);
+                if (!_isContinuousVoiceEnabled) {
+                  TtsService().speak(speech);
+                }
                 
                 setState(() {
                   _activeTitle = "Scenery Mode";
@@ -1274,6 +1296,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         setState(() {
           _selectedHudMode = HudMode.objectDetection;
         });
+        _applyModeChange(HudMode.objectDetection);
         response = isFilipino 
             ? "Lumipat na sa Object Detection mode." 
             : "Switched to Object Detection mode.";
@@ -1282,6 +1305,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         setState(() {
           _selectedHudMode = HudMode.faceRecognition;
         });
+        _applyModeChange(HudMode.faceRecognition);
         response = isFilipino 
             ? "Lumipat na sa Face Recognition mode." 
             : "Switched to Face Recognition mode.";
@@ -1290,6 +1314,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         setState(() {
           _selectedHudMode = HudMode.navigation;
         });
+        _applyModeChange(HudMode.navigation);
         response = isFilipino 
             ? "Lumipat na sa Navigation mode." 
             : "Switched to Navigation mode.";
