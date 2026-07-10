@@ -60,6 +60,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isModelLoaded = false;
   int _lastObjectDetectionTime = 0;
   List<DetectedObject> _detectedObjectsList = [];
+  List<String> _cocoLabels = [];
 
   StreamSubscription<BatteryState>? _batterySubscription;
   final Battery _battery = Battery();
@@ -279,20 +280,40 @@ class _HardwareScreenState extends State<HardwareScreen> {
     super.dispose();
   }
 
+  Future<void> _loadCocoLabels() async {
+    try {
+      final labelsText = await rootBundle.loadString('assets/models/coco_labels.txt');
+      if (mounted) {
+        setState(() {
+          _cocoLabels = labelsText.split('\n').map((e) => e.trim()).toList();
+        });
+      }
+    } catch (e) {
+      print("Error loading COCO labels: $e");
+    }
+  }
+
   Future<void> _loadObjectDetectionModel() async {
     try {
-      final options = ObjectDetectorOptions(
+      await _loadCocoLabels();
+      final localModel = LocalModel(
+        assetPath: 'assets/models/ssd_mobilenet_v2.tflite',
+      );
+      final options = CustomObjectDetectorOptions(
+        localModel,
         mode: DetectionMode.stream,
         classifyObjects: true,
         multipleObjects: true,
+        maximumLabelsPerObject: 2,
+        confidenceThreshold: 0.35,
       );
       _objectDetector = ObjectDetector(options: options);
       setState(() {
         _isModelLoaded = true;
       });
-      print("Google ML Kit Object Detector initialized successfully");
+      print("Google ML Kit Local Object Detector initialized successfully");
     } catch (e) {
-      print("Error loading Google ML Kit Object Detector: $e");
+      print("Error loading Google ML Kit Local Object Detector: $e");
     }
   }
 
@@ -642,7 +663,15 @@ class _HardwareScreenState extends State<HardwareScreen> {
           return aArea >= bArea ? a : b;
         });
 
-        final closestLabel = closest.labels.isNotEmpty ? closest.labels.first.text : 'Object';
+        String closestLabel = 'Object';
+        if (closest.labels.isNotEmpty) {
+          final firstLabel = closest.labels.first;
+          if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
+            closestLabel = firstLabel.text;
+          } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
+            closestLabel = _cocoLabels[firstLabel.index];
+          }
+        }
         final normalizedWidth = closest.boundingBox.width / height; // Swapped due to 90deg image preprocessing rotation
         final normalizedHeight = closest.boundingBox.height / width;
         final boxArea = normalizedWidth * normalizedHeight;
@@ -737,7 +766,17 @@ class _HardwareScreenState extends State<HardwareScreen> {
         } else if (_selectedHudMode == HudMode.objectDetection) {
           final detectedNames = objects
               .take(3)
-              .map((r) => r.labels.isNotEmpty ? r.labels.first.text : 'Object')
+              .map((r) {
+                if (r.labels.isEmpty) return 'Object';
+                final label = r.labels.first;
+                if (label.text.isNotEmpty && label.text != 'Unknown') {
+                  return label.text;
+                } else if (_cocoLabels.isNotEmpty && label.index < _cocoLabels.length) {
+                  return _cocoLabels[label.index];
+                }
+                return 'Object';
+              })
+              .where((name) => name != '???')
               .join(", ");
           final alertKey = 'detection_list';
           final lastSpoken = _lastSpokenMap[alertKey];
@@ -1852,7 +1891,15 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                         double width = r.width * scaleX;
                         double height = r.height * scaleY;
                         
-                        final label = obj.labels.isNotEmpty ? obj.labels.first.text : 'Object';
+                        String label = 'Object';
+                        if (obj.labels.isNotEmpty) {
+                          final firstLabel = obj.labels.first;
+                          if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
+                            label = firstLabel.text;
+                          } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
+                            label = _cocoLabels[firstLabel.index];
+                          }
+                        }
                         final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
                         final displayLabel = '$label$trackingStr';
 
