@@ -724,9 +724,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
         if (closest.labels.isNotEmpty) {
           final firstLabel = closest.labels.first;
           if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-            closestLabel = firstLabel.text;
+            closestLabel = _refineLabel(firstLabel.text);
           } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-            closestLabel = _cocoLabels[firstLabel.index];
+            closestLabel = _refineLabel(_cocoLabels[firstLabel.index]);
           }
         }
         
@@ -927,6 +927,41 @@ class _HardwareScreenState extends State<HardwareScreen> {
     });
   }
 
+  String _refineLabel(String rawLabel) {
+    final label = rawLabel.toLowerCase();
+    if (label.contains('musical instrument') || 
+        label.contains('piano') || 
+        label.contains('musical keyboard') ||
+        label.contains('electronic keyboard')) {
+      return 'laptop or keyboard';
+    }
+    if (label.contains('hand') || label.contains('finger') || label.contains('nail')) {
+      return 'hand';
+    }
+    if (label.contains('wall') || label.contains('partition') || label.contains('divider')) {
+      return 'wall';
+    }
+    if (label.contains('door') || label.contains('doorway') || label.contains('entrance')) {
+      return 'door';
+    }
+    if (label.contains('chair') || label.contains('stool') || label.contains('sofa') || label.contains('couch') || label.contains('armchair')) {
+      return 'chair';
+    }
+    if (label.contains('table') || label.contains('desk') || label.contains('tabletop') || label.contains('countertop')) {
+      return 'table';
+    }
+    if (label.contains('computer') || label.contains('screen') || label.contains('monitor') || label.contains('laptop')) {
+      return 'laptop or computer screen';
+    }
+    if (label.contains('bottle') || label.contains('cup') || label.contains('mug') || label.contains('glass') || label.contains('tableware')) {
+      return 'cup or tableware';
+    }
+    if (label.contains('person') || label.contains('human') || label.contains('man') || label.contains('woman') || label.contains('child') || label.contains('pedestrian')) {
+      return 'person';
+    }
+    return rawLabel;
+  }
+
   // Processes each streaming camera frame through Google ML Kit Labeler continuously
   Future<void> _processCameraImage(Uint8List nv21Bytes, Uint8List yBytes, int width, int height) async {
     try {
@@ -947,12 +982,12 @@ class _HardwareScreenState extends State<HardwareScreen> {
         
         if (mounted) {
           setState(() {
-            _latestMLKitLabels = labels.take(5).map((l) => l.label).toList();
+            _latestMLKitLabels = labels.take(5).map((l) => _refineLabel(l.label)).toList();
           });
         }
         
         if (labels.isNotEmpty && mounted) {
-          final topLabelText = labels[0].label;
+          final topLabelText = _refineLabel(labels[0].label);
           final topLabel = topLabelText.toLowerCase();
           
           // Check if camera lens is covered/black S01
@@ -1967,9 +2002,9 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                             if (obj.labels.isNotEmpty) {
                               final firstLabel = obj.labels.first;
                               if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-                                label = firstLabel.text;
+                                label = _refineLabel(firstLabel.text);
                               } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-                                label = _cocoLabels[firstLabel.index];
+                                label = _refineLabel(_cocoLabels[firstLabel.index]);
                               }
                             }
                             final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
