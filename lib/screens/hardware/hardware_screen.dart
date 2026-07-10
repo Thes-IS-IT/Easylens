@@ -1971,7 +1971,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                               ),
                             ),
                           );
-                        })
+                        }),
 
                     // Draw face bounding boxes dynamically in Face Recognition mode
                     if (_selectedHudMode == HudMode.faceRecognition && _faceImageSize != Size.zero)
