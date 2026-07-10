@@ -1183,6 +1183,84 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _showGeminiVoiceAssistantBottomSheet(context);
   }
 
+  Future<void> _describeActiveScene() async {
+    setState(() {
+      _activeTitle = "Describing scene...";
+      _activeDescription = "Analyzing current view...";
+      _statusCardBg = const Color(0xFFFFF8E1);
+      _statusIcon = Icons.auto_awesome;
+      _statusIconColor = Colors.orange;
+    });
+    TtsService().speak("Analyzing surroundings.");
+
+    final detections = _detectedObjectsList;
+    final mlKitLabels = _latestMLKitLabels.join(", ");
+    final detectedItems = [
+      if (detections.isNotEmpty)
+        detections.map((d) {
+          final label = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
+          final refined = _refineLabel(label);
+          return refined;
+        }).join(", "),
+      if (mlKitLabels.isNotEmpty)
+        "general surroundings: $mlKitLabels"
+    ].join("; ");
+
+    if (detectedItems.trim().isEmpty) {
+      final String noObjectText = "I see a clear space ahead.";
+      TtsService().speak(noObjectText);
+      setState(() {
+        _activeTitle = "Scene Description";
+        _activeDescription = noObjectText;
+        _statusCardBg = const Color(0xFFE8F5E9);
+        _statusIcon = Icons.check_circle_outline;
+        _statusIconColor = Colors.green;
+      });
+      return;
+    }
+
+    final prompt = """
+You are Buddy, the visual assistant dog.
+The user asked you to describe the scene. The camera reports these visual labels: $detectedItems.
+Describe the scene in a natural, friendly visual assistant persona, starting with "I saw..." or "I see..." (e.g. "I saw a park with a tree and a bench" or "I see a room with a laptop or keyboard").
+Keep the response to exactly one natural, friendly sentence.
+""";
+
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') ||
+        lang.toLowerCase().contains('filipino');
+
+    String response;
+    if (isFilipino) {
+      final tagalogPrompt = """
+You are Buddy, the visual assistant dog.
+Describe these environment labels in Tagalog: $detectedItems.
+Start the response with "Nakakita ako ng..." or "Nakikita ko ang...".
+Keep the response to exactly one natural, friendly sentence.
+""";
+      response = await RagService().askBuddyOnlineGemini(tagalogPrompt);
+      if (response.isEmpty) {
+        response = "Nakikita ko ang ilang mga bagay sa iyong harapan.";
+      }
+    } else {
+      response = await RagService().askBuddy(prompt);
+      if (response.isEmpty) {
+        response = "I see some objects in front of you.";
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _activeTitle = "Scene Description";
+        _activeDescription = response;
+        _statusCardBg = const Color(0xFFE6FFFA);
+        _statusIcon = Icons.visibility;
+        _statusIconColor = const Color(0xFF38A169);
+      });
+      TtsService().speak(response);
+    }
+  }
+
 
 
   Future<void> _describeSurroundings(StateSetter modalSetState) async {
@@ -2551,53 +2629,81 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
 
                                     // Gemini card S01
                                     Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _isGeminiEnabled = !_isGeminiEnabled;
-                                          });
-                                          if (_isGeminiEnabled) {
-                                            _queryGeminiSurroundings();
-                                          }
-                                        },
-                                        child: Container(
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            color: _isGeminiEnabled ? Colors.orange.shade600 : Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.auto_awesome, size: 18, color: _isGeminiEnabled ? Colors.white : Colors.black54),
-                                              const SizedBox(width: 4),
-                                              Expanded(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Gemini',
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 9,
-                                                        color: _isGeminiEnabled ? Colors.white70 : Colors.black54,
+                                      child: Container(
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.black.withOpacity(0.04)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            // Left action: Voice chat S01
+                                            Expanded(
+                                              child: InkWell(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _isGeminiEnabled = true;
+                                                  });
+                                                  _queryGeminiSurroundings();
+                                                },
+                                                borderRadius: const BorderRadius.only(
+                                                  topLeft: Radius.circular(12),
+                                                  bottomLeft: Radius.circular(12),
+                                                ),
+                                                child: Center(
+                                                  child: Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Icon(Icons.mic, size: 16, color: Colors.orange.shade700),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        'Voice',
+                                                        style: GoogleFonts.inter(
+                                                          fontSize: 8,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.black87,
+                                                        ),
                                                       ),
-                                                    ),
-                                                    Text(
-                                                      _isGeminiEnabled ? 'Active' : 'Disabled',
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 9,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: _isGeminiEnabled ? Colors.white : Colors.black87,
-                                                      ),
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
-                                            ],
-                                          ),
+                                            ),
+                                            // Divider S01
+                                            Container(
+                                              width: 1,
+                                              height: 30,
+                                              color: Colors.black12,
+                                            ),
+                                            // Right action: Describe Scene S01
+                                            Expanded(
+                                              child: InkWell(
+                                                onTap: _describeActiveScene,
+                                                borderRadius: const BorderRadius.only(
+                                                  topRight: Radius.circular(12),
+                                                  bottomRight: Radius.circular(12),
+                                                ),
+                                                child: Center(
+                                                  child: Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Icon(Icons.remove_red_eye, size: 16, color: Colors.teal.shade700),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        'Describe',
+                                                        style: GoogleFonts.inter(
+                                                          fontSize: 8,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.black87,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
