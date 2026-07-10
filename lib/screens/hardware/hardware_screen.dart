@@ -15,7 +15,6 @@ import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
 import '../../services/object_detector_service.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
-import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/active_navigation_service.dart';
 import '../../services/face_registration_service.dart';
@@ -297,12 +296,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _loadObjectDetectionModel() async {
     try {
       await _loadCocoLabels();
-      final localModel = LocalModel(
-        assetPath: 'assets/models/ssd_mobilenet_v2.tflite',
-      );
-      final options = CustomObjectDetectorOptions(
-        localModel,
+      final options = LocalObjectDetectorOptions(
         mode: DetectionMode.stream,
+        modelPath: 'assets/models/ssd_mobilenet_v2.tflite',
         classifyObjects: true,
         multipleObjects: true,
         maximumLabelsPerObject: 2,
