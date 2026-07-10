@@ -15,6 +15,7 @@ import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
 import '../../services/object_detector_service.dart';
+import '../../services/tflite_processor.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/active_navigation_service.dart';
@@ -62,6 +63,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
   int _lastObjectDetectionTime = 0;
   List<DetectedObject> _detectedObjectsList = [];
   List<String> _cocoLabels = [];
+  final TfliteProcessor _tfliteProcessor = TfliteProcessor();
+  List<SSDResult> _tfliteDetections = [];
 
   StreamSubscription<BatteryState>? _batterySubscription;
   final Battery _battery = Battery();
@@ -274,6 +277,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _batterySubscription?.cancel();
     _objectDetectionTimer?.cancel();
     _objectDetector?.close();
+    _tfliteProcessor.dispose();
     _cameraController?.dispose();
     _imageLabeler?.close();
     _textRecognizer.close();
@@ -319,6 +323,10 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _loadObjectDetectionModel() async {
     try {
       await _loadCocoLabels();
+      final modelBytes = await rootBundle.load('assets/models/mobilenetv2.tflite');
+      final labelsContent = await rootBundle.loadString('assets/models/mobilenetv2.txt');
+      await _tfliteProcessor.init(modelBytes.buffer.asUint8List(), labelsContent);
+
       final options = ObjectDetectorOptions(
         mode: DetectionMode.stream,
         classifyObjects: true,
@@ -328,9 +336,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
       setState(() {
         _isModelLoaded = true;
       });
-      print("Google ML Kit Base Object Detector initialized successfully");
+      print("Google ML Kit and SSD MobileNet V2 initialized successfully");
     } catch (e) {
-      print("Error loading Google ML Kit Base Object Detector: $e");
+      print("Error loading SSD MobileNet V2: $e");
     }
   }
 
@@ -367,6 +375,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
       _isDetectionEnabled = enabled;
       if (!enabled) {
         _detectedObjectsList = [];
+        _tfliteDetections = [];
         _detectedObjectLabels = [];
         _detectedObjectRects = [];
         _activeTitle = "Detection Disabled";
@@ -645,9 +654,10 @@ class _HardwareScreenState extends State<HardwareScreen> {
                   await _detectFaceOnFrame(nv21Bytes, width, height);
                 }
               } else if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) {
-                if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
+                if (nowMs - _lastObjectDetectionTime > 400) {
                   _lastObjectDetectionTime = nowMs;
-                  await _detectObjectsOnFrame(nv21Bytes, width, height);
+                  final rgbData = _convertYUV420ToRgb300(image);
+                  _detectObjectsWithMobileNetV2(rgbData);
                 }
                 await _processCameraImage(nv21Bytes, yBytes, width, height);
               } else {
@@ -676,61 +686,90 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
-  Future<void> _detectObjectsOnFrame(Uint8List bytes, int width, int height) async {
-    if (_objectDetector == null) return;
+  Uint8List _convertYUV420ToRgb300(CameraImage image) {
+    final int width = image.width;
+    final int height = image.height;
+    
+    final yPlane = image.planes[0];
+    final uPlane = image.planes[1];
+    final vPlane = image.planes[2];
+    
+    final yBuffer = yPlane.bytes;
+    final uBuffer = uPlane.bytes;
+    final vBuffer = vPlane.bytes;
+    
+    final yRowStride = yPlane.bytesPerRow;
+    final uRowStride = uPlane.bytesPerRow;
+    final vRowStride = vPlane.bytesPerRow;
+    
+    final uPixelStride = uPlane.bytesPerPixel ?? 1;
+    final vPixelStride = vPlane.bytesPerPixel ?? 1;
+    
+    final outBytes = Uint8List(300 * 300 * 3);
+    
+    final double scaleX = width / 300.0;
+    final double scaleY = height / 300.0;
+    
+    int outIdx = 0;
+    for (int y = 0; y < 300; y++) {
+      final int srcY = (y * scaleY).toInt().clamp(0, height - 1);
+      final int uvRow = srcY ~/ 2;
+      
+      for (int x = 0; x < 300; x++) {
+        final int srcX = (x * scaleX).toInt().clamp(0, width - 1);
+        
+        final int yValue = yBuffer[srcY * yRowStride + srcX];
+        
+        final int uvCol = srcX ~/ 2;
+        final int uValue = uBuffer[uvRow * uRowStride + uvCol * uPixelStride];
+        final int vValue = vBuffer[uvRow * vRowStride + uvCol * vPixelStride];
+        
+        int r = (yValue + 1.370705 * (vValue - 128)).toInt();
+        int g = (yValue - 0.337633 * (uValue - 128) - 0.698001 * (vValue - 128)).toInt();
+        int b = (yValue + 1.732446 * (uValue - 128)).toInt();
+        
+        outBytes[outIdx++] = r.clamp(0, 255);
+        outBytes[outIdx++] = g.clamp(0, 255);
+        outBytes[outIdx++] = b.clamp(0, 255);
+      }
+    }
+    return outBytes;
+  }
+
+  void _detectObjectsWithMobileNetV2(Uint8List rgbData) {
     try {
-      final Size imageSize = Size(width.toDouble(), height.toDouble());
-      final inputImageMetadata = InputImageMetadata(
-        size: imageSize,
-        rotation: _getImageRotation(),
-        format: InputImageFormat.nv21,
-        bytesPerRow: width,
-      );
-      final inputImage =
-          InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
-      final objects = await _objectDetector!.processImage(inputImage);
-
+      final results = _tfliteProcessor.runInference(rgbData);
+      
       if (!mounted) return;
-
+      
       setState(() {
-        _detectedObjectsList = objects;
-        _faceImageSize = imageSize; // Share imageSize for UI drawing scale factors
+        _tfliteDetections = results;
       });
 
       final now = DateTime.now();
 
-      if (objects.isNotEmpty) {
-        final closest = objects.reduce((a, b) {
-          final aArea = a.boundingBox.width * a.boundingBox.height;
-          final bArea = b.boundingBox.width * b.boundingBox.height;
+      if (results.isNotEmpty) {
+        final closest = results.reduce((a, b) {
+          final aArea = (a.xMax - a.xMin) * (a.yMax - a.yMin);
+          final bArea = (b.xMax - b.xMin) * (b.yMax - b.yMin);
           return aArea >= bArea ? a : b;
         });
 
-        String closestLabel = 'Object';
-        if (closest.labels.isNotEmpty) {
-          final firstLabel = closest.labels.first;
-          if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-            closestLabel = firstLabel.text;
-          } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-            closestLabel = _cocoLabels[firstLabel.index];
-          }
-        }
-        final normalizedWidth = closest.boundingBox.width / height; // Swapped due to 90deg image preprocessing rotation
-        final normalizedHeight = closest.boundingBox.height / width;
-        final boxArea = normalizedWidth * normalizedHeight;
+        final closestLabel = closest.label;
+        final boxArea = (closest.xMax - closest.xMin) * (closest.yMax - closest.yMin);
 
         if (_selectedHudMode == HudMode.navigation) {
           if (boxArea > 0.15) {
-            final normalizedCenterX = (closest.boundingBox.left + closest.boundingBox.right) / 2.0 / height;
-            String direction = normalizedCenterX < 0.35 ? 'left' : (normalizedCenterX > 0.65 ? 'right' : 'center');
+            final centerX = (closest.xMin + closest.xMax) / 2.0;
+            String direction = centerX < 0.35 ? 'left' : (centerX > 0.65 ? 'right' : 'center');
             
             String guidance;
             if (direction == 'center') {
               bool leftBlocked = false;
               bool rightBlocked = false;
-              for (final r in objects) {
+              for (final r in results) {
                 if (r == closest) continue;
-                final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / height;
+                final cX = (r.xMin + r.xMax) / 2.0;
                 if (cX < 0.45) leftBlocked = true;
                 if (cX > 0.55) rightBlocked = true;
               }
@@ -762,9 +801,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
               else if (direction == 'right') escapeDir = 'left';
               else {
                 bool leftBlocked = false;
-                for (final r in objects) {
+                for (final r in results) {
                   if (r == closest) continue;
-                  final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / height;
+                  final cX = (r.xMin + r.xMax) / 2.0;
                   if (cX < 0.45) leftBlocked = true;
                 }
                 if (leftBlocked) escapeDir = 'right';
@@ -807,18 +846,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
             }
           }
         } else if (_selectedHudMode == HudMode.objectDetection) {
-          final detectedNames = objects
+          final detectedNames = results
               .take(3)
-              .map((r) {
-                if (r.labels.isEmpty) return 'Object';
-                final label = r.labels.first;
-                if (label.text.isNotEmpty && label.text != 'Unknown') {
-                  return label.text;
-                } else if (_cocoLabels.isNotEmpty && label.index < _cocoLabels.length) {
-                  return _cocoLabels[label.index];
-                }
-                return 'Object';
-              })
+              .map((r) => r.label)
               .where((name) => name != '???')
               .join(", ");
           final alertKey = 'detection_list';
@@ -852,7 +882,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         }
       }
     } catch (e) {
-      // Non-fatal
+      print("MobileNet inference runtime error: $e");
     }
   }
 
@@ -1139,20 +1169,17 @@ class _HardwareScreenState extends State<HardwareScreen> {
       return;
     }
 
-    final detections = _detectedObjectsList;
+    final detections = _tfliteDetections;
     
     // Draw real bounding boxes on screen dynamically if found
     if (detections.isNotEmpty && mounted) {
       setState(() {
-        _detectedObjectLabels = detections.map((d) => d.labels.isNotEmpty ? d.labels.first.text : 'Object').toList();
+        _detectedObjectLabels = detections.map((d) => d.label).toList();
         _detectedObjectRects = detections.map((d) {
-          final scaleX = _faceImageSize != Size.zero ? 300.0 / _faceImageSize.height : 1.0;
-          final scaleY = _faceImageSize != Size.zero ? 250.0 / _faceImageSize.width : 1.0;
-          
-          double left = d.boundingBox.left * scaleX;
-          double top = d.boundingBox.top * scaleY;
-          double width = d.boundingBox.width * scaleX;
-          double height = d.boundingBox.height * scaleY;
+          double left = d.xMin * 300.0;
+          double top = d.yMin * 250.0;
+          double width = (d.xMax - d.xMin) * 300.0;
+          double height = (d.yMax - d.yMin) * 250.0;
           return Rect.fromLTWH(left, top, width, height);
         }).toList();
       });
@@ -1162,9 +1189,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     final detectedItems = [
       if (detections.isNotEmpty)
         detections.map((d) {
-          final label = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
-          final confidence = d.labels.isNotEmpty ? d.labels.first.confidence : 0.8;
-          return "$label (${(confidence * 100).toInt()}% confidence)";
+          return "${d.label} (${(d.confidence * 100).toInt()}% confidence)";
         }).join(", "),
       if (mlKitLabels.isNotEmpty)
         "general environment labels: $mlKitLabels"
@@ -1917,32 +1942,14 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   fit: StackFit.expand,
                   children: [
                     CameraPreview(_cameraController!),
-                    if ((_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) && _detectedObjectsList.isNotEmpty)
-                      ..._detectedObjectsList.map((obj) {
-                          final r = obj.boundingBox;
-                          final scaleX = _faceImageSize != Size.zero 
-                              ? constraints.maxWidth / _faceImageSize.height 
-                              : 1.0;
-                          final scaleY = _faceImageSize != Size.zero 
-                              ? constraints.maxHeight / _faceImageSize.width 
-                              : 1.0;
+                    if ((_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) && _tfliteDetections.isNotEmpty)
+                      ..._tfliteDetections.map((obj) {
+                          double left = (1.0 - obj.yMax) * constraints.maxWidth;
+                          double top = obj.xMin * constraints.maxHeight;
+                          double width = (obj.yMax - obj.yMin) * constraints.maxWidth;
+                          double height = (obj.xMax - obj.xMin) * constraints.maxHeight;
                           
-                          double left = r.left * scaleX;
-                          double top = r.top * scaleY;
-                          double width = r.width * scaleX;
-                          double height = r.height * scaleY;
-                          
-                          String label = 'Object';
-                          if (obj.labels.isNotEmpty) {
-                            final firstLabel = obj.labels.first;
-                            if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-                              label = firstLabel.text;
-                            } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-                              label = _cocoLabels[firstLabel.index];
-                            }
-                          }
-                          final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
-                          final displayLabel = '$label$trackingStr';
+                          final displayLabel = '${obj.label} ${(obj.confidence * 100).toInt()}%';
 
                           return Positioned(
                             left: left,
