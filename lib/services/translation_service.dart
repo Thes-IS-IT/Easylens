@@ -52,6 +52,11 @@ class TranslationService {
       'speech_navigation': 'Speech Navigation',
       'speech_navigation_subtitle': 'Navigate screens and click buttons using voice commands',
       'shake_detected_undo': 'Shake gesture detected! Last action undone.',
+      'local_ai': 'Use Local AI',
+      'local_ai_subtitle': 'Enable offline Gemma AI processing on device.',
+      'floating_mascot': 'Floating Mascot Button',
+      'floating_mascot_subtitle': 'Show Buddy helper button on home and camera screens.',
+      'ai_mascot_settings': 'AI & Mascot Controls',
     },
     'fil': {
       'settings': 'Mga Setting',
@@ -105,6 +110,11 @@ class TranslationService {
       'speech_navigation': 'Boses na Nabigasyon',
       'speech_navigation_subtitle': 'Mag-navigate sa mga screen at pindutin ang mga button gamit ang mga utos ng boses',
       'shake_detected_undo': 'Na-detect ang pag-shake! Na-undo ang huling aksyon.',
+      'local_ai': 'Gamitin ang Local AI',
+      'local_ai_subtitle': 'Paganahin ang offline na Gemma AI processing sa device.',
+      'floating_mascot': 'Lutang na Mascot Button',
+      'floating_mascot_subtitle': 'Ipakita ang Buddy helper button sa home at camera screens.',
+      'ai_mascot_settings': 'Mga Kontrol sa AI at Mascot',
     }
   };
 

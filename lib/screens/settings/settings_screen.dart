@@ -31,6 +31,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _selectedAccentColorIndex = 0; // Index 0 represents Green S01
   bool _shakeToUndo = true;
   bool _speechNavigation = false;
+  bool _useLocalAI = true;
+  bool _showFloatingMascot = true;
 
   final List<Color> _accentColors = [
     const Color(0xFF10B981), // Green S01
@@ -49,6 +51,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _selectedAccentColorIndex = settings.accentColorIndex;
     _shakeToUndo = settings.shakeToUndo;
     _speechNavigation = settings.speechNavigation;
+    _useLocalAI = settings.useLocalAI;
+    _showFloatingMascot = settings.showFloatingMascot;
   }
 
   void _saveSettings() {
@@ -82,6 +86,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       faceIdUnlock: _faceIdUnlock,
       shakeToUndo: _shakeToUndo,
       speechNavigation: _speechNavigation,
+      useLocalAI: _useLocalAI,
+      showFloatingMascot: _showFloatingMascot,
     );
 
     // Sync user preferences to Cloud
@@ -95,6 +101,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'faceIdUnlock': _faceIdUnlock,
         'shakeToUndo': _shakeToUndo,
         'speechNavigation': _speechNavigation,
+        'useLocalAI': _useLocalAI,
+        'showFloatingMascot': _showFloatingMascot,
       });
     }
   }
@@ -782,7 +790,103 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
 
-              // 11. HELP Section
+              // 11. AI & Mascot Controls Section
+              _buildSectionTitle(TranslationService.translate('ai_mascot_settings', lang)),
+              _buildCardContainer(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('local_ai', lang),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('local_ai_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _useLocalAI,
+                          onChanged: (val) {
+                            setState(() => _useLocalAI = val);
+                            _saveSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('floating_mascot', lang),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('floating_mascot_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _showFloatingMascot,
+                          onChanged: (val) {
+                            setState(() => _showFloatingMascot = val);
+                            _saveSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // 12. HELP Section
               _buildSectionTitle(TranslationService.translate('help', lang)),
               _buildCardContainer(
                 children: [
@@ -867,7 +971,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
 
-              // 12. ABOUT Section
+              // 13. ABOUT Section
               _buildSectionTitle(TranslationService.translate('about', lang)),
               _buildCardContainer(
                 children: [

@@ -307,7 +307,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
 
               // Draggable Floating Mascot Button S01
-              DraggableBuddyButton(onTap: _openBuddyAssistant),
+              if (settings.showFloatingMascot)
+                DraggableBuddyButton(onTap: _openBuddyAssistant),
 
               // ── Fullscreen Lock Overlay ──────────────────────────────
               ValueListenableBuilder<bool>(

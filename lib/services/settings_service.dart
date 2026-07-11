@@ -32,6 +32,10 @@ class SettingsService extends ChangeNotifier {
   double speechPitch = 0.5;
   List<String> homeScreenCards = ['buddy', 'easylens', 'faces', 'text', 'objects', 'navigation', 'sos'];
 
+  // Local AI and Floating Mascot control
+  bool useLocalAI = true;
+  bool showFloatingMascot = true;
+
   // Load preferences from local storage (public so TtsService can reload on demand)
   Future<void> loadSettingsFromLocal() async {
     try {
@@ -54,6 +58,9 @@ class SettingsService extends ChangeNotifier {
       speechPitch = prefs.getDouble('speechPitch') ?? 0.5;
       homeScreenCards = prefs.getStringList('homeScreenCards') ?? ['buddy', 'easylens', 'faces', 'text', 'objects', 'navigation', 'sos'];
       homeScreenCards.remove('journal');
+
+      useLocalAI = prefs.getBool('useLocalAI') ?? true;
+      showFloatingMascot = prefs.getBool('showFloatingMascot') ?? true;
 
       notifyListeners();
     } catch (e) {
@@ -79,6 +86,8 @@ class SettingsService extends ChangeNotifier {
     double? speechRate,
     double? speechPitch,
     List<String>? homeScreenCards,
+    bool? useLocalAI,
+    bool? showFloatingMascot,
   }) async {
     if (voiceFeedback != null) this.voiceFeedback = voiceFeedback;
     if (hapticFeedback != null) this.hapticFeedback = hapticFeedback;
@@ -97,6 +106,9 @@ class SettingsService extends ChangeNotifier {
     if (speechRate != null) this.speechRate = speechRate;
     if (speechPitch != null) this.speechPitch = speechPitch;
     if (homeScreenCards != null) this.homeScreenCards = homeScreenCards;
+    
+    if (useLocalAI != null) this.useLocalAI = useLocalAI;
+    if (showFloatingMascot != null) this.showFloatingMascot = showFloatingMascot;
     
     notifyListeners();
 
@@ -119,6 +131,9 @@ class SettingsService extends ChangeNotifier {
       if (speechRate != null) await prefs.setDouble('speechRate', speechRate);
       if (speechPitch != null) await prefs.setDouble('speechPitch', speechPitch);
       if (homeScreenCards != null) await prefs.setStringList('homeScreenCards', homeScreenCards);
+      
+      if (useLocalAI != null) await prefs.setBool('useLocalAI', useLocalAI);
+      if (showFloatingMascot != null) await prefs.setBool('showFloatingMascot', showFloatingMascot);
     } catch (e) {
       print('Error saving settings to local storage: $e');
     }
