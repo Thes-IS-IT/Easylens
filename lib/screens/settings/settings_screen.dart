@@ -13,6 +13,7 @@ import 'change_password_screen.dart';
 import 'preferences_screen.dart';
 import 'customize_home_screen.dart';
 import '../../utils/app_route.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -104,6 +105,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'useLocalAI': _useLocalAI,
         'showFloatingMascot': _showFloatingMascot,
       });
+    }
+  }
+
+  Future<void> _openURL(String urlString) async {
+    try {
+      final Uri uri = Uri.parse(urlString);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        debugPrint("Could not launch URL: $urlString");
+      }
+    } catch (e) {
+      debugPrint("Error launching URL: $e");
     }
   }
 
@@ -1042,7 +1056,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Row(
                           children: [
                             GestureDetector(
-                              onTap: () {},
+                              onTap: () => _openURL('https://easylense-website.vercel.app/'),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 6.0),
                                 child: Row(
@@ -1050,7 +1064,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     const Icon(Icons.language, color: Color(0xFF2563EB), size: 16),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'buddy.cloud',
+                                      'easylense-website.vercel.app',
                                       style: GoogleFonts.inter(
                                         color: const Color(0xFF2563EB),
                                         fontSize: 12,
@@ -1065,7 +1079,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(width: 16),
                             GestureDetector(
-                              onTap: () {},
+                              onTap: () => _openURL('https://github.com/Thes-IS-IT'),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
@@ -1132,7 +1146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
                       ),
                       trailing: const Icon(Icons.open_in_new, color: Color(0xFF94A3B8), size: 16),
-                      onTap: () {},
+                      onTap: () => _openURL('https://www.facebook.com/profile.php?id=61566090583740'),
                     ),
                   ),
                   
