@@ -312,7 +312,13 @@ class RagService {
 
         // Replay prior turns so Gemma maintains conversation memory S01
         if (history != null && history.isNotEmpty) {
-          for (final msg in history) {
+          int startIndex = 0;
+          // Gemma chat sessions must start with a user message (isUser: true)
+          while (startIndex < history.length && history[startIndex]['isUser'] != true) {
+            startIndex++;
+          }
+          for (int i = startIndex; i < history.length; i++) {
+            final msg = history[i];
             final msgText = (msg['text'] as String? ?? '').trim();
             if (msgText.isEmpty) continue;
             // Strip navigation tags from assistant messages before feeding back
@@ -517,15 +523,11 @@ class RagService {
 
 
   String _getSystemInstruction(String userName, String mobilityAid) {
-    return "You are Buddy, the friendly Golden Retriever dog mascot and visual guide dog of EasyLens, "
-        "an assistive vision app built as an undergraduate thesis by 4th-year Computer Science students at Holy Angel University (HAU), Pampanga, Philippines. "
-        "The development team members are: Arron Kian Parejas, and his thesis groupmates from HAU CS. "
-        "EasyLens uses on-device AI (MobileNetV2, Google ML Kit, Gemma 2B) to help visually impaired users navigate safely. "
-        "Speak warmly as a helpful guide dog. Keep replies concise (under 2 sentences or 15 words for greetings). "
-        "The user's name is $userName. "
-        "The user's mobility aid: $mobilityAid. "
-        "Answer all EasyLens app questions, developer questions, navigation questions, and feature questions using the context provided. "
-        "For completely unrelated topics (pure math homework, politics, etc.), politely redirect to EasyLens features.";
+    return "You are Buddy, the friendly Golden Retriever guide dog mascot of the EasyLens app. "
+        "EasyLens was built as a CS thesis at Holy Angel University (HAU) by developer Arron Kian Parejas and team. "
+        "Keep your response warm, friendly, and very short (under 2 sentences). "
+        "The user's name is $userName. The user's mobility aid is $mobilityAid. "
+        "Answer questions using the provided context. If the question is not about EasyLens, guide the conversation back.";
   }
 
   String _buildUserPrompt(String rawQuestion, String context) {
@@ -540,7 +542,7 @@ class RagService {
       return rawQuestion;
     }
     
-    return "Context: $context\n\nQuestion: $rawQuestion";
+    return "Context:\n$context\n\nQuestion:\n$rawQuestion";
   }
 
   Future<String> askBuddy(String question) async {
