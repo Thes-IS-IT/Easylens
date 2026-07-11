@@ -39,6 +39,9 @@ enum HudMode {
 }
 
 class HardwareScreen extends StatefulWidget {
+  /// Global lock state notifier so the dashboard can render a fullscreen overlay.
+  static final ValueNotifier<bool> screenLockNotifier = ValueNotifier<bool>(false);
+
   final bool isActive;
   final int initialStep;
   const HardwareScreen({super.key, this.isActive = true, this.initialStep = 1});
@@ -71,7 +74,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
   String _continuousVoiceText = '';
   Timer? _silenceTimer;
   bool _isFocusModeEnabled = false;
-  bool _isScreenLocked = false;
+  bool get _isScreenLocked => HardwareScreen.screenLockNotifier.value;
+  set _isScreenLocked(bool v) => HardwareScreen.screenLockNotifier.value = v;
   bool _useLocalAI = true;
 
   StreamSubscription<BatteryState>? _batterySubscription;
@@ -3398,49 +3402,6 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
         ),
         ],  // Close Column children
         ),  // Close Column
-        if (_isScreenLocked)
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onLongPress: () {
-                HapticFeedback.mediumImpact();
-                TtsService().speak("Screen unlocked.");
-                setState(() {
-                  _isScreenLocked = false;
-                });
-              },
-              child: Container(
-                color: Colors.black.withOpacity(0.85),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.lock,
-                      color: Colors.white,
-                      size: 64,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      "Screen Locked",
-                      style: GoogleFonts.inter(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Long press the screen to unlock",
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.white60,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }

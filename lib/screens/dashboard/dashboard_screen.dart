@@ -308,6 +308,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // Draggable Floating Mascot Button S01
               DraggableBuddyButton(onTap: _openBuddyAssistant),
+
+              // ── Fullscreen Lock Overlay ──────────────────────────────
+              ValueListenableBuilder<bool>(
+                valueListenable: HardwareScreen.screenLockNotifier,
+                builder: (context, isLocked, _) {
+                  if (!isLocked) return const SizedBox.shrink();
+                  return Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onLongPress: () {
+                        HardwareScreen.screenLockNotifier.value = false;
+                      },
+                      child: Container(
+                        color: Colors.black.withOpacity(0.92),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.08),
+                                border: Border.all(color: Colors.white24, width: 2),
+                              ),
+                              child: const Icon(
+                                Icons.lock,
+                                color: Colors.white,
+                                size: 48,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Screen Locked',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Long press anywhere to unlock',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         );
