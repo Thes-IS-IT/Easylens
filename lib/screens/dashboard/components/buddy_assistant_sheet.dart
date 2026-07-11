@@ -142,13 +142,18 @@ Question: $text
 Buddy:
 """;
 
-    // Filipino → Gemini API (natively responds in Tagalog)
-    // English  → Gemma on-device LLM
+    // Routing based on Use Local AI Settings toggle
+    final useLocalSetting = SettingsService().useLocalAI;
     String response;
-    if (isFilipino) {
-      response = await RagService().askBuddyGemini(text, name, aid);
+    if (useLocalSetting) {
+      if (isFilipino) {
+        response = await RagService().askBuddyFilipino(text, name, aid);
+      } else {
+        response = await RagService().askBuddy(prompt);
+      }
     } else {
-      response = await RagService().askBuddy(prompt);
+      // Force Online Gemini for both English and Tagalog
+      response = await RagService().askBuddyGemini(text, name, aid);
     }
 
     if (mounted) {

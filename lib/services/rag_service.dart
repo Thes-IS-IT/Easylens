@@ -8,6 +8,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'journal_service.dart';
+import 'settings_service.dart';
 
 
 class KnowledgeItem {
@@ -405,17 +406,18 @@ Buddy:
 
     String responseText = "";
 
-    // Try local Gemma offline model (Google AI Edge) only
+    // Check Settings option for Local AI
+    final useLocalSetting = SettingsService().useLocalAI;
     final modelPath = await _getLocalModelPath();
-    if (modelPath != null) {
+    if (useLocalSetting && modelPath != null) {
       responseText = await _queryGemmaOffline(promptText);
     } else {
-      // Fallback 1: Online Gemini
+      // Use Online Gemini
       final onlineRes = await askBuddyOnlineGemini(promptText);
       if (onlineRes.isNotEmpty) {
         responseText = onlineRes;
       } else {
-        // Fallback 2: Dynamic local RAG response generator
+        // Fallback: Dynamic local RAG response generator
         responseText = generateSmartFallback(rawQuestion);
       }
     }

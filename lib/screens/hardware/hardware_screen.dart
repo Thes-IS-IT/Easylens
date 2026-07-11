@@ -76,8 +76,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isFocusModeEnabled = false;
   bool get _isScreenLocked => HardwareScreen.screenLockNotifier.value;
   set _isScreenLocked(bool v) => HardwareScreen.screenLockNotifier.value = v;
-  bool get _useLocalAI => SettingsService().useLocalAI;
-  set _useLocalAI(bool val) => SettingsService().updateSettings(useLocalAI: val);
+  bool _useLocalAI = true;
 
   StreamSubscription<BatteryState>? _batterySubscription;
   final Battery _battery = Battery();
