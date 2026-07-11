@@ -898,15 +898,15 @@ class _HardwareScreenState extends State<HardwareScreen> {
           final baseRisk = _getRiskScore(highestThreatLabel);
           final double activationThreshold = baseRisk == 1.0 ? 0.05 : 0.08;
 
+          final lang = SettingsService().selectedLanguage;
+          final isTagalog = lang.toLowerCase().contains('tagalog') ||
+              lang.toLowerCase().contains('filipino');
+
           if (highestThreatArea > activationThreshold) {
             final normalizedCenterX = (highestThreatObject.boundingBox.left + highestThreatObject.boundingBox.right) / 2.0 / width;
             String direction = normalizedCenterX < 0.40 ? 'left' : (normalizedCenterX > 0.60 ? 'right' : 'center');
             
             final refinedLabelText = highestThreatLabel[0].toUpperCase() + highestThreatLabel.substring(1);
-            
-            final lang = SettingsService().selectedLanguage;
-            final isTagalog = lang.toLowerCase().contains('tagalog') ||
-                lang.toLowerCase().contains('filipino');
             
             String guidance;
 
@@ -2533,7 +2533,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
 
         Column(
           children: [
-        // App Header Bar (Figma layout matching)
+            // App Header Bar (Figma layout matching)
         Row(
           children: [
             GestureDetector(
