@@ -366,6 +366,54 @@ class RagService {
     });
   }
 
+  bool _isOutOfBounds(String question) {
+    final lowerQ = question.toLowerCase();
+    
+    // Explicit list of out of bounds queries S01
+    final outOfBoundsFlags = [
+      'capital of', 'who is', 'history of', 'what is the formula', 'solve', 'equation', 'javascript', 'python',
+      'code for', 'programming', 'write a', 'essay', 'poem', 'story about', 'translate to spanish', 'definition of',
+      'c++', 'java', 'html', 'css', 'coding', 'einstein', 'newton', 'galileo', 'philosophy', 'science of'
+    ];
+    for (final flag in outOfBoundsFlags) {
+      if (lowerQ.contains(flag)) {
+        return true;
+      }
+    }
+
+    // Long queries (> 35) with no relation to navigation or EasyLens are classified as out-of-bounds S01
+    if (lowerQ.length > 35) {
+      final validKeywords = [
+        'easylens', 'buddy', 'navigate', 'direction', 'map', 'stair', 'curb', 'obstacle', 'avoid', 'safe',
+        'help', 'hello', 'hi', 'how are you', 'what is this', 'explain', 'describe', 'camera', 'scan', 'ocr',
+        'hud', 'menu', 'button', 'settings', 'sos', 'emergency', 'contacts', 'uninstall', 'install', 'voice',
+        'who are you', 'what can you do', 'features', 'mascot', 'dog', 'golden retriever', 'look', 'see',
+        'sino ka', 'paano', 'tulong', 'bayan', 'direksyon', 'abiso', 'lakad', 'daan', 'pinto', 'door', 'jeepney',
+        'registered', 'profile', 'face', 'landmark', 'gps', 'coordinate', 'route'
+      ];
+      bool hasKeyword = false;
+      for (final kw in validKeywords) {
+        if (lowerQ.contains(kw)) {
+          hasKeyword = true;
+          break;
+        }
+      }
+      if (!hasKeyword) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  String _getOutOfBoundsFallback() {
+    final isFilipino = SettingsService().selectedLanguage == "Filipino";
+    if (isFilipino) {
+      return "Woof! Ako si Buddy, at ako ay dinisenyo lamang para tulungan ka sa paggamit ng EasyLens app at sa iyong paglalakad at navigation. Pag-usapan natin kung paano ka makakarating nang ligtas sa iyong pupuntahan, arf!";
+    }
+    return "Woof! I'm Buddy, and I'm only designed to assist you with the EasyLens app, spatial navigation, and visual guidance. Let's focus on keeping you safe during your journey, arf!";
+  }
+
   String _buildGemmaPrompt(String rawQuestion, String context, String userName, String mobilityAid) {
     final lowerQ = rawQuestion.toLowerCase();
     
@@ -381,6 +429,7 @@ class RagService {
       return """
 <start_of_turn>user
 You are Buddy, the friendly and loyal visual guide dog mascot of the EasyLens app. Respond in first person, stay in character, be warm/dog-like, and keep the answer under 12 words.
+Constraint: You can only assist with EasyLens app and visual travel navigation.
 User: $rawQuestion<end_of_turn>
 <start_of_turn>model
 """;
@@ -404,6 +453,7 @@ Explain what it is and highlight key info like warnings, product name, or direct
     return """
 <start_of_turn>user
 You are Buddy, the loyal guide dog mascot and EasyLens assistant. Speak in first person. Be helpful, warm, dog-like, and highly concise (under 2 sentences). Always stay in character.
+Constraint: You can only assist with EasyLens app features, spatial navigation, safety, and visual guidance. If the question is unrelated (e.g. general facts, history, science, math, or coding), refuse politely in character.
 User's Name: $userName
 Mobility Aid: $mobilityAid
 
@@ -431,6 +481,10 @@ User Question: $rawQuestion<end_of_turn>
       if (questionMatch != null) {
         rawQuestion = questionMatch.group(1)?.trim() ?? question;
       }
+    }
+
+    if (_isOutOfBounds(rawQuestion)) {
+      return _getOutOfBoundsFallback();
     }
 
     final lowerQ = rawQuestion.toLowerCase();
@@ -470,6 +524,10 @@ User Question: $rawQuestion<end_of_turn>
     final modelPath = await _getLocalModelPath();
     if (modelPath == null) {
       return generateSmartLocalResponse(question);
+    }
+
+    if (_isOutOfBounds(question)) {
+      return _getOutOfBoundsFallback();
     }
 
     final lowerQ = question.toLowerCase();

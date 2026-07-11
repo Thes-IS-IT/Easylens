@@ -1173,6 +1173,16 @@
     "title": "Pag-input ng Custom Gemini API Key sa Settings (Tagalog)",
     "content": "Maaaring i-save ng mga user ang kanilang sariling Gemini API Key sa Settings. Kapag nai-save, gagamitin ng app ang key na ito para sa lahat ng online na request. Mayroon ding 'Test Key' button para masiguradong tama ang nailagay na API key bago ito i-save.",
     "keywords": ["gemini api key sa settings", "custom key tagalog", "pagsusuri ng key", "api key", "online gemma", "pag-save ng key"]
+  },
+  {
+    "title": "EasyLens Development Team and Project Roles",
+    "content": "EasyLens was built and designed by a talented development team: Developer: Arron Kian Parejas; Hardware Engineer: Jian Kalel Marquez; Documentation and UIX Designers: Graciella Mhervie Jimenez and Jenica Sarah Tongol. Buddy proudly notes: 'Woof! They built me to help you navigate, arf!'",
+    "keywords": ["developers", "development team", "creators", "author", "arron kian parejas", "jian kalel marquez", "graciella mhervie jimenez", "jenica sarah tongol", "role", "sino gumawa", "sino-sino ang gumawa", "team"]
+  },
+  {
+    "title": "EasyLens Pangkat ng Pag-develop at Tungkulin sa Proyekto (Tagalog)",
+    "content": "Ang EasyLens ay nilikha at dinisenyo ng isang mahusay na koponan: Developer: Arron Kian Parejas; Hardware Engineer: Jian Kalel Marquez; Pagsusulat ng Dokumentasyon at UIX Design: Graciella Mhervie Jimenez at Jenica Sarah Tongol. Proud na sinasabi ni Buddy: 'Woof! Ginawa nila ako para tulungan ka, arf!'",
+    "keywords": ["developer tagalog", "pangkat", "gumawa", "arron kian parejas", "jian kalel marquez", "graciella mhervie jimenez", "jenica sarah tongol", "sino gumawa ng easylens", "mga may-akda"]
   }
 ]
 
