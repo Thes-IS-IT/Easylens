@@ -69,305 +69,323 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SizedBox(height: 10),
-              
-              // Animated Mascot Container (Card)
-              Column(
-                children: [
-                  Container(
-                    width: 170,
-                    height: 170,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF0F3E8F), // Premium accent blue
-                          Color(0xFF001F52), // Deep theme navy
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(28.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryText.withOpacity(0.18),
-                          blurRadius: 20.0,
-                          offset: const Offset(0, 10),
-                        )
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Image.asset(
-                      'assets/Mascots/App Logo.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, err, st) => const Icon(
-                        Icons.pets,
-                        size: 80,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // App Name
-                  Text(
-                    'BUDDY',
-                    style: GoogleFonts.inter(
-                      textStyle: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primaryText,
-                        letterSpacing: 2.0,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // App Tagline
-                  Text(
-                    'VISION ASSISTANT',
-                    style: GoogleFonts.inter(
-                      textStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primaryText,
-                        letterSpacing: 2.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              // Dynamic Local AI Setup Card S01
-              if (_isCheckingModel)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(color: Color(0xFF0F3E8F)),
-                  ),
-                )
-              else if (_showLocalAiCard && !_isModelInstalled)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.65),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.offline_bolt_outlined,
-                                    color: AppColors.welcomeAccentGold,
-                                    size: 28,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      'Offline AI Installer',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primaryText,
-                                      ),
-                                    ),
-                                  ),
-                                  // Buffer space to not overlap with the X button
-                                  const SizedBox(width: 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 20),
+                        
+                        // Animated Mascot Container (Card)
+                        Column(
+                          children: [
+                            Container(
+                              width: 170,
+                              height: 170,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0F3E8F), // Premium accent blue
+                                    Color(0xFF001F52), // Deep theme navy
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(28.0),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primaryText.withOpacity(0.18),
+                                    blurRadius: 20.0,
+                                    offset: const Offset(0, 10),
+                                  )
                                 ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Install the offline AI database (1.3 GB) to enable safety assistance without cellular data or internet.',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: AppColors.textMuted,
-                                  height: 1.4,
+                              clipBehavior: Clip.antiAlias,
+                              child: Image.asset(
+                                'assets/Mascots/App Logo.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, err, st) => const Icon(
+                                  Icons.pets,
+                                  size: 80,
+                                  color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 16),
-                              if (_isDownloading) ...[
-                                LinearProgressIndicator(
-                                  value: _downloadProgress,
-                                  backgroundColor: AppColors.unselectedBorder,
-                                  color: AppColors.primaryButton,
-                                  minHeight: 8,
-                                  borderRadius: BorderRadius.circular(4),
+                            ),
+                            const SizedBox(height: 24),
+                            // App Name
+                            Text(
+                              'BUDDY',
+                              style: GoogleFonts.inter(
+                                textStyle: TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primaryText,
+                                  letterSpacing: 2.0,
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _downloadStatus,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textMuted,
-                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // App Tagline
+                            Text(
+                              'VISION ASSISTANT',
+                              style: GoogleFonts.inter(
+                                textStyle: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primaryText,
+                                  letterSpacing: 2.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Dynamic Local AI Setup Card S01
+                        if (_isCheckingModel)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(color: Color(0xFF0F3E8F)),
+                            ),
+                          )
+                        else if (_showLocalAiCard && !_isModelInstalled) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.65),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 8),
                                     ),
-                                    Text(
-                                      '${(_downloadProgress * 100).toStringAsFixed(0)}%',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primaryText,
+                                  ],
+                                ),
+                                child: Stack(
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.offline_bolt_outlined,
+                                              color: AppColors.welcomeAccentGold,
+                                              size: 28,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                'Offline AI Installer',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primaryText,
+                                                ),
+                                              ),
+                                            ),
+                                            // Buffer space to not overlap with the X button
+                                            const SizedBox(width: 24),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Install the offline AI database (1.3 GB) to enable safety assistance without cellular data or internet.',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            color: AppColors.textMuted,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        if (_isDownloading) ...[
+                                          LinearProgressIndicator(
+                                            value: _downloadProgress,
+                                            backgroundColor: AppColors.unselectedBorder,
+                                            color: AppColors.primaryButton,
+                                            minHeight: 8,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                _downloadStatus,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.textMuted,
+                                                ),
+                                              ),
+                                              Text(
+                                                '${(_downloadProgress * 100).toStringAsFixed(0)}%',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primaryText,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ] else
+                                          SizedBox(
+                                            width: double.infinity,
+                                            height: 44,
+                                            child: ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: AppColors.welcomeAccentGold,
+                                                foregroundColor: AppColors.primaryButtonText,
+                                                elevation: 0,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                              onPressed: _startDownload,
+                                              icon: const Icon(Icons.download_for_offline_outlined, size: 20),
+                                              label: Text(
+                                                'Download Local AI',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    Positioned(
+                                      top: -6,
+                                      right: -6,
+                                      child: IconButton(
+                                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                                        onPressed: () {
+                                          setState(() {
+                                            _showLocalAiCard = false;
+                                          });
+                                        },
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        splashRadius: 16,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ] else
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 44,
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.welcomeAccentGold,
-                                      foregroundColor: AppColors.primaryButtonText,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    onPressed: _startDownload,
-                                    icon: const Icon(Icons.download_for_offline_outlined, size: 20),
-                                    label: Text(
-                                      'Download Local AI',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          Positioned(
-                            top: -6,
-                            right: -6,
-                            child: IconButton(
-                              icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
-                              onPressed: () {
-                                setState(() {
-                                  _showLocalAiCard = false;
-                                });
-                              },
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              splashRadius: 16,
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 24),
                         ],
-                      ),
+
+                        // Push the remaining widget to the bottom
+                        const Spacer(),
+
+                        // Bottom Action Buttons
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Sign Up Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryButton,
+                                  foregroundColor: AppColors.primaryButtonText,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(28.0),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    AppRoute.to(const SignUpScreen()),
+                                  );
+                                },
+                                child: Text(
+                                  'Sign Up',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Log In Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primaryText,
+                                  backgroundColor: Colors.white,
+                                  side: BorderSide(color: AppColors.cardBorder, width: 2.0),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(28.0),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    AppRoute.to(const LoginScreen()),
+                                  );
+                                },
+                                child: Text(
+                                  'Log In',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Skip Button
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  AppRoute.to(const DashboardScreen()),
+                                  (route) => false,
+                                );
+                              },
+                              child: Text(
+                                'Skip',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
-
-              const SizedBox(height: 32),
-
-              // Bottom Action Buttons
-              Column(
-                children: [
-                  // Sign Up Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryButton,
-                        foregroundColor: AppColors.primaryButtonText,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28.0),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          AppRoute.to(const SignUpScreen()),
-                        );
-                      },
-                      child: Text(
-                        'Sign Up',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Log In Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryText,
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: AppColors.cardBorder, width: 2.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28.0),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          AppRoute.to(const LoginScreen()),
-                        );
-                      },
-                      child: Text(
-                        'Log In',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Skip Button
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        AppRoute.to(const DashboardScreen()),
-                        (route) => false,
-                      );
-                    },
-                    child: Text(
-                      'Skip',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        color: const Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
