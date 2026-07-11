@@ -89,7 +89,11 @@ class _SurveyScreenState extends State<SurveyScreen> {
       };
 
       if (_firebaseService.isFirebaseAvailable) {
-        await FirebaseFirestore.instance.collection('feedbacks').add(feedbackData);
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('feedbacks')
+            .add(feedbackData);
       } else {
         // Fallback for offline/mock mode
         await Future.delayed(const Duration(seconds: 1));
