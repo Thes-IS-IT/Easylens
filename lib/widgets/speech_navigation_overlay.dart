@@ -24,11 +24,28 @@ import '../screens/onboarding/onboarding_screen.dart';
 
 class SpeechNavigationNotifier {
   static final ValueNotifier<int?> tabChangeNotifier = ValueNotifier<int?>(null);
+  static final ValueNotifier<String?> searchPlaceNotifier = ValueNotifier<String?>(null);
+  static final ValueNotifier<int?> selectResultNotifier = ValueNotifier<int?>(null);
+  static List<Map<String, dynamic>> activeSearchResults = [];
   
   static void changeTab(int index) {
     tabChangeNotifier.value = index;
     Future.delayed(const Duration(milliseconds: 50), () {
       tabChangeNotifier.value = null;
+    });
+  }
+
+  static void searchPlace(String query) {
+    searchPlaceNotifier.value = query;
+    Future.delayed(const Duration(milliseconds: 50), () {
+      searchPlaceNotifier.value = null;
+    });
+  }
+
+  static void selectResult(int index) {
+    selectResultNotifier.value = index;
+    Future.delayed(const Duration(milliseconds: 50), () {
+      selectResultNotifier.value = null;
     });
   }
 }
@@ -52,6 +69,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
   double? _btnLeft;
   double? _btnTop;
   bool _isDragging = false;
+  int _pendingSearchFlow = 0;
 
   @override
   void dispose() {
@@ -204,6 +222,98 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     final lang = SettingsService().selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
 
+    // ── SEARCH RESULTS SELECTION FLOW S01 ──
+    if (_pendingSearchFlow == 1) {
+      final results = SpeechNavigationNotifier.activeSearchResults;
+      
+      // Check for cancel command
+      if (cleanText.contains("cancel") || cleanText.contains("i-cancel") || cleanText.contains("hinto") || cleanText.contains("stop")) {
+        setState(() {
+          _pendingSearchFlow = 0;
+        });
+        return isFilipino ? "Kinansela ang paghahanap" : "Search cancelled";
+      }
+
+      int selectedIndex = -1;
+      
+      // Check word number matches S01
+      if (cleanText.contains("1") || cleanText.contains("one") || cleanText.contains("first") || cleanText.contains("una")) {
+        selectedIndex = 0;
+      } else if (cleanText.contains("2") || cleanText.contains("two") || cleanText.contains("second") || cleanText.contains("pangalawa")) {
+        selectedIndex = 1;
+      } else if (cleanText.contains("3") || cleanText.contains("three") || cleanText.contains("third") || cleanText.contains("pangatlo")) {
+        selectedIndex = 2;
+      } else {
+        // Match specific place name
+        for (int i = 0; i < results.length && i < 3; i++) {
+          final name = (results[i]['name'] as String).toLowerCase();
+          if (cleanText.contains(name) || name.contains(cleanText)) {
+            selectedIndex = i;
+            break;
+          }
+        }
+      }
+      
+      if (selectedIndex >= 0 && selectedIndex < results.length) {
+        setState(() {
+          _pendingSearchFlow = 0;
+        });
+        SpeechNavigationNotifier.selectResult(selectedIndex);
+        final placeName = results[selectedIndex]['name'];
+        return isFilipino 
+            ? "Papunta sa $placeName" 
+            : "Starting navigation to $placeName";
+      } else {
+        return isFilipino 
+            ? "Hindi nakuha ang numero. Mangyaring sabihin ang numero o kanselahin." 
+            : "I didn't catch that number. Please say the number or cancel.";
+      }
+    }
+
+    // ── TRIGGER SEARCH PLACE COMMAND S01 ──
+    String? searchQuery;
+    if (cleanText.startsWith("search for ")) {
+      searchQuery = cleanText.substring("search for ".length).trim();
+    } else if (cleanText.startsWith("find ")) {
+      searchQuery = cleanText.substring("find ".length).trim();
+    } else if (cleanText.startsWith("hanapin ang ")) {
+      searchQuery = cleanText.substring("hanapin ang ".length).trim();
+    } else if (cleanText.startsWith("hanapin ")) {
+      searchQuery = cleanText.substring("hanapin ".length).trim();
+    }
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      SpeechNavigationNotifier.changeTab(1);
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      SpeechNavigationNotifier.searchPlace(searchQuery);
+
+      // Await database/Google Places fetch
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      final results = SpeechNavigationNotifier.activeSearchResults;
+      if (results.isEmpty) {
+        return isFilipino 
+            ? "Paumanhin, walang nahanap na lugar para sa '$searchQuery'" 
+            : "Sorry, no results found for '$searchQuery'";
+      }
+
+      setState(() {
+        _pendingSearchFlow = 1;
+      });
+
+      final sb = StringBuffer();
+      sb.write(isFilipino 
+          ? "May nahanap akong ${results.length > 3 ? 3 : results.length} na lugar. " 
+          : "I found ${results.length > 3 ? 3 : results.length} places. ");
+      for (int i = 0; i < results.length && i < 3; i++) {
+        sb.write("${i + 1}: ${results[i]['name']}. ");
+      }
+      sb.write(isFilipino 
+          ? "Sabihin ang numero upang mag-navigate." 
+          : "Please say the number to navigate.");
+      return sb.toString();
+    }
+
     // 1. Dashboard/Home tab navigation
     if (cleanText.contains("go to home") || cleanText.contains("open home") || cleanText.contains("go to dashboard") || cleanText.contains("open dashboard") || cleanText.contains("dashboard") || cleanText.contains("pumunta sa dashboard") || cleanText.contains("umpisa")) {
       SpeechNavigationNotifier.changeTab(0);
@@ -298,7 +408,9 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
   }
 
   bool _containsAnyKeyword(String text) {
+    if (_pendingSearchFlow == 1) return true;
     final words = [
+      "search for", "find", "hanapin",
       "home", "dashboard", "umpisa",
       "map", "navigation", "mapa", "nabigasyon",
       "camera", "easylens", "easy lens",

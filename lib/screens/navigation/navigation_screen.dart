@@ -18,6 +18,7 @@ import '../../utils/app_route.dart';
 import '../../services/settings_service.dart';
 import '../../services/active_navigation_service.dart';
 import '../../services/translation_service.dart';
+import '../../widgets/speech_navigation_overlay.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -163,15 +164,43 @@ class _NavigationScreenState extends State<NavigationScreen> {
   Map<String, dynamic>? _selectedPlace;
   int _currentStepIndex = 0;
 
+  void _updateSearchResults(List<Map<String, dynamic>> results) {
+    setState(() {
+      _searchResults = results;
+    });
+    SpeechNavigationNotifier.activeSearchResults = results;
+  }
+
+  void _onVoiceSearchRequested() {
+    final query = SpeechNavigationNotifier.searchPlaceNotifier.value;
+    if (query != null && query.isNotEmpty && mounted) {
+      _searchController.text = query;
+      _performSearch(query);
+    }
+  }
+
+  void _onVoiceSelectRequested() {
+    final index = SpeechNavigationNotifier.selectResultNotifier.value;
+    if (index != null && index >= 0 && index < _searchResults.length && mounted) {
+      final place = _searchResults[index];
+      _startGuidance(place);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _searchResults = List.from(_allPlaces);
+    SpeechNavigationNotifier.activeSearchResults = _searchResults;
     _initializeLocationTracking();
+    SpeechNavigationNotifier.searchPlaceNotifier.addListener(_onVoiceSearchRequested);
+    SpeechNavigationNotifier.selectResultNotifier.addListener(_onVoiceSelectRequested);
   }
 
   @override
   void dispose() {
+    SpeechNavigationNotifier.searchPlaceNotifier.removeListener(_onVoiceSearchRequested);
+    SpeechNavigationNotifier.selectResultNotifier.removeListener(_onVoiceSelectRequested);
     _searchController.dispose();
     _mapController?.dispose();
     _positionStreamSubscription?.cancel();
@@ -561,9 +590,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     });
 
     if (query.trim().isEmpty) {
-      setState(() {
-        _searchResults = List.from(_allPlaces);
-      });
+      _updateSearchResults(List.from(_allPlaces));
       return;
     }
 
@@ -571,9 +598,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
     // Check query cache
     if (_placesCache.containsKey(lowercaseQuery)) {
-      setState(() {
-        _searchResults = _placesCache[lowercaseQuery]!;
-      });
+      _updateSearchResults(_placesCache[lowercaseQuery]!);
       print("Serving search results from local cache (API count protected)");
       return;
     }
@@ -712,9 +737,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
 
     _placesCache[lowercaseQuery] = mappedPlaces;
-    setState(() {
-      _searchResults = mappedPlaces;
-    });
+    _updateSearchResults(mappedPlaces);
   }
 
   void _onFilterTap(String filter) {
@@ -826,6 +849,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _hasAnnouncedArrival = false;
       _searchController.clear();
       _searchResults = List.from(_allPlaces);
+      SpeechNavigationNotifier.activeSearchResults = _searchResults;
       _stepLocations = [];
       _lastRerouteTime = 0;
       _offRouteCounter = 0;
