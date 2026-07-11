@@ -1,6 +1,6 @@
 # EasyLens 👓
 
-EasyLens is a state-of-the-art accessibility assistant mobile application designed to empower visually impaired and neurodivergent users. By blending local computer vision, on-device and cloud large language models, cloud storage databases, and edge wearable glasses integration, EasyLens functions as a real-time smart companion.
+EasyLens is a state-of-the-art accessibility assistant mobile application designed to empower visually impaired and neurodivergent users. **At its core, EasyLens operates on a Custom Fine-Tuned MobileNetV2 Object Detection pipeline.** This high-speed edge vision engine acts as the primary "lens," seamlessly blending local computer vision, on-device large language models (Gemma/Gemini), cloud storage, and wearable ESP32 smart glasses into a real-time smart companion.
 
 ---
 
@@ -8,16 +8,15 @@ EasyLens is a state-of-the-art accessibility assistant mobile application design
 
 | Feature | Description |
 |---|---|
-| **Buddy Local AI** | On-device Gemma-IT 2B LLM for English; Google Gemini 2.0 Flash for Filipino. Full voice I/O, navigation commands, RAG knowledge base. |
-| **EasyLens Camera** | Real-time object detection (TFLite MobileNetV2, 80 classes) + OCR (ML Kit) with obstacle TTS alerts. |
-| **Audio Navigation** | GPS turn-by-turn guidance with proximity-based TTS (anti-spam 8s cooldown), OSRM road routing, live Google Map. |
-| **Nearby Text Scanner** | On-device ML Kit OCR; reads text aloud; forwards to Buddy for explanation. |
-| **Object Detector** | MobileNetV2 SSD bounding boxes on live camera feed via Dart Isolate background thread. |
+| **Custom Object Detector** | **Core Component:** Custom fine-tuned MobileNetV2 SSD drawing real-time bounding boxes via Dart Isolate background threads for instant obstacle TTS alerts. |
+| **Speech Navigation** | Advanced turn-by-turn guidance controlled fully via continuous speech (STT). Includes Filipino/Tagalog support, dynamic map pinning, and global arrival confetti celebrations. |
+| **Buddy Local AI** | On-device Gemma-IT 2B LLM for English; Google Gemini 2.0 Flash for Filipino. Full voice I/O and RAG knowledge base. |
+| **Nearby Text Scanner** | Supported by ML Kit OCR; reads text aloud; forwards to Buddy for intelligent context explanation. |
 | **SOS & Emergency** | One-tap SMS dispatch to active emergency contacts via MensaHero gateway. |
-| **Voice Personas** | 5 personas (Aria, Echo, Nova, River, Sage) with distinct pitch/rate. Applied universally across all TTS output. |
+| **Voice Personas** | 6 personas (including Maya for native Tagalog) with distinct pitch/rate. Applied universally across all TTS output. |
 | **Filipino Language** | Full app localization — UI strings, greetings, Buddy, Navigation, Settings — all switch live. |
 | **Dynamic Theming** | Default (light) and Black (AMOLED) themes with 8 accent color choices applied globally in real time. |
-| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over WiFi. |
+| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over WiFi directly into the Object Detection pipeline. |
 | **Shake to Undo** | Accelerometer gesture (>2.5g) triggers undo action + TTS confirmation. |
 | **Bark Sound Cue** | `bark_dashboard.mp3` plays once when returning to the Home tab. |
 
@@ -77,6 +76,7 @@ graph TD
 
 | Document | Description |
 |---|---|
+| [object_detection_architecture.md](docs/object_detection_architecture.md) | Deep dive into the core MobileNetV2 pipeline, ML Kit, and Speech Navigation |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Complete technical architecture, data flow, database schemas |
 | [FEATURES.md](docs/FEATURES.md) | Full feature catalogue with screen-by-screen breakdown |
 | [cloudflare_r2_setup.md](docs/cloudflare_r2_setup.md) | Cloudflare R2 bucket setup and CORS configuration |

@@ -82,7 +82,7 @@ class DashboardHome extends StatelessWidget {
             onTap: () => onTabSelected(2),
           ),
           'faces': DashboardButton(
-            title: 'Register Face',
+            title: TranslationService.translate('register_face', lang),
             icon: Icons.face_retouching_natural,
             color: const Color(0xFF7C3AED),
             onTap: onFaceRegistrationSelected,

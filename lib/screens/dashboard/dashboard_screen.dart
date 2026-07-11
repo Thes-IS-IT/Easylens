@@ -22,6 +22,7 @@ import 'dashboard_home.dart';
 import '../../utils/app_route.dart';
 import '../../services/tts_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/translation_service.dart';
 import '../../widgets/speech_navigation_overlay.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -157,9 +158,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          SettingsService().selectedLanguage.toLowerCase().contains('filipino') || SettingsService().selectedLanguage.toLowerCase().contains('tagalog')
-              ? 'Na-detect ang pag-shake! Na-undo ang huling aksyon.'
-              : 'Shake gesture detected! Last action undone.',
+          TranslationService.translate('shake_detected_undo', SettingsService().selectedLanguage),
         ),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),

@@ -14,6 +14,7 @@ class ActiveNavigationService extends ChangeNotifier {
   LatLng? _currentLocation;
   LatLng? _destinationLocation;
   List<LatLng> _routePoints = [];
+  bool _hasArrived = false;
 
   bool get isNavigating => _isNavigating;
   String get destinationName => _destinationName;
@@ -23,6 +24,12 @@ class ActiveNavigationService extends ChangeNotifier {
   LatLng? get currentLocation => _currentLocation;
   LatLng? get destinationLocation => _destinationLocation;
   List<LatLng> get routePoints => _routePoints;
+  bool get hasArrived => _hasArrived;
+
+  void triggerArrival() {
+    _hasArrived = true;
+    notifyListeners();
+  }
 
   void startNavigation({
     required String destinationName,
@@ -30,6 +37,7 @@ class ActiveNavigationService extends ChangeNotifier {
     required List<LatLng> routePoints,
   }) {
     _isNavigating = true;
+    _hasArrived = false;
     _destinationName = destinationName;
     _destinationLocation = destinationLocation;
     _routePoints = routePoints;
@@ -57,6 +65,7 @@ class ActiveNavigationService extends ChangeNotifier {
     _currentStepText = "";
     _distanceRemaining = "";
     _timeRemaining = "";
+    _hasArrived = false;
     _currentLocation = null;
     _destinationLocation = null;
     _routePoints = [];

@@ -8,6 +8,7 @@ import 'screens/welcome/welcome_screen.dart';
 import 'services/notification_service.dart';
 import 'services/esp32_service.dart';
 import 'widgets/speech_navigation_overlay.dart';
+import 'widgets/confetti_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,7 +73,9 @@ class EasyLensApp extends StatelessWidget {
           ),
           home: const WelcomeScreen(),
           builder: (context, child) {
-            return SpeechNavigationOverlay(child: child!);
+            return ConfettiOverlay(
+              child: SpeechNavigationOverlay(child: child!),
+            );
           },
         );
       },

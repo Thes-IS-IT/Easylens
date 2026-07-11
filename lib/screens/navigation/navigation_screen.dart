@@ -17,6 +17,7 @@ import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
 import '../../services/settings_service.dart';
 import '../../services/active_navigation_service.dart';
+import '../../services/translation_service.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -280,6 +281,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       TtsService().speak(
         'You have arrived at your destination, ${_selectedPlace!["name"]}. Well done!',
       );
+      ActiveNavigationService().triggerArrival();
       setState(() => _navState = 2);
       return;
     }
@@ -585,13 +587,20 @@ class _NavigationScreenState extends State<NavigationScreen> {
         // Prepend search query keyword to make it contextually relevant to the user's input
         final String finalName = "${query[0].toUpperCase()}${query.substring(1)} - $mockName";
 
+        final lang = SettingsService().selectedLanguage;
+        final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
         mappedPlaces.add({
           'name': finalName,
           'address': 'Near Holy Angel Avenue, Angeles City',
           'dist': distStr,
           'time': '$estMinutes min',
           'latLng': LatLng(lat, lng),
-          'steps': [
+          'steps': isFilipino ? [
+            'Tumungo patungong $finalName',
+            'Kumanan sa pinakamalapit na pangunahing daan',
+            'Sundin ang mga palatandaan sa direksyon S01',
+            'Dumating sa $finalName'
+          ] : [
             'Head toward $finalName',
             'Turn right onto closest main road',
             'Follow directional signs S01',
@@ -702,6 +711,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       TtsService().speak(
         "You have arrived at your destination, ${_selectedPlace!['name']}. Thank you for using EasyLens.",
       );
+      ActiveNavigationService().triggerArrival();
       ActiveNavigationService().stopNavigation();
     }
   }
@@ -727,6 +737,53 @@ class _NavigationScreenState extends State<NavigationScreen> {
         ),
       );
     }
+  }
+
+  void _onMapLongPress(LatLng position) {
+    if (_navState == 1) return; // Prevent pinning while actively navigating
+
+    // Calculate dynamic distance and time
+    final distMeters = Geolocator.distanceBetween(
+      _currentLocation.latitude,
+      _currentLocation.longitude,
+      position.latitude,
+      position.longitude,
+    );
+    final double kmVal = distMeters / 1000.0;
+    final String distStr = "${kmVal.toStringAsFixed(1)} km";
+    final int estMinutes = (kmVal * 12.0).round().clamp(1, 120);
+
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+    final pinnedPlace = {
+      'name': 'Pinned Location',
+      'address': 'Custom map destination',
+      'dist': distStr,
+      'time': '$estMinutes min',
+      'latLng': position,
+      'steps': isFilipino ? [
+        'Tumungo patungong Pinned Location',
+        'Kumanan sa pinakamalapit na pangunahing daan',
+        'Sundin ang mga palatandaan sa direksyon',
+        'Dumating sa Pinned Location'
+      ] : [
+        'Head toward Pinned Location',
+        'Turn right onto closest main road',
+        'Follow directional signs',
+        'Arrive at Pinned Location'
+      ]
+    };
+
+    setState(() {
+      _selectedPlace = pinnedPlace;
+      _searchController.text = 'Pinned Location';
+    });
+
+    // Animate map to pinned location
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLng(position),
+    );
   }
 
   String _getDynamicETA(String durationStr) {
@@ -762,6 +819,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               mapToolbarEnabled: false,
               markers: _getMapMarkers(),
               polylines: _getMapPolylines(),
+              onLongPress: _onMapLongPress,
               onMapCreated: (controller) {
                 _mapController = controller;
                 _mapController?.animateCamera(
@@ -973,6 +1031,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   // ── OVERLAY CONTENT 1: Search & Filter ──────────────────────────────
   Widget _buildInitialSearchContent() {
+    final lang = SettingsService().selectedLanguage;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -994,7 +1053,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           controller: _searchController,
           onChanged: _performSearch,
           decoration: InputDecoration(
-            hintText: 'Where to?',
+            hintText: TranslationService.translate('Where to?', lang),
             hintStyle: GoogleFonts.inter(color: Colors.grey.shade400),
             prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 22),
             suffixIcon: Icon(Icons.mic, color: Colors.grey.shade500, size: 20),
@@ -1022,7 +1081,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               return Padding(
                 padding: const EdgeInsets.only(right: 10.0),
                 child: FilterChip(
-                  label: Text(filter),
+                  label: Text(TranslationService.translate(filter, lang)),
                   selected: isSelected,
                   onSelected: (_) => _onFilterTap(filter),
                   labelStyle: GoogleFonts.inter(
@@ -1042,7 +1101,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
         const SizedBox(height: 20),
         Text(
-          'RECENT',
+          TranslationService.translate('RECENT', lang),
           style: GoogleFonts.inter(
             fontSize: 11,
             fontWeight: FontWeight.bold,
@@ -1093,6 +1152,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
   // ── OVERLAY CONTENT 2: Active Guideline Steps ────────────────────────
   Widget _buildGuidelineStepContent() {
     if (_selectedPlace == null) return const SizedBox.shrink();
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     final steps = _selectedPlace!['steps'] as List<String>;
     final stepText = steps[_currentStepIndex];
 
@@ -1122,7 +1183,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         const Divider(height: 32),
 
         Text(
-          'To ${_selectedPlace!['address']}',
+          isFilipino ? 'Papunta sa ${_selectedPlace!['address']}' : 'To ${_selectedPlace!['address']}',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade600),
         ),
@@ -1211,7 +1272,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             ),
             const SizedBox(width: 12),
             Text(
-              'Share location',
+              TranslationService.translate('Share location', lang),
               style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
             )
           ],
@@ -1232,7 +1293,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   ),
                   onPressed: _cancelNavigation,
                   child: Text(
-                    'Stop',
+                    TranslationService.translate('Stop', lang),
                     style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -1251,7 +1312,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   ),
                   onPressed: _nextStep,
                   child: Text(
-                    'Next',
+                    TranslationService.translate('Next', lang),
                     style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -1266,47 +1327,48 @@ class _NavigationScreenState extends State<NavigationScreen> {
   // ── OVERLAY CONTENT 3: Final Map view ──────────────────────────────
   Widget _buildFullMapDirectionContent() {
     if (_selectedPlace == null) return const SizedBox.shrink();
-    return Column(
-      children: [
-        Center(
-          child: Container(
-            width: 50,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFF002663).withOpacity(0.8),
-              borderRadius: BorderRadius.circular(2),
+        final lang = SettingsService().selectedLanguage;
+        return Column(
+          children: [
+            Center(
+              child: Container(
+                width: 50,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF002663).withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          _getDynamicETA('7 min'),
-          style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '500 m • 7 min',
-          style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF002663),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+            const SizedBox(height: 20),
+            Text(
+              _getDynamicETA('7 min'),
+              style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
             ),
-            onPressed: _cancelNavigation,
-            child: Text(
-              'Done',
-              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+            const SizedBox(height: 4),
+            Text(
+              '500 m • 7 min',
+              style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
             ),
-          ),
-        ),
-      ],
-    );
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF002663),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                ),
+                onPressed: _cancelNavigation,
+                child: Text(
+                  TranslationService.translate('Done', lang),
+                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        );
   }
 }

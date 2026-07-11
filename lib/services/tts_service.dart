@@ -124,9 +124,7 @@ class TtsService {
       case 'Mandarin':
         return 'zh-CN';
       case 'Tagalog':
-        // Intentionally use English voice for Tagalog UI mode so that persona
-        // voice styles (pitch, rate, gender) are applied consistently.
-        return 'en-US';
+        return 'fil-PH';
       default:
         return 'en-US';
     }
@@ -152,6 +150,9 @@ class TtsService {
     // Filter by language
     final localeVoices = _deviceVoices.where((v) {
       final locale = (v['locale'] ?? v['language'] ?? '').toLowerCase();
+      if (langCode == 'fil-ph' || langCode == 'tl-ph') {
+        return locale.contains('fil') || locale.contains('tl');
+      }
       return locale == langBase ||
           locale == langCode ||
           locale.startsWith(langBase.substring(0, 2)); // language prefix only
@@ -269,6 +270,11 @@ class TtsService {
       case 'Bella (Gentle)':
         pitch = 1.15;
         rate = 0.40;
+        await _setDeviceVoiceByGender('female');
+        break;
+      case 'Maya (Filipino)':
+        pitch = 1.05;
+        rate = 0.48;
         await _setDeviceVoiceByGender('female');
         break;
       default:

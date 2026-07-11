@@ -34,20 +34,45 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
     VoicePersona(id: 'nova', name: 'Nova (Bright)', description: 'Energetic and upbeat voice'),
     VoicePersona(id: 'echo', name: 'Echo (Deep)', description: 'Deep and authoritative voice'),
     VoicePersona(id: 'bella', name: 'Bella (Gentle)', description: 'Soft and soothing voice'),
+    VoicePersona(id: 'maya', name: 'Maya (Filipino)', description: 'Native Tagalog voice'),
   ];
 
   @override
   void initState() {
     super.initState();
     final name = SettingsService().selectedVoicePersona;
-    final persona = _personas.firstWhere(
-      (p) => p.name == name,
-      orElse: () => _personas.first,
-    );
-    _selectedPersonaId = persona.id;
+    final isFilipino = SettingsService().selectedLanguage == 'Tagalog';
+    
+    // Auto-switch to a valid persona if the current one is disabled
+    if (isFilipino && name != 'Maya (Filipino)') {
+      _selectedPersonaId = 'maya';
+      SettingsService().updateSettings(selectedVoicePersona: 'Maya (Filipino)');
+    } else if (!isFilipino && name == 'Maya (Filipino)') {
+      _selectedPersonaId = 'aria';
+      SettingsService().updateSettings(selectedVoicePersona: 'Aria (Calm)');
+    } else {
+      final persona = _personas.firstWhere(
+        (p) => p.name == name,
+        orElse: () => _personas.first,
+      );
+      _selectedPersonaId = persona.id;
+    }
   }
 
   void _selectPersona(VoicePersona vp) {
+    final isFilipinoLanguage = SettingsService().selectedLanguage == 'Tagalog';
+    final isFilipinoPersona = vp.id == 'maya';
+    final isDisabled = (isFilipinoLanguage && !isFilipinoPersona) || (!isFilipinoLanguage && isFilipinoPersona);
+
+    if (isDisabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isFilipinoLanguage 
+          ? 'Please switch to English in Language settings to use this persona.' 
+          : 'Please switch to Filipino in Language settings to use this persona.')),
+      );
+      return;
+    }
+
     setState(() {
       _selectedPersonaId = vp.id;
     });
@@ -65,11 +90,24 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
   }
 
   void _togglePlay(String id) {
+    final isFilipinoLanguage = SettingsService().selectedLanguage == 'Tagalog';
+    final isFilipinoPersona = id == 'maya';
+    final isDisabled = (isFilipinoLanguage && !isFilipinoPersona) || (!isFilipinoLanguage && isFilipinoPersona);
+
+    if (isDisabled) {
+      return;
+    }
+
     final persona = _personas.firstWhere((p) => p.id == id);
     
     // Temporarily apply persona style to play preview
     SettingsService().updateSettings(selectedVoicePersona: persona.name);
-    TtsService().speak("This is a preview of the ${persona.name} voice persona.");
+    
+    final sampleText = isFilipinoPersona 
+        ? "Ito ay isang sample ng boses ni ${persona.name}." 
+        : "This is a preview of the ${persona.name} voice persona.";
+    
+    TtsService().speak(sampleText);
     
     setState(() {
       if (_currentlyPlayingId == id) {
@@ -84,60 +122,74 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
   Widget _buildPersonaCard(VoicePersona vp) {
     final isSelected = _selectedPersonaId == vp.id;
     final isPlaying = _currentlyPlayingId == vp.id;
-    final cardColor = isSelected ? AppColors.primaryButton : AppColors.lightBackground;
-    final titleColor = isSelected ? AppColors.primaryButtonText : AppColors.primaryText;
-    final subtitleColor = isSelected ? AppColors.primaryButtonText.withOpacity(0.8) : AppColors.textMuted;
-    final borderColor = isSelected ? Colors.transparent : AppColors.cardBorder.withOpacity(0.3);
+    
+    final isFilipinoLanguage = SettingsService().selectedLanguage == 'Tagalog';
+    final isFilipinoPersona = vp.id == 'maya';
+    final isDisabled = (isFilipinoLanguage && !isFilipinoPersona) || (!isFilipinoLanguage && isFilipinoPersona);
+    
+    final cardColor = isDisabled 
+        ? AppColors.lightBackground.withOpacity(0.5) 
+        : (isSelected ? AppColors.primaryButton : AppColors.lightBackground);
+    final titleColor = isDisabled 
+        ? AppColors.textMuted 
+        : (isSelected ? AppColors.primaryButtonText : AppColors.primaryText);
+    final subtitleColor = isDisabled 
+        ? AppColors.textMuted.withOpacity(0.5) 
+        : (isSelected ? AppColors.primaryButtonText.withOpacity(0.8) : AppColors.textMuted);
+    final borderColor = isSelected || isDisabled ? Colors.transparent : AppColors.cardBorder.withOpacity(0.3);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12.0),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16.0),
-        border: isSelected ? null : Border.all(color: borderColor, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowColor,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        leading: GestureDetector(
-          onTap: () => _togglePlay(vp.id),
-          child: Icon(
-            isPlaying ? Icons.pause_circle_outline : Icons.play_circle_outline,
-            color: isSelected ? AppColors.primaryButtonText : AppColors.primaryText,
-            size: 32,
-          ),
+    return Opacity(
+      opacity: isDisabled ? 0.6 : 1.0,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12.0),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16.0),
+          border: isSelected ? null : Border.all(color: borderColor, width: 1.5),
+          boxShadow: isDisabled ? null : [
+            BoxShadow(
+              color: AppColors.shadowColor,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
-        title: Text(
-          vp.name,
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.bold,
-            color: titleColor,
-            fontSize: 16,
+        child: ListTile(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          leading: GestureDetector(
+            onTap: () => _togglePlay(vp.id),
+            child: Icon(
+              isPlaying ? Icons.pause_circle_outline : Icons.play_circle_outline,
+              color: isDisabled ? AppColors.textMuted : (isSelected ? AppColors.primaryButtonText : AppColors.primaryText),
+              size: 32,
+            ),
           ),
-        ),
-        subtitle: Text(
-          vp.description,
-          style: GoogleFonts.inter(
-            color: subtitleColor,
-            fontSize: 12,
+          title: Text(
+            vp.name,
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.bold,
+              color: titleColor,
+              fontSize: 16,
+            ),
           ),
-        ),
-        trailing: GestureDetector(
+          subtitle: Text(
+            vp.description,
+            style: GoogleFonts.inter(
+              color: subtitleColor,
+              fontSize: 12,
+            ),
+          ),
+          trailing: GestureDetector(
+            onTap: () => _selectPersona(vp),
+            child: Icon(
+              isSelected ? Icons.check_circle : (isDisabled ? Icons.block : Icons.radio_button_unchecked),
+              color: isDisabled ? AppColors.textMuted : (isSelected ? AppColors.primaryButtonText : AppColors.primaryText),
+              size: 24,
+            ),
+          ),
           onTap: () => _selectPersona(vp),
-          child: Icon(
-            isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: isSelected ? AppColors.primaryButtonText : AppColors.primaryText,
-            size: 24,
-          ),
         ),
-        onTap: () => _selectPersona(vp),
       ),
     );
   }

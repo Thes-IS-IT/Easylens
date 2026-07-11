@@ -48,6 +48,10 @@ class TranslationService {
       'nearby_objects': 'Nearby Objects',
       'audio_navigation': 'Audio Navigation',
       'sos_emergency': 'SOS Emergency',
+      'register_face': 'Register Face',
+      'speech_navigation': 'Speech Navigation',
+      'speech_navigation_subtitle': 'Navigate screens and click buttons using voice commands',
+      'shake_detected_undo': 'Shake gesture detected! Last action undone.',
     },
     'fil': {
       'settings': 'Mga Setting',
@@ -97,12 +101,82 @@ class TranslationService {
       'nearby_objects': 'Bagay sa Malapit',
       'audio_navigation': 'Gabay sa Nabigasyon',
       'sos_emergency': 'SOS Emergency Saklolo',
+      'register_face': 'I-rehistro ang Mukha',
+      'speech_navigation': 'Boses na Nabigasyon',
+      'speech_navigation_subtitle': 'Mag-navigate sa mga screen at pindutin ang mga button gamit ang mga utos ng boses',
+      'shake_detected_undo': 'Na-detect ang pag-shake! Na-undo ang huling aksyon.',
     }
   };
 
   static String translate(String key, String language) {
     final isFilipino = language.toLowerCase().contains('filipino') || language.toLowerCase().contains('tagalog');
     final langKey = isFilipino ? 'fil' : 'en';
-    return _translations[langKey]?[key] ?? key;
+
+    // Normalize keys to find matches safely S01
+    final cleanKey = key.trim().toLowerCase().replaceAll(' ', '_').replaceAll('?', '').replaceAll('!', '');
+    if (_translations[langKey]?.containsKey(cleanKey) == true) {
+      return _translations[langKey]![cleanKey]!;
+    }
+
+    if (_translations[langKey]?.containsKey(key) == true) {
+      return _translations[langKey]![key]!;
+    }
+
+    if (isFilipino) {
+      final Map<String, String> fallbacks = {
+        'where to?': 'Saan pupunta?',
+        'recent': 'KAMAKAILAN',
+        'your location': 'Iyong Lokasyon',
+        'sos': 'SOS',
+        'help': 'Tulong',
+        'settings': 'Mga Setting',
+        'language': 'Wika',
+        'notifications': 'Mga Abiso',
+        'contacts': 'Mga Kontak',
+        'emergency': 'Emergency',
+        'profile': 'Profile',
+        'profile details': 'Mga Detalye ng Profile',
+        'change password': 'Palitan ang Password',
+        'nearby objects': 'Mga Bagay sa Malapit',
+        'audio navigation': 'Gabay sa Nabigasyon',
+        'nearby text': 'Teksto sa Malapit',
+        'speech navigation': 'Boses na Nabigasyon',
+        'navigate screens and click buttons using voice commands': 'Mag-navigate sa mga screen at pindutin ang mga button gamit ang mga utos ng boses',
+        'share location': 'Ibahagi ang lokasyon',
+        'stop': 'Itigil',
+        'next': 'Susunod',
+        'done': 'Tapos na',
+        'save': 'I-save',
+        'cancel': 'Kanselahin',
+        'close': 'Isara',
+        'confirm': 'Kumpirmahin',
+        'delete': 'Burahin',
+        'add': 'Idagdag',
+        'edit': 'I-edit',
+        'update': 'I-update',
+        'select': 'Pumili',
+        'success': 'Tagumpay',
+        'error': 'Error',
+        'warning': 'Babala',
+        'status': 'Katayuan',
+        'enable': 'I-enable',
+        'disable': 'I-disable',
+        'enabled': 'Naka-enable',
+        'disabled': 'Naka-disable',
+        'home': 'Bahay',
+        'work': 'Trabaho',
+        'holy angel university': 'Holy Angel University',
+        'easy lens': 'EasyLens Sensor',
+        'easylens': 'EasyLens Sensor',
+        'talk to buddy (local ai)': 'Kausapin si Buddy (Local AI)',
+      };
+      
+      final cleanLower = key.trim().toLowerCase();
+      if (fallbacks.containsKey(cleanLower)) {
+        return fallbacks[cleanLower]!;
+      }
+    }
+
+    return key;
   }
 }

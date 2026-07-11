@@ -152,7 +152,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       });
       await TtsService().speakAwait(prompt);
       
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 1500));
       if (mounted && _isLoopActive) {
         _runSpeechNavigationLoop();
       }
@@ -177,7 +177,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       await TtsService().speakAwait(fullResponse);
     }
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (mounted && _isLoopActive) {
       _runSpeechNavigationLoop();
     }
@@ -236,7 +236,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     }
 
     // 8. Go back / pop route
-    if (cleanText.contains("go back") || cleanText.contains("back") || cleanText.contains("bumalik") || cleanText.contains("pabalik")) {
+    if (cleanText.contains("go back") || cleanText.contains("back") || cleanText.contains("bumalik") || cleanText.contains("pabalik") || cleanText.contains("balik")) {
       navigatorKey.currentState?.pop();
       return isFilipino ? "Bumabalik" : "Going back";
     }
