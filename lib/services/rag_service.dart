@@ -205,7 +205,7 @@ class RagService {
           _gemmaInitialized = true;
           _isGemmaModelInstalled = true;
           // Warm up and load model weight files into memory S01
-          await FlutterGemma.getActiveModel(maxTokens: 256);
+          await FlutterGemma.getActiveModel(maxTokens: 1024);
           print("[Gemma] Real on-device engine initialized and warmed up successfully from $modelPath.");
         });
       }
@@ -263,7 +263,7 @@ class RagService {
         }
 
         // Initialize a clean session per request to prevent history/prompt build-up latency S01
-        final model = await FlutterGemma.getActiveModel(maxTokens: 256);
+        final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
         final session = await model.createSession(systemInstruction: systemInstruction);
         await session.addQueryChunk(Message(text: prompt, isUser: true));
         final response = await session.getResponse();
@@ -295,7 +295,7 @@ class RagService {
           _isGemmaModelInstalled = true;
         }
 
-        final model = await FlutterGemma.getActiveModel(maxTokens: 256);
+        final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
         final session = await model.createSession(systemInstruction: systemInstruction);
         await session.addQueryChunk(Message(text: prompt, isUser: true));
         
