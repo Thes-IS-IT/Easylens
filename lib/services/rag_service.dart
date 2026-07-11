@@ -483,12 +483,14 @@ class RagService {
         }
 
         var contextText = resultBlocks.join("\n\n");
-        // Strict prompt safety ceiling S01 (prevent SEGV_ACCERR memory crash in MediaPipe JNI)
-        if (contextText.length > 1000) {
-          contextText = "${contextText.substring(0, 990)}... [truncated]";
+        // Context ceiling: 2000 chars keeps knowledge rich but stays under Gemma token limit S01
+        if (contextText.length > 2000) {
+          contextText = "${contextText.substring(0, 1990)}... [truncated]";
         }
         return contextText;
       }
+      // If no matches, return a minimal default context so Buddy knows its identity
+      return "EasyLens is a visual assistive app built at Holy Angel University. Buddy is the friendly Golden Retriever AI guide dog mascot.";
     } catch (e) {
       print('[RAG] Error in TF-IDF context retrieval: $e');
     }
@@ -509,14 +511,15 @@ class RagService {
 
 
   String _getSystemInstruction(String userName, String mobilityAid) {
-    return "You are Buddy, the friendly dog mascot and loyal visual guide dog of the EasyLens app. "
-        "Speak in the first person as a dog (warm, helper guide dog). "
-        "Keep your responses concise and under 2 sentences (or under 12 words for simple greetings). "
+    return "You are Buddy, the friendly Golden Retriever dog mascot and visual guide dog of EasyLens, "
+        "an assistive vision app built as an undergraduate thesis by 4th-year Computer Science students at Holy Angel University (HAU), Pampanga, Philippines. "
+        "The development team members are: Arron Kian Parejas, and his thesis groupmates from HAU CS. "
+        "EasyLens uses on-device AI (MobileNetV2, Google ML Kit, Gemma 2B) to help visually impaired users navigate safely. "
+        "Speak warmly as a helpful guide dog. Keep replies concise (under 2 sentences or 15 words for greetings). "
         "The user's name is $userName. "
-        "The user is using the mobility aid: $mobilityAid. "
-        "You only assist with EasyLens app features, spatial navigation, safety, and visual guidance. "
-        "If the user asks an unrelated general knowledge question (e.g. history, math, science, or programming), "
-        "refuse politely and guide them back to visual navigation, staying in character as a helpful guide dog.";
+        "The user's mobility aid: $mobilityAid. "
+        "Answer all EasyLens app questions, developer questions, navigation questions, and feature questions using the context provided. "
+        "For completely unrelated topics (pure math homework, politics, etc.), politely redirect to EasyLens features.";
   }
 
   String _buildUserPrompt(String rawQuestion, String context) {
@@ -598,15 +601,12 @@ class RagService {
         ? SettingsService().selectedMobilityAid
         : 'None';
 
-    final lowerQ = rawQuestion.toLowerCase();
-    final isConversational = rawQuestion.length < 30 &&
-        !lowerQ.contains("reports") &&
-        !lowerQ.contains("scanned") &&
-        !lowerQ.contains("nearby") &&
-        !lowerQ.contains("labels") &&
-        !lowerQ.contains("visual");
+    final lowerQ = rawQuestion.toLowerCase().trim();
+    // Only skip RAG for pure one-word greetings — everything else runs TF-IDF retrieval S01
+    const pureGreetings = {'hi', 'hello', 'hey', 'thanks', 'ok', 'okay', 'bye', 'good morning', 'good evening', 'good night', 'good afternoon'};
+    final isGreeting = pureGreetings.contains(lowerQ);
 
-    final context = isConversational ? "" : await retrieveContextAsync(rawQuestion);
+    final context = isGreeting ? "" : await retrieveContextAsync(rawQuestion);
     final userPrompt = _buildUserPrompt(rawQuestion, context);
     final systemPrompt = _getSystemInstruction(userName, mobilityAid);
 
