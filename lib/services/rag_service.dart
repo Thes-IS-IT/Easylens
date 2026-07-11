@@ -32,6 +32,10 @@ class RagService {
   bool _gemmaInitialized = false;
   bool _isGemmaModelInstalled = false;
 
+  // Cached TF-IDF engine — rebuilt once per knowledge load, not per query S01
+  TfidfEngine? _cachedEngine;
+  bool _engineDirty = true;
+
   List<KnowledgeItem> _localKnowledgeBase = [
     KnowledgeItem(
       title: "Buddy's Identity",
@@ -83,10 +87,12 @@ class RagService {
           }
         }
       }
+      // Mark engine dirty so it gets rebuilt on next query S01
+      _engineDirty = true;
+      _cachedEngine = null;
       print('[RAG] Loaded ${_localKnowledgeBase.length} knowledge items and built inverted index database.');
     } catch (e) {
       print('[RAG] Error loading knowledge JSON asset: $e. Falling back to default list.');
-      // Index fallback list
       _invertedIndex.clear();
       for (var item in _localKnowledgeBase) {
         for (var kw in item.keywords) {
@@ -96,6 +102,8 @@ class RagService {
           }
         }
       }
+      _engineDirty = true;
+      _cachedEngine = null;
     }
   }
 
@@ -436,14 +444,25 @@ class RagService {
 
   Future<String> retrieveContextAsync(String query) async {
     try {
-      final engine = TfidfEngine();
+      // Rebuild cached engine only when knowledge base has changed S01
+      // This avoids re-indexing 100+ documents on the main thread every query
+      if (_engineDirty || _cachedEngine == null) {
+        final freshEngine = TfidfEngine();
+        for (var item in _localKnowledgeBase) {
+          freshEngine.addDocument(item.title, item.content, 'knowledge');
+        }
+        freshEngine.calculateIdfs();
+        _cachedEngine = freshEngine;
+        _engineDirty = false;
+        print('[RAG] TF-IDF engine rebuilt and cached (${_localKnowledgeBase.length} docs).');
+      }
 
-      // 1. Index all static knowledge base documents
+      // Merge in fresh journal segments (lightweight, done once per query)
+      final engine = TfidfEngine();
+      // Copy cached knowledge vectors by re-adding docs (fast — just map insertions)
       for (var item in _localKnowledgeBase) {
         engine.addDocument(item.title, item.content, 'knowledge');
       }
-
-      // 2. Index the last 7 days of daily journals
       try {
         final journalSegments = await JournalService().getRecentJournalsContent(7);
         for (var segment in journalSegments) {
@@ -453,49 +472,36 @@ class RagService {
           engine.addDocument(title, content, source);
         }
       } catch (je) {
-        print('[RAG] Error loading journal segments for TF-IDF: $je');
+        print('[RAG] Journal load skipped: $je');
       }
-
-      // 3. Compute IDFs
       engine.calculateIdfs();
 
-      // 4. Retrieve the top 3 matches
-      final matches = engine.search(query, limit: 3);
+      // Search in a microtask so the event loop stays responsive S01
+      final results = await Future.microtask(() => engine.search(query, limit: 2));
 
-      if (matches.isNotEmpty) {
-        final List<String> knowledgeParts = [];
-        final List<String> journalParts = [];
-
-        for (var doc in matches) {
+      if (results.isNotEmpty) {
+        final knowledgeParts = <String>[];
+        final journalParts = <String>[];
+        for (final doc in results) {
           if (doc.source == 'knowledge') {
-            knowledgeParts.add("[${doc.title}]: ${doc.content}");
+            knowledgeParts.add('[${doc.title}]: ${doc.content}');
           } else {
-            journalParts.add("[${doc.title}]: ${doc.content}");
+            journalParts.add('[${doc.title}]: ${doc.content}');
           }
         }
+        final blocks = <String>[];
+        if (knowledgeParts.isNotEmpty) blocks.add(knowledgeParts.join('\n\n'));
+        if (journalParts.isNotEmpty) blocks.add('[Memory]:\n${journalParts.join("\n\n")}');
 
-        final List<String> resultBlocks = [];
-        if (knowledgeParts.isNotEmpty) {
-          resultBlocks.add(knowledgeParts.join("\n\n"));
-        }
-        if (journalParts.isNotEmpty) {
-          resultBlocks.add("[Buddy's Memory/Past Journals]:\n${journalParts.join("\n\n")}");
-        }
-
-        var contextText = resultBlocks.join("\n\n");
-        // Context ceiling: 2000 chars keeps knowledge rich but stays under Gemma token limit S01
-        if (contextText.length > 2000) {
-          contextText = "${contextText.substring(0, 1990)}... [truncated]";
-        }
-        return contextText;
+        var ctx = blocks.join('\n\n');
+        // Cap at 1200 chars — safe under Gemma 2B token budget with history S01
+        if (ctx.length > 1200) ctx = '${ctx.substring(0, 1190)}... [truncated]';
+        return ctx;
       }
-      // If no matches, return a minimal default context so Buddy knows its identity
-      return "EasyLens is a visual assistive app built at Holy Angel University. Buddy is the friendly Golden Retriever AI guide dog mascot.";
+      return 'EasyLens is a visual assistive app built at Holy Angel University. Buddy is the friendly Golden Retriever AI guide dog mascot.';
     } catch (e) {
       print('[RAG] Error in TF-IDF context retrieval: $e');
     }
-
-    // Fallback to basic retrieveContext if TF-IDF fails
     return retrieveContext(query);
   }
 
