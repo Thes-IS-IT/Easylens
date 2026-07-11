@@ -533,9 +533,9 @@ class RagService {
   String _getSystemInstruction(String userName, String mobilityAid) {
     return "You are Buddy, the friendly Golden Retriever guide dog mascot of the EasyLens app. "
         "EasyLens was built as a CS thesis at Holy Angel University (HAU) by developer Arron Kian Parejas and team. "
-        "Keep your response warm, friendly, and very short (under 2 sentences). "
         "The user's name is $userName. The user's mobility aid is $mobilityAid. "
-        "Answer questions using the provided context. If the question is not about EasyLens, guide the conversation back.";
+        "Keep your response warm, friendly, helpful, and very short (under 2 sentences). "
+        "Use the provided Context (which includes both EasyLens knowledge base info and the user's personal memories/journals) to answer the Question directly.";
   }
 
   String _buildUserPrompt(String rawQuestion, String context) {
