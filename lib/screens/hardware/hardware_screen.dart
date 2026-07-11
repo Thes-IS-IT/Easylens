@@ -258,6 +258,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _initBatteryTracker();
     _initFaceDetector();
     _loadRegisteredFaces();
+    Esp32Service().addListener(_onEsp32FrameAvailable);
   }
 
   @override
@@ -288,6 +289,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   @override
   void dispose() {
+    Esp32Service().removeListener(_onEsp32FrameAvailable);
     _silenceTimer?.cancel();
     SttService().stopListening((_) {});
     TtsService().stop();
@@ -571,90 +573,100 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final inputImage =
           InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
       final faces = await _faceDetector!.processImage(inputImage);
-
-      if (!mounted) return;
-
-      setState(() {
-        _detectedFacesList = faces;
-        _faceImageSize = imageSize;
-      });
-
-      if (faces.isNotEmpty) {
-        // Map tracking IDs to registered names dynamically
-        for (final face in faces) {
-          final id = face.trackingId;
-          if (id != null && !_faceIdToNameMap.containsKey(id)) {
-            final activeNames = _faceIdToNameMap.values.toSet();
-            String? unassignedName;
-            for (final prof in _registeredFaces) {
-              if (!activeNames.contains(prof.name)) {
-                unassignedName = prof.name;
-                break;
-              }
-            }
-            unassignedName ??= _registeredFaces[_faceIdToNameMap.length % _registeredFaces.length].name;
-            _faceIdToNameMap[id] = unassignedName;
-          }
-        }
-
-        // Get the list of all currently recognized names in this frame
-        final namesSeen = faces
-            .map((f) => f.trackingId)
-            .whereType<int>()
-            .map((id) => _faceIdToNameMap[id])
-            .whereType<String>()
-            .toSet();
-
-        final registeredName = namesSeen.isNotEmpty ? namesSeen.join(' and ') : _registeredFaces.first.name;
-        final now = DateTime.now();
-        final cooldownElapsed = _lastFaceAnnouncedAt == null ||
-            now.difference(_lastFaceAnnouncedAt!).inSeconds >= 10;
-
-        if (cooldownElapsed) {
-          _lastFaceAnnouncedAt = now;
-          final msg = 'Buddy sees $registeredName nearby.';
-          if (!_isContinuousVoiceEnabled) {
-            TtsService().speak(msg);
-          }
-          if (mounted) {
-            setState(() {
-              _detectedFaceName = registeredName;
-            });
-            Future.delayed(const Duration(seconds: 4), () {
-              if (mounted) setState(() => _detectedFaceName = '');
-            });
-          }
-        }
-
-        if (_selectedHudMode == HudMode.faceRecognition && mounted) {
-          setState(() {
-            _activeTitle = "Face Detected";
-            _activeDescription = "Buddy recognized $registeredName.";
-            _statusCardBg = const Color(0xFFF3E8FF);
-            _statusIcon = Icons.face_retouching_natural;
-            _statusIconColor = const Color(0xFF7C3AED);
-          });
-        }
-      } else {
-        if (_detectedFaceName.isNotEmpty && mounted) {
-          setState(() => _detectedFaceName = '');
-        }
-        if (_selectedHudMode == HudMode.faceRecognition && mounted) {
-          setState(() {
-            _activeTitle = "Scanning Faces";
-            _activeDescription = "Looking for registered profiles...";
-            _statusCardBg = const Color(0xFFF9F5FF);
-            _statusIcon = Icons.face;
-            _statusIconColor = const Color(0xFF9E77ED);
-          });
-        }
-      }
+      await _processFaceResults(faces, imageSize);
     } catch (e) {
       // Face detection errors are non-fatal
     }
   }
 
+  Future<void> _processFaceResults(List<Face> faces, Size imageSize) async {
+    if (!mounted) return;
+
+    setState(() {
+      _detectedFacesList = faces;
+      _faceImageSize = imageSize;
+    });
+
+    if (faces.isNotEmpty) {
+      // Map tracking IDs to registered names dynamically
+      for (final face in faces) {
+        final id = face.trackingId;
+        if (id != null && !_faceIdToNameMap.containsKey(id)) {
+          final activeNames = _faceIdToNameMap.values.toSet();
+          String? unassignedName;
+          for (final prof in _registeredFaces) {
+            if (!activeNames.contains(prof.name)) {
+              unassignedName = prof.name;
+              break;
+            }
+          }
+          unassignedName ??= _registeredFaces[_faceIdToNameMap.length % _registeredFaces.length].name;
+          _faceIdToNameMap[id] = unassignedName;
+        }
+      }
+
+      // Get the list of all currently recognized names in this frame
+      final namesSeen = faces
+          .map((f) => f.trackingId)
+          .whereType<int>()
+          .map((id) => _faceIdToNameMap[id])
+          .whereType<String>()
+          .toSet();
+
+      final registeredName = namesSeen.isNotEmpty ? namesSeen.join(' and ') : _registeredFaces.first.name;
+      final now = DateTime.now();
+      final cooldownElapsed = _lastFaceAnnouncedAt == null ||
+          now.difference(_lastFaceAnnouncedAt!).inSeconds >= 10;
+
+      if (cooldownElapsed) {
+        _lastFaceAnnouncedAt = now;
+        final msg = 'Buddy sees $registeredName nearby.';
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(msg);
+        }
+        if (mounted) {
+          setState(() {
+            _detectedFaceName = registeredName;
+          });
+          Future.delayed(const Duration(seconds: 4), () {
+            if (mounted) setState(() => _detectedFaceName = '');
+          });
+        }
+      }
+
+      if (_selectedHudMode == HudMode.faceRecognition && mounted) {
+        setState(() {
+          _activeTitle = "Face Detected";
+          _activeDescription = "Buddy recognized $registeredName.";
+          _statusCardBg = const Color(0xFFF3E8FF);
+          _statusIcon = Icons.face_retouching_natural;
+          _statusIconColor = const Color(0xFF7C3AED);
+        });
+      }
+    } else {
+      if (_detectedFaceName.isNotEmpty && mounted) {
+        setState(() => _detectedFaceName = '');
+      }
+      if (_selectedHudMode == HudMode.faceRecognition && mounted) {
+        setState(() {
+          _activeTitle = "Scanning Faces";
+          _activeDescription = "Looking for registered profiles...";
+          _statusCardBg = const Color(0xFFF9F5FF);
+          _statusIcon = Icons.face;
+          _statusIconColor = const Color(0xFF9E77ED);
+        });
+      }
+    }
+  }
+
   Future<void> _initializeCamera() async {
+    if (Esp32Service().isConnected) {
+      setState(() {
+        _isCameraInitialized = true;
+        _pairStep = 4;
+      });
+      return;
+    }
     try {
       _cameras = await availableCameras();
       if (_cameras != null && _cameras!.isNotEmpty) {
@@ -857,222 +869,227 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final inputImage =
           InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
       final objects = await _objectDetector!.processImage(inputImage);
+      await _processObjectResults(objects, imageSize);
+    } catch (e) {
+      print("ML Kit object detection inference error: $e");
+    }
+  }
 
-      if (!mounted) return;
+  Future<void> _processObjectResults(List<DetectedObject> objects, Size imageSize) async {
+    if (!mounted) return;
+    final double width = imageSize.width;
+    final double height = imageSize.height;
 
-      setState(() {
-        _detectedObjectsList = objects;
-        _faceImageSize = imageSize;
-      });
+    setState(() {
+      _detectedObjectsList = objects;
+      _faceImageSize = imageSize;
+    });
 
-      final now = DateTime.now();
+    final now = DateTime.now();
 
-      if (objects.isNotEmpty) {
-        DetectedObject? highestThreatObject;
-        double maxThreatScore = -1.0;
-        String highestThreatLabel = 'object';
-        double highestThreatArea = 0.0;
+    if (objects.isNotEmpty) {
+      DetectedObject? highestThreatObject;
+      double maxThreatScore = -1.0;
+      String highestThreatLabel = 'object';
+      double highestThreatArea = 0.0;
 
-        for (final obj in objects) {
-          final label = _getLabelForObject(obj);
-          final normW = obj.boundingBox.width / width;
-          final normH = obj.boundingBox.height / height;
-          final area = normW * normH;
+      for (final obj in objects) {
+        final label = _getLabelForObject(obj);
+        final normW = obj.boundingBox.width / width;
+        final normH = obj.boundingBox.height / height;
+        final area = normW * normH;
 
-          final proximityScore = area.clamp(0.0, 1.0);
-          final baseRisk = _getRiskScore(label);
+        final proximityScore = area.clamp(0.0, 1.0);
+        final baseRisk = _getRiskScore(label);
 
-          final lastArea = _objectLastAreas[label] ?? 0.0;
-          double velocity = 0.0;
-          if (area > lastArea) {
-            velocity = (area - lastArea).clamp(0.0, 1.0);
-          }
-
-          final score = (baseRisk * 0.4) + (proximityScore * 0.4) + (velocity * 0.2);
-
-          if (score > maxThreatScore) {
-            maxThreatScore = score;
-            highestThreatObject = obj;
-            highestThreatLabel = label;
-            highestThreatArea = area;
-          }
+        final lastArea = _objectLastAreas[label] ?? 0.0;
+        double velocity = 0.0;
+        if (area > lastArea) {
+          velocity = (area - lastArea).clamp(0.0, 1.0);
         }
 
-        if (_selectedHudMode == HudMode.navigation && highestThreatObject != null) {
-          final baseRisk = _getRiskScore(highestThreatLabel);
-          final double activationThreshold = baseRisk == 1.0 ? 0.05 : 0.08;
+        final score = (baseRisk * 0.4) + (proximityScore * 0.4) + (velocity * 0.2);
 
-          final lang = SettingsService().selectedLanguage;
-          final isTagalog = lang.toLowerCase().contains('tagalog') ||
-              lang.toLowerCase().contains('filipino');
+        if (score > maxThreatScore) {
+          maxThreatScore = score;
+          highestThreatObject = obj;
+          highestThreatLabel = label;
+          highestThreatArea = area;
+        }
+      }
 
-          if (highestThreatArea > activationThreshold) {
-            final normalizedCenterX = (highestThreatObject.boundingBox.left + highestThreatObject.boundingBox.right) / 2.0 / width;
-            String direction = normalizedCenterX < 0.40 ? 'left' : (normalizedCenterX > 0.60 ? 'right' : 'center');
-            
-            final refinedLabelText = highestThreatLabel[0].toUpperCase() + highestThreatLabel.substring(1);
-            
-            String guidance;
+      if (_selectedHudMode == HudMode.navigation && highestThreatObject != null) {
+        final baseRisk = _getRiskScore(highestThreatLabel);
+        final double activationThreshold = baseRisk == 1.0 ? 0.05 : 0.08;
 
-            if (direction == 'center') {
+        final lang = SettingsService().selectedLanguage;
+        final isTagalog = lang.toLowerCase().contains('tagalog') ||
+            lang.toLowerCase().contains('filipino');
+
+        if (highestThreatArea > activationThreshold) {
+          final normalizedCenterX = (highestThreatObject.boundingBox.left + highestThreatObject.boundingBox.right) / 2.0 / width;
+          String direction = normalizedCenterX < 0.40 ? 'left' : (normalizedCenterX > 0.60 ? 'right' : 'center');
+          
+          final refinedLabelText = highestThreatLabel[0].toUpperCase() + highestThreatLabel.substring(1);
+          
+          String guidance;
+
+          if (direction == 'center') {
+            bool leftBlocked = false;
+            bool rightBlocked = false;
+            for (final r in objects) {
+              if (r == highestThreatObject) continue;
+              final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / width;
+              if (cX < 0.45) leftBlocked = true;
+              if (cX > 0.55) rightBlocked = true;
+            }
+            if (leftBlocked && !rightBlocked) {
+              guidance = isTagalog
+                  ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakanan.'
+                  : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your right.';
+            } else if (rightBlocked && !leftBlocked) {
+              guidance = isTagalog
+                  ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakaliwa.'
+                  : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your left.';
+            } else {
+              guidance = isTagalog
+                  ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakanan.'
+                  : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your right.';
+            }
+          } else if (direction == 'left') {
+            guidance = isTagalog
+                ? 'Babala: may $refinedLabelText sa kaliwa mo. Iwasan ito sa pamamagitan ng pagpunta sa kanan.'
+                : 'Caution: $refinedLabelText detected on your left. Avoid it by moving right.';
+          } else {
+            guidance = isTagalog
+                ? 'Babala: may $refinedLabelText sa kanan mo. Iwasan ito sa pamamagitan ng pagpunta sa kaliwa.'
+                : 'Caution: $refinedLabelText detected on your right. Avoid it by moving left.';
+          }
+
+          final lastArea = _objectLastAreas[highestThreatLabel] ?? 0.0;
+          final isRapidlyApproaching = highestThreatArea > lastArea + 0.04 && highestThreatArea > 0.20;
+          
+          final isDifferentMessage = guidance != _lastGuidanceText;
+          final timeSinceLastGuidance = _lastGuidanceTime == null 
+              ? const Duration(seconds: 99) 
+              : now.difference(_lastGuidanceTime!);
+              
+          bool shouldSpeak = false;
+          final isCritical = isRapidlyApproaching || maxThreatScore > 0.75;
+
+          if (isCritical) {
+            String escapeDir = 'right';
+            if (direction == 'left') escapeDir = 'right';
+            else if (direction == 'right') escapeDir = 'left';
+            else {
               bool leftBlocked = false;
-              bool rightBlocked = false;
               for (final r in objects) {
                 if (r == highestThreatObject) continue;
                 final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / width;
                 if (cX < 0.45) leftBlocked = true;
-                if (cX > 0.55) rightBlocked = true;
               }
-              if (leftBlocked && !rightBlocked) {
-                guidance = isTagalog
-                    ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakanan.'
-                    : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your right.';
-              } else if (rightBlocked && !leftBlocked) {
-                guidance = isTagalog
-                    ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakaliwa.'
-                    : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your left.';
-              } else {
-                guidance = isTagalog
-                    ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakanan.'
-                    : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your right.';
-              }
-            } else if (direction == 'left') {
-              guidance = isTagalog
-                  ? 'Babala: may $refinedLabelText sa kaliwa mo. Iwasan ito sa pamamagitan ng pagpunta sa kanan.'
-                  : 'Caution: $refinedLabelText detected on your left. Avoid it by moving right.';
-            } else {
-              guidance = isTagalog
-                  ? 'Babala: may $refinedLabelText sa kanan mo. Iwasan ito sa pamamagitan ng pagpunta sa kaliwa.'
-                  : 'Caution: $refinedLabelText detected on your right. Avoid it by moving left.';
+              if (leftBlocked) escapeDir = 'right';
             }
-
-            final lastArea = _objectLastAreas[highestThreatLabel] ?? 0.0;
-            final isRapidlyApproaching = highestThreatArea > lastArea + 0.04 && highestThreatArea > 0.20;
-            
-            final isDifferentMessage = guidance != _lastGuidanceText;
-            final timeSinceLastGuidance = _lastGuidanceTime == null 
-                ? const Duration(seconds: 99) 
-                : now.difference(_lastGuidanceTime!);
-                
-            bool shouldSpeak = false;
-            final isCritical = isRapidlyApproaching || maxThreatScore > 0.75;
-
-            if (isCritical) {
-              String escapeDir = 'right';
-              if (direction == 'left') escapeDir = 'right';
-              else if (direction == 'right') escapeDir = 'left';
-              else {
-                bool leftBlocked = false;
-                for (final r in objects) {
-                  if (r == highestThreatObject) continue;
-                  final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / width;
-                  if (cX < 0.45) leftBlocked = true;
-                }
-                if (leftBlocked) escapeDir = 'right';
-              }
-              final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
-              guidance = isTagalog
-                  ? 'Babala: Mabilis kang lumalapit sa $refinedLabelText! Lumipat agad sa $escapeTagalog upang maiwasan ito.'
-                  : 'Alert: Approaching $refinedLabelText rapidly! Move $escapeDir immediately to avoid it.';
-              shouldSpeak = true;
-              _triggerHapticAlert(isCritical: true);
-            } else if (maxThreatScore > 0.45) {
-              shouldSpeak = isDifferentMessage 
-                  ? timeSinceLastGuidance.inSeconds >= 3 
-                  : timeSinceLastGuidance.inSeconds >= 6;
-              if (shouldSpeak) {
-                _triggerHapticAlert(isCritical: false);
-              }
-            } else {
-              shouldSpeak = timeSinceLastGuidance.inSeconds >= 10;
-            }
-
+            final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
+            guidance = isTagalog
+                ? 'Babala: Mabilis kang lumalapit sa $refinedLabelText! Lumipat agad sa $escapeTagalog upang maiwasan ito.'
+                : 'Alert: Approaching $refinedLabelText rapidly! Move $escapeDir immediately to avoid it.';
+            shouldSpeak = true;
+            _triggerHapticAlert(isCritical: true);
+          } else if (maxThreatScore > 0.45) {
+            shouldSpeak = isDifferentMessage 
+                ? timeSinceLastGuidance.inSeconds >= 3 
+                : timeSinceLastGuidance.inSeconds >= 6;
             if (shouldSpeak) {
-              _lastGuidanceText = guidance;
-              _lastGuidanceTime = now;
-              _objectLastAreas[highestThreatLabel] = highestThreatArea;
-              
-              if (!_isContinuousVoiceEnabled) {
-                TtsService().speak(guidance);
-              }
-              NotificationService().pushObstacleAlert(direction, highestThreatLabel);
-
-              setState(() {
-                if (isCritical) {
-                  _activeTitle = isTagalog ? 'Huminto agad' : 'Stop immediately';
-                } else if (direction == 'center') {
-                  _activeTitle = isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle';
-                } else {
-                  _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
-                }
-                _activeDescription = guidance;
-                _statusCardBg = isCritical ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
-                _statusIcon = isCritical ? Icons.report_problem : Icons.warning_amber_rounded;
-                _statusIconColor = isCritical ? Colors.red : Colors.orange;
-              });
+              _triggerHapticAlert(isCritical: false);
             }
           } else {
-            if (_lastGuidanceTime != null && now.difference(_lastGuidanceTime!).inSeconds >= 6) {
-              _lastGuidanceText = "";
-              _lastGuidanceTime = null;
-              setState(() {
-                _activeTitle = isTagalog ? "Malinis ang Daan" : "Path Clear";
-                _activeDescription = isTagalog ? "Walang nakaharang sa daanan." : "The pathway ahead is clear.";
-                _statusCardBg = const Color(0xFFE8F5E9);
-                _statusIcon = Icons.check_circle_outline;
-                _statusIconColor = Colors.green;
-              });
-            }
+            shouldSpeak = timeSinceLastGuidance.inSeconds >= 10;
           }
-        } else if (_selectedHudMode == HudMode.objectDetection) {
-          final detectedNames = objects
-              .take(3)
-              .map((r) {
-                if (r.labels.isEmpty) return 'Object';
-                final label = r.labels.first;
-                if (label.text.isNotEmpty && label.text != 'Unknown') {
-                  return label.text;
-                } else if (_cocoLabels.isNotEmpty && label.index < _cocoLabels.length) {
-                  return _cocoLabels[label.index];
-                }
-                return 'Object';
-              })
-              .where((name) => name != '???')
-              .join(", ");
-          final alertKey = 'detection_list';
-          final lastSpoken = _lastSpokenMap[alertKey];
-          final isDifferent = detectedNames != _lastSpokenObjectText;
-          final cooldownElapsed = lastSpoken == null ||
-              now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
-          if (cooldownElapsed && detectedNames.isNotEmpty) {
-            _lastSpokenMap[alertKey] = now;
-            _lastSpokenObjectText = detectedNames;
-            if (!_isContinuousVoiceEnabled) {
-              TtsService().speak("Detected objects in view: $detectedNames.");
-            }
+
+          if (shouldSpeak) {
+            _lastGuidanceText = guidance;
+            _lastGuidanceTime = now;
+            _objectLastAreas[highestThreatLabel] = highestThreatArea;
             
+            if (!_isContinuousVoiceEnabled) {
+              TtsService().speak(guidance);
+            }
+            NotificationService().pushObstacleAlert(direction, highestThreatLabel);
+
             setState(() {
-              _activeTitle = "Objects Detected";
-              _activeDescription = "Detected: $detectedNames";
-              _statusCardBg = const Color(0xFFE6FFFA);
-              _statusIcon = Icons.search;
-              _statusIconColor = const Color(0xFF38A169);
+              if (isCritical) {
+                _activeTitle = isTagalog ? 'Huminto agad' : 'Stop immediately';
+              } else if (direction == 'center') {
+                _activeTitle = isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle';
+              } else {
+                _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+              }
+              _activeDescription = guidance;
+              _statusCardBg = isCritical ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
+              _statusIcon = isCritical ? Icons.report_problem : Icons.warning_amber_rounded;
+              _statusIconColor = isCritical ? Colors.red : Colors.orange;
+            });
+          }
+        } else {
+          if (_lastGuidanceTime != null && now.difference(_lastGuidanceTime!).inSeconds >= 6) {
+            _lastGuidanceText = "";
+            _lastGuidanceTime = null;
+            setState(() {
+              _activeTitle = isTagalog ? "Malinis ang Daan" : "Path Clear";
+              _activeDescription = isTagalog ? "Walang nakaharang sa daanan." : "The pathway ahead is clear.";
+              _statusCardBg = const Color(0xFFE8F5E9);
+              _statusIcon = Icons.check_circle_outline;
+              _statusIconColor = Colors.green;
             });
           }
         }
-      } else {
-        if (_selectedHudMode == HudMode.objectDetection) {
+      } else if (_selectedHudMode == HudMode.objectDetection) {
+        final detectedNames = objects
+            .take(3)
+            .map((r) {
+              if (r.labels.isEmpty) return 'Object';
+              final label = r.labels.first;
+              if (label.text.isNotEmpty && label.text != 'Unknown') {
+                return label.text;
+              } else if (_cocoLabels.isNotEmpty && label.index < _cocoLabels.length) {
+                return _cocoLabels[label.index];
+              }
+              return 'Object';
+            })
+            .where((name) => name != '???')
+            .join(", ");
+        final alertKey = 'detection_list';
+        final lastSpoken = _lastSpokenMap[alertKey];
+        final isDifferent = detectedNames != _lastSpokenObjectText;
+        final cooldownElapsed = lastSpoken == null ||
+            now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
+        if (cooldownElapsed && detectedNames.isNotEmpty) {
+          _lastSpokenMap[alertKey] = now;
+          _lastSpokenObjectText = detectedNames;
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak("Detected objects in view: $detectedNames.");
+          }
+          
           setState(() {
-            _activeTitle = "Scanning Objects";
-            _activeDescription = "Searching for objects in view...";
-            _statusCardBg = const Color(0xFFF1F8E9);
-            _statusIcon = Icons.radar_outlined;
-            _statusIconColor = const Color(0xFF81C784);
+            _activeTitle = "Objects Detected";
+            _activeDescription = "Detected: $detectedNames";
+            _statusCardBg = const Color(0xFFE6FFFA);
+            _statusIcon = Icons.search;
+            _statusIconColor = const Color(0xFF38A169);
           });
         }
       }
-    } catch (e) {
-      print("ML Kit object detection inference error: $e");
+    } else {
+      if (_selectedHudMode == HudMode.objectDetection) {
+        setState(() {
+          _activeTitle = "Scanning Objects";
+          _activeDescription = "Searching for objects in view...";
+          _statusCardBg = const Color(0xFFF1F8E9);
+          _statusIcon = Icons.radar_outlined;
+          _statusIconColor = const Color(0xFF81C784);
+        });
+      }
     }
   }
 
@@ -1190,186 +1207,264 @@ class _HardwareScreenState extends State<HardwareScreen> {
       if (_imageLabeler != null) {
         final List<ImageLabel> labels = await _imageLabeler!.processImage(inputImage);
         
-        if (mounted) {
-          setState(() {
-            _latestMLKitLabels = labels.take(5).map((l) => _refineLabel(l.label)).toList();
-          });
+        // Calculate average luminance for camera covered check
+        int sampleCount = 400;
+        int step = yBytes.length ~/ sampleCount;
+        if (step < 1) step = 1;
+        int sum = 0;
+        int count = 0;
+        for (int i = 0; i < yBytes.length; i += step) {
+          sum += yBytes[i];
+          count++;
         }
-        
-        if (labels.isNotEmpty && mounted) {
-          final topLabelText = _refineLabel(labels[0].label);
-          final topLabel = topLabelText.toLowerCase();
-          
-          // Check if camera lens is covered/black S01
-          int sampleCount = 400;
-          int step = yBytes.length ~/ sampleCount;
-          if (step < 1) step = 1;
-          int sum = 0;
-          int count = 0;
-          for (int i = 0; i < yBytes.length; i += step) {
-            sum += yBytes[i];
-            count++;
-          }
-          final avgLuminance = count > 0 ? sum / count : 128.0;
-          final isCovered = avgLuminance < 15.0;
+        final avgLuminance = count > 0 ? sum / count : 128.0;
+        final isCovered = avgLuminance < 15.0;
 
-          if (mounted) {
-            setState(() {
-              _isCameraCovered = isCovered;
-            });
-          }
-
-          if (_selectedHudMode == HudMode.navigation || _selectedHudMode == HudMode.objectDetection) {
-            Map<String, dynamic>? selectedSim;
-            if (isCovered) {
-              selectedSim = {
-                'title': 'Camera Covered',
-                'desc': 'Please check your camera lens.',
-                'bg': const Color(0xFFFFEBEE),
-                'icon': Icons.block,
-                'iconColor': Colors.red,
-                'speech': 'The camera is covered. Please remove any obstruction.'
-              };
-            } else if (topLabel.contains('fire') || topLabel.contains('smoke') || topLabel.contains('flame')) {
-              selectedSim = _hazardSimulations[10]; // Fire
-            } else if (topLabel.contains('car') || topLabel.contains('bus') || topLabel.contains('truck') || topLabel.contains('vehicle') || topLabel.contains('traffic')) {
-              selectedSim = _hazardSimulations[6]; // Vehicle
-            } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
-              selectedSim = _hazardSimulations[3]; // Stairs
-            } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel.contains('board') || topLabel.contains('billboard') || topLabel.contains('banner')) {
-              try {
-                final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
-                final String signText = recognizedText.text.toUpperCase();
-                if (signText.contains('STOP')) {
-                  selectedSim = _hazardSimulations[11]; // STOP!
-                  selectedSim = Map<String, dynamic>.from(selectedSim!)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
-                } else if (signText.contains('GO') || signText.contains('WALK') || signText.contains('CROSS')) {
-                  selectedSim = _hazardSimulations[13]; // GO Signal Detected
-                } else {
-                  selectedSim = _hazardSimulations[1]; // General Traffic Sign
-                  if (recognizedText.text.trim().isNotEmpty) {
-                    final words = recognizedText.text.split('\n').first.trim();
-                    selectedSim = Map<String, dynamic>.from(selectedSim!)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
-                  }
-                }
-              } catch (e) {
-                selectedSim = _hazardSimulations[1]; // General Traffic Sign
-              }
-            } else if (topLabel.contains('pothole') || topLabel.contains('crack') || topLabel.contains('hole') || topLabel.contains('depression')) {
-              selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
-            } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
-              selectedSim = _hazardSimulations[12]; // Person Detected
-            } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway')) {
-              selectedSim = {
-                'title': 'Door Detected',
-                'desc': 'Door or entrance located in front of you.',
-                'bg': const Color(0xFFE0F7FA),
-                'icon': Icons.meeting_room,
-                'iconColor': Colors.teal,
-                'speech': 'Door or entrance detected ahead.'
-              };
-            } else if (topLabel.contains('tree') || topLabel.contains('branch') || topLabel.contains('pole') || topLabel.contains('wall') || topLabel.contains('obstacle') || topLabel.contains('post') || topLabel.contains('barrier')) {
-              selectedSim = _hazardSimulations[9]; // Obstacle ahead
-            } else {
-              final cleanLabel = topLabelText[0].toUpperCase() + topLabelText.substring(1);
-              final isPathway = topLabel.contains('floor') || 
-                                topLabel.contains('ground') || 
-                                topLabel.contains('sky') || 
-                                topLabel.contains('ceiling') || 
-                                topLabel.contains('indoor') ||
-                                topLabel.contains('room');
-
-              if (_selectedHudMode == HudMode.navigation && !isPathway) {
-                selectedSim = {
-                  'title': '$cleanLabel Obstacle',
-                  'desc': '$cleanLabel is blocking your path. Step aside.',
-                  'bg': const Color(0xFFFFF3E0),
-                  'icon': Icons.warning_amber_rounded,
-                  'iconColor': Colors.orange,
-                  'speech': 'Caution: $cleanLabel detected directly in front of you. Please step aside to avoid it.'
-                };
-              } else {
-                selectedSim = {
-                  'title': '$cleanLabel Detected',
-                  'desc': '$cleanLabel located in front of you.',
-                  'bg': const Color(0xFFE8F5E9),
-                  'icon': Icons.check_circle_outline,
-                  'iconColor': Colors.green,
-                  'speech': '$cleanLabel detected.'
-                };
-              }
-            }
-
-            setState(() {
-              _detectedObjectLabels = labels.take(3).map((l) => l.label).toList();
-              _detectedObjectRects = List.generate(
-                _detectedObjectLabels.length,
-                (index) {
-                  double xOffset = 20.0 + (index * 40.0);
-                  double yOffset = 50.0 + (index * 30.0);
-                  return Rect.fromLTWH(xOffset, yOffset, 150, 100);
-                },
-              );
-
-              _activeTitle = selectedSim!['title'];
-              _activeDescription = selectedSim['desc'];
-              _statusCardBg = selectedSim['bg'];
-              _statusIcon = selectedSim['icon'];
-              _statusIconColor = selectedSim['iconColor'];
-            });
-
-            final now = DateTime.now();
-            final String title = selectedSim!['title'];
-            final String speech = selectedSim['speech'];
-
-            final isImmediate = title == 'STOP!' || title == 'Fire Hazard!';
-            final cooldownLimit = isImmediate ? 5 : 15;
-
-            final lastSpoken = _lastSpokenMap[title];
-            final cooldownElapsed = lastSpoken == null ||
-                now.difference(lastSpoken).inSeconds >= cooldownLimit;
-
-            if (cooldownElapsed) {
-              _lastSpokenMap[title] = now;
-              if (!_isContinuousVoiceEnabled) {
-                TtsService().speak(speech);
-              }
-              NotificationService().pushWarning(title, speech);
-            }
-          } else if (_selectedHudMode == HudMode.scenery) {
-            final now = DateTime.now();
-            final alertKey = 'scenery_details';
-            final lastSpoken = _lastSpokenMap[alertKey];
-            final ambientLabels = _latestMLKitLabels.take(3).join(" and ");
-            if (ambientLabels.isNotEmpty) {
-              final isDifferent = ambientLabels != _lastSpokenSceneryText;
-              final cooldownElapsed = lastSpoken == null ||
-                  now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
-              if (cooldownElapsed) {
-                _lastSpokenMap[alertKey] = now;
-                _lastSpokenSceneryText = ambientLabels;
-                final speech = "Surroundings resemble a $ambientLabels scenery.";
-                if (!_isContinuousVoiceEnabled) {
-                  TtsService().speak(speech);
-                }
-                
-                setState(() {
-                  _activeTitle = "Scenery Mode";
-                  _activeDescription = "Resembles $ambientLabels";
-                  _statusCardBg = const Color(0xFFFEFCBF);
-                  _statusIcon = Icons.nature_people;
-                  _statusIconColor = const Color(0xFFD69E2E);
-                });
-              }
-            }
-          }
-        }
+        await _processImageLabeling(labels, inputImage, isCovered: isCovered);
       }
     } catch (e) {
       print('ML Kit Frame processing error: $e');
     } finally {
       // Sleep briefly (400ms) to maintain a fast but stable frame process loop (no lag, no drop)
       await Future.delayed(const Duration(milliseconds: 400));
+      _isProcessingFrame = false;
+    }
+  }
+
+  Future<void> _processImageLabeling(List<ImageLabel> labels, InputImage inputImage, {bool isCovered = false}) async {
+    if (!mounted) return;
+
+    if (mounted) {
+      setState(() {
+        _latestMLKitLabels = labels.take(5).map((l) => _refineLabel(l.label)).toList();
+      });
+    }
+
+    if (labels.isNotEmpty && mounted) {
+      final topLabelText = _refineLabel(labels[0].label);
+      final topLabel = topLabelText.toLowerCase();
+
+      if (mounted) {
+        setState(() {
+          _isCameraCovered = isCovered;
+        });
+      }
+
+      if (_selectedHudMode == HudMode.navigation || _selectedHudMode == HudMode.objectDetection) {
+        Map<String, dynamic>? selectedSim;
+        if (isCovered) {
+          selectedSim = {
+            'title': 'Camera Covered',
+            'desc': 'Please check your camera lens.',
+            'bg': const Color(0xFFFFEBEE),
+            'icon': Icons.block,
+            'iconColor': Colors.red,
+            'speech': 'The camera is covered. Please remove any obstruction.'
+          };
+        } else if (topLabel.contains('fire') || topLabel.contains('smoke') || topLabel.contains('flame')) {
+          selectedSim = _hazardSimulations[10]; // Fire
+        } else if (topLabel.contains('car') || topLabel.contains('bus') || topLabel.contains('truck') || topLabel.contains('vehicle') || topLabel.contains('traffic')) {
+          selectedSim = _hazardSimulations[6]; // Vehicle
+        } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
+          selectedSim = _hazardSimulations[3]; // Stairs
+        } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel.contains('board') || topLabel.contains('billboard') || topLabel.contains('banner')) {
+          try {
+            final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+            final String signText = recognizedText.text.toUpperCase();
+            if (signText.contains('STOP')) {
+              selectedSim = _hazardSimulations[11]; // STOP!
+              selectedSim = Map<String, dynamic>.from(selectedSim!)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
+            } else if (signText.contains('GO') || signText.contains('WALK') || signText.contains('CROSS')) {
+              selectedSim = _hazardSimulations[13]; // GO Signal Detected
+            } else {
+              selectedSim = _hazardSimulations[1]; // General Traffic Sign
+              if (recognizedText.text.trim().isNotEmpty) {
+                final words = recognizedText.text.split('\n').first.trim();
+                selectedSim = Map<String, dynamic>.from(selectedSim!)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
+              }
+            }
+          } catch (e) {
+            selectedSim = _hazardSimulations[1]; // General Traffic Sign
+          }
+        } else if (topLabel.contains('pothole') || topLabel.contains('crack') || topLabel.contains('hole') || topLabel.contains('depression')) {
+          selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
+        } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
+          selectedSim = _hazardSimulations[12]; // Person Detected
+        } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway')) {
+          selectedSim = {
+            'title': 'Door Detected',
+            'desc': 'Door or entrance located in front of you.',
+            'bg': const Color(0xFFE0F7FA),
+            'icon': Icons.meeting_room,
+            'iconColor': Colors.teal,
+            'speech': 'Door or entrance detected ahead.'
+          };
+        } else if (topLabel.contains('tree') || topLabel.contains('branch') || topLabel.contains('pole') || topLabel.contains('wall') || topLabel.contains('obstacle') || topLabel.contains('post') || topLabel.contains('barrier')) {
+          selectedSim = _hazardSimulations[9]; // Obstacle ahead
+        } else {
+          final cleanLabel = topLabelText[0].toUpperCase() + topLabelText.substring(1);
+          final isPathway = topLabel.contains('floor') || 
+                            topLabel.contains('ground') || 
+                            topLabel.contains('sky') || 
+                            topLabel.contains('ceiling') || 
+                            topLabel.contains('indoor') ||
+                            topLabel.contains('room');
+
+          if (_selectedHudMode == HudMode.navigation && !isPathway) {
+            selectedSim = {
+              'title': '$cleanLabel Obstacle',
+              'desc': '$cleanLabel is blocking your path. Step aside.',
+              'bg': const Color(0xFFFFF3E0),
+              'icon': Icons.warning_amber_rounded,
+              'iconColor': Colors.orange,
+              'speech': 'Caution: $cleanLabel detected directly in front of you. Please step aside to avoid it.'
+            };
+          } else {
+            selectedSim = {
+              'title': '$cleanLabel Detected',
+              'desc': '$cleanLabel located in front of you.',
+              'bg': const Color(0xFFE8F5E9),
+              'icon': Icons.check_circle_outline,
+              'iconColor': Colors.green,
+              'speech': '$cleanLabel detected.'
+            };
+          }
+        }
+
+        setState(() {
+          _detectedObjectLabels = labels.take(3).map((l) => l.label).toList();
+          _detectedObjectRects = List.generate(
+            _detectedObjectLabels.length,
+            (index) {
+              double xOffset = 20.0 + (index * 40.0);
+              double yOffset = 50.0 + (index * 30.0);
+              return Rect.fromLTWH(xOffset, yOffset, 150, 100);
+            },
+          );
+
+          _activeTitle = selectedSim!['title'];
+          _activeDescription = selectedSim['desc'];
+          _statusCardBg = selectedSim['bg'];
+          _statusIcon = selectedSim['icon'];
+          _statusIconColor = selectedSim['iconColor'];
+        });
+
+        final now = DateTime.now();
+        final String title = selectedSim!['title'];
+        final String speech = selectedSim['speech'];
+
+        final isImmediate = title == 'STOP!' || title == 'Fire Hazard!';
+        final cooldownLimit = isImmediate ? 5 : 15;
+
+        final lastSpoken = _lastSpokenMap[title];
+        final cooldownElapsed = lastSpoken == null ||
+            now.difference(lastSpoken).inSeconds >= cooldownLimit;
+
+        if (cooldownElapsed) {
+          _lastSpokenMap[title] = now;
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak(speech);
+          }
+          NotificationService().pushWarning(title, speech);
+        }
+      } else if (_selectedHudMode == HudMode.scenery) {
+        final now = DateTime.now();
+        final alertKey = 'scenery_details';
+        final lastSpoken = _lastSpokenMap[alertKey];
+        final ambientLabels = _latestMLKitLabels.take(3).join(" and ");
+        if (ambientLabels.isNotEmpty) {
+          final isDifferent = ambientLabels != _lastSpokenSceneryText;
+          final cooldownElapsed = lastSpoken == null ||
+              now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
+          if (cooldownElapsed) {
+            _lastSpokenMap[alertKey] = now;
+            _lastSpokenSceneryText = ambientLabels;
+            final speech = "Surroundings resemble a $ambientLabels scenery.";
+            if (!_isContinuousVoiceEnabled) {
+              TtsService().speak(speech);
+            }
+            
+            setState(() {
+              _activeTitle = "Scenery Mode";
+              _activeDescription = "Resembles $ambientLabels";
+              _statusCardBg = const Color(0xFFFEFCBF);
+              _statusIcon = Icons.nature_people;
+              _statusIconColor = const Color(0xFFD69E2E);
+            });
+          }
+        }
+      }
+    }
+  }
+
+  bool _wasEsp32Connected = false;
+
+  Future<void> _onEsp32FrameAvailable() async {
+    if (!mounted) return;
+    final connected = Esp32Service().isConnected;
+    if (connected != _wasEsp32Connected) {
+      _wasEsp32Connected = connected;
+      if (connected) {
+        // Pause/dispose native camera when glasses connect to save battery
+        _cameraController?.dispose();
+        _cameraController = null;
+        setState(() {
+          _isCameraInitialized = true;
+          _pairStep = 4; // Go directly to live preview screen S01
+        });
+      } else {
+        // Re-initialize native camera if glasses disconnect
+        _initializeCamera();
+      }
+    }
+
+    if (_isPaused || !connected) return;
+    await _processEsp32Frame();
+  }
+
+  Future<void> _processEsp32Frame() async {
+    final esp32 = Esp32Service();
+    final frameBytes = esp32.currentFrame;
+    if (frameBytes == null || frameBytes.isEmpty) return;
+
+    if (_isProcessingFrame) return;
+    _isProcessingFrame = true;
+
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/esp32_frame.jpg');
+      await file.writeAsBytes(frameBytes);
+
+      final inputImage = InputImage.fromFile(file);
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final Size imageSize = const Size(640, 480); // Default ESP32-CAM stream dimensions
+
+      if (_selectedHudMode == HudMode.faceRecognition) {
+        if (nowMs - _lastFaceDetectionTime > 1500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
+          _lastFaceDetectionTime = nowMs;
+          final faces = await _faceDetector!.processImage(inputImage);
+          await _processFaceResults(faces, imageSize);
+        }
+      } else if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) {
+        if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
+          _lastObjectDetectionTime = nowMs;
+          final objects = await _objectDetector!.processImage(inputImage);
+          await _processObjectResults(objects, imageSize);
+        }
+        if (_imageLabeler != null) {
+          final List<ImageLabel> labels = await _imageLabeler!.processImage(inputImage);
+          await _processImageLabeling(labels, inputImage, isCovered: false);
+        }
+      } else {
+        if (_imageLabeler != null) {
+          final List<ImageLabel> labels = await _imageLabeler!.processImage(inputImage);
+          await _processImageLabeling(labels, inputImage, isCovered: false);
+        }
+      }
+    } catch (e) {
+      print('ESP32 frame processing error: $e');
+    } finally {
+      await Future.delayed(const Duration(milliseconds: 300));
       _isProcessingFrame = false;
     }
   }
@@ -2648,7 +2743,23 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 return Stack(
                   fit: StackFit.expand,
                   children: [
-                    CameraPreview(_cameraController!),
+                    if (Esp32Service().isConnected && Esp32Service().currentFrame != null)
+                      Image.memory(
+                        Esp32Service().currentFrame!,
+                        fit: BoxFit.cover,
+                        gaplessPlayback: true,
+                      )
+                    else if (_cameraController != null && _cameraController!.value.isInitialized)
+                      CameraPreview(_cameraController!)
+                    else
+                      Container(
+                        color: Colors.black,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      ),
                     if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation)
                       if (_detectedObjectsList.isNotEmpty)
                         ..._detectedObjectsList.map((obj) {
