@@ -62,12 +62,8 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
   }
 
   Future<void> _initializeAssistant() async {
+    // Read welcome message aloud only — mic must be tapped manually by the user S01
     await _speakText(_messages.first['text']);
-    // Wait briefly and start listening hands-free
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (mounted && !_isListening) {
-      _toggleListening();
-    }
   }
 
   @override
@@ -93,14 +89,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
         _buddyState = 'idle';
       });
 
-      // Auto-Pilot hands-free listening loop
-      if (_isAutoPilotEnabled && !_isListening && !_isThinking) {
-        Future.delayed(const Duration(milliseconds: 600), () {
-          if (mounted && !_isListening && !_isThinking && !_isSpeaking) {
-            _toggleListening();
-          }
-        });
-      }
+      // Mic stays idle after speaking — user must tap to start listening S01
     }
   }
 
