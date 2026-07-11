@@ -132,7 +132,20 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       }
     } else {
       // Force local Gemma for English language S01 (Streaming)
-      // Pass the raw user text only — RagService.askBuddyStream handles all prompt construction internally
+      // Build a history slice of the last 3 turns (6 messages) for multi-turn context S01
+      // Exclude the current user message (just added) — that is the new query
+      final historySlice = _messages.length > 1
+          ? _messages
+              .sublist(0, _messages.length - 1) // all except the last (current user msg)
+              .where((m) => (m['text'] as String? ?? '').trim().isNotEmpty)
+              .toList()
+              .reversed
+              .take(6) // 3 back-and-forth turns
+              .toList()
+              .reversed
+              .toList()
+          : <Map<String, dynamic>>[];
+
       int assistantMsgIndex = -1;
       setState(() {
         _messages.add({'text': '', 'isUser': false});
@@ -144,7 +157,11 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       String accumulatedText = '';
       DateTime lastUpdate = DateTime.now();
 
-      await for (final token in RagService().askBuddyStream(text)) {
+      await for (final token in RagService().askBuddyStream(
+        text,
+        userName: name,
+        history: historySlice,
+      )) {
         if (!mounted) break;
         accumulatedText += token;
         final now = DateTime.now();

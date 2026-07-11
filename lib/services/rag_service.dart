@@ -274,7 +274,11 @@ class RagService {
     });
   }
 
-  Stream<String> _queryGemmaOfflineStream(String prompt, {String? systemInstruction}) async* {
+  Stream<String> _queryGemmaOfflineStream(
+    String prompt, {
+    String? systemInstruction,
+    List<Map<String, dynamic>>? history,
+  }) async* {
     final modelPath = await _getLocalModelPath();
     if (modelPath == null) {
       yield "Buddy local LLM Offline: Model file not found.";
@@ -297,8 +301,24 @@ class RagService {
 
         final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
         final session = await model.createSession(systemInstruction: systemInstruction);
+
+        // Replay prior turns so Gemma maintains conversation memory S01
+        if (history != null && history.isNotEmpty) {
+          for (final msg in history) {
+            final msgText = (msg['text'] as String? ?? '').trim();
+            if (msgText.isEmpty) continue;
+            // Strip navigation tags from assistant messages before feeding back
+            final cleanText = msgText.replaceAll(RegExp(r'\[NAVIGATE:.*?\]'), '').trim();
+            if (cleanText.isEmpty) continue;
+            await session.addQueryChunk(
+              Message(text: cleanText, isUser: msg['isUser'] == true),
+            );
+          }
+        }
+
+        // Add the current user query
         await session.addQueryChunk(Message(text: prompt, isUser: true));
-        
+
         await for (final token in session.getResponseAsync()) {
           if (token != null) {
             controller.add(token);
@@ -567,10 +587,13 @@ class RagService {
     return responseText;
   }
 
-  Stream<String> askBuddyStream(String question) async* {
-    // Read user context from settings directly S01 (not from the prompt text)
+  Stream<String> askBuddyStream(
+    String question, {
+    String userName = 'User',
+    List<Map<String, dynamic>>? history,
+  }) async* {
+    // Read user context from settings directly S01
     final rawQuestion = question.trim();
-    const userName = 'User';
     final mobilityAid = SettingsService().selectedMobilityAid.isNotEmpty
         ? SettingsService().selectedMobilityAid
         : 'None';
@@ -600,9 +623,13 @@ class RagService {
         yield "Failed to generate reply: $e";
       }
     } else {
-      // Use Local Gemma for English S01
+      // Use Local Gemma for English S01, forward history for multi-turn context
       if (modelPath != null) {
-        yield* _queryGemmaOfflineStream(userPrompt, systemInstruction: systemPrompt);
+        yield* _queryGemmaOfflineStream(
+          userPrompt,
+          systemInstruction: systemPrompt,
+          history: history,
+        );
       } else {
         final instruction = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
         yield instruction;
