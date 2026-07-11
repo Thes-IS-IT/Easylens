@@ -234,7 +234,7 @@ class RagService {
         }
 
         // Initialize a clean session per request to prevent history/prompt build-up latency S01
-        final model = await FlutterGemma.getActiveModel(maxTokens: 75);
+        final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
         final session = await model.createSession();
         await session.addQueryChunk(Message(text: prompt, isUser: true));
         final response = await session.getResponse();
