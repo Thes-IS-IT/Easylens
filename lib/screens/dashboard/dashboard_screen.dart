@@ -23,6 +23,7 @@ import '../../utils/app_route.dart';
 import '../../services/tts_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
+import '../../services/undo_service.dart';
 import '../../widgets/speech_navigation_overlay.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -40,6 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   StreamSubscription? _accelerometerSubscription;
   int _lastShakeTime = 0;
+  bool _isBuddySheetOpen = false;
 
   @override
   void initState() {
@@ -80,12 +82,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   /// Central tab-change handler. Plays bark when navigating to dashboard.
-  void _onTabChanged(int index) {
+  void _onTabChanged(int index, {bool isUndo = false}) {
+    if (index == _currentIndex) return;
+    final previousIndex = _currentIndex;
     final wasOnHome = _currentIndex == 0;
     final goingHome = index == 0;
     setState(() => _currentIndex = index);
     if (goingHome && !wasOnHome) {
       _playDashboardBark();
+    }
+    if (!isUndo) {
+      UndoService().add(() {
+        _onTabChanged(previousIndex, isUndo: true);
+      }, description: "Switch tab to index $previousIndex");
     }
   }
 
@@ -151,62 +160,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _stopShakeListening() {
     _accelerometerSubscription?.cancel();
+  }  void _navigateTo(Widget screen, String description) {
+    final nav = Navigator.of(context);
+    UndoService().add(() {
+      if (nav.canPop()) {
+        nav.pop();
+      }
+    }, description: "Pop screen: $description");
+    nav.push(AppRoute.to(screen));
   }
 
   void _onShakeDetected() {
-    TtsService().speak("Shake gesture detected. Action undone.");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          TranslationService.translate('shake_detected_undo', SettingsService().selectedLanguage),
+    final success = UndoService().performUndo();
+    if (success) {
+      final lang = SettingsService().selectedLanguage;
+      final isTagalog = lang.toLowerCase().contains('tagalog') ||
+          lang.toLowerCase().contains('filipino');
+      TtsService().speak(isTagalog ? "Na-undo ang huling aksyon." : "Action undone.");
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            TranslationService.translate('shake_detected_undo', SettingsService().selectedLanguage),
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
         ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
+    }
   }
 
   void _openBuddyAssistant() {
-    BuddyAssistantSheet.show(
-      context,
-      onNavigate: (screenKey) {
-        if (screenKey == 'home') {
-          _onTabChanged(0);
-        } else if (screenKey == 'nav') {
-          _onTabChanged(1);
-        } else if (screenKey == 'hardware') {
-          _onTabChanged(2);
-        } else if (screenKey == 'text') {
-          Navigator.of(context).push(
-            AppRoute.to(ImageLabelingScreen(
+    _isBuddySheetOpen = true;
+    
+    // Register the undo action to close the sheet
+    UndoService().add(() {
+      if (_isBuddySheetOpen && mounted) {
+        Navigator.of(context).pop();
+      }
+    }, description: "Close Buddy Assistant Sheet");
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BuddyAssistantSheet(
+        onNavigate: (screenKey) {
+          _isBuddySheetOpen = false;
+          Navigator.of(context).pop(); // Close sheet
+          if (screenKey == 'home') {
+            _onTabChanged(0);
+          } else if (screenKey == 'nav') {
+            _onTabChanged(1);
+          } else if (screenKey == 'hardware') {
+            _onTabChanged(2);
+          } else if (screenKey == 'text') {
+            _navigateTo(ImageLabelingScreen(
               onTabSelected: (index) {
                 setState(() => _currentIndex = index);
               },
-            )),
-          );
-        } else if (screenKey == 'objects') {
-          Navigator.of(context).push(
-            AppRoute.to(const HardwareScreen(initialStep: 4)),
-          );
-        } else if (screenKey == 'emergency') {
-          Navigator.of(context).push(
-            AppRoute.to(const EmergencyScreen()),
-          );
-        } else if (screenKey == 'settings') {
-          Navigator.of(context).push(
-            AppRoute.to(const SettingsScreen()),
-          );
-        } else if (screenKey == 'notifications') {
-          Navigator.of(context).push(
-            AppRoute.to(const NotificationsScreen()),
-          );
-        } else if (screenKey == 'contacts') {
-          Navigator.of(context).push(
-            AppRoute.to(const ContactsScreen()),
-          );
-        }
-      },
-    );
+            ), "Image Labeling");
+          } else if (screenKey == 'objects') {
+            _navigateTo(const HardwareScreen(initialStep: 4), "Objects Hardware Mode");
+          } else if (screenKey == 'emergency') {
+            _navigateTo(const EmergencyScreen(), "Emergency SOS");
+          } else if (screenKey == 'settings') {
+            _navigateTo(const SettingsScreen(), "Settings");
+          } else if (screenKey == 'notifications') {
+            _navigateTo(const NotificationsScreen(), "Notifications");
+          } else if (screenKey == 'contacts') {
+            _navigateTo(const ContactsScreen(), "Contacts");
+          }
+        },
+      ),
+    ).then((_) {
+      _isBuddySheetOpen = false;
+    });
   }
 
   @override
@@ -226,30 +255,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _onTabChanged(index);
             },
             onSOSSelected: () {
-              Navigator.of(context).push(
-                AppRoute.to(const EmergencyScreen()),
-              );
+              _navigateTo(const EmergencyScreen(), "Emergency SOS");
             },
             onSettingsSelected: () {
-              Navigator.of(context).push(
-                AppRoute.to(const SettingsScreen()),
-              );
+              _navigateTo(const SettingsScreen(), "Settings");
             },
             onNotificationsSelected: () {
-              Navigator.of(context).push(
-                AppRoute.to(const NotificationsScreen()),
-              );
+              _navigateTo(const NotificationsScreen(), "Notifications");
             },
             onContactsSelected: () {
-              Navigator.of(context).push(
-                AppRoute.to(const ContactsScreen()),
-              );
+              _navigateTo(const ContactsScreen(), "Contacts");
             },
             onBuddyAssistantTap: _openBuddyAssistant,
             onFaceRegistrationSelected: () {
-              Navigator.of(context).push(
-                AppRoute.to(const FaceRegistrationScreen()),
-              );
+              _navigateTo(const FaceRegistrationScreen(), "Face Registration");
             },
           ),
           const NavigationScreen(),

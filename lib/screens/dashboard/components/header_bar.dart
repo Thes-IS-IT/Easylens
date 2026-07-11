@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../constants/colors.dart';
 import '../../../services/settings_service.dart';
+import '../../../services/notification_service.dart';
 
 class HeaderBar extends StatelessWidget {
   final VoidCallback onSOSSelected;
@@ -65,11 +66,53 @@ class HeaderBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              IconButton(
-                icon: Icon(Icons.notifications_none, color: iconColor),
-                onPressed: onNotificationsSelected,
-                constraints: const BoxConstraints(),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ListenableBuilder(
+                listenable: NotificationService(),
+                builder: (context, _) {
+                  final service = NotificationService();
+                  final count = service.unreadCount;
+                  
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          count > 0 ? Icons.notifications : Icons.notifications_none, 
+                          color: count > 0 ? const Color(0xFFEF4444) : iconColor,
+                        ),
+                        onPressed: onNotificationsSelected,
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      if (count > 0)
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFEF4444),
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '$count',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
               IconButton(
                 icon: Icon(Icons.people_outline, color: iconColor),
