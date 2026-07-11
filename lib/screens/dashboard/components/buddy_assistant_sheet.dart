@@ -123,14 +123,6 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
     final isFilipino = lang.toLowerCase().contains('tagalog') ||
         lang.toLowerCase().contains('filipino');
 
-    final prompt = """
-You are Buddy, the friendly dog mascot. User: $name (Aid: $aid). Keep replies under 2 sentences.
-Navigation tags (append exactly one tag to END of reply to navigate):
-Home: [NAVIGATE: home], Audio: [NAVIGATE: nav], Camera: [NAVIGATE: hardware], Text: [NAVIGATE: text], Objects: [NAVIGATE: objects], SOS: [NAVIGATE: emergency], Settings: [NAVIGATE: settings], Notifications: [NAVIGATE: notifications], Contacts: [NAVIGATE: contacts], Journal: [NAVIGATE: journal].
-Q: $text
-Buddy:
-""";
-
     if (isFilipino) {
       // Force Online Gemini for Filipino/Tagalog language S01
       final response = await RagService().askBuddyGemini(text, name, aid);
@@ -139,6 +131,7 @@ Buddy:
       }
     } else {
       // Force local Gemma for English language S01 (Streaming)
+      // Pass the raw user text only — RagService.askBuddyStream handles all prompt construction internally
       int assistantMsgIndex = -1;
       setState(() {
         _messages.add({'text': '', 'isUser': false});
@@ -149,7 +142,7 @@ Buddy:
       String accumulatedText = '';
       DateTime lastUpdate = DateTime.now();
 
-      await for (final token in RagService().askBuddyStream(prompt)) {
+      await for (final token in RagService().askBuddyStream(text)) {
         if (!mounted) break;
         accumulatedText += token;
         final now = DateTime.now();

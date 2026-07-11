@@ -568,22 +568,12 @@ class RagService {
   }
 
   Stream<String> askBuddyStream(String question) async* {
-    String rawQuestion = question;
-    String userName = "User";
-    String mobilityAid = "None";
-
-    if (question.contains("User Info:")) {
-      final nameMatch = RegExp(r"Name is '([^']+)'").firstMatch(question);
-      if (nameMatch != null) userName = nameMatch.group(1) ?? "User";
-      
-      final aidMatch = RegExp(r"using mobility aid '([^']+)'").firstMatch(question);
-      if (aidMatch != null) mobilityAid = aidMatch.group(1) ?? "None";
-      
-      final questionMatch = RegExp(r"Question:\s*(.*)\s*Buddy:", caseSensitive: false, dotAll: true).firstMatch(question);
-      if (questionMatch != null) {
-        rawQuestion = questionMatch.group(1)?.trim() ?? question;
-      }
-    }
+    // Read user context from settings directly S01 (not from the prompt text)
+    final rawQuestion = question.trim();
+    const userName = 'User';
+    final mobilityAid = SettingsService().selectedMobilityAid.isNotEmpty
+        ? SettingsService().selectedMobilityAid
+        : 'None';
 
     final lowerQ = rawQuestion.toLowerCase();
     final isConversational = rawQuestion.length < 30 &&
@@ -614,7 +604,6 @@ class RagService {
       if (modelPath != null) {
         yield* _queryGemmaOfflineStream(userPrompt, systemInstruction: systemPrompt);
       } else {
-        // Yield model missing instructions
         final instruction = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
         yield instruction;
       }
