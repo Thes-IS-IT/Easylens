@@ -41,7 +41,8 @@ The Dashboard is the central hub of EasyLens. It is built as a `StatelessWidget`
   - Audio Navigation
   - SOS Emergency
 - **Bark sound on return** — `bark_dashboard.mp3` plays once when the user navigates back to the Home tab from another tab (non-spamming: does not play if already on Home tab).
-- **Shake-to-undo** — Detects accelerometer shake gestures (> 2.5g) and announces "Last action undone" via TTS. Can be toggled in Settings.
+- **Shake-to-undo** — Detects accelerometer shake gestures (> 2.5g) and undos the user's recent navigations or click events (e.g. going back a screen or closing the mascot assistant). Buddy announces "Action undone" (or Tagalog equivalent) via TTS.
+- **Notification Badge Count** — Renders a dynamic red badge count on the notification bell icon inside the top header, indicating the number of unread alerts. Updates in real-time.
 
 ### Key Files
 - `lib/screens/dashboard/dashboard_home.dart`
@@ -74,6 +75,8 @@ Buddy is EasyLens's primary conversational AI, presented as a golden retriever m
 - **RAG knowledge base** — Buddy has a local knowledge base covering app features, ESP32 hardware, Firebase usage, ML Kit models, and EasyLens identity. Matched context is injected into every English prompt.
 - **Scanned text explanation** — When the user scans nearby text, Buddy receives the scan and explains it (food labels, safety signs, directional signs) in 2–3 sentences.
 - **Draggable floating button** — The Buddy button can be dragged anywhere on screen and persists across all tabs.
+- **Typewriter Reply Animation** — Conversational replies are typed out character-by-character sequentially in real-time (typing 3 characters every 15ms) to feel lively and responsive. (Bypassed for instant autopilot navigation).
+- **Latency & Speed Optimizations** — Cap on-device Gemma output to `maxTokens: 150` to guarantee fast, responsive, low-latency offline responses on mobile GPU/CPU backend execution.
 
 ### Key Files
 - `lib/screens/dashboard/components/buddy_assistant_sheet.dart`
@@ -128,6 +131,8 @@ The Navigation screen provides GPS-based turn-by-turn guidance with full TTS gui
 - **Recent navigation save** — Each route is saved to Firestore for history tracking.
 - **Manual Next/Cancel buttons** — User can manually advance steps or cancel navigation.
 - **Arrived screen** — Dedicated map view shown on arrival (navState 2).
+- **Single-Tap or Long-Press Pinning** — Users can tap or hold anywhere on the map to drop a custom location marker pin. The app instantly queries the OSRM router to fetch directions, draw route polylines, and start active guidance.
+- **Conversational Voice Search & Choice Selection** — Users can say "search for [place]" or "hanapin ang [place]" using Speech Navigation. The overlay lists the top 3 search results aloud (e.g., "1: Nepo Mall, 2: SM Clark..."). The user selects their destination hands-free by speaking the corresponding number ("one", "two", "three" or "una", "pangalawa", "pangatlo") to start navigation immediately. Can say "cancel" to abort.
 
 ### Key Files
 - `lib/screens/navigation/navigation_screen.dart`
@@ -414,3 +419,4 @@ EasyLens uses `audioplayers` for non-TTS audio feedback — distinct from the vo
 |---|---|---|
 | 1.0.0 | 2026-07-08 | Initial release — core vision, navigation, Buddy, SOS, settings |
 | 1.1.0 | 2026-07-09 | Filipino language support (all screens), Gemini for Filipino Buddy, bark sound on dashboard, proximity guidance TTS for navigation, dynamic theming rollout |
+| 1.2.0 | 2026-07-11 | Capped Gemma tokens to 150 (speedup), typewriter message animations, fixed XNNPACK cancel crash, notification badge count header, shake-to-undo gesture triggers, voice-activated destination search and choices selection, single-tap/long-press map pinning navigation, and refined traffic sign classification. |

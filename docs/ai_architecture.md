@@ -10,6 +10,12 @@ EasyLens implements a hybrid on-device and cloud AI assistant system (Buddy) des
 * **Library**: `flutter_gemma: ^0.13.6`
 * **Execution**: Runs fully on-device on the GPU/CPU using Google's AI Edge SDK.
 * **Usage**: Primary conversational model for English speech input when offline.
+* **Performance Speedups**:
+  - Capped maximum generated output length to `maxTokens: 150` which reduces token compilation overhead, ensuring near-instant replies.
+  - Types replies character-by-character with a custom typewriter animation step (typing 3 characters every 15ms) to feel lively, responsive, and organic.
+* **Persistent Session Lifecycle**:
+  - Reuses a single persistent `_gemmaSession` in `RagService` instead of opening/closing sessions repeatedly. This solves the native MediaPipe XNNPACK backend cancel crash (`Pending Process Cancellation not supported for XNNPACK`).
+  - Releases resources cleanly on chat dialog destruction via `clearGemmaSession()` in the widget dispose cycle.
 * **Data Flow**: On startup, `RagService` searches the local app directory for `model.bin` (~1.3 GB). If not found, users can push it manually via Android Debug Bridge (ADB) or stream it using the built-in downloader.
 
 ### Cloud Online Model: Google Gemini 2.0 Flash
