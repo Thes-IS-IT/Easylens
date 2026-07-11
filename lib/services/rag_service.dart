@@ -92,11 +92,11 @@ class RagService {
 
     try {
       final client = http.Client();
-      final request = http.Request('GET', Uri.parse('https://pub-a5d4b9645ec286f0187d58d611bd54fd.r2.dev/model.bin'));
+      final request = http.Request('GET', Uri.parse('https://huggingface.co/vba01/gemma-2b-it-gpu-int4/resolve/main/gemma-2b-it-gpu-int4.bin'));
       final response = await client.send(request).timeout(const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
-        final totalLength = response.contentLength ?? 1346559040;
+        final totalLength = response.contentLength ?? 1354301440;
         int downloadedLength = 0;
 
         final sink = file.openWrite();
