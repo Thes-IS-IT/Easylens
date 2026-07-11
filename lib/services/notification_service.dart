@@ -35,7 +35,9 @@ class NotificationService extends ChangeNotifier {
       requestSoundPermission: true,
     );
     const InitializationSettings initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
-    await _localNotifications.initialize(initSettings);
+    await _localNotifications.initialize(
+      initializationSettings: initSettings,
+    );
 
     // Schedule a buddy follow-up notification on first launch of the day
     _maybeSendDailyBuddyFollowUp();
