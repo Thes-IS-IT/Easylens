@@ -1064,7 +1064,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     const Icon(Icons.language, color: Color(0xFF2563EB), size: 16),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'easylense-website.vercel.app',
+                                      'easylens.app',
                                       style: GoogleFonts.inter(
                                         color: const Color(0xFF2563EB),
                                         fontSize: 12,
