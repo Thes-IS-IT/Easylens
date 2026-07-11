@@ -1,16 +1,17 @@
 # EasyLens: System Algorithms & Mathematical Heuristics
 
-This document details the core algorithms and mathematical heuristics implemented across the EasyLens codebase. These descriptions are structured for academic reference in thesis reports, documenting the exact engineering mechanics behind the application's core assistive features.
+This document details the formal names, mathematical models, and pseudo-code implementations of the core algorithms powering the EasyLens system. These descriptions are structured for direct inclusion in thesis reports, documentation, and technical defenses.
 
 ---
 
-## 1. Object Detection Trajectory & Steering Avoidance Algorithm
+## 1. Perspective Projection Depth Approximation & Spatial-Relative Steering Algorithm (PP-DA-SRS)
 
 * **Functional Module**: [hardware_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/hardware_screen.dart)
-* **Goal**: Determine if a detected object poses an active collision hazard and suggest a steering direction.
+* **Formal Name**: SSD MobileNetV2 with Trajectory-Relative Lane Occupancy Analysis.
+* **Goal**: Real-time object detection, proximity estimation, and path-clearance steering logic for collision avoidance.
 
 ### Mathematical Formulation
-Let the input frame width and height be $W$ and $H$. The model outputs normalized bounding box coordinates for each object $i$:
+Let the camera input frame width and height be $W$ and $H$. The object detector outputs normalized bounding box coordinates for each object $i$:
 $$Box_i = [y_{min}, x_{min}, y_{max}, x_{max}] \quad \text{where} \quad y, x \in [0, 1]$$
 
 The horizontal center $x_c$ and the total screen area proportion $A$ are calculated as:
@@ -50,13 +51,14 @@ Constants: CONFIDENCE_THRESHOLD = 0.50, PROXIMITY_THRESHOLD = 0.60
 
 ---
 
-## 2. Proximity-Based Turn Guidance & Anti-Spam Algorithm
+## 2. Temporal Cooldown Proximity Alert Filtering (TC-PAF) Algorithm
 
 * **Functional Module**: [navigation_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/navigation/navigation_screen.dart)
-* **Goal**: Deliver timely navigation instructions without creating cognitive overload (audio spam) for the user.
+* **Formal Name**: Adaptive Proximity Announcement Cooldown (APAC) for GPS Navigation.
+* **Goal**: Deliver turn-by-turn guidance and dynamic waypoint alerts while preventing audio congestion and cognitive fatigue.
 
 ### Mathematical Formulation
-Let $P_{user} = (\text{lat}_{user}, \text{lng}_{user})$ be the user's current GPS position, and $P_{wp} = (\text{lat}_{wp}, \text{lng}_{wp})$ be the coordinate of the next route waypoint.
+Let $P_{user} = (\text{lat}_{user}, \text{lng}_{user})$ be the user's current GPS coordinates, and $P_{wp} = (\text{lat}_{wp}, \text{lng}_{wp})$ be the coordinate of the next target route node.
 The distance $D$ in meters is computed using the Haversine formula:
 $$a = \sin^2\left(\frac{\Delta \text{lat}}{2}\right) + \cos(\text{lat}_{user})\cos(\text{lat}_{wp})\sin^2\left(\frac{\Delta \text{lng}}{2}\right)$$
 $$d = 2r \cdot \text{atan2}(\sqrt{a}, \sqrt{1-a})$$
@@ -94,9 +96,10 @@ State: LastAlertTime t_last, Cooldown t_cooldown = 8000ms
 
 ---
 
-## 3. Accelerometer Shake-to-Undo Gesture Algorithm
+## 3. Dynamic Acceleration Magnitude Thresholding (DAMT) Algorithm
 
 * **Functional Module**: [settings_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/settings/settings_screen.dart) (using `sensors_plus`)
+* **Formal Name**: State-Persistent Shake-to-Undo Gesture Engine.
 * **Goal**: Detect physical shaking of the device to revert accidental user actions.
 
 ### Mathematical Heuristics
@@ -122,9 +125,10 @@ State: LastShakeTime t_last
 
 ---
 
-## 4. Local RAG Context Retrieval & Matching Algorithm
+## 4. Sub-linear Keyword-Frequency Semantic Matching (SKF-SM) Algorithm
 
 * **Functional Module**: [rag_service.dart](file:///Users/arronkianparejas/easylens/lib/services/rag_service.dart)
+* **Formal Name**: Keyword-Indexed Local Retrieval-Augmented Generation (RAG).
 * **Goal**: Retrieve relevant base knowledge facts matching the user's conversational query offline.
 
 ### Algorithmic Logic
@@ -151,9 +155,10 @@ Output: ContextString context
 
 ---
 
-## 5. ESP32 WiFi MJPEG Frame Parsing Algorithm
+## 5. Delimited JPEG Frame Boundary Segmentation (DJF-BS) Algorithm
 
 * **Functional Module**: [esp32_service.dart](file:///Users/arronkianparejas/easylens/lib/services/esp32_service.dart)
+* **Formal Name**: Wi-Fi TCP Packet Stream Segmenter (SOI/EOI Boundary Decoder).
 * **Goal**: Parse raw TCP boundary chunks from a network stream to reconstruct JPEG image frames.
 
 ### Algorithmic Logic
