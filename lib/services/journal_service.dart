@@ -249,4 +249,62 @@ $newInsight
     }
     return contexts;
   }
+
+  /// Retrieves raw segments (insights and logs) of the recent N days of journals for TF-IDF.
+  Future<List<Map<String, String>>> getRecentJournalsContent(int daysLimit) async {
+    final List<Map<String, String>> segments = [];
+    try {
+      final journals = await getJournalsList();
+      final recentJournals = journals.take(daysLimit).toList();
+
+      final results = await Future.wait(recentJournals.map((journal) async {
+        final file = journal['file'] as File;
+        final date = journal['date'] as String;
+        final content = await file.readAsString();
+        final List<Map<String, String>> fileSegments = [];
+
+        // Parse Insights
+        if (content.contains('## Buddy\'s Insights & Notes')) {
+          final parts = content.split('## Buddy\'s Insights & Notes');
+          if (parts.length > 1) {
+            final rest = parts[1];
+            final nextSecIndex = rest.indexOf('##');
+            final insights = nextSecIndex != -1 ? rest.substring(0, nextSecIndex) : rest;
+            final cleanInsights = insights.trim();
+            if (cleanInsights.isNotEmpty && !cleanInsights.contains('No insights recorded')) {
+              fileSegments.add({
+                'title': "Buddy's Insights on $date",
+                'content': cleanInsights,
+                'source': 'journal_insight'
+              });
+            }
+          }
+        }
+
+        // Parse Conversation Logs
+        if (content.contains('## Conversation Logs')) {
+          final parts = content.split('## Conversation Logs');
+          if (parts.length > 1) {
+            final logs = parts[1].trim();
+            if (logs.isNotEmpty) {
+              fileSegments.add({
+                'title': "Conversation Logs on $date",
+                'content': logs,
+                'source': 'journal_log'
+              });
+            }
+          }
+        }
+
+        return fileSegments;
+      }));
+
+      for (var res in results) {
+        segments.addAll(res);
+      }
+    } catch (e) {
+      print('[Journal] Error loading recent journals content: $e');
+    }
+    return segments;
+  }
 }

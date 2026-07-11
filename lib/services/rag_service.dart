@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
@@ -414,25 +415,66 @@ class RagService {
   }
 
   Future<String> retrieveContextAsync(String query) async {
-    final baseContext = retrieveContext(query);
-    String fullContext = baseContext;
     try {
-      final journalContexts = await JournalService().getJournalContextForQuery(query);
-      if (journalContexts.isNotEmpty) {
-        // Limit journal contexts to at most 2 entries S01
-        final limitedJournals = journalContexts.take(2).join('\n');
-        fullContext = "$baseContext\n\n[Buddy's Memory/Past Journals]:\n$limitedJournals";
+      final engine = TfidfEngine();
+
+      // 1. Index all static knowledge base documents
+      for (var item in _localKnowledgeBase) {
+        engine.addDocument(item.title, item.content, 'knowledge');
+      }
+
+      // 2. Index the last 7 days of daily journals
+      try {
+        final journalSegments = await JournalService().getRecentJournalsContent(7);
+        for (var segment in journalSegments) {
+          final title = segment['title'] ?? '';
+          final content = segment['content'] ?? '';
+          final source = segment['source'] ?? 'journal';
+          engine.addDocument(title, content, source);
+        }
+      } catch (je) {
+        print('[RAG] Error loading journal segments for TF-IDF: $je');
+      }
+
+      // 3. Compute IDFs
+      engine.calculateIdfs();
+
+      // 4. Retrieve the top 3 matches
+      final matches = engine.search(query, limit: 3);
+
+      if (matches.isNotEmpty) {
+        final List<String> knowledgeParts = [];
+        final List<String> journalParts = [];
+
+        for (var doc in matches) {
+          if (doc.source == 'knowledge') {
+            knowledgeParts.add("[${doc.title}]: ${doc.content}");
+          } else {
+            journalParts.add("[${doc.title}]: ${doc.content}");
+          }
+        }
+
+        final List<String> resultBlocks = [];
+        if (knowledgeParts.isNotEmpty) {
+          resultBlocks.add(knowledgeParts.join("\n\n"));
+        }
+        if (journalParts.isNotEmpty) {
+          resultBlocks.add("[Buddy's Memory/Past Journals]:\n${journalParts.join("\n\n")}");
+        }
+
+        var contextText = resultBlocks.join("\n\n");
+        // Strict prompt safety ceiling S01 (prevent SEGV_ACCERR memory crash in MediaPipe JNI)
+        if (contextText.length > 1000) {
+          contextText = "${contextText.substring(0, 990)}... [truncated]";
+        }
+        return contextText;
       }
     } catch (e) {
-      print('[RAG] Error retrieving journal context: $e');
+      print('[RAG] Error in TF-IDF context retrieval: $e');
     }
 
-    // Strict prompt safety ceiling S01 (prevent SEGV_ACCERR memory crash in MediaPipe JNI)
-    if (fullContext.length > 1000) {
-      fullContext = "${fullContext.substring(0, 990)}... [truncated]";
-    }
-
-    return fullContext;
+    // Fallback to basic retrieveContext if TF-IDF fails
+    return retrieveContext(query);
   }
 
   void _logToJournal(String question, String answer) {
@@ -895,5 +937,141 @@ class _Mutex {
     });
     _last = completer.future;
     return next;
+  }
+}
+
+class RagDocument {
+  final String title;
+  final String content;
+  final String source; // 'knowledge', 'journal_insight', 'journal_log'
+  final Map<String, double> termFrequencies;
+
+  RagDocument({
+    required this.title,
+    required this.content,
+    required this.source,
+    required this.termFrequencies,
+  });
+}
+
+class TfidfEngine {
+  final List<RagDocument> documents = [];
+  final Map<String, double> idfs = {};
+  
+  static final Set<String> stopWords = {
+    'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'arent', 'as', 'at',
+    'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'can', 'cant', 'cannot',
+    'could', 'couldnt', 'did', 'didnt', 'do', 'does', 'doesnt', 'doing', 'dont', 'down', 'during', 'each', 'few',
+    'for', 'from', 'further', 'had', 'hadnt', 'has', 'hasnt', 'have', 'havent', 'having', 'he', 'hed', 'hell',
+    'hes', 'her', 'here', 'heres', 'hers', 'herself', 'him', 'himself', 'his', 'how', 'hows', 'i', 'id', 'ill',
+    'im', 'ive', 'if', 'in', 'into', 'is', 'isnt', 'it', 'its', 'itself', 'lets', 'me', 'more', 'most', 'mustnt',
+    'my', 'myself', 'no', 'nor', 'not', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'ought', 'our', 'ours',
+    'ourselves', 'out', 'over', 'own', 'same', 'shannt', 'she', 'shed', 'shell', 'shes', 'should', 'shouldnt',
+    'so', 'some', 'such', 'than', 'that', 'thats', 'the', 'their', 'theirs', 'them', 'themselves', 'then',
+    'there', 'theres', 'these', 'they', 'theyd', 'theyll', 'theyre', 'theyve', 'this', 'those', 'through', 'to',
+    'too', 'under', 'until', 'up', 'very', 'was', 'wasnt', 'we', 'wed', 'well', 'were', 'weve', 'werent', 'what',
+    'whats', 'when', 'whens', 'where', 'wheres', 'which', 'while', 'who', 'whos', 'whom', 'why', 'whys', 'with',
+    'wont', 'would', 'wouldnt', 'you', 'youd', 'youll', 'youre', 'youve', 'your', 'yours', 'yourself', 'yourselves'
+  };
+
+  List<String> tokenize(String text) {
+    return text
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .split(RegExp(r'\s+'))
+        .where((token) => token.isNotEmpty && !stopWords.contains(token))
+        .toList();
+  }
+
+  void addDocument(String title, String content, String source) {
+    final tokens = tokenize('$title $content');
+    if (tokens.isEmpty) return;
+
+    final Map<String, int> termCounts = {};
+    for (var token in tokens) {
+      termCounts[token] = (termCounts[token] ?? 0) + 1;
+    }
+
+    final Map<String, double> tfs = {};
+    final totalTerms = tokens.length.toDouble();
+    termCounts.forEach((term, count) {
+      tfs[term] = count / totalTerms;
+    });
+
+    documents.add(RagDocument(
+      title: title,
+      content: content,
+      source: source,
+      termFrequencies: tfs,
+    ));
+  }
+
+  void calculateIdfs() {
+    idfs.clear();
+    final numDocs = documents.length.toDouble();
+    if (numDocs == 0) return;
+
+    final Map<String, int> docCounts = {};
+    for (var doc in documents) {
+      for (var term in doc.termFrequencies.keys) {
+        docCounts[term] = (docCounts[term] ?? 0) + 1;
+      }
+    }
+
+    docCounts.forEach((term, count) {
+      idfs[term] = math.log(1.0 + (numDocs / count.toDouble()));
+    });
+  }
+
+  List<RagDocument> search(String query, {int limit = 2}) {
+    final queryTokens = tokenize(query);
+    if (queryTokens.isEmpty || documents.isEmpty) {
+      return documents.take(limit).toList();
+    }
+
+    final Map<String, int> queryCounts = {};
+    for (var token in queryTokens) {
+      queryCounts[token] = (queryCounts[token] ?? 0) + 1;
+    }
+    final Map<String, double> queryTfs = {};
+    final totalQueryTerms = queryTokens.length.toDouble();
+    queryCounts.forEach((term, count) {
+      queryTfs[term] = count / totalQueryTerms;
+    });
+
+    final List<MapEntry<RagDocument, double>> scoredDocs = [];
+
+    for (var doc in documents) {
+      double dotProduct = 0.0;
+      double queryNorm = 0.0;
+      double docNorm = 0.0;
+
+      final uniqueTerms = {...queryTfs.keys, ...doc.termFrequencies.keys};
+
+      for (var term in uniqueTerms) {
+        final idf = idfs[term] ?? 0.0;
+        final qVal = (queryTfs[term] ?? 0.0) * idf;
+        final dVal = (doc.termFrequencies[term] ?? 0.0) * idf;
+
+        dotProduct += qVal * dVal;
+        queryNorm += qVal * qVal;
+        docNorm += dVal * dVal;
+      }
+
+      double similarity = 0.0;
+      if (queryNorm > 0 && docNorm > 0) {
+        similarity = dotProduct / (math.sqrt(queryNorm) * math.sqrt(docNorm));
+      }
+
+      scoredDocs.add(MapEntry(doc, similarity));
+    }
+
+    scoredDocs.sort((a, b) => b.value.compareTo(a.value));
+
+    return scoredDocs
+        .where((entry) => entry.value > 0.0)
+        .map((entry) => entry.key)
+        .take(limit)
+        .toList();
   }
 }
