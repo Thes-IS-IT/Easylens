@@ -422,6 +422,7 @@ Buddy:
   Widget build(BuildContext context) {
     final theme = SettingsService().selectedContrastTheme;
     final isDefault = theme == 'Default';
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Container(
       padding: EdgeInsets.only(
@@ -510,23 +511,25 @@ Buddy:
             ),
           ),
           
-        Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: isKeyboardOpen ? 6 : 16),
             child: Row(
               children: [
-                Image.asset(
-                  _getMascotAsset(),
-                  width: 72,
-                  height: 72,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => Container(
+                if (!isKeyboardOpen) ...[
+                  Image.asset(
+                    _getMascotAsset(),
                     width: 72,
                     height: 72,
-                    color: AppColors.primaryButton,
-                    child: Icon(Icons.pets, color: AppColors.primaryButtonText),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 72,
+                      height: 72,
+                      color: AppColors.primaryButton,
+                      child: Icon(Icons.pets, color: AppColors.primaryButtonText),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 14),
+                  const SizedBox(width: 14),
+                ],
                 Expanded(
                   child: Builder(builder: (context) {
                     final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
@@ -541,23 +544,25 @@ Buddy:
                           isFilipino ? 'Buddy Lokal AI' : 'Buddy Local AI',
                           style: GoogleFonts.inter(
                             fontWeight: FontWeight.bold,
-                            fontSize: 20,
+                            fontSize: isKeyboardOpen ? 16 : 20,
                             color: AppColors.primaryText,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _isThinking
-                              ? thinkingText
-                              : _isListening
-                                  ? listeningText
-                                  : readyText,
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: _isListening ? Colors.red : AppColors.textMuted,
+                        if (!isKeyboardOpen) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _isThinking
+                                ? thinkingText
+                                : _isListening
+                                    ? listeningText
+                                    : readyText,
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: _isListening ? Colors.red : AppColors.textMuted,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     );
                   }),

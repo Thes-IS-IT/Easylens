@@ -172,15 +172,17 @@ class RagService {
     try {
       final modelPath = await _getLocalModelPath();
       if (modelPath != null) {
-        await FlutterGemma.initialize();
-        await FlutterGemma.installModel(
-          modelType: ModelType.gemmaIt,
-        ).fromFile(modelPath).install();
-        _gemmaInitialized = true;
-        _isGemmaModelInstalled = true;
-        // Warm up and load model weight files into memory S01
-        await FlutterGemma.getActiveModel(maxTokens: 256);
-        print("[Gemma] Real on-device engine initialized and warmed up successfully from $modelPath.");
+        await _gemmaMutex.protect(() async {
+          await FlutterGemma.initialize();
+          await FlutterGemma.installModel(
+            modelType: ModelType.gemmaIt,
+          ).fromFile(modelPath).install();
+          _gemmaInitialized = true;
+          _isGemmaModelInstalled = true;
+          // Warm up and load model weight files into memory S01
+          await FlutterGemma.getActiveModel(maxTokens: 256);
+          print("[Gemma] Real on-device engine initialized and warmed up successfully from $modelPath.");
+        });
       }
     } catch (e) {
       print("[Gemma] Pre-init failed: $e");
@@ -255,23 +257,42 @@ class RagService {
         return;
       }
 
-      if (!_gemmaInitialized) {
-        await FlutterGemma.initialize();
-        await FlutterGemma.installModel(
-          modelType: ModelType.gemmaIt,
-        ).fromFile(modelPath).install();
-        _gemmaInitialized = true;
-        _isGemmaModelInstalled = true;
+      final sessionFuture = _gemmaMutex.protect(() async {
+        if (!_gemmaInitialized) {
+          await FlutterGemma.initialize();
+          await FlutterGemma.installModel(
+            modelType: ModelType.gemmaIt,
+          ).fromFile(modelPath).install();
+          _gemmaInitialized = true;
+          _isGemmaModelInstalled = true;
+        }
+
+        final model = await FlutterGemma.getActiveModel(maxTokens: 256);
+        final session = await model.createSession(systemInstruction: systemInstruction);
+        await session.addQueryChunk(Message(text: prompt, isUser: true));
+        return session;
+      });
+
+      dynamic session;
+      try {
+        session = await sessionFuture;
+      } catch (e) {
+        yield "Local Gemma LLM failed: $e";
+        return;
       }
 
-      final model = await FlutterGemma.getActiveModel(maxTokens: 256);
-      final session = await model.createSession(systemInstruction: systemInstruction);
-      await session.addQueryChunk(Message(text: prompt, isUser: true));
-      
-      await for (final token in session.getResponseAsync()) {
-        if (token != null) {
-          yield token;
+      final streamDone = Completer<void>();
+      _gemmaMutex.protect(() => streamDone.future);
+
+      try {
+        await for (final token in session.getResponseAsync()) {
+          if (token != null) {
+            yield token;
+          }
         }
+      } finally {
+        streamDone.complete();
+        await Future.microtask(() {});
       }
     } catch (e) {
       yield "Local Gemma LLM failed: $e";
