@@ -1242,11 +1242,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  Row(
+                                  Wrap(
+                                    spacing: 16,
+                                    runSpacing: 8,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
                                     children: [
                                       GestureDetector(
                                         onTap: () => _openURL('https://easylense-website.vercel.app/'),
                                         child: Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
                                             const Icon(Icons.language_outlined, color: Color(0xFF2563EB), size: 16),
                                             const SizedBox(width: 4),
@@ -1263,7 +1267,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(width: 16),
                                       GestureDetector(
                                         onTap: () => _openURL('https://github.com/Thes-IS-IT'),
                                         child: Container(
@@ -1273,6 +1276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Row(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
                                               const Icon(Icons.people_outline, color: Color(0xFF2563EB), size: 14),
                                               const SizedBox(width: 4),
