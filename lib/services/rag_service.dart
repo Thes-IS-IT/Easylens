@@ -270,10 +270,12 @@ class RagService {
           _isGemmaModelInstalled = true;
         }
 
-        // Initialize a clean session per request to prevent history/prompt build-up latency S01
         final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
-        final session = await model.createSession(systemInstruction: systemInstruction);
-        await session.addQueryChunk(Message(text: prompt, isUser: true));
+        final session = await model.createSession();
+        final finalPrompt = systemInstruction != null
+            ? "Instruction: $systemInstruction\n\n$prompt"
+            : prompt;
+        await session.addQueryChunk(Message(text: finalPrompt, isUser: true));
         final response = await session.getResponse();
         return response ?? "No response from offline local model.";
       } catch (e) {
@@ -308,7 +310,7 @@ class RagService {
         }
 
         final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
-        final session = await model.createSession(systemInstruction: systemInstruction);
+        final session = await model.createSession();
 
         // Replay prior turns so Gemma maintains conversation memory S01
         if (history != null && history.isNotEmpty) {
@@ -330,8 +332,11 @@ class RagService {
           }
         }
 
-        // Add the current user query
-        await session.addQueryChunk(Message(text: prompt, isUser: true));
+        // Add the current user query prepended with the system instruction
+        final finalPrompt = systemInstruction != null
+            ? "Instruction: $systemInstruction\n\n$prompt"
+            : prompt;
+        await session.addQueryChunk(Message(text: finalPrompt, isUser: true));
 
         await for (final token in session.getResponseAsync()) {
           if (token != null) {
@@ -506,8 +511,8 @@ class RagService {
       if (resultBlocks.isNotEmpty) {
         var contextText = resultBlocks.join("\n\n");
         // Safe token ceiling for Gemma 2B S01
-        if (contextText.length > 1200) {
-          contextText = "${contextText.substring(0, 1190)}... [truncated]";
+        if (contextText.length > 450) {
+          contextText = "${contextText.substring(0, 440)}... [truncated]";
         }
         return contextText;
       }
