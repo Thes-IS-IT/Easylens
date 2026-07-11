@@ -32,6 +32,9 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Create Mock .env File
+        run: touch .env
+
       - name: Build APK
         run: flutter build apk --release
 

@@ -12,6 +12,7 @@ import 'units_screen.dart';
 import 'change_password_screen.dart';
 import 'preferences_screen.dart';
 import 'customize_home_screen.dart';
+import 'survey_screen.dart';
 import '../../utils/app_route.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
@@ -1184,17 +1185,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildCardContainer(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(20.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Buddy Profile Row
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Image.asset(
                               'assets/Mascots/App Mascot.png',
-                              width: 64,
-                              height: 64,
+                              width: 80,
+                              height: 80,
                               fit: BoxFit.contain,
                             ),
                             const SizedBox(width: 16),
@@ -1208,7 +1210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         'Buddy',
                                         style: GoogleFonts.inter(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 18,
+                                          fontSize: 24,
                                           color: Colors.black,
                                         ),
                                       ),
@@ -1230,7 +1232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 6),
                                   Text(
                                     TranslationService.translate('about_desc', lang),
                                     style: GoogleFonts.inter(
@@ -1239,53 +1241,186 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       height: 1.3,
                                     ),
                                   ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => _openURL('https://easylense-website.vercel.app/'),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.language_outlined, color: Color(0xFF2563EB), size: 16),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'buddy.cloud',
+                                              style: GoogleFonts.inter(
+                                                color: const Color(0xFF2563EB),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            const Icon(Icons.open_in_new_rounded, color: Color(0xFF2563EB), size: 12),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      GestureDetector(
+                                        onTap: () => _openURL('https://github.com/Thes-IS-IT'),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEFF6FF),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.people_outline, color: Color(0xFF2563EB), size: 14),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Contributors',
+                                                style: GoogleFonts.inter(
+                                                  color: const Color(0xFF2563EB),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
                           ],
                         ),
                         
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
                         
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () => _openURL('https://easylense-website.vercel.app/'),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6.0),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.language, color: Color(0xFF2563EB), size: 16),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'easylens.app',
-                                      style: GoogleFonts.inter(
-                                        color: const Color(0xFF2563EB),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.open_in_new, color: Color(0xFF2563EB), size: 12),
-                                  ],
-                                ),
+                        // Check for Updates Option
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFFEFF6FF),
                               ),
+                              child: const Icon(Icons.cloud_download_outlined, color: Color(0xFF2563EB), size: 24),
                             ),
-                            const SizedBox(width: 16),
-                            GestureDetector(
-                              onTap: () => _openURL('https://github.com/Thes-IS-IT'),
-                              child: Container(
+                            title: Text(
+                              TranslationService.translate('check_updates', lang),
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 15),
+                            ),
+                            subtitle: Text(
+                              TranslationService.translate('updates_subtitle', lang),
+                              style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                            ),
+                            trailing: _isCheckingUpdates 
+                                ? const SizedBox(
+                                    width: 20, 
+                                    height: 20, 
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B82F6)),
+                                  )
+                                : const Icon(Icons.refresh, color: Color(0xFF94A3B8)),
+                            onTap: _checkForUpdates,
+                          ),
+                        ),
+                        
+                        // Buddy Community Option
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFFEFF6FF),
+                              ),
+                              child: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 24),
+                            ),
+                            title: Text(
+                              TranslationService.translate('community', lang),
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 15),
+                            ),
+                            subtitle: Text(
+                              TranslationService.translate('community_subtitle', lang),
+                              style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                            ),
+                            trailing: const Icon(Icons.open_in_new, color: Color(0xFF94A3B8), size: 18),
+                            onTap: () => _openURL('https://www.facebook.com/profile.php?id=61566090583740'),
+                          ),
+                        ),
+                        
+                        // Send Feedback Option (Outlined/Framed Border like in screenshot)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16.0),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFFEFF6FF),
+                              ),
+                              child: const Icon(Icons.edit_outlined, color: Color(0xFF2563EB), size: 24),
+                            ),
+                            title: Text(
+                              TranslationService.translate('send_feedback', lang),
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 15),
+                            ),
+                            subtitle: Text(
+                              TranslationService.translate('feedback_subtitle', lang),
+                              style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                            ),
+                            trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8), size: 20),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                AppRoute.to(SurveyScreen()),
+                              );
+                            },
+                          ),
+                        ),
+                        
+                        // Privacy Notice Block
+                        Container(
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFEFF6FF),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.people_outline, color: Color(0xFF2563EB), size: 14),
-                                    const SizedBox(width: 4),
+                                    const Icon(Icons.shield_outlined, color: Color(0xFF2563EB), size: 14),
+                                    const SizedBox(width: 6),
                                     Text(
-                                      'Contributors',
+                                      TranslationService.translate('privacy_notice', lang),
                                       style: GoogleFonts.inter(
                                         color: const Color(0xFF2563EB),
                                         fontSize: 12,
@@ -1295,133 +1430,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ],
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.cloud_download_outlined, color: Color(0xFF3B82F6)),
-                      title: Text(
-                        TranslationService.translate('check_updates', lang),
-                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        TranslationService.translate('updates_subtitle', lang),
-                        style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
-                      ),
-                      trailing: _isCheckingUpdates 
-                          ? const SizedBox(
-                              width: 20, 
-                              height: 20, 
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B82F6)),
-                            )
-                          : const Icon(Icons.refresh, color: Color(0xFF94A3B8)),
-                      onTap: _checkForUpdates,
-                    ),
-                  ),
-                  
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
-                      title: Text(
-                        TranslationService.translate('community', lang),
-                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        TranslationService.translate('community_subtitle', lang),
-                        style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
-                      ),
-                      trailing: const Icon(Icons.open_in_new, color: Color(0xFF94A3B8), size: 16),
-                      onTap: () => _openURL('https://www.facebook.com/profile.php?id=61566090583740'),
-                    ),
-                  ),
-                  
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ListTile(
-                      leading: const Icon(Icons.edit_outlined, color: Color(0xFF3B82F6)),
-                      title: Text(
-                        TranslationService.translate('send_feedback', lang),
-                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        TranslationService.translate('feedback_subtitle', lang),
-                        style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
-                      ),
-                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
-                      onTap: () => _openURL('https://forms.gle/DGSCAKTR2ai39K6VA'),
-                    ),
-                  ),
-                  
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.shield_outlined, color: Color(0xFF2563EB), size: 14),
-                              const SizedBox(width: 6),
+                              const SizedBox(height: 10),
                               Text(
-                                TranslationService.translate('privacy_notice', lang),
+                                TranslationService.translate('privacy_desc', lang),
                                 style: GoogleFonts.inter(
-                                  color: const Color(0xFF2563EB),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.4,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          TranslationService.translate('privacy_desc', lang),
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: const Color(0xFF64748B),
-                            height: 1.4,
-                          ),
-                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
                 ],
               ),
               
               const SizedBox(height: 32),
 
-              // 13. Log Out Button S01
+              // 14. Log Out Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
