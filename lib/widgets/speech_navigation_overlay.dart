@@ -456,21 +456,21 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
                     height: 72,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _isLoopActive ? const Color(0xFFE53935) : const Color(0xFF002663),
+                      color: _isLoopActive ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
                       border: Border.all(
-                        color: _isLoopActive ? Colors.white : const Color(0xFF4ADE80),
+                        color: _isLoopActive ? Colors.white : const Color(0xFFFCA5A5),
                         width: 3.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: (_isLoopActive ? const Color(0xFFE53935) : const Color(0xFF002663)).withAlpha(102),
+                          color: (_isLoopActive ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withAlpha(102),
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),
                       ],
                     ),
                     child: Icon(
-                      _isLoopActive ? Icons.mic_off : Icons.keyboard_voice,
+                      _isLoopActive ? Icons.keyboard_voice : Icons.mic_off,
                       color: Colors.white,
                       size: 32,
                     ),

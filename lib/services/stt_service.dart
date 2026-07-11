@@ -50,13 +50,11 @@ class SttService {
 
     onListeningStateChanged(true);
     await _speechToText.listen(
-      listenOptions: SpeechListenOptions(
-        localeId: localeId,
-        listenMode: ListenMode.dictation,
-        pauseFor: const Duration(seconds: 3),
-        listenFor: const Duration(seconds: 30),
-        cancelOnError: false,
-      ),
+      localeId: localeId,
+      listenMode: ListenMode.dictation,
+      pauseFor: const Duration(seconds: 3),
+      listenFor: const Duration(seconds: 30),
+      listenOptions: SpeechListenOptions(cancelOnError: false),
       onResult: (result) {
         if (result.recognizedWords.trim().isNotEmpty) {
           onResult(result.recognizedWords, result.finalResult);
