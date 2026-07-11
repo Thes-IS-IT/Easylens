@@ -36,7 +36,7 @@ class NotificationService extends ChangeNotifier {
     );
     const InitializationSettings initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
     await _localNotifications.initialize(
-      initializationSettings: initSettings,
+      settings: initSettings,
     );
 
     // Schedule a buddy follow-up notification on first launch of the day
@@ -90,9 +90,9 @@ class NotificationService extends ChangeNotifier {
     );
 
     await _localNotifications.show(
-      n.id.hashCode,
-      n.title,
-      n.body,
+      id: n.id.hashCode,
+      title: n.title,
+      body: n.body,
       notificationDetails: platformDetails,
     );
   }
