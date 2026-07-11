@@ -14,6 +14,8 @@ import 'preferences_screen.dart';
 import 'customize_home_screen.dart';
 import '../../utils/app_route.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -24,6 +26,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _firebaseService = FirebaseService();
+  static const String currentVersionTag = 'v1.2.0';
+  bool _isCheckingUpdates = false;
 
   // Local interactive states linked to settings service
   String _selectedLanguage = 'English';
@@ -119,6 +123,196 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       debugPrint("Error launching URL: $e");
     }
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (_isCheckingUpdates) return;
+    
+    setState(() {
+      _isCheckingUpdates = true;
+    });
+
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.github.com/repos/Thes-IS-IT/Easylens/releases/latest'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final latestTag = data['tag_name'] as String;
+        final releaseNotes = data['body'] as String? ?? '';
+        final assets = data['assets'] as List?;
+
+        String? apkUrl;
+        if (assets != null) {
+          for (var asset in assets) {
+            final name = asset['name'] as String? ?? '';
+            if (name.endsWith('.apk')) {
+              apkUrl = asset['browser_download_url'] as String?;
+              break;
+            }
+          }
+        }
+
+        if (latestTag != currentVersionTag && apkUrl != null) {
+          if (mounted) {
+            _showUpdateDialog(latestTag, releaseNotes, apkUrl);
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  isFilipino 
+                      ? "Nasa pinakabagong bersyon ka na! ($currentVersionTag)" 
+                      : "You are on the latest version! ($currentVersionTag)",
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
+                backgroundColor: const Color(0xFF10B981),
+              ),
+            );
+          }
+        }
+      } else {
+        throw Exception("Github API status code ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("Update check failed: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isFilipino 
+                  ? "Hindi ma-check ang updates sa ngayon. Subukan muli mamaya." 
+                  : "Could not check for updates right now. Please try again later.",
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingUpdates = false;
+        });
+      }
+    }
+  }
+
+  void _showUpdateDialog(String newVersion, String notes, String downloadUrl) {
+    final settings = SettingsService();
+    final isDefault = settings.selectedContrastTheme == 'Default';
+    final lang = settings.selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.primaryBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: isDefault ? BorderSide.none : BorderSide(color: AppColors.cardBorder, width: 2),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.cloud_download, color: Color(0xFF3B82F6), size: 28),
+              const SizedBox(width: 10),
+              Text(
+                isFilipino ? "May Update!" : "Update Available!",
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryText,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isFilipino 
+                    ? "Isang bagong bersyon ($newVersion) ang magagamit. Kasalukuyang bersyon: $currentVersionTag."
+                    : "A new version ($newVersion) is available. Current version: $currentVersionTag.",
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: AppColors.primaryText,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (notes.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  isFilipino ? "Mga Pagbabago:" : "What's New:",
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 120),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDefault ? Colors.grey.shade50 : const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      notes,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                isFilipino ? "Kanselahin" : "Cancel",
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _openURL(downloadUrl);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: Text(
+                isFilipino ? "I-download" : "Download Now",
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildSectionTitle(String title) {
@@ -1124,8 +1318,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TranslationService.translate('updates_subtitle', lang),
                         style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
                       ),
-                      trailing: const Icon(Icons.refresh, color: Color(0xFF94A3B8)),
-                      onTap: () {},
+                      trailing: _isCheckingUpdates 
+                          ? const SizedBox(
+                              width: 20, 
+                              height: 20, 
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B82F6)),
+                            )
+                          : const Icon(Icons.refresh, color: Color(0xFF94A3B8)),
+                      onTap: _checkForUpdates,
                     ),
                   ),
                   
