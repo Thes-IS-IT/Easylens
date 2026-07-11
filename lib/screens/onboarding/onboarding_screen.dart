@@ -356,27 +356,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Skip Button
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  AppRoute.to(const DashboardScreen()),
-                                  (route) => false,
-                                );
-                              },
-                              child: Text(
-                                'Skip',
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  color: const Color(0xFF64748B),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
                           ],
                         ),
                       ],
