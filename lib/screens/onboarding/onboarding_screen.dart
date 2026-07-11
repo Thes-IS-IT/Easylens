@@ -150,7 +150,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: CircularProgressIndicator(color: Color(0xFF0F3E8F)),
                   ),
                 )
-              else if (_showLocalAiCard)
+              else if (_showLocalAiCard && !_isModelInstalled)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(24),
                   child: BackdropFilter(
@@ -178,14 +178,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               Row(
                                 children: [
                                   Icon(
-                                    _isModelInstalled ? Icons.check_circle : Icons.offline_bolt_outlined,
-                                    color: _isModelInstalled ? const Color(0xFF10B981) : AppColors.welcomeAccentGold,
+                                    Icons.offline_bolt_outlined,
+                                    color: AppColors.welcomeAccentGold,
                                     size: 28,
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      _isModelInstalled ? 'Local AI Active' : 'Offline AI Installer',
+                                      'Offline AI Installer',
                                       style: GoogleFonts.inter(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -199,9 +199,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                _isModelInstalled
-                                    ? 'The local Gemma AI model is fully configured and active. Buddy will guide you completely offline.'
-                                    : 'Install the offline AI database (1.3 GB) to enable safety assistance without cellular data or internet.',
+                                'Install the offline AI database (1.3 GB) to enable safety assistance without cellular data or internet.',
                                 style: GoogleFonts.inter(
                                   fontSize: 13,
                                   color: AppColors.textMuted,
@@ -209,78 +207,60 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              if (!_isModelInstalled) ...[
-                                if (_isDownloading) ...[
-                                  LinearProgressIndicator(
-                                    value: _downloadProgress,
-                                    backgroundColor: AppColors.unselectedBorder,
-                                    color: AppColors.primaryButton,
-                                    minHeight: 8,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        _downloadStatus,
-                                        style: GoogleFonts.inter(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textMuted,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${(_downloadProgress * 100).toStringAsFixed(0)}%',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.primaryText,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ] else
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 44,
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.welcomeAccentGold,
-                                        foregroundColor: AppColors.primaryButtonText,
-                                        elevation: 0,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                      onPressed: _startDownload,
-                                      icon: const Icon(Icons.download_for_offline_outlined, size: 20),
-                                      label: Text(
-                                        'Download Local AI',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                              if (_isDownloading) ...[
+                                LinearProgressIndicator(
+                                  value: _downloadProgress,
+                                  backgroundColor: AppColors.unselectedBorder,
+                                  color: AppColors.primaryButton,
+                                  minHeight: 8,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _downloadStatus,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textMuted,
                                       ),
                                     ),
-                                  ),
-                              ] else ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFECFDF5),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Buddy is offline-ready 🐕',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      color: const Color(0xFF047857),
-                                      fontWeight: FontWeight.bold,
+                                    Text(
+                                      '${(_downloadProgress * 100).toStringAsFixed(0)}%',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ] else
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 44,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.welcomeAccentGold,
+                                      foregroundColor: AppColors.primaryButtonText,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: _startDownload,
+                                    icon: const Icon(Icons.download_for_offline_outlined, size: 20),
+                                    label: Text(
+                                      'Download Local AI',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ],
                             ],
                           ),
                           Positioned(
@@ -362,6 +342,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Skip Button
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        AppRoute.to(const DashboardScreen()),
+                        (route) => false,
+                      );
+                    },
+                    child: Text(
+                      'Skip',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
