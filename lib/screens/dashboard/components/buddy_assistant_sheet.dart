@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
@@ -182,11 +183,15 @@ Buddy:
             : "Woof! We're here on the $screenName now!";
       }
 
-      setState(() {
-        _messages.add({'text': response, 'isUser': false});
-        _isThinking = false;
-      });
-      _scrollToBottom();
+      if (matchedKey != null && matchedKey.isNotEmpty) {
+        setState(() {
+          _messages.add({'text': response, 'isUser': false});
+          _isThinking = false;
+        });
+        _scrollToBottom();
+      } else {
+        _animateResponse(response);
+      }
 
       // Speak response concurrently (do not await so navigation is instantaneous)
       _speakText(response);
@@ -202,6 +207,39 @@ Buddy:
         });
       }
     }
+  }
+
+  void _animateResponse(String response) {
+    if (!mounted) return;
+    
+    setState(() {
+      _isThinking = false;
+      _messages.add({'text': '', 'isUser': false});
+    });
+
+    final int targetIndex = _messages.length - 1;
+    int index = 0;
+    
+    const int step = 3;
+    Timer.periodic(const Duration(milliseconds: 15), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      index += step;
+      if (index >= response.length) {
+        setState(() {
+          _messages[targetIndex]['text'] = response;
+        });
+        timer.cancel();
+        _scrollToBottom();
+      } else {
+        setState(() {
+          _messages[targetIndex]['text'] = response.substring(0, index);
+        });
+        _scrollToBottom();
+      }
+    });
   }
 
   String? _detectNavigationTarget(String userQuery, String llmResponse) {
