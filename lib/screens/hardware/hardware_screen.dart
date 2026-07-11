@@ -1432,13 +1432,37 @@ class _HardwareScreenState extends State<HardwareScreen> {
         onResult: (text, isFinal) {
           if (!_isContinuousVoiceEnabled || !mounted) return;
           _continuousVoiceText = text;
+          // Show live transcription in status card
+          if (text.trim().isNotEmpty) {
+            setState(() {
+              _activeDescription = '"$text"';
+            });
+          }
+          // Reset silence timer on every partial result so speech isn't cut off
           _startSilenceTimer();
+          // If STT engine finalized the result, process immediately
+          if (isFinal && text.trim().isNotEmpty) {
+            _silenceTimer?.cancel();
+            _processSilenceOrSpeech();
+          }
         },
         onListeningStateChanged: (listening) {
-          if (!listening && mounted && _voiceState == "listening") {
-            setState(() {
-              _voiceState = "idle";
-            });
+          if (!listening && mounted && _isContinuousVoiceEnabled) {
+            // STT stopped naturally — process whatever we captured
+            if (_continuousVoiceText.trim().isNotEmpty) {
+              _silenceTimer?.cancel();
+              _processSilenceOrSpeech();
+            } else {
+              setState(() {
+                _voiceState = "idle";
+              });
+              // Restart listening loop after a brief pause
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (_isContinuousVoiceEnabled && mounted) {
+                  _runContinuousVoiceLoop();
+                }
+              });
+            }
           }
         },
       );
@@ -1450,7 +1474,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   void _startSilenceTimer() {
     _silenceTimer?.cancel();
     if (!_isContinuousVoiceEnabled || !mounted) return;
-    _silenceTimer = Timer(const Duration(seconds: 2), () async {
+    _silenceTimer = Timer(const Duration(seconds: 4), () async {
       await _processSilenceOrSpeech();
     });
   }

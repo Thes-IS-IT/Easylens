@@ -52,10 +52,10 @@ class SttService {
     await _speechToText.listen(
       listenOptions: SpeechListenOptions(
         localeId: localeId,
-        listenMode: ListenMode.confirmation,
-        pauseFor: const Duration(milliseconds: 1500),
-        listenFor: const Duration(seconds: 20),
-        cancelOnError: true,
+        listenMode: ListenMode.dictation,
+        pauseFor: const Duration(seconds: 3),
+        listenFor: const Duration(seconds: 30),
+        cancelOnError: false,
       ),
       onResult: (result) {
         if (result.recognizedWords.trim().isNotEmpty) {
