@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
@@ -20,6 +22,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
   String _downloadStatus = "";
+  bool _showLocalAiCard = true;
 
   @override
   void initState() {
@@ -147,130 +150,157 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: CircularProgressIndicator(color: Color(0xFF0F3E8F)),
                   ),
                 )
-              else
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightBackground,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.cardBorder, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadowColor,
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            _isModelInstalled ? Icons.check_circle : Icons.offline_bolt_outlined,
-                            color: _isModelInstalled ? const Color(0xFF10B981) : AppColors.welcomeAccentGold,
-                            size: 28,
+              else if (_showLocalAiCard)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.65),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _isModelInstalled ? 'Local AI Active' : 'Offline AI Installer',
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryText,
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    _isModelInstalled ? Icons.check_circle : Icons.offline_bolt_outlined,
+                                    color: _isModelInstalled ? const Color(0xFF10B981) : AppColors.welcomeAccentGold,
+                                    size: 28,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      _isModelInstalled ? 'Local AI Active' : 'Offline AI Installer',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryText,
+                                      ),
+                                    ),
+                                  ),
+                                  // Buffer space to not overlap with the X button
+                                  const SizedBox(width: 24),
+                                ],
                               ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _isModelInstalled
+                                    ? 'The local Gemma AI model is fully configured and active. Buddy will guide you completely offline.'
+                                    : 'Install the offline AI database (1.3 GB) to enable safety assistance without cellular data or internet.',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: AppColors.textMuted,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              if (!_isModelInstalled) ...[
+                                if (_isDownloading) ...[
+                                  LinearProgressIndicator(
+                                    value: _downloadProgress,
+                                    backgroundColor: AppColors.unselectedBorder,
+                                    color: AppColors.primaryButton,
+                                    minHeight: 8,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _downloadStatus,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${(_downloadProgress * 100).toStringAsFixed(0)}%',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primaryText,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ] else
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 44,
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.welcomeAccentGold,
+                                        foregroundColor: AppColors.primaryButtonText,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      onPressed: _startDownload,
+                                      icon: const Icon(Icons.download_for_offline_outlined, size: 20),
+                                      label: Text(
+                                        'Download Local AI',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ] else ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Buddy is offline-ready 🐕',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: const Color(0xFF047857),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          Positioned(
+                            top: -6,
+                            right: -6,
+                            child: IconButton(
+                              icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                              onPressed: () {
+                                setState(() {
+                                  _showLocalAiCard = false;
+                                });
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              splashRadius: 16,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _isModelInstalled
-                            ? 'The local Gemma AI model is fully configured and active. Buddy will guide you completely offline.'
-                            : 'Install the offline AI database (1.3 GB) to enable safety assistance without cellular data or internet.',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: AppColors.textMuted,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (!_isModelInstalled) ...[
-                        if (_isDownloading) ...[
-                          LinearProgressIndicator(
-                            value: _downloadProgress,
-                            backgroundColor: AppColors.unselectedBorder,
-                            color: AppColors.primaryButton,
-                            minHeight: 8,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _downloadStatus,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                              Text(
-                                '${(_downloadProgress * 100).toStringAsFixed(0)}%',
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryText,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ] else
-                          SizedBox(
-                            width: double.infinity,
-                            height: 44,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.welcomeAccentGold,
-                                foregroundColor: AppColors.primaryButtonText,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: _startDownload,
-                              icon: const Icon(Icons.download_for_offline_outlined, size: 20),
-                              label: Text(
-                                'Download Local AI',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ] else ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Buddy is offline-ready 🐕',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: const Color(0xFF047857),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
 
