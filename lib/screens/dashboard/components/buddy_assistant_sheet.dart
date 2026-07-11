@@ -23,6 +23,8 @@ class BuddyAssistantSheet extends StatefulWidget {
     );
   }
 
+  static final ValueNotifier<bool> isVisible = ValueNotifier<bool>(false);
+
   @override
   State<BuddyAssistantSheet> createState() => _BuddyAssistantSheetState();
 }
@@ -57,6 +59,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       'isUser': false,
     });
 
+    BuddyAssistantSheet.isVisible.value = true;
     // Read welcome message aloud and auto-listen S01
     _initializeAssistant();
   }
@@ -68,6 +71,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
 
   @override
   void dispose() {
+    BuddyAssistantSheet.isVisible.value = false;
     RagService().clearGemmaSession();
     TtsService().stop();
     _textController.dispose();

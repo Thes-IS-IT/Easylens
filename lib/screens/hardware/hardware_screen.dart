@@ -28,6 +28,7 @@ import '../../services/notification_service.dart';
 import '../../services/esp32_service.dart';
 import '../devices/devices_screen.dart';
 import 'package:battery_plus/battery_plus.dart';
+import '../dashboard/components/buddy_assistant_sheet.dart';
 import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
 
@@ -117,6 +118,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isDetectionEnabled = true;
   HudMode _selectedHudMode = HudMode.objectDetection;
   bool _isPaused = false;
+  bool _isStreamingPausedForBuddy = false;
   String _voiceState = "idle"; // S01: Tracks speech state ('idle', 'listening', 'thinking', 'speaking')
 
   // Face recognition
@@ -259,6 +261,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _initFaceDetector();
     _loadRegisteredFaces();
     Esp32Service().addListener(_onEsp32FrameAvailable);
+    BuddyAssistantSheet.isVisible.addListener(_onBuddyVisibilityChanged);
   }
 
   @override
@@ -287,8 +290,73 @@ class _HardwareScreenState extends State<HardwareScreen> {
     });
   }
 
+  void _onBuddyVisibilityChanged() {
+    final isBuddyVisible = BuddyAssistantSheet.isVisible.value;
+    if (isBuddyVisible) {
+      if (_cameraController != null && _cameraController!.value.isStreamingImages) {
+        try {
+          _cameraController!.stopImageStream();
+          setState(() {
+            _isStreamingPausedForBuddy = true;
+          });
+          print('[Camera] Paused image stream because Buddy Assistant is active.');
+        } catch (e) {
+          print('[Camera] Error stopping image stream: $e');
+        }
+      }
+    } else {
+      if (_isStreamingPausedForBuddy && _cameraController != null && _cameraController!.value.isInitialized) {
+        setState(() {
+          _isStreamingPausedForBuddy = false;
+        });
+        try {
+          _cameraController!.startImageStream((CameraImage image) {
+            if (_isPaused) return;
+            if (!_isDetectionEnabled) return;
+            if (_isProcessingFrame) return;
+
+            _isProcessingFrame = true;
+
+            Future.microtask(() async {
+              try {
+                final nv21Bytes = _yuvToNv21(image);
+                final yBytes = Uint8List.fromList(image.planes[0].bytes);
+                final width = image.width;
+                final height = image.height;
+                final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+                if (_selectedHudMode == HudMode.faceRecognition) {
+                  if (nowMs - _lastFaceDetectionTime > 1500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
+                    _lastFaceDetectionTime = nowMs;
+                    await _detectFaceOnFrame(nv21Bytes, width, height);
+                  }
+                } else if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) {
+                  if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
+                    _lastObjectDetectionTime = nowMs;
+                    await _detectObjectsOnFrame(nv21Bytes, width, height);
+                  }
+                  await _processCameraImage(nv21Bytes, yBytes, width, height);
+                } else {
+                  await _processCameraImage(nv21Bytes, yBytes, width, height);
+                }
+              } catch (e) {
+                print("ML Kit frame processing error: $e");
+              } finally {
+                _isProcessingFrame = false;
+              }
+            });
+          });
+          print('[Camera] Resumed image stream because Buddy Assistant is closed.');
+        } catch (e) {
+          print('[Camera] Error restarting image stream: $e');
+        }
+      }
+    }
+  }
+
   @override
   void dispose() {
+    BuddyAssistantSheet.isVisible.removeListener(_onBuddyVisibilityChanged);
     Esp32Service().removeListener(_onEsp32FrameAvailable);
     _silenceTimer?.cancel();
     SttService().stopListening((_) {});
