@@ -1148,6 +1148,31 @@
     "title": "Bug Reporting and Feedback Google Form Survey",
     "content": "If you experience any bugs, errors, or visual glitches while using EasyLens, you can report them directly. Tap the 'Send feedback' tile inside Settings, which will launch the official Google Form bug report survey located at https://forms.gle/DGSCAKTR2ai39K6VA.",
     "keywords": ["google form", "survey", "report bug", "feedback", "submit bug", "feedback link", "survey link", "bug form"]
+  },
+  {
+    "title": "Custom Gemini API Key Settings Integration",
+    "content": "Users can save their custom Gemini API Key inside Settings under the 'Gemini API Key' option. When saved, the app rewires all online queries (including fallbacks) to prioritize this custom API key. The page includes a 'Test Key' feature to verify key validity with a dry-run test prompt before applying it.",
+    "keywords": ["gemini api key", "settings api", "test key", "custom key", "api key", "online fallback", "dry-run", "setting ng api key", "gemini key"]
+  },
+  {
+    "title": "Onboarding Download Safety Locks",
+    "content": "To prevent data corruption during Gemma model installation, EasyLens locks UI controls. During download, the close (X) button on the Offline AI Installer card is hidden, and the 'Sign Up' and 'Log In' buttons are disabled (greyed out). The controls automatically re-enable once the download finishes or fails.",
+    "keywords": ["safety locks", "onboarding locks", "download safety", "disabled buttons", "sign up disabled", "log in disabled", "close hidden", "installer lock"]
+  },
+  {
+    "title": "Gemma Model Downloader Public CDN Mirror",
+    "content": "The offline AI installer downloads the Gemma 2B INT4 GPU binary from a public community Hugging Face CDN mirror (vba01/gemma-2b-it-gpu-int4). This bypasses Hugging Face authentication requirements, ensuring the app downloads a valid model file and avoids engine initialization crashes.",
+    "keywords": ["hugging face mirror", "cdn download", "gemma bin", "gemma-2b-it-gpu-int4", "public cdn", "model download url"]
+  },
+  {
+    "title": "Local AI Response Speed and Turn Formatting",
+    "content": "To ensure Buddy responds quickly and stays in character, the app uses turn-based prompt templates (<start_of_turn>user and <end_of_turn>). Short chat greetings (e.g. 'hello', 'how are you?') bypass database memory retrieval entirely, reducing latency and allowing Buddy to respond in under a second.",
+    "keywords": ["response speed", "turn formatting", "start_of_turn", "end_of_turn", "short-circuit", "conversational speed", "chat latency"]
+  },
+  {
+    "title": "Pag-input ng Custom Gemini API Key sa Settings (Tagalog)",
+    "content": "Maaaring i-save ng mga user ang kanilang sariling Gemini API Key sa Settings. Kapag nai-save, gagamitin ng app ang key na ito para sa lahat ng online na request. Mayroon ding 'Test Key' button para masiguradong tama ang nailagay na API key bago ito i-save.",
+    "keywords": ["gemini api key sa settings", "custom key tagalog", "pagsusuri ng key", "api key", "online gemma", "pag-save ng key"]
   }
 ]
 
