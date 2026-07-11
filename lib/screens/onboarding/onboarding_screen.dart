@@ -289,21 +289,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                           ),
                                       ],
                                     ),
-                                    Positioned(
-                                      top: -6,
-                                      right: -6,
-                                      child: IconButton(
-                                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
-                                        onPressed: () {
-                                          setState(() {
-                                            _showLocalAiCard = false;
-                                          });
-                                        },
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        splashRadius: 16,
+                                    if (!_isDownloading)
+                                      Positioned(
+                                        top: -6,
+                                        right: -6,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                                          onPressed: () {
+                                            setState(() {
+                                              _showLocalAiCard = false;
+                                            });
+                                          },
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          splashRadius: 16,
+                                        ),
                                       ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -332,11 +333,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     borderRadius: BorderRadius.circular(28.0),
                                   ),
                                 ),
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    AppRoute.to(const SignUpScreen()),
-                                  );
-                                },
+                                onPressed: _isDownloading
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).push(
+                                          AppRoute.to(const SignUpScreen()),
+                                        );
+                                      },
                                 child: Text(
                                   'Sign Up',
                                   style: GoogleFonts.inter(
@@ -361,11 +364,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     borderRadius: BorderRadius.circular(28.0),
                                   ),
                                 ),
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    AppRoute.to(const LoginScreen()),
-                                  );
-                                },
+                                onPressed: _isDownloading
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).push(
+                                          AppRoute.to(const LoginScreen()),
+                                        );
+                                      },
                                 child: Text(
                                   'Log In',
                                   style: GoogleFonts.inter(
