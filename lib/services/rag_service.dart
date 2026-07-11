@@ -233,16 +233,13 @@ class RagService {
           _isGemmaModelInstalled = true;
         }
 
-        if (_gemmaSession == null) {
-          final model = await FlutterGemma.getActiveModel(maxTokens: 150);
-          _gemmaSession = await model.createSession();
-        }
-
-        await _gemmaSession.addQueryChunk(Message(text: prompt, isUser: true));
-        final response = await _gemmaSession.getResponse();
+        // Initialize a clean session per request to prevent history/prompt build-up latency S01
+        final model = await FlutterGemma.getActiveModel(maxTokens: 75);
+        final session = await model.createSession();
+        await session.addQueryChunk(Message(text: prompt, isUser: true));
+        final response = await session.getResponse();
         return response ?? "No response from offline local model.";
       } catch (e) {
-        _gemmaSession = null; // Reset on failure so it can be re-created
         return "Local Gemma LLM failed: $e";
       }
     });
@@ -369,8 +366,56 @@ class RagService {
     });
   }
 
+  String _buildGemmaPrompt(String rawQuestion, String context, String userName, String mobilityAid) {
+    final lowerQ = rawQuestion.toLowerCase();
+    
+    // Check if it is a short conversational greeting or chat query S01
+    final isConversational = rawQuestion.length < 30 &&
+        !lowerQ.contains("reports") &&
+        !lowerQ.contains("scanned") &&
+        !lowerQ.contains("nearby") &&
+        !lowerQ.contains("labels") &&
+        !lowerQ.contains("visual");
+
+    if (isConversational) {
+      return """
+<start_of_turn>user
+You are Buddy, the friendly and loyal visual guide dog mascot of the EasyLens app. Respond in first person, stay in character, be warm/dog-like, and keep the answer under 12 words.
+User: $rawQuestion<end_of_turn>
+<start_of_turn>model
+""";
+    }
+
+    if (rawQuestion.contains("scanned nearby:")) {
+      final regExp = RegExp(r"scanned nearby:\s*'(.*)'", caseSensitive: false);
+      final match = regExp.firstMatch(rawQuestion);
+      final scannedText = match != null ? match.group(1) : rawQuestion;
+      
+      return """
+<start_of_turn>user
+You are Buddy, the loyal guide dog visual assistant. Provide a clear, simple, and friendly explanation of the following text scanned nearby:
+'$scannedText'
+
+Explain what it is and highlight key info like warnings, product name, or directions. Keep it under 2 sentences.<end_of_turn>
+<start_of_turn>model
+""";
+    }
+
+    return """
+<start_of_turn>user
+You are Buddy, the loyal guide dog mascot and EasyLens assistant. Speak in first person. Be helpful, warm, dog-like, and highly concise (under 2 sentences). Always stay in character.
+User's Name: $userName
+Mobility Aid: $mobilityAid
+
+Context:
+$context
+
+User Question: $rawQuestion<end_of_turn>
+<start_of_turn>model
+""";
+  }
+
   Future<String> askBuddy(String question) async {
-    String promptText = "";
     String rawQuestion = question;
     String userName = "User";
     String mobilityAid = "None";
@@ -388,32 +433,16 @@ class RagService {
       }
     }
 
-    if (rawQuestion.contains("scanned nearby:")) {
-      final regExp = RegExp(r"scanned nearby:\s*'(.*)'", caseSensitive: false);
-      final match = regExp.firstMatch(rawQuestion);
-      final scannedText = match != null ? match.group(1) : rawQuestion;
-      
-      promptText = """
-You are Buddy, the loyal vision assistant. 
-Provide a clear, simple, and friendly explanation of the following text scanned nearby:
-'$scannedText'
+    final lowerQ = rawQuestion.toLowerCase();
+    final isConversational = rawQuestion.length < 30 &&
+        !lowerQ.contains("reports") &&
+        !lowerQ.contains("scanned") &&
+        !lowerQ.contains("nearby") &&
+        !lowerQ.contains("labels") &&
+        !lowerQ.contains("visual");
 
-Explain what it is (e.g. food label, safety sign, direction sign) and highlight key information like product name, weight, or warnings. Keep the response direct and under 3 sentences.
-""";
-    } else {
-      final context = await retrieveContextAsync(rawQuestion);
-      promptText = """
-You are Buddy, the friendly dog mascot and EasyLens assistant.
-User's Name: $userName
-Mobility Aid: $mobilityAid
-
-Context & Memory:
-$context
-
-Question: $rawQuestion
-Buddy:
-""";
-    }
+    final context = isConversational ? "" : await retrieveContextAsync(rawQuestion);
+    final promptText = _buildGemmaPrompt(rawQuestion, context, userName, mobilityAid);
 
     String responseText = "";
 
@@ -443,29 +472,16 @@ Buddy:
       return generateSmartLocalResponse(question);
     }
 
-    String promptText = "";
-    if (question.contains("scanned nearby:")) {
-      final regExp = RegExp(r"scanned nearby:\s*'(.*)'", caseSensitive: false);
-      final match = regExp.firstMatch(question);
-      final scannedText = match != null ? match.group(1) : question;
-      promptText = """
-You are Buddy, the loyal vision assistant. 
-Provide a clear, simple, and friendly explanation of the following text scanned nearby:
-'$scannedText'
+    final lowerQ = question.toLowerCase();
+    final isConversational = question.length < 30 &&
+        !lowerQ.contains("reports") &&
+        !lowerQ.contains("scanned") &&
+        !lowerQ.contains("nearby") &&
+        !lowerQ.contains("labels") &&
+        !lowerQ.contains("visual");
 
-Explain what it is (e.g. food label, safety sign, direction sign) and highlight key information. Keep the response direct and under 3 sentences.
-""";
-    } else {
-      final context = await retrieveContextAsync(question);
-      promptText = """
-You are Buddy, the friendly dog mascot and EasyLens assistant.
-Here is the environment information and memory:
-$context
-
-User Question: $question
-Buddy:
-""";
-    }
+    final context = isConversational ? "" : await retrieveContextAsync(question);
+    final promptText = _buildGemmaPrompt(question, context, "User", "None");
 
     return await _queryGemmaOffline(promptText);
   }
