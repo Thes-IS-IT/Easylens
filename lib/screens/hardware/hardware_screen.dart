@@ -3396,6 +3396,8 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
             ],
           ),
         ),
+        ],  // Close Column children
+        ),  // Close Column
         if (_isScreenLocked)
           Positioned.fill(
             child: GestureDetector(
