@@ -49,9 +49,24 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   Color _typeColor(NotificationType t) =>
       Color(AppNotification.typeConfig(t)['color'] as int);
 
-  IconData _typeIcon(NotificationType t) =>
-      IconData(AppNotification.typeConfig(t)['icon'] as int,
-          fontFamily: 'MaterialIcons');
+  IconData _typeIcon(NotificationType t) {
+    switch (t) {
+      case NotificationType.obstacle:
+        return Icons.warning;
+      case NotificationType.buddyFollowUp:
+        return Icons.person;
+      case NotificationType.battery:
+        return Icons.battery_std;
+      case NotificationType.connection:
+        return Icons.wifi;
+      case NotificationType.warning:
+        return Icons.warning;
+      case NotificationType.navigation:
+        return Icons.navigation;
+      case NotificationType.system:
+        return Icons.info;
+    }
+  }
 
   String _typeLabel(NotificationType t) =>
       AppNotification.typeConfig(t)['label'] as String;

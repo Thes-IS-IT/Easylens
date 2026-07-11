@@ -36,6 +36,9 @@ class SettingsService extends ChangeNotifier {
   bool useLocalAI = true;
   bool showFloatingMascot = true;
 
+  // Custom Gemini API Key
+  String geminiApiKey = '';
+
   // Load preferences from local storage (public so TtsService can reload on demand)
   Future<void> loadSettingsFromLocal() async {
     try {
@@ -61,6 +64,7 @@ class SettingsService extends ChangeNotifier {
 
       useLocalAI = prefs.getBool('useLocalAI') ?? true;
       showFloatingMascot = prefs.getBool('showFloatingMascot') ?? true;
+      geminiApiKey = prefs.getString('geminiApiKey') ?? '';
 
       notifyListeners();
     } catch (e) {
@@ -88,6 +92,7 @@ class SettingsService extends ChangeNotifier {
     List<String>? homeScreenCards,
     bool? useLocalAI,
     bool? showFloatingMascot,
+    String? geminiApiKey,
   }) async {
     if (voiceFeedback != null) this.voiceFeedback = voiceFeedback;
     if (hapticFeedback != null) this.hapticFeedback = hapticFeedback;
@@ -109,6 +114,7 @@ class SettingsService extends ChangeNotifier {
     
     if (useLocalAI != null) this.useLocalAI = useLocalAI;
     if (showFloatingMascot != null) this.showFloatingMascot = showFloatingMascot;
+    if (geminiApiKey != null) this.geminiApiKey = geminiApiKey;
     
     notifyListeners();
 
@@ -134,6 +140,7 @@ class SettingsService extends ChangeNotifier {
       
       if (useLocalAI != null) await prefs.setBool('useLocalAI', useLocalAI);
       if (showFloatingMascot != null) await prefs.setBool('showFloatingMascot', showFloatingMascot);
+      if (geminiApiKey != null) await prefs.setString('geminiApiKey', geminiApiKey);
     } catch (e) {
       print('Error saving settings to local storage: $e');
     }

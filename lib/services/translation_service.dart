@@ -57,6 +57,15 @@ class TranslationService {
       'floating_mascot': 'Floating Mascot Button',
       'floating_mascot_subtitle': 'Show Buddy helper button on home and camera screens.',
       'ai_mascot_settings': 'AI & Mascot Controls',
+      'gemini_api_key': 'Gemini API Key',
+      'gemini_api_key_subtitle': 'Set a custom API key for cloud fallback.',
+      'gemini_dialog_title': 'Enter Gemini API Key',
+      'gemini_dialog_desc': 'Enter your personal Gemini API Key. If left blank, EasyLens will use the default system key.',
+      'gemini_dialog_placeholder': 'AIzaSy...',
+      'gemini_dialog_test': 'Test Key',
+      'gemini_dialog_testing': 'Testing...',
+      'gemini_dialog_test_success': 'API Key is valid!',
+      'gemini_dialog_test_failed': 'Invalid API Key or connection issue.',
     },
     'fil': {
       'settings': 'Mga Setting',
@@ -115,6 +124,15 @@ class TranslationService {
       'floating_mascot': 'Lutang na Mascot Button',
       'floating_mascot_subtitle': 'Ipakita ang Buddy helper button sa home at camera screens.',
       'ai_mascot_settings': 'Mga Kontrol sa AI at Mascot',
+      'gemini_api_key': 'Gemini API Key',
+      'gemini_api_key_subtitle': 'Maglagay ng sariling API key para sa cloud.',
+      'gemini_dialog_title': 'Ipasok ang Gemini API Key',
+      'gemini_dialog_desc': 'Ipasok ang iyong personal na Gemini API Key. Kung walang laman, gagamitin ng EasyLens ang default system key.',
+      'gemini_dialog_placeholder': 'AIzaSy...',
+      'gemini_dialog_test': 'Subukan ang Key',
+      'gemini_dialog_testing': 'Sinusubukan...',
+      'gemini_dialog_test_success': 'Valid ang API Key!',
+      'gemini_dialog_test_failed': 'Hindi valid ang API Key o may problema sa koneksyon.',
     }
   };
 

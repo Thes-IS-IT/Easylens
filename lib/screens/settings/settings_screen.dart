@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
@@ -203,6 +204,217 @@ class _SettingsScreenState extends State<SettingsScreen> {
         });
       }
     }
+  }
+
+  Future<bool> _testGeminiApiKey(String key) async {
+    try {
+      final model = GenerativeModel(
+        model: 'gemini-3.5-flash',
+        apiKey: key,
+      );
+      final response = await model.generateContent([Content.text('Hello')]);
+      return response.text != null;
+    } catch (e) {
+      debugPrint('Test API Key failed: $e');
+      return false;
+    }
+  }
+
+  void _showGeminiApiKeyDialog() {
+    final settings = SettingsService();
+    final lang = settings.selectedLanguage;
+    final isDefault = settings.selectedContrastTheme == 'Default';
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    
+    final controller = TextEditingController(text: settings.geminiApiKey);
+    bool obscureText = true;
+    bool isTesting = false;
+    String? testResult; // 'success' or 'failed' or null
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.primaryBackground,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: isDefault ? BorderSide.none : BorderSide(color: AppColors.cardBorder, width: 2),
+              ),
+              title: Row(
+                children: [
+                  const Icon(Icons.key, color: Color(0xFF3B82F6), size: 28),
+                  const SizedBox(width: 10),
+                  Text(
+                    TranslationService.translate('gemini_dialog_title', lang),
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryText,
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    TranslationService.translate('gemini_dialog_desc', lang),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppColors.primaryText,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    obscureText: obscureText,
+                    style: GoogleFonts.inter(color: AppColors.primaryText),
+                    decoration: InputDecoration(
+                      hintText: TranslationService.translate('gemini_dialog_placeholder', lang),
+                      hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8)),
+                      filled: true,
+                      fillColor: isDefault ? Colors.grey.shade50 : const Color(0xFF1E293B),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: isDefault ? BorderSide.none : BorderSide(color: AppColors.cardBorder, width: 1.5),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: isDefault ? BorderSide.none : BorderSide(color: AppColors.cardBorder, width: 1.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscureText = !obscureText;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  if (testResult != null || isTesting) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (isTesting) ...[
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B82F6)),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            TranslationService.translate('gemini_dialog_testing', lang),
+                            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF3B82F6), fontWeight: FontWeight.w600),
+                          ),
+                        ] else if (testResult == 'success') ...[
+                          const Icon(Icons.check_circle_outline, color: Color(0xFF10B981), size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            TranslationService.translate('gemini_dialog_test_success', lang),
+                            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF10B981), fontWeight: FontWeight.w600),
+                          ),
+                        ] else if (testResult == 'failed') ...[
+                          const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              TranslationService.translate('gemini_dialog_test_failed', lang),
+                              style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFFEF4444), fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    final keyInput = controller.text.trim();
+                    if (keyInput.isEmpty) {
+                      setDialogState(() {
+                        testResult = null;
+                      });
+                      return;
+                    }
+                    setDialogState(() {
+                      isTesting = true;
+                      testResult = null;
+                    });
+                    _testGeminiApiKey(keyInput).then((success) {
+                      setDialogState(() {
+                        isTesting = false;
+                        testResult = success ? 'success' : 'failed';
+                      });
+                    });
+                  },
+                  child: Text(
+                    TranslationService.translate('gemini_dialog_test', lang),
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF3B82F6),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    isFilipino ? "Kanselahin" : "Cancel",
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final val = controller.text.trim();
+                    setState(() {});
+                    settings.updateSettings(geminiApiKey: val);
+                    
+                    // Sync user preferences to Cloud
+                    final user = _firebaseService.currentUser;
+                    if (user != null) {
+                      _firebaseService.syncPreferencesToCloud(user.uid, {
+                        'geminiApiKey': val,
+                      });
+                    }
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  ),
+                  child: Text(
+                    isFilipino ? "I-save" : "Save",
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showUpdateDialog(String newVersion, String notes, String downloadUrl) {
@@ -1092,6 +1304,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: Icon(Icons.key_outlined, color: iconColor),
+                    title: Text(
+                      TranslationService.translate('gemini_api_key', lang),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor),
+                    ),
+                    subtitle: Text(
+                      settings.geminiApiKey.isEmpty
+                          ? TranslationService.translate('gemini_api_key_subtitle', lang)
+                          : (settings.geminiApiKey.length > 8
+                              ? '${settings.geminiApiKey.substring(0, 8)}...'
+                              : '••••••••'),
+                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                    onTap: () {
+                      _showGeminiApiKeyDialog();
+                    },
                   ),
                 ],
               ),

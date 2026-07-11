@@ -585,9 +585,15 @@ Buddy:""";
   }
 
   static Future<T> executeWithApiKeyFallback<T>(Future<T> Function(String apiKey) apiCall) async {
-    final keys = getGeminiApiKeys();
+    final List<String> keys = [];
+    final userKey = SettingsService().geminiApiKey.trim();
+    if (userKey.isNotEmpty) {
+      keys.add(userKey);
+    }
+    keys.addAll(getGeminiApiKeys());
+
     if (keys.isEmpty) {
-      throw Exception('No Gemini API keys found in environment variables.');
+      throw Exception('No Gemini API keys found. Please set one in Settings or environment variables.');
     }
     
     Object? lastError;

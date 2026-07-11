@@ -15,6 +15,8 @@ import '../notifications/notifications_screen.dart';
 import '../contacts/contacts_screen.dart';
 import 'components/custom_navbar.dart';
 import 'components/buddy_assistant_sheet.dart';
+import '../../widgets/interactive_tutorial_overlay.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../image_labeling/image_labeling_screen.dart';
 import '../face_registration/face_registration_screen.dart';
@@ -42,15 +44,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   StreamSubscription? _accelerometerSubscription;
   int _lastShakeTime = 0;
   bool _isBuddySheetOpen = false;
+  bool _showTutorial = false;
 
   @override
   void initState() {
     super.initState();
     _displayName = "User";
     _loadUserDisplayName();
+    _checkTutorialStatus();
     _startShakeListening();
     _playDashboardBark();
     SpeechNavigationNotifier.tabChangeNotifier.addListener(_onSpeechTabChange);
+  }
+
+  Future<void> _checkTutorialStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasCompleted = prefs.getBool('has_completed_tutorial') ?? false;
+    if (!hasCompleted && mounted) {
+      setState(() {
+        _showTutorial = true;
+      });
+    }
   }
 
   @override
@@ -384,6 +398,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   );
                 },
               ),
+
+              // Interactive Tutorial Overlay
+              if (_showTutorial)
+                Positioned.fill(
+                  child: InteractiveTutorialOverlay(
+                    onComplete: () {
+                      setState(() {
+                        _showTutorial = false;
+                      });
+                    },
+                  ),
+                ),
             ],
           ),
         );
