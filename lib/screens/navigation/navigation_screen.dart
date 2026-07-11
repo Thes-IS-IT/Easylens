@@ -884,15 +884,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
       ]
     };
 
-    setState(() {
-      _selectedPlace = pinnedPlace;
-      _searchController.text = 'Pinned Location';
-    });
+    _searchController.text = 'Pinned Location';
 
     // Animate map to pinned location
     _mapController?.animateCamera(
       CameraUpdate.newLatLng(position),
     );
+
+    _startGuidance(pinnedPlace);
   }
 
   String _getDynamicETA(String durationStr) {
@@ -928,6 +927,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               mapToolbarEnabled: false,
               markers: _getMapMarkers(),
               polylines: _getMapPolylines(),
+              onTap: _onMapLongPress,
               onLongPress: _onMapLongPress,
               onMapCreated: (controller) {
                 _mapController = controller;
