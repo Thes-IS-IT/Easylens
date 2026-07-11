@@ -1,9 +1,6 @@
-// lib/services/notification_service.dart
-// Dynamic, persistent notification service for EasyLens.
-// Stores notifications in SharedPreferences. No extra packages needed.
-
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_notification.dart';
 
@@ -17,6 +14,7 @@ class NotificationService extends ChangeNotifier {
   static const int _maxNotifications = 100;
 
   final List<AppNotification> _notifications = [];
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   List<AppNotification> get notifications =>
       List.unmodifiable(_notifications..sort((a, b) => b.timestamp.compareTo(a.timestamp)));
@@ -28,6 +26,17 @@ class NotificationService extends ChangeNotifier {
   // --- Initialization ---
   Future<void> initialize() async {
     await _loadFromPrefs();
+    
+    // Initialize native push notification settings
+    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosInit = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+    const InitializationSettings initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+    await _localNotifications.initialize(initSettings);
+
     // Schedule a buddy follow-up notification on first launch of the day
     _maybeSendDailyBuddyFollowUp();
   }
@@ -54,6 +63,36 @@ class NotificationService extends ChangeNotifier {
     }
     await _saveToPrefs();
     notifyListeners();
+
+    // Trigger Native Notification
+    _triggerNativeNotification(n);
+  }
+
+  Future<void> _triggerNativeNotification(AppNotification n) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'easylens_alerts',
+      'EasyLens Alerts',
+      channelDescription: 'Alerts and warnings from EasyLens sensors and Buddy AI guide.',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+    );
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+    const NotificationDetails platformDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      n.id.hashCode,
+      n.title,
+      n.body,
+      notificationDetails: platformDetails,
+    );
   }
 
   Future<void> markAsRead(String id) async {

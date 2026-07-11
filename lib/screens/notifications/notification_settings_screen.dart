@@ -1,0 +1,338 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../constants/colors.dart';
+import '../../services/settings_service.dart';
+
+class NotificationSettingsScreen extends StatefulWidget {
+  const NotificationSettingsScreen({super.key});
+
+  @override
+  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+}
+
+class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+  bool _allNotifications = true;
+  bool _buddyFollowUp = true;
+  bool _obstacleAlerts = true;
+  bool _batteryAlerts = false;
+  bool _connectionAlerts = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSettings();
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _allNotifications = prefs.getBool('settings_notify_all') ?? true;
+      _buddyFollowUp = prefs.getBool('settings_notify_buddy') ?? true;
+      _obstacleAlerts = prefs.getBool('settings_notify_obstacle') ?? true;
+      _batteryAlerts = prefs.getBool('settings_notify_battery') ?? false;
+      _connectionAlerts = prefs.getBool('settings_notify_connection') ?? false;
+    });
+  }
+
+  Future<void> _saveNotificationSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('settings_notify_all', _allNotifications);
+    await prefs.setBool('settings_notify_buddy', _buddyFollowUp);
+    await prefs.setBool('settings_notify_obstacle', _obstacleAlerts);
+    await prefs.setBool('settings_notify_battery', _batteryAlerts);
+    await prefs.setBool('settings_notify_connection', _connectionAlerts);
+  }
+
+  Widget _buildToggleTile({
+    required String title,
+    required String description,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final settings = SettingsService();
+    final isDefault = settings.selectedContrastTheme == 'Default';
+    final textColor = isDefault ? Colors.black : AppColors.primaryText;
+    final secondaryTextColor = const Color(0xFF64748B);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: textColor,
+                  ),
+                ),
+              ),
+              Switch(
+                value: value,
+                onChanged: onChanged,
+                activeColor: Colors.white,
+                activeTrackColor: const Color(0xFF48BB78),
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: const Color(0xFFCBD5E1),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: secondaryTextColor,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value ? 'On' : 'Off',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: value ? const Color(0xFF48BB78) : const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = SettingsService();
+    final isDefault = settings.selectedContrastTheme == 'Default';
+    final headerTextColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
+    final textColor = isDefault ? Colors.black : AppColors.primaryText;
+
+    return Scaffold(
+      backgroundColor: AppColors.lightBackground,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Back Button
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: isDefault ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      )
+                    ] : null,
+                    border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.chevron_left, color: headerTextColor, size: 24),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Back',
+                        style: GoogleFonts.inter(
+                          color: headerTextColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Title
+              Text(
+                'Notifications',
+                style: GoogleFonts.inter(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: headerTextColor,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // White Content Box
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24.0),
+                  boxShadow: isDefault ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    )
+                  ] : null,
+                  border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Notifications Main Switch
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Notifications',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Get a daily Buddy follow-up plus near-due alerts for obstacles, battery, and connections.',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _allNotifications,
+                          onChanged: (val) {
+                            setState(() {
+                              _allNotifications = val;
+                              if (!val) {
+                                _buddyFollowUp = false;
+                                _obstacleAlerts = false;
+                                _batteryAlerts = false;
+                                _connectionAlerts = false;
+                              } else {
+                                _buddyFollowUp = true;
+                                _obstacleAlerts = true;
+                              }
+                            });
+                            _saveNotificationSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Reminder Time info
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Reminder time',
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Buddy sends your daily follow-up at 8:00 PM. Obstacle, battery, and connection alerts use the same time.',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFF64748B),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Buddy follow-up switch
+                    _buildToggleTile(
+                      title: 'Buddy follow-up',
+                      description: 'Send one daily follow-up. If you haven\'t navigated today, Buddy nudges you. If you have, Buddy sends a light reinforcement check-in.',
+                      value: _buddyFollowUp,
+                      onChanged: !_allNotifications ? (_) {} : (val) {
+                        setState(() => _buddyFollowUp = val);
+                        _saveNotificationSettings();
+                      },
+                    ),
+
+                    // Obstacle alerts switch
+                    _buildToggleTile(
+                      title: 'Obstacle alerts',
+                      description: 'Warn when a high-risk obstacle is getting close or directly in your path.',
+                      value: _obstacleAlerts,
+                      onChanged: !_allNotifications ? (_) {} : (val) {
+                        setState(() => _obstacleAlerts = val);
+                        _saveNotificationSettings();
+                      },
+                    ),
+
+                    // Battery alerts switch
+                    _buildToggleTile(
+                      title: 'Battery alerts',
+                      description: 'Alert when the smart glasses battery drops below 20%.',
+                      value: _batteryAlerts,
+                      onChanged: !_allNotifications ? (_) {} : (val) {
+                        setState(() => _batteryAlerts = val);
+                        _saveNotificationSettings();
+                      },
+                    ),
+
+                    // Connection alerts switch
+                    _buildToggleTile(
+                      title: 'Connection alerts',
+                      description: 'Alert when the smart glasses lose connection to your phone.',
+                      value: _connectionAlerts,
+                      onChanged: !_allNotifications ? (_) {} : (val) {
+                        setState(() => _connectionAlerts = val);
+                        _saveNotificationSettings();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
