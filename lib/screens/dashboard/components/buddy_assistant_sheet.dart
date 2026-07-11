@@ -671,6 +671,12 @@ Buddy:
                         hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
                         border: InputBorder.none,
                       ),
+                      onTap: () {
+                        // Immediately stop active voice/speech listeners when keyboard gets focus S01
+                        if (_isListening) {
+                          _toggleListening();
+                        }
+                      },
                       onSubmitted: _handleSendMessage,
                     ),
                   ),

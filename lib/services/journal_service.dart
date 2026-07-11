@@ -198,10 +198,12 @@ $newInsight
       // Look at the last 5 days of journals to avoid bloating the context
       final recentJournals = journals.take(5).toList();
 
-      for (var journal in recentJournals) {
+      final results = await Future.wait(recentJournals.map((journal) async {
         final file = journal['file'] as File;
         final date = journal['date'] as String;
         final content = await file.readAsString();
+
+        final List<String> localContexts = [];
 
         // 1. Always extract the Insights & Notes section
         if (content.contains('## Buddy\'s Insights & Notes')) {
@@ -212,7 +214,7 @@ $newInsight
             final insights = nextSecIndex != -1 ? rest.substring(0, nextSecIndex) : rest;
             final cleanInsights = insights.trim();
             if (cleanInsights.isNotEmpty && !cleanInsights.contains('No insights recorded')) {
-              contexts.add('On $date, Buddy learned:\n$cleanInsights');
+              localContexts.add('On $date, Buddy learned:\n$cleanInsights');
             }
           }
         }
@@ -231,11 +233,16 @@ $newInsight
             if (parts.length > 1) {
               final logs = parts[1].trim();
               if (logs.isNotEmpty) {
-                contexts.add('Conversation log on $date:\n$logs');
+                localContexts.add('Conversation log on $date:\n$logs');
               }
             }
           }
         }
+        return localContexts;
+      }));
+
+      for (var res in results) {
+        contexts.addAll(res);
       }
     } catch (e) {
       print('[Journal] Error getting journal context: $e');
