@@ -1167,7 +1167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
                       ),
                       trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
-                      onTap: () {},
+                      onTap: () => _openURL('https://forms.gle/DGSCAKTR2ai39K6VA'),
                     ),
                   ),
                   
