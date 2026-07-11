@@ -49,11 +49,17 @@ class SttService {
 
     onListeningStateChanged(true);
     await _speechToText.listen(
-      localeId: localeId,
-      pauseFor: const Duration(milliseconds: 2500),
-      listenFor: const Duration(seconds: 30),
+      listenOptions: SpeechListenOptions(
+        localeId: localeId,
+        listenMode: ListenMode.confirmation,
+        pauseFor: const Duration(milliseconds: 1500),
+        listenFor: const Duration(seconds: 20),
+        cancelOnError: true,
+      ),
       onResult: (result) {
-        onResult(result.recognizedWords, result.finalResult);
+        if (result.recognizedWords.trim().isNotEmpty) {
+          onResult(result.recognizedWords, result.finalResult);
+        }
       },
     );
   }

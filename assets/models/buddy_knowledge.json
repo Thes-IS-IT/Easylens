@@ -2,17 +2,17 @@
   {
     "title": "Buddy's Golden Retriever Persona",
     "content": "Buddy is the official mascot and real-time vision assistant for the EasyLens app. He is represented as a friendly, highly intelligent Golden Retriever dog who wears a blue cap and a blue collar shirt. Buddy's voice is programmed to be warm, enthusiastic, and supportive. To maintain a friendly canine persona, he adds cheerful barks like 'Woof!' and 'Arf!' at the beginning or end of his guidance instructions. He is dedicated to helping visually impaired users navigate safely, offering descriptive companionship, and ensuring they never feel isolated or lost during their travels.",
-    "keywords": ["buddy", "persona", "who are you", "mascot", "dog", "breed", "clothing", "cap", "shirt", "golden retriever"]
+    "keywords": ["buddy", "persona", "who are you", "mascot", "dog", "breed", "clothing", "cap", "shirt", "golden retriever", "sino ka", "pagkakakilanlan", "sumbrero", "polo"]
   },
   {
     "title": "Buddy's Speech Tone and Vocabulary Rules",
     "content": "Buddy communicates using simple, accessible language. He avoids complex technical jargon when describing scenes to visually impaired users. When steering a user around obstacles, he utilizes clear directional instructions, prioritizing safety above all. Buddy speaks in a comforting tone, designed to reduce anxiety in unfamiliar environments. In companion mode, his descriptions are concise (under three sentences) to prevent audio clutter, ensuring the user can hear ambient street sounds and crucial environmental feedback clearly.",
-    "keywords": ["speech rules", "tone", "style", "language", "concise", "speaking", "audio clutter", "sound", "directions"]
+    "keywords": ["speech rules", "tone", "style", "language", "concise", "speaking", "audio clutter", "sound", "directions", "pagsasalita", "tono", "direksyon", "pananalita"]
   },
   {
     "title": "App Conception and Holy Angel University Thesis",
     "content": "EasyLens was conceptualized and developed as an undergraduate thesis project by a dedicated group of 4th-year Computer Science students at Holy Angel University (HAU) in Pampanga, Philippines. The primary objective of their research was to build an advanced, real-time edge computer vision assistive system to support visually impaired individuals with independent spatial navigation. The study focused on optimizing deep learning models to achieve high classification accuracy while maintaining extremely low latency on resource-constrained mobile hardware.",
-    "keywords": ["thesis", "conception", "holy angel university", "hau", "computer science", "undergraduate", "students", "research", "philippines"]
+    "keywords": ["thesis", "conception", "holy angel university", "hau", "computer science", "undergraduate", "students", "research", "philippines", "pananaliksik", "pag-aaral"]
   },
   {
     "title": "Data-Centric Preprocessing and Data Cleaning Workflow",
@@ -1083,6 +1083,46 @@
     "title": "Offline Maps Cache and Fallback Navigation",
     "content": "To ensure navigation remains operational in dead zones, EasyLens caches map tile layers and OSRM node lists. When internet access is disconnected during a walk, the navigation engine falls back to cached route geometry, using raw Geolocator GPS coordinates and compass bearings to maintain orientation indicators on the PIP minimap and voice prompts.",
     "keywords": ["offline navigation", "map cache", "osrm fallback", "dead zone", "gps tracking", "offline bearing"]
+  },
+  {
+    "title": "EasyLens App Guide and How to Use",
+    "content": "To use EasyLens, users can swipe horizontally to switch between tabs (Dashboard, Hardware Screen, RAG Assistant, settings, etc.) or leverage continuous Speech Navigation. Double-tapping is supported for low-vision selections. The microphone overlay can be dragged anywhere on the screen so it does not obstruct other UI buttons, and toggling it enables hands-free voice interactions with Buddy.",
+    "keywords": ["how to use", "app guide", "swipe tabs", "mic overlay", "double tap", "tutorial", "instructions", "hands-free", "getting started"]
+  },
+  {
+    "title": "EasyLens Core Features Catalogue",
+    "content": "EasyLens is packed with cutting-edge assistive features: 1. Real-time Object Detection with fine-tuned MobileNetV2 (bounding boxes and obstacle alerts). 2. Continuous Speech Navigation (OSRM routing, custom map pinning, tiered anti-spam alerts, and global arrival confetti). 3. OCR Text Scanner (ML Kit) for reading documents. 4. Local RAG Assistant (Gemma 2B / Gemini). 5. One-tap SOS Emergency SMS. 6. Multi-Persona Voice feedback (6 personas including Maya for Tagalog).",
+    "keywords": ["features", "app capabilities", "what can easylens do", "confetti on arrival", "pin map", "maya persona", "gemma RAG", "ml kit ocr", "features list"]
+  },
+  {
+    "title": "EasyLens Primary Use Cases and Scenarios",
+    "content": "EasyLens is optimized for several critical scenarios: 1. Independent urban pedestrian travel for blind and visually impaired individuals. 2. Real-time caregiver monitoring via Firestore-linked companion modes. 3. Accessible campus travel at Holy Angel University. 4. Hands-free text reading of menus, prescription labels, or street signs using the on-device ML Kit OCR scanner.",
+    "keywords": ["use cases", "who is this for", "target users", "visually impaired", "caregivers", "menus", "prescription labels", "campus navigation", "independent travel", "scenarios"]
+  },
+  {
+    "title": "App Settings and Accessibility Configurations",
+    "content": "The Settings panel lets users customize accessibility. It features toggles for Voice Feedback, Haptic Feedback, and sliders for Speech Rate and Pitch. Language options include English and Filipino. If Filipino is selected, all UI screens automatically translate to Tagalog, speech navigation accepts Tagalog keywords ('Bumalik', 'Saklolo', 'Pumunta sa...'), and English voice personas are disabled, leaving the native 'Maya (Filipino)' voice active.",
+    "keywords": ["settings", "language configuration", "filipino translation", "speech rate", "pitch", "haptic feedback", "contrast themes", "voice customization", "maya tagalog"]
+  },
+  {
+    "title": "Pagkakakilanlan ni Buddy bilang Golden Retriever Mascot",
+    "content": "Si Buddy ang opisyal na mascot at real-time vision assistant para sa EasyLens app. Siya ay kinakatawan bilang isang mabait, at matalinong asong Golden Retriever na may suot na asul na sumbrero at asul na may kwelyong polo. Ang boses ni Buddy ay programmed na maging masigla, magalang, at supportive. Para mapanatili ang kanyang friendly canine persona, nagdaragdag siya ng masasayang tahol tulad ng 'Woof!' at 'Arf!' sa simula o dulo ng kanyang gabay.",
+    "keywords": ["sino ka", "buddy", "pagkakakilanlan", "aso", "golden retriever", "mascot", "sumbrero", "polo", "tahol", "identity"]
+  },
+  {
+    "title": "Gabay sa Paggamit ng EasyLens App",
+    "content": "Para gamitin ang EasyLens app, ang mga user ay maaaring mag-swipe nang pahalang para lumipat sa pagitan ng mga tab (Dashboard, Hardware Screen, RAG Assistant, settings, etc.) o gumamit ng continuous Speech Navigation. Sinusuportahan din ang double-tapping para sa mga low-vision na pagpili. Ang microphone overlay ay maaaring kaladkarin o i-drag kahit saan sa screen para hindi nito maharangan ang ibang buttons, at ang pag-toggle nito ay nagpapagana ng hands-free na pakikipag-usap kay Buddy.",
+    "keywords": ["paano gamitin", "gabay", "paggamit", "tuto", "swipe", "tab", "mikropono", "drag", "double tap", "hands-free", "getting started"]
+  },
+  {
+    "title": "Mga Pangunahing Tampok ng EasyLens",
+    "content": "Ang EasyLens ay puno ng mga makabagong tampok: 1. Real-time Object Detection gamit ang fine-tuned MobileNetV2 (bounding boxes at babala sa mga balakid). 2. Continuous Speech Navigation (direksyon gamit ang OSRM, map pinning, at confetti sa pagdating). 3. OCR Text Scanner (ML Kit) para sa pagbabasa ng dokumento. 4. Local RAG Assistant (Gemma 2B / Gemini). 5. One-tap SOS Emergency SMS. 6. Multi-Persona Voice feedback kasama ang Maya.",
+    "keywords": ["tampok", "kakayahan", "features", "confetti", "pin map", "maya", "gemma RAG", "ml kit ocr", "saklolo", "sos", "object detection", "features list"]
+  },
+  {
+    "title": "Mga Setting ng App at Accessibility Configurations sa Tagalog",
+    "content": "Ang Settings panel ay nagbibigay-daan sa mga user na i-customize ang accessibility. Tampok dito ang mga toggle para sa Voice Feedback at Haptic Feedback, at mga slider para sa Speech Rate at Pitch. Kasama rin ang pagpili sa wika (Ingles at Filipino). Kapag Filipino ang napili, ang lahat ng interface at gabay ay awtomatikong isinasalin sa Tagalog, at ang mga Ingles na voice persona ay hindi magagamit, na nag-iiwan sa 'Maya (Filipino)' bilang aktibong boses.",
+    "keywords": ["setting", "wika", "filipino", "tagalog", "boses", "speech rate", "pitch", "haptic", "kontrast", "tema", "maya", "boses", "settings"]
   }
 ]
 

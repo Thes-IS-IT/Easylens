@@ -77,6 +77,7 @@ graph TD
 | Document | Description |
 |---|---|
 | [object_detection_architecture.md](docs/object_detection_architecture.md) | Deep dive into the core MobileNetV2 pipeline, ML Kit, and Speech Navigation |
+| [ai_architecture.md](docs/ai_architecture.md) | Deep dive into Local LLM (Gemma), Gemini integration, RAG system, and Autopilot routing |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Complete technical architecture, data flow, database schemas |
 | [FEATURES.md](docs/FEATURES.md) | Full feature catalogue with screen-by-screen breakdown |
 | [cloudflare_r2_setup.md](docs/cloudflare_r2_setup.md) | Cloudflare R2 bucket setup and CORS configuration |

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/settings_service.dart';
 import '../services/stt_service.dart';
@@ -50,6 +51,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
   Timer? _silenceTimer;
   double? _btnLeft;
   double? _btnTop;
+  bool _isDragging = false;
 
   @override
   void dispose() {
@@ -159,6 +161,18 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return;
     }
 
+    // Filter background/registered noise (ignore speech that lacks core command keywords)
+    if (!_containsAnyKeyword(text)) {
+      setState(() {
+        _lastRecognized = "";
+      });
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted && _isLoopActive) {
+        _runSpeechNavigationLoop();
+      }
+      return;
+    }
+
     // Process the command and get response text S01
     final response = await _processCommand(text);
 
@@ -241,45 +255,73 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Bumabalik" : "Going back";
     }
 
-    // 9. Click commands mapping S01
-    if (cleanText.startsWith("click ") || cleanText.startsWith("pindutin ")) {
-      final target = cleanText.replaceAll("click ", "").replaceAll("pindutin ", "").trim();
-      
-      if (target.contains("help") || target.contains("guide") || target.contains("tulong")) {
-        navigatorKey.currentState?.push(AppRoute.to(const HelpGuideScreen()));
-        return isFilipino ? "Binubuksan ang gabay sa tulong" : "Opening help guide";
-      }
-      if (target.contains("password") || target.contains("palitan")) {
-        navigatorKey.currentState?.push(AppRoute.to(const ChangePasswordScreen()));
-        return isFilipino ? "Binubuksan ang palitan ng password" : "Opening change password";
-      }
-      if (target.contains("units") || target.contains("yunit")) {
-        navigatorKey.currentState?.push(AppRoute.to(const UnitsScreen()));
-        return isFilipino ? "Binubuksan ang mga unit" : "Opening units setting";
-      }
-      if (target.contains("customize") || target.contains("home screen")) {
-        navigatorKey.currentState?.push(AppRoute.to(const CustomizeHomeScreen()));
-        return isFilipino ? "Inaayos ang home screen" : "Opening home screen customizer";
-      }
-      if (target.contains("face") || target.contains("mukha") || target.contains("register")) {
-        navigatorKey.currentState?.push(AppRoute.to(const FaceRegistrationScreen()));
-        return isFilipino ? "Binubuksan ang pagrehistro ng mukha" : "Opening face registration";
-      }
-      if (target.contains("logout") || target.contains("log out") || target.contains("umalis")) {
-        await FirebaseService().signOut();
-        navigatorKey.currentState?.pushAndRemoveUntil(
-          AppRoute.to(const OnboardingScreen()),
-          (route) => false,
-        );
-        return isFilipino ? "Umaalipap" : "Logging out";
-      }
-      if (target.contains("profile") || target.contains("detalye")) {
-        navigatorKey.currentState?.push(AppRoute.to(const ProfileDetailsScreen()));
-        return isFilipino ? "Binubuksan ang profile" : "Opening profile details";
-      }
+    // 9. Click commands mapping S01 (prefixes optional for accessibility)
+    final hasClickPrefix = cleanText.startsWith("click ") || cleanText.startsWith("pindutin ");
+    final target = hasClickPrefix 
+        ? cleanText.replaceAll("click ", "").replaceAll("pindutin ", "").trim() 
+        : cleanText;
+    
+    if (target.contains("help") || target.contains("guide") || target.contains("tulong")) {
+      navigatorKey.currentState?.push(AppRoute.to(const HelpGuideScreen()));
+      return isFilipino ? "Binubuksan ang gabay sa tulong" : "Opening help guide";
+    }
+    if (target.contains("password") || target.contains("palitan")) {
+      navigatorKey.currentState?.push(AppRoute.to(const ChangePasswordScreen()));
+      return isFilipino ? "Binubuksan ang palitan ng password" : "Opening change password";
+    }
+    if (target.contains("units") || target.contains("yunit")) {
+      navigatorKey.currentState?.push(AppRoute.to(const UnitsScreen()));
+      return isFilipino ? "Binubuksan ang mga unit" : "Opening units setting";
+    }
+    if (target.contains("customize") || target.contains("home screen")) {
+      navigatorKey.currentState?.push(AppRoute.to(const CustomizeHomeScreen()));
+      return isFilipino ? "Inaayos ang home screen" : "Opening home screen customizer";
+    }
+    if (target.contains("face") || target.contains("mukha") || target.contains("register")) {
+      navigatorKey.currentState?.push(AppRoute.to(const FaceRegistrationScreen()));
+      return isFilipino ? "Binubuksan ang pagrehistro ng mukha" : "Opening face registration";
+    }
+    if (target.contains("logout") || target.contains("log out") || target.contains("umalis")) {
+      await FirebaseService().signOut();
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        AppRoute.to(const OnboardingScreen()),
+        (route) => false,
+      );
+      return isFilipino ? "Umalis sa account" : "Logging out";
+    }
+    if (target.contains("profile") || target.contains("detalye")) {
+      navigatorKey.currentState?.push(AppRoute.to(const ProfileDetailsScreen()));
+      return isFilipino ? "Binubuksan ang profile" : "Opening profile details";
     }
 
     return isFilipino ? "Hindi ko naintindihan ang utos" : "Command not recognized";
+  }
+
+  bool _containsAnyKeyword(String text) {
+    final words = [
+      "home", "dashboard", "umpisa",
+      "map", "navigation", "mapa", "nabigasyon",
+      "camera", "easylens", "easy lens",
+      "settings", "setting", "seting", "mga setting", "buksan ang setting",
+      "notifications", "notification", "abiso",
+      "contacts", "contact", "kontak",
+      "emergency", "sos", "saklolo",
+      "back", "bumalik", "balik", "pabalik",
+      "click", "pindutin", "pindot",
+      "help", "guide", "tulong", "gabay",
+      "password", "palitan",
+      "units", "yunit",
+      "customize", "isaayos",
+      "face", "mukha", "register",
+      "logout", "log out", "umalis",
+      "profile", "detalye"
+    ];
+    
+    final clean = text.toLowerCase();
+    for (final word in words) {
+      if (clean.contains(word)) return true;
+    }
+    return false;
   }
 
   @override
@@ -377,7 +419,13 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
               child: Material(
                 color: Colors.transparent,
                 child: GestureDetector(
+                  onPanStart: (_) {
+                    _isDragging = false;
+                  },
                   onPanUpdate: (details) {
+                    if (details.delta.dx.abs() > 1 || details.delta.dy.abs() > 1) {
+                      _isDragging = true;
+                    }
                     setState(() {
                       final size = MediaQuery.of(context).size;
                       _btnTop = (_btnTop! + details.delta.dy).clamp(
@@ -390,7 +438,19 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
                       );
                     });
                   },
-                  onTap: _toggleSpeechNavigation,
+                  onPanEnd: (_) {
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      if (mounted) {
+                        _isDragging = false;
+                      }
+                    });
+                  },
+                  onTap: () {
+                    if (!_isDragging) {
+                      HapticFeedback.mediumImpact();
+                      _toggleSpeechNavigation();
+                    }
+                  },
                   child: Container(
                     width: 72,
                     height: 72,

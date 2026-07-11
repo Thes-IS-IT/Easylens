@@ -95,6 +95,16 @@ class _NavigationScreenState extends State<NavigationScreen> {
   static const int _navAlertCooldownMs = 8000; // 8 s between spoken alerts
   bool _hasAnnouncedArrival = false;
 
+  // Expanded Warning & Proximity Guidance Variables
+  List<LatLng> _stepLocations = [];
+  int _lastRerouteTime = 0;
+  int _offRouteCounter = 0;
+  int _lastTurnAlertTime = 0;
+  int _lastProximityAlertTime = 0;
+  int _lastGpsAlertTime = 0;
+  int _lastTurnIndexAnnounced = -1;
+  int _lastProximityIndexAnnounced = -1;
+
   // HAU Location coordinates (Pampanga, PH)
   static const LatLng _hauLatLng = LatLng(15.1325, 120.5901);
 
@@ -228,14 +238,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
           });
 
           if (_selectedPlace != null) {
-            _fetchRoadRoute();
             // Smoothly track current location if navigating
             if (_navState == 1) {
               _mapController?.animateCamera(
                 CameraUpdate.newLatLng(_currentLocation),
               );
-              // Check proximity to current step / destination
-              _checkNavigationProgress();
+              // Check proximity to current step / destination and warn if off-route
+              _checkNavigationProgress(position);
             }
           }
         }
@@ -254,20 +263,66 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
+  bool _isUserOffRoute() {
+    if (_routePoints.isEmpty) return false;
+    double minDistance = double.infinity;
+    for (final point in _routePoints) {
+      final d = Geolocator.distanceBetween(
+        _currentLocation.latitude,
+        _currentLocation.longitude,
+        point.latitude,
+        point.longitude,
+      );
+      if (d < minDistance) {
+        minDistance = d;
+      }
+    }
+    return minDistance > 50.0;
+  }
+
   /// Checks how close the user is to the destination and the next step waypoint.
-  /// Speaks a guidance prompt when within threshold, respecting the cooldown
-  /// to avoid spamming the user.
-  void _checkNavigationProgress() {
+  /// Speaks a guidance prompt when within threshold, respecting tiered cooldowns
+  /// and automatically handling off-route and weak GPS events.
+  void _checkNavigationProgress(Position position) {
     if (_selectedPlace == null || _navState != 1) return;
 
     final now = DateTime.now().millisecondsSinceEpoch;
-    if (now - _lastNavAlertTime < _navAlertCooldownMs) return;
-
+    final unit = SettingsService().selectedUnit;
     final steps = _selectedPlace!['steps'] as List<String>;
     final destination = _selectedPlace!['latLng'] as LatLng;
-    final unit = SettingsService().selectedUnit;
 
-    // --- 1. Check distance to final destination ---
+    // --- 1. Check GPS Accuracy ---
+    if (position.accuracy > 25.0) {
+      if (now - _lastGpsAlertTime > 20000) { // 20s cooldown
+        _lastGpsAlertTime = now;
+        TtsService().speak(
+          SettingsService().selectedLanguage == 'Tagalog'
+              ? 'Mahina ang signal ng GPS. Maaaring hindi tumpak ang gabay.'
+              : 'GPS signal is weak. Guidance may be inaccurate.',
+        );
+      }
+    }
+
+    // --- 2. Check Off-Route & Auto-Reroute ---
+    if (_isUserOffRoute()) {
+      _offRouteCounter++;
+      // Require 3 consecutive off-route ticks to confirm off-route to prevent GPS jumps
+      if (_offRouteCounter >= 3 && (now - _lastRerouteTime > 15000)) {
+        _lastRerouteTime = now;
+        _offRouteCounter = 0;
+        TtsService().speak(
+          SettingsService().selectedLanguage == 'Tagalog'
+              ? 'Naliligaw ka sa ruta. Muling kinakalkula ang direksyon.'
+              : 'You are off-route. Recalculating path...',
+        );
+        _fetchRoadRoute();
+        return;
+      }
+    } else {
+      _offRouteCounter = 0;
+    }
+
+    // --- 3. Check distance to final destination ---
     final distToDestM = Geolocator.distanceBetween(
       _currentLocation.latitude,
       _currentLocation.longitude,
@@ -279,66 +334,78 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _hasAnnouncedArrival = true;
       _lastNavAlertTime = now;
       TtsService().speak(
-        'You have arrived at your destination, ${_selectedPlace!["name"]}. Well done!',
+        SettingsService().selectedLanguage == 'Tagalog'
+            ? 'Nakarating ka na sa iyong patutunguhan, ${_selectedPlace!["name"]}. Magaling!'
+            : 'You have arrived at your destination, ${_selectedPlace!["name"]}. Well done!',
       );
       ActiveNavigationService().triggerArrival();
       setState(() => _navState = 2);
       return;
     }
 
-    if (distToDestM < 80 && !_hasAnnouncedArrival) {
-      _lastNavAlertTime = now;
+    if (distToDestM < 80 && !_hasAnnouncedArrival && _lastProximityIndexAnnounced != -999) {
+      _lastProximityIndexAnnounced = -999;
       final approachDist = unit == 'Imperial'
           ? '${(distToDestM * 3.28084).round()} feet'
           : '${distToDestM.round()} meters';
       TtsService().speak(
-        'You are $approachDist away from ${_selectedPlace!["name"]}. Almost there!',
+        SettingsService().selectedLanguage == 'Tagalog'
+            ? 'May $approachDist ka na lang bago makarating sa ${_selectedPlace!["name"]}. Malapit na!'
+            : 'You are $approachDist away from ${_selectedPlace!["name"]}. Almost there!',
       );
       return;
     }
 
-    // --- 2. Announce upcoming turn for current step ---
-    if (_currentStepIndex < steps.length) {
-      final currentStep = _formatStep(steps[_currentStepIndex], unit);
+    // --- 4. Announce upcoming turns using step physical locations ---
+    if (_currentStepIndex < steps.length && _currentStepIndex < _stepLocations.length) {
+      final stepTarget = _stepLocations[_currentStepIndex];
+      final currentStepText = _formatStep(steps[_currentStepIndex], unit);
 
-      // Estimate position along the route using step index ratio
-      final routeLen = _routePoints.length;
-      if (routeLen > 1) {
-        final stepFraction = routeLen > 0
-            ? (_currentStepIndex / steps.length).clamp(0.0, 1.0)
-            : 0.0;
-        final nextWaypointIndex =
-            ((stepFraction + 1 / steps.length) * routeLen).round()
-                .clamp(0, routeLen - 1);
-        final nextWaypoint = _routePoints[nextWaypointIndex];
+      final distToStepM = Geolocator.distanceBetween(
+        _currentLocation.latitude,
+        _currentLocation.longitude,
+        stepTarget.latitude,
+        stepTarget.longitude,
+      );
 
-        final distToTurnM = Geolocator.distanceBetween(
-          _currentLocation.latitude,
-          _currentLocation.longitude,
-          nextWaypoint.latitude,
-          nextWaypoint.longitude,
-        );
-
-        if (distToTurnM < 30) {
-          // Auto-advance to next step when very close
-          if (_currentStepIndex < steps.length - 1) {
-            _lastNavAlertTime = now;
-            setState(() => _currentStepIndex++);
-            TtsService().speak(
-              _formatStep(steps[_currentStepIndex], unit),
-            );
-          }
-        } else if (distToTurnM < 80) {
-          // Warn upcoming turn
-          _lastNavAlertTime = now;
+      // A. Critical turn alert (within 20 meters): Auto-advance immediately and read the step
+      if (distToStepM < 20) {
+        if (_currentStepIndex < steps.length - 1) {
+          setState(() {
+            _currentStepIndex++;
+          });
+          // Update global navigation status bar
+          ActiveNavigationService().updateProgress(
+            currentStepText: _formatStep(steps[_currentStepIndex], unit),
+            distanceRemaining: _selectedPlace!['dist'],
+            timeRemaining: _selectedPlace!['time'],
+            currentLocation: _currentLocation,
+          );
+          // Critical turn info bypasses all cooldowns
+          TtsService().speak(_formatStep(steps[_currentStepIndex], unit));
+        }
+      } 
+      // B. Proximity Warning (within 60 meters): Alert upcoming action
+      else if (distToStepM < 60) {
+        if (_lastTurnIndexAnnounced != _currentStepIndex || (now - _lastTurnAlertTime > 12000)) {
+          _lastTurnAlertTime = now;
+          _lastTurnIndexAnnounced = _currentStepIndex;
           final warnDist = unit == 'Imperial'
-              ? '${(distToTurnM * 3.28084).round()} feet'
-              : '${distToTurnM.round()} meters';
-          TtsService().speak('In $warnDist, $currentStep');
-        } else if (distToTurnM < 200) {
-          // Remind step
-          _lastNavAlertTime = now;
-          TtsService().speak(currentStep);
+              ? '${(distToStepM * 3.28084).round()} feet'
+              : '${distToStepM.round()} meters';
+          TtsService().speak(
+            SettingsService().selectedLanguage == 'Tagalog'
+                ? 'Sa loob ng $warnDist, $currentStepText'
+                : 'In $warnDist, $currentStepText',
+          );
+        }
+      } 
+      // C. Reminder (within 150 meters): Standard voice cue
+      else if (distToStepM < 150) {
+        if (_lastProximityIndexAnnounced != _currentStepIndex && (now - _lastProximityAlertTime > 20000)) {
+          _lastProximityAlertTime = now;
+          _lastProximityIndexAnnounced = _currentStepIndex;
+          TtsService().speak(currentStepText);
         }
       }
     }
@@ -378,6 +445,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
           // Parse dynamic steps from OSRM S01
           final List<String> parsedSteps = [];
+          final List<LatLng> stepLocations = [];
           if (route['legs'] != null && route['legs'].isNotEmpty) {
             final leg = route['legs'][0];
             if (leg['steps'] != null && leg['steps'].isNotEmpty) {
@@ -395,6 +463,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 }
                 if (instruction.isNotEmpty) {
                   parsedSteps.add(instruction);
+                  if (maneuver != null && maneuver['location'] != null) {
+                    final locList = maneuver['location'] as List;
+                    stepLocations.add(LatLng(locList[1].toDouble(), locList[0].toDouble()));
+                  } else {
+                    stepLocations.add(end);
+                  }
                 }
               }
             }
@@ -407,11 +481,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
               'Follow directional signs',
               'Arrive at ${_selectedPlace!['name']}'
             ]);
+            stepLocations.addAll([
+              start,
+              LatLng(start.latitude + (end.latitude - start.latitude) * 0.33, start.longitude + (end.longitude - start.longitude) * 0.33),
+              LatLng(start.latitude + (end.latitude - start.latitude) * 0.66, start.longitude + (end.longitude - start.longitude) * 0.66),
+              end,
+            ]);
           }
 
           if (mounted) {
             setState(() {
               _routePoints = points;
+              _stepLocations = stepLocations;
               _selectedPlace!['steps'] = parsedSteps;
               _selectedPlace!['dist'] = distStr;
               _selectedPlace!['time'] = timeStr;
@@ -433,8 +514,28 @@ class _NavigationScreenState extends State<NavigationScreen> {
     } catch (e) {
       print("OSRM route fetch error: $e");
       if (mounted) {
+        final steps = (_selectedPlace != null && _selectedPlace!['steps'] != null) 
+            ? List<String>.from(_selectedPlace!['steps'])
+            : <String>[
+                'Head toward ${_selectedPlace!['name']}',
+                'Turn right onto closest main road',
+                'Follow directional signs',
+                'Arrive at ${_selectedPlace!['name']}'
+              ];
+        final List<LatLng> fallbackLocs = [];
+        for (int i = 0; i < steps.length; i++) {
+          final ratio = steps.length <= 1 ? 0.0 : i / (steps.length - 1);
+          fallbackLocs.add(LatLng(
+            start.latitude + (end.latitude - start.latitude) * ratio,
+            start.longitude + (end.longitude - start.longitude) * ratio,
+          ));
+        }
         setState(() {
           _routePoints = [start, end];
+          _stepLocations = fallbackLocs;
+          if (_selectedPlace != null) {
+            _selectedPlace!['steps'] = steps;
+          }
         });
         ActiveNavigationService().startNavigation(
           destinationName: _selectedPlace!['name'],
@@ -725,6 +826,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _hasAnnouncedArrival = false;
       _searchController.clear();
       _searchResults = List.from(_allPlaces);
+      _stepLocations = [];
+      _lastRerouteTime = 0;
+      _offRouteCounter = 0;
+      _lastTurnAlertTime = 0;
+      _lastProximityAlertTime = 0;
+      _lastGpsAlertTime = 0;
+      _lastTurnIndexAnnounced = -1;
+      _lastProximityIndexAnnounced = -1;
     });
 
     if (_mapController != null) {
