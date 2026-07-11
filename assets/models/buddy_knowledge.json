@@ -1123,6 +1123,31 @@
     "title": "Mga Setting ng App at Accessibility Configurations sa Tagalog",
     "content": "Ang Settings panel ay nagbibigay-daan sa mga user na i-customize ang accessibility. Tampok dito ang mga toggle para sa Voice Feedback at Haptic Feedback, at mga slider para sa Speech Rate at Pitch. Kasama rin ang pagpili sa wika (Ingles at Filipino). Kapag Filipino ang napili, ang lahat ng interface at gabay ay awtomatikong isinasalin sa Tagalog, at ang mga Ingles na voice persona ay hindi magagamit, na nag-iiwan sa 'Maya (Filipino)' bilang aktibong boses.",
     "keywords": ["setting", "wika", "filipino", "tagalog", "boses", "speech rate", "pitch", "haptic", "kontrast", "tema", "maya", "boses", "settings"]
+  },
+  {
+    "title": "Buddy's Shake-to-Undo Feature",
+    "content": "EasyLens supports a Shake-to-Undo gesture powered by the device's accelerometer. If you make an accidental navigation tap, swap a tab, or open the Buddy Mascot panel, you can simply shake the device. Buddy will announce 'Action undone' (or 'Na-undo ang huling aksyon' in Tagalog) and automatically revert you back to your previous screen or state.",
+    "keywords": ["shake to undo", "shake gesture", "undo action", "accelerometer", "go back", "revert", "pag-shake", "pag-alog", "na-undo"]
+  },
+  {
+    "title": "Home Screen Notification Badge Count",
+    "content": "The home screen dashboard features a dynamic notification badge count on the bell icon in the top header. When there are unread warnings or safety alerts, a red circle indicating the exact number of unread notifications will display over the bell icon. The count updates automatically in real-time as notifications are pushed or read.",
+    "keywords": ["notification badge", "notifications count", "unread count", "bell icon", "badge", "notipikasyon", "bilang ng notipikasyon"]
+  },
+  {
+    "title": "ESP32-CAM Smart Glasses Integration and Live Feed",
+    "content": "EasyLens integrates seamlessly with ESP32-CAM smart glasses. When connected via the local Wi-Fi AP, the camera HUD screen automatically switches from the phone's native physical camera to the glasses' live video stream. The phone's camera is paused to save battery, and all ML Kit object detection, face recognition, and steering calculations run directly on the JPEG frames streamed from the glasses.",
+    "keywords": ["esp32", "esp32-cam", "glasses", "glasses stream", "live feed", "smart glasses", "glasses camera", "glasses connect"]
+  },
+  {
+    "title": "Local AI Speed Optimizations and Typewriter Animation",
+    "content": "Buddy's local Gemma assistant features optimized latency and visual reply typing. We capped the local model token limit to 150 tokens to guarantee rapid, low-latency processing on edge hardware. When Buddy answers your questions, the chatbot renders a fluid typewriter animation that displays characters sequentially to feel premium, responsive, and alive.",
+    "keywords": ["local ai speed", "typewriter animation", "fast reply", "typing animation", "gemma latency", "token limit", "mabilis na sagot"]
+  },
+  {
+    "title": "Bug Reporting and Feedback Google Form Survey",
+    "content": "If you experience any bugs, errors, or visual glitches while using EasyLens, you can report them directly. Tap the 'Send feedback' tile inside Settings, which will launch the official Google Form bug report survey located at https://forms.gle/DGSCAKTR2ai39K6VA.",
+    "keywords": ["google form", "survey", "report bug", "feedback", "submit bug", "feedback link", "survey link", "bug form"]
   }
 ]
 
