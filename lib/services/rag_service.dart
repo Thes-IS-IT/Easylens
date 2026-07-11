@@ -455,21 +455,22 @@ class RagService {
     final userPrompt = _buildUserPrompt(rawQuestion, context);
     final systemPrompt = _getSystemInstruction(userName, mobilityAid);
 
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    final modelPath = await _getLocalModelPath();
+
     String responseText = "";
 
-    // Check Settings option for Local AI
-    final useLocalSetting = SettingsService().useLocalAI;
-    final modelPath = await _getLocalModelPath();
-    if (useLocalSetting && modelPath != null) {
-      responseText = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
+    if (isFilipino) {
+      // Use Online Gemini for Filipino/Tagalog language S01
+      responseText = await askBuddyGemini(rawQuestion, userName, mobilityAid);
     } else {
-      // Use Online Gemini
-      final onlineRes = await askBuddyOnlineGemini(userPrompt);
-      if (onlineRes.isNotEmpty) {
-        responseText = onlineRes;
+      // Use Local Gemma for English S01
+      if (modelPath != null) {
+        responseText = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
       } else {
-        // Fallback: Dynamic local RAG response generator
-        responseText = generateSmartFallback(rawQuestion);
+        // Fallback instructions if local model is missing
+        responseText = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
       }
     }
 
@@ -507,17 +508,26 @@ class RagService {
     final userPrompt = _buildUserPrompt(rawQuestion, context);
     final systemPrompt = _getSystemInstruction(userName, mobilityAid);
 
-    final useLocalSetting = SettingsService().useLocalAI;
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     final modelPath = await _getLocalModelPath();
 
-    if (useLocalSetting && modelPath != null) {
-      yield* _queryGemmaOfflineStream(userPrompt, systemInstruction: systemPrompt);
-    } else {
+    if (isFilipino) {
+      // Use Online Gemini for Filipino/Tagalog language S01
       try {
-        final onlineRes = await askBuddy(question);
+        final onlineRes = await askBuddyGemini(rawQuestion, userName, mobilityAid);
         yield onlineRes;
       } catch (e) {
         yield "Failed to generate reply: $e";
+      }
+    } else {
+      // Use Local Gemma for English S01
+      if (modelPath != null) {
+        yield* _queryGemmaOfflineStream(userPrompt, systemInstruction: systemPrompt);
+      } else {
+        // Yield model missing instructions
+        final instruction = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
+        yield instruction;
       }
     }
   }
@@ -540,7 +550,14 @@ class RagService {
     final userPrompt = _buildUserPrompt(question, context);
     final systemPrompt = _getSystemInstruction("User", "None");
 
-    return await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+    if (isFilipino) {
+      return await askBuddyGemini(question, "User", "None");
+    } else {
+      return await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
+    }
   }
 
   String generateSmartLocalResponse(String question) {
@@ -647,15 +664,15 @@ Buddy:""";
 
   static List<String> getGeminiApiKeys() {
     final List<String> keys = [];
-    final sortedKeys = dotenv.env.keys.toList()..sort();
-    for (var envKey in sortedKeys) {
-      if (envKey.startsWith('GEMINI_API_KEY')) {
-        final val = dotenv.env[envKey] ?? '';
-        if (val.trim().isNotEmpty) {
-          keys.add(val.trim());
-        }
-      }
-    }
+    final k1 = dotenv.env['GEMINI_API_KEY']?.trim() ?? '';
+    final k2 = dotenv.env['GEMINI_API_KEY2']?.trim() ?? '';
+    final k3 = dotenv.env['GEMINI_API_KEY3']?.trim() ?? '';
+    final k4 = dotenv.env['GEMINI_API_KEY4']?.trim() ?? '';
+
+    if (k1.isNotEmpty) keys.add(k1);
+    if (k2.isNotEmpty) keys.add(k2);
+    if (k3.isNotEmpty) keys.add(k3);
+    if (k4.isNotEmpty) keys.add(k4);
     return keys;
   }
 
@@ -702,7 +719,7 @@ Buddy:""";
 
       final translated = await executeWithApiKeyFallback((apiKey) async {
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
+          model: 'gemini-1.5-flash',
           apiKey: apiKey,
         );
         final content = [Content.text(prompt)];
@@ -761,7 +778,7 @@ Buddy:""";
 
       final responseText = await executeWithApiKeyFallback((apiKey) async {
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
+          model: 'gemini-1.5-flash',
           apiKey: apiKey,
           systemInstruction: Content.system(systemInstructionText),
         );
@@ -786,7 +803,7 @@ Buddy:""";
     try {
       return await executeWithApiKeyFallback((apiKey) async {
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
+          model: 'gemini-1.5-flash',
           apiKey: apiKey,
         );
         final content = [Content.text(prompt)];

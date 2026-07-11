@@ -144,18 +144,13 @@ Question: $text
 Buddy:
 """;
 
-    // Routing based on Use Local AI Settings toggle
-    final useLocalSetting = SettingsService().useLocalAI;
     String response;
-    if (useLocalSetting) {
-      if (isFilipino) {
-        response = await RagService().askBuddyFilipino(text, name, aid);
-      } else {
-        response = await RagService().askBuddy(prompt);
-      }
-    } else {
-      // Force Online Gemini for both English and Tagalog
+    if (isFilipino) {
+      // Force Online Gemini for Filipino/Tagalog language S01
       response = await RagService().askBuddyGemini(text, name, aid);
+    } else {
+      // Force local Gemma for English language S01
+      response = await RagService().askBuddy(prompt);
     }
 
     if (mounted) {
