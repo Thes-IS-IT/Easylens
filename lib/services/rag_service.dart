@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
@@ -10,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'journal_service.dart';
 import 'settings_service.dart';
+import 'firebase_service.dart';
 
 
 class KnowledgeItem {
@@ -344,7 +346,8 @@ class RagService {
           }
         }
       } catch (e) {
-        controller.add("Local Gemma LLM failed: $e");
+        // Silently swallow — outer askBuddyStream fallback guard handles empty output S01
+        debugPrint('[Gemma] Stream error (fallback will handle): $e');
       } finally {
         controller.close();
       }
@@ -641,19 +644,38 @@ class RagService {
         final onlineRes = await askBuddyGemini(rawQuestion, userName, mobilityAid);
         yield onlineRes;
       } catch (e) {
-        yield "Failed to generate reply: $e";
+        yield generateSmartLocalResponse(rawQuestion);
       }
     } else {
-      // Use Local Gemma for English S01, forward history for multi-turn context
+      // Use Local Gemma for English S01, with smart fallback guard
       if (modelPath != null) {
-        yield* _queryGemmaOfflineStream(
-          userPrompt,
-          systemInstruction: systemPrompt,
-          history: history,
-        );
+        final StringBuffer buf = StringBuffer();
+        bool yieldedAnything = false;
+        try {
+          await for (final token in _queryGemmaOfflineStream(
+            userPrompt,
+            systemInstruction: systemPrompt,
+            history: history,
+          )) {
+            buf.write(token);
+            yield token;
+            yieldedAnything = true;
+          }
+        } catch (_) {}
+
+      // Fallback guard: if Gemma yielded nothing, only garbage (< 5 printable chars), or an error string S01
+        final response = buf.toString().trim();
+        final printable = response.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
+        final isError = response.toLowerCase().startsWith('local gemma') ||
+            response.toLowerCase().startsWith('buddy local llm') ||
+            response.toLowerCase().startsWith('failed to') ||
+            response.toLowerCase().startsWith('no response');
+        if (!yieldedAnything || printable.length < 5 || isError) {
+          yield generateSmartLocalResponse(rawQuestion);
+        }
       } else {
-        final instruction = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
-        yield instruction;
+        // No model file — use smart local response directly S01
+        yield generateSmartLocalResponse(rawQuestion);
       }
     }
   }
@@ -687,41 +709,84 @@ class RagService {
   }
 
   String generateSmartLocalResponse(String question) {
-    final lowerQ = question.toLowerCase();
-    
-    // Extract detected labels from the prompt if possible
-    String detectedText = "";
-    if (lowerQ.contains("reports these environment labels:") || lowerQ.contains("reports these visual labels:") || lowerQ.contains("visual labels:")) {
-      final regExp = RegExp(r"labels:\s*([^.\n]+)", caseSensitive: false);
-      final match = regExp.firstMatch(question);
-      if (match != null) {
-        detectedText = match.group(1)?.trim() ?? "";
+    final lowerQ = question.toLowerCase().trim();
+    final user = FirebaseService().currentUser;
+    final name = user?.displayName ?? "friend";
+    final aid = SettingsService().selectedMobilityAid.isNotEmpty
+        ? SettingsService().selectedMobilityAid
+        : "None";
+
+    // 1. Identity & Name questions
+    if (lowerQ.contains("name") || lowerQ.contains("who am i") || lowerQ.contains("know me")) {
+      return "Buddy: Woof! Yes, I know you! You are $name, and you are using the $aid mobility aid. How can I help you today, arf!";
+    }
+    if (lowerQ.contains("who are you") || lowerQ.contains("your name") || lowerQ.contains("who is buddy") || lowerQ.contains("breed") || lowerQ.contains("dog")) {
+      return "Buddy: Arf! I'm Buddy, the friendly Golden Retriever mascot and AI guide dog for the EasyLens app. Woof!";
+    }
+
+    // 2. Creators & Thesis questions
+    if (lowerQ.contains("who made") || lowerQ.contains("developer") || lowerQ.contains("created") || lowerQ.contains("thesis") || lowerQ.contains("author") || lowerQ.contains("architect") || lowerQ.contains("design") || lowerQ.contains("team") || lowerQ.contains("members")) {
+      return "Buddy: Woof! EasyLens was developed by a team of 4th-year Computer Science students at Holy Angel University: Arron Kian Parejas, Jian Kalel Marquez, Graciella Mhervie Jimenez, and Jenica Sarah Tongol, arf!";
+    }
+
+    // 3. Greeting questions
+    if (lowerQ == "hi" || lowerQ == "hello" || lowerQ == "hey" || lowerQ.contains("kamusta") || lowerQ.contains("kumusta")) {
+      return "Buddy: Woof! Hi $name! I'm ready to help you navigate or answer questions about EasyLens, arf!";
+    }
+
+    // 4. Emergency / SOS questions
+    if (lowerQ.contains("sos") || lowerQ.contains("emergency") || lowerQ.contains("help")) {
+      return "Buddy: Arf! If you need help, tap the SOS button to send your GPS coordinates to your caregiver contact immediately! [NAVIGATE: emergency]";
+    }
+
+    // 5. Navigation target guides
+    if (lowerQ.contains("go to") || lowerQ.contains("navigate") || lowerQ.contains("where is") || lowerQ.contains("how to walk")) {
+      if (lowerQ.contains("hau") || lowerQ.contains("holy angel")) {
+        return "Buddy: Holy Angel University is at Angeles City, Pampanga (GPS: 15.1325, 120.5901). I can navigate you there! [NAVIGATE: nav]";
       }
-    } else if (lowerQ.contains("environment labels:")) {
-      final regExp = RegExp(r"environment labels:\s*([^.\n]+)", caseSensitive: false);
-      final match = regExp.firstMatch(question);
-      if (match != null) {
-        detectedText = match.group(1)?.trim() ?? "";
+      if (lowerQ.contains("auf") || lowerQ.contains("angeles university")) {
+        return "Buddy: Angeles University Foundation is along MacArthur Highway, Angeles City. [NAVIGATE: nav]";
+      }
+      if (lowerQ.contains("sm") || lowerQ.contains("clark")) {
+        return "Buddy: SM City Clark is at M.A. Roxas Highway, Clark Freeport Zone. [NAVIGATE: nav]";
+      }
+      if (lowerQ.contains("nepo")) {
+        return "Buddy: Nepo Mall is located at St. Joseph Street, Angeles City. [NAVIGATE: nav]";
       }
     }
 
-    if (detectedText.isEmpty) {
-      detectedText = "a clear pathway";
-    }
+    // 6. RAG Fallback search in knowledge base S01
+    final cleanQuery = lowerQ.replaceAll(RegExp(r'[^\w\s]'), '');
+    final words = cleanQuery.split(RegExp(r'\s+'));
+    KnowledgeItem? bestMatch;
+    int bestScore = 0;
 
-    if (lowerQ.contains("what do you see") || lowerQ.contains("what is in front") || lowerQ.contains("see in") || lowerQ.contains("saw") || lowerQ.contains("nakikita") || lowerQ.contains("ano ang nakikita")) {
-      return "Buddy: I see $detectedText in front of you.";
-    } else if (lowerQ.contains("explain") || lowerQ.contains("describe") || lowerQ.contains("ipaliwanag")) {
-      return "Buddy: Looking closely, I can see $detectedText. These objects are directly in your view.";
-    } else if (lowerQ.contains("door") || lowerQ.contains("pinto")) {
-      if (detectedText.contains("door")) {
-        return "Buddy: Yes, a door or entrance is detected ahead.";
-      } else {
-        return "Buddy: I don't see any doors in front of you right now.";
+    for (var item in _localKnowledgeBase) {
+      int score = 0;
+      for (var kw in item.keywords) {
+        if (lowerQ.contains(kw.toLowerCase())) {
+          score += 4;
+        }
+      }
+      for (var word in words) {
+        if (word.length > 2 && item.content.toLowerCase().contains(word)) {
+          score += 1;
+        }
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = item;
       }
     }
-    
-    return "Buddy: I see $detectedText. How can I help you navigate or interact with them?";
+
+    if (bestMatch != null && bestScore > 1) {
+      // Keep it under 2 sentences to stay in character
+      final sentences = bestMatch.content.split(RegExp(r'(?<=[.!?])\s+'));
+      final summary = sentences.take(2).join(" ");
+      return "Buddy: Woof! According to my database: $summary Arf!";
+    }
+
+    return "Buddy: Arf! I see a clear pathway ahead. Let me know if you want me to describe the scene, navigate somewhere, or set up emergency alerts, woof!";
   }
 
   /// Builds a Tagalog-language Gemma prompt.

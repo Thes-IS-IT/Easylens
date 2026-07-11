@@ -148,6 +148,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       });
 
       String accumulatedText = '';
+      bool gemmaErrorDetected = false;
       DateTime lastUpdate = DateTime.now();
 
       await for (final token in RagService().askBuddyStream(
@@ -156,7 +157,27 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
         history: historySlice,
       )) {
         if (!mounted) break;
-        accumulatedText += token;
+
+        // Detect if Gemma errored and the fallback response is starting S01
+        final combined = accumulatedText + token;
+        final isGemmaError = combined.toLowerCase().startsWith('local gemma') ||
+            combined.toLowerCase().startsWith('buddy local llm') ||
+            combined.toLowerCase().startsWith('failed to') ||
+            combined.toLowerCase().startsWith('no response');
+        if (isGemmaError && !gemmaErrorDetected) {
+          // Reset bubble — fallback will be the next meaningful yield
+          gemmaErrorDetected = true;
+          accumulatedText = '';
+          continue;
+        }
+        if (gemmaErrorDetected) {
+          // We are now accumulating the clean fallback text
+          accumulatedText = token;
+          gemmaErrorDetected = false;
+        } else {
+          accumulatedText += token;
+        }
+
         final now = DateTime.now();
         if (now.difference(lastUpdate) > const Duration(milliseconds: 80)) {
           setState(() {
