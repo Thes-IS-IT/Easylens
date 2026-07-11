@@ -49,7 +49,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       _downloadStatus = "Initializing setup...";
     });
 
-    await RagService().downloadGemmaModel((progress) {
+    final success = await RagService().downloadGemmaModel((progress) {
       setState(() {
         _downloadProgress = progress;
         _downloadStatus = progress < 1.0 
@@ -58,10 +58,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       });
     });
 
-    setState(() {
-      _isDownloading = false;
-      _isModelInstalled = true;
-    });
+    if (success) {
+      setState(() {
+        _isDownloading = false;
+        _isModelInstalled = true;
+      });
+    } else {
+      setState(() {
+        _isDownloading = false;
+        _downloadStatus = "Setup failed. Tap to try again.";
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Model download failed. Please check your internet connection and try again.",
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
   }
 
   @override

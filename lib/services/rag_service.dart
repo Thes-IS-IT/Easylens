@@ -85,18 +85,18 @@ class RagService {
     return false;
   }
 
-  Future<void> downloadGemmaModel(void Function(double progress) onProgress) async {
+  Future<bool> downloadGemmaModel(void Function(double progress) onProgress) async {
     final savePath = await _getDynamicSavePath();
     final file = File(savePath);
     await file.parent.create(recursive: true);
 
     try {
       final client = http.Client();
-      final request = http.Request('GET', Uri.parse('https://huggingface.co/google/gemma-1.1-2b-it-gpu-int4/resolve/main/gemma-1.1-2b-it-gpu-int4.bin'));
-      final response = await client.send(request).timeout(const Duration(seconds: 15));
+      final request = http.Request('GET', Uri.parse('https://pub-a5d4b9645ec286f0187d58d611bd54fd.r2.dev/model.bin'));
+      final response = await client.send(request).timeout(const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
-        final totalLength = response.contentLength ?? 1300000000;
+        final totalLength = response.contentLength ?? 1346559040;
         int downloadedLength = 0;
 
         final sink = file.openWrite();
@@ -107,21 +107,23 @@ class RagService {
         });
         await sink.close();
         _isGemmaModelInstalled = true;
-        return;
+        return true;
+      } else {
+        print('[RAG] Download failed with status: ${response.statusCode}');
+        if (await file.exists()) {
+          await file.delete();
+        }
+        return false;
       }
     } catch (e) {
       print('[RAG] Actual download failed or offline: $e');
+      if (await file.exists()) {
+        try {
+          await file.delete();
+        } catch (_) {}
+      }
+      return false;
     }
-
-    // Fallback simulation installer so it works flawlessly anywhere
-    int steps = 20;
-    for (int i = 1; i <= steps; i++) {
-      await Future.delayed(const Duration(milliseconds: 150));
-      onProgress(i / steps);
-    }
-    // Create a dummy mock model file (over 100MB to pass length constraints)
-    await file.writeAsBytes(List<int>.generate(1024 * 1024 * 105, (i) => i % 256));
-    _isGemmaModelInstalled = true;
   }
 
   Future<String> _getDynamicSavePath() async {
