@@ -15,7 +15,7 @@ import '../notifications/notifications_screen.dart';
 import '../contacts/contacts_screen.dart';
 import 'components/custom_navbar.dart';
 import 'components/buddy_assistant_sheet.dart';
-import '../object_detection/object_detection_screen.dart';
+
 import '../image_labeling/image_labeling_screen.dart';
 import '../face_registration/face_registration_screen.dart';
 import 'dashboard_home.dart';
@@ -186,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         } else if (screenKey == 'objects') {
           Navigator.of(context).push(
-            AppRoute.to(const ObjectDetectionScreen()),
+            AppRoute.to(const HardwareScreen(initialStep: 4)),
           );
         } else if (screenKey == 'emergency') {
           Navigator.of(context).push(

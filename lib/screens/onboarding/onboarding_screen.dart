@@ -5,17 +5,69 @@ import '../signup/signup_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../login/login_screen.dart';
 import '../../utils/app_route.dart';
+import '../../services/rag_service.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
+
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  bool _isModelInstalled = false;
+  bool _isCheckingModel = true;
+  bool _isDownloading = false;
+  double _downloadProgress = 0.0;
+  String _downloadStatus = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _checkModelStatus();
+  }
+
+  Future<void> _checkModelStatus() async {
+    setState(() {
+      _isCheckingModel = true;
+    });
+    await RagService().extractModelFromAssets();
+    final exists = await RagService().checkGemmaModelExists();
+    setState(() {
+      _isModelInstalled = exists;
+      _isCheckingModel = false;
+    });
+  }
+
+  Future<void> _startDownload() async {
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0.0;
+      _downloadStatus = "Initializing setup...";
+    });
+
+    await RagService().downloadGemmaModel((progress) {
+      setState(() {
+        _downloadProgress = progress;
+        _downloadStatus = progress < 1.0 
+            ? "Downloading: ${(progress * 100).toStringAsFixed(0)}%"
+            : "Finalizing install...";
+      });
+    });
+
+    setState(() {
+      _isDownloading = false;
+      _isModelInstalled = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 32.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -25,8 +77,8 @@ class OnboardingScreen extends StatelessWidget {
               Column(
                 children: [
                   Container(
-                    width: 210,
-                    height: 210,
+                    width: 170,
+                    height: 170,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [
@@ -51,29 +103,31 @@ class OnboardingScreen extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, err, st) => const Icon(
                         Icons.pets,
-                        size: 100,
+                        size: 80,
                         color: Colors.white,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 24),
                   // App Name
                   Text(
                     'BUDDY',
                     style: GoogleFonts.inter(
-                      textStyle: TextStyle(fontSize: 34,
+                      textStyle: TextStyle(
+                        fontSize: 30,
                         fontWeight: FontWeight.w900,
                         color: AppColors.primaryText,
                         letterSpacing: 2.0,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   // App Tagline
                   Text(
                     'VISION ASSISTANT',
                     style: GoogleFonts.inter(
-                      textStyle: TextStyle(fontSize: 13,
+                      textStyle: TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                         color: AppColors.primaryText,
                         letterSpacing: 2.5,
@@ -82,6 +136,145 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                 ],
               ),
+
+              const SizedBox(height: 32),
+
+              // Dynamic Local AI Setup Card S01
+              if (_isCheckingModel)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(color: Color(0xFF0F3E8F)),
+                  ),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightBackground,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.cardBorder, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.shadowColor,
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _isModelInstalled ? Icons.check_circle : Icons.offline_bolt_outlined,
+                            color: _isModelInstalled ? const Color(0xFF10B981) : AppColors.welcomeAccentGold,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _isModelInstalled ? 'Local AI Active' : 'Offline AI Installer',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _isModelInstalled
+                            ? 'The local Gemma AI model is fully configured and active. Buddy will guide you completely offline.'
+                            : 'Install the offline AI database (1.3 GB) to enable safety assistance without cellular data or internet.',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (!_isModelInstalled) ...[
+                        if (_isDownloading) ...[
+                          LinearProgressIndicator(
+                            value: _downloadProgress,
+                            backgroundColor: AppColors.unselectedBorder,
+                            color: AppColors.primaryButton,
+                            minHeight: 8,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _downloadStatus,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              Text(
+                                '${(_downloadProgress * 100).toStringAsFixed(0)}%',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else
+                          SizedBox(
+                            width: double.infinity,
+                            height: 44,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.welcomeAccentGold,
+                                foregroundColor: AppColors.primaryButtonText,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _startDownload,
+                              icon: const Icon(Icons.download_for_offline_outlined, size: 20),
+                              label: Text(
+                                'Download Local AI',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Buddy is offline-ready 🐕',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFF047857),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 32),
 
               // Bottom Action Buttons
               Column(
@@ -93,7 +286,7 @@ class OnboardingScreen extends StatelessWidget {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryButton,
-                          foregroundColor: AppColors.primaryButtonText,
+                        foregroundColor: AppColors.primaryButtonText,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(28.0),

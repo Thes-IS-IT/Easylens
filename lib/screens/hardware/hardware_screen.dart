@@ -40,7 +40,8 @@ enum HudMode {
 
 class HardwareScreen extends StatefulWidget {
   final bool isActive;
-  const HardwareScreen({super.key, this.isActive = true});
+  final int initialStep;
+  const HardwareScreen({super.key, this.isActive = true, this.initialStep = 1});
 
   @override
   State<HardwareScreen> createState() => _HardwareScreenState();
@@ -112,6 +113,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isDetectionEnabled = true;
   HudMode _selectedHudMode = HudMode.objectDetection;
   bool _isPaused = false;
+  String _voiceState = "idle"; // S01: Tracks speech state ('idle', 'listening', 'thinking', 'speaking')
 
   // Face recognition
   FaceDetector? _faceDetector;
@@ -246,6 +248,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   @override
   void initState() {
     super.initState();
+    _pairStep = widget.initialStep;
     _initializeMLKitLabeler();
     _loadObjectDetectionModel();
     _initBatteryTracker();
@@ -714,6 +717,129 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
+  String _getLabelForObject(DetectedObject r) {
+    if (r.labels.isNotEmpty) {
+      final firstLabel = r.labels.first;
+      if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
+        String lbl = _refineLabel(firstLabel.text).toLowerCase();
+        if (lbl.contains('fog')) lbl = 'wall';
+        return lbl;
+      } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
+        String lbl = _refineLabel(_cocoLabels[firstLabel.index]).toLowerCase();
+        if (lbl.contains('fog')) lbl = 'wall';
+        return lbl;
+      }
+    }
+    return 'object';
+  }
+
+  double _getRiskScore(String label) {
+    final l = label.toLowerCase();
+    if (l.contains('stair') || l.contains('step') || l.contains('escalator') || l.contains('elevator') ||
+        l.contains('car') || l.contains('bus') || l.contains('truck') || l.contains('vehicle') ||
+        l.contains('motorcycle') || l.contains('bicycle') || l.contains('hole') || l.contains('pothole') ||
+        l.contains('fire') || l.contains('flame') || l.contains('train') ||
+        l.contains('person') || l.contains('human') || l.contains('pedestrian') || l.contains('man') ||
+        l.contains('woman') || l.contains('child') || l.contains('boy') || l.contains('girl') ||
+        l.contains('people') || l.contains('cyclist') || l.contains('rider') || l.contains('bystander') ||
+        l.contains('leg') || l.contains('arm') || l.contains('foot') || l.contains('head') || l.contains('hand') ||
+        l.contains('body') || l.contains('face')) {
+      return 1.0;
+    }
+    if (l.contains('dog') || l.contains('cat') || l.contains('pet') ||
+        l.contains('chair') || l.contains('table') || l.contains('sofa') || l.contains('bench') ||
+        l.contains('door') || l.contains('barrier') || l.contains('post') || l.contains('pole') ||
+        l.contains('wall') || l.contains('tree') || l.contains('branch')) {
+      return 0.6;
+    }
+    return 0.3;
+  }
+
+  void _triggerHapticAlert({required bool isCritical}) {
+    Future.microtask(() async {
+      try {
+        if (isCritical) {
+          await HapticFeedback.vibrate();
+          await Future.delayed(const Duration(milliseconds: 150));
+          await HapticFeedback.vibrate();
+        } else {
+          await HapticFeedback.mediumImpact();
+        }
+      } catch (e) {
+        print('[Haptic] Feedback failed: $e');
+      }
+    });
+  }
+
+  Widget _buildControlBox({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color activeBgColor,
+    required Color inactiveBgColor,
+    required Color activeTextColor,
+    required Color inactiveTextColor,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 102,
+        height: 102,
+        decoration: BoxDecoration(
+          color: isActive ? activeBgColor : inactiveBgColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isActive ? Colors.transparent : Colors.black.withOpacity(0.04),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 28,
+              color: isActive ? activeTextColor : const Color(0xFF475569),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isActive ? activeTextColor : const Color(0xFF1E293B),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: isActive ? activeTextColor.withOpacity(0.9) : const Color(0xFF64748B),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _detectObjectsOnFrame(Uint8List bytes, int width, int height) async {
     if (_objectDetector == null) return;
     try {
@@ -732,62 +858,92 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
       setState(() {
         _detectedObjectsList = objects;
-        _faceImageSize = imageSize; // Share imageSize for UI drawing scale factors
+        _faceImageSize = imageSize;
       });
 
       final now = DateTime.now();
 
       if (objects.isNotEmpty) {
-        final closest = objects.reduce((a, b) {
-          final aArea = a.boundingBox.width * a.boundingBox.height;
-          final bArea = b.boundingBox.width * b.boundingBox.height;
-          return aArea >= bArea ? a : b;
-        });
+        DetectedObject? highestThreatObject;
+        double maxThreatScore = -1.0;
+        String highestThreatLabel = 'object';
+        double highestThreatArea = 0.0;
 
-        String closestLabel = 'Object';
-        if (closest.labels.isNotEmpty) {
-          final firstLabel = closest.labels.first;
-          if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-            closestLabel = _refineLabel(firstLabel.text);
-          } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-            closestLabel = _refineLabel(_cocoLabels[firstLabel.index]);
+        for (final obj in objects) {
+          final label = _getLabelForObject(obj);
+          final normW = obj.boundingBox.width / width;
+          final normH = obj.boundingBox.height / height;
+          final area = normW * normH;
+
+          final proximityScore = area.clamp(0.0, 1.0);
+          final baseRisk = _getRiskScore(label);
+
+          final lastArea = _objectLastAreas[label] ?? 0.0;
+          double velocity = 0.0;
+          if (area > lastArea) {
+            velocity = (area - lastArea).clamp(0.0, 1.0);
+          }
+
+          final score = (baseRisk * 0.4) + (proximityScore * 0.4) + (velocity * 0.2);
+
+          if (score > maxThreatScore) {
+            maxThreatScore = score;
+            highestThreatObject = obj;
+            highestThreatLabel = label;
+            highestThreatArea = area;
           }
         }
-        
-        final normalizedWidth = closest.boundingBox.width / width;
-        final normalizedHeight = closest.boundingBox.height / height;
-        final boxArea = normalizedWidth * normalizedHeight;
 
-        if (_selectedHudMode == HudMode.navigation) {
-          if (boxArea > 0.15) {
-            final normalizedCenterX = (closest.boundingBox.left + closest.boundingBox.right) / 2.0 / width;
-            String direction = normalizedCenterX < 0.35 ? 'left' : (normalizedCenterX > 0.65 ? 'right' : 'center');
+        if (_selectedHudMode == HudMode.navigation && highestThreatObject != null) {
+          final baseRisk = _getRiskScore(highestThreatLabel);
+          final double activationThreshold = baseRisk == 1.0 ? 0.05 : 0.08;
+
+          if (highestThreatArea > activationThreshold) {
+            final normalizedCenterX = (highestThreatObject.boundingBox.left + highestThreatObject.boundingBox.right) / 2.0 / width;
+            String direction = normalizedCenterX < 0.40 ? 'left' : (normalizedCenterX > 0.60 ? 'right' : 'center');
+            
+            final refinedLabelText = highestThreatLabel[0].toUpperCase() + highestThreatLabel.substring(1);
+            
+            final lang = SettingsService().selectedLanguage;
+            final isTagalog = lang.toLowerCase().contains('tagalog') ||
+                lang.toLowerCase().contains('filipino');
             
             String guidance;
+
             if (direction == 'center') {
               bool leftBlocked = false;
               bool rightBlocked = false;
               for (final r in objects) {
-                if (r == closest) continue;
+                if (r == highestThreatObject) continue;
                 final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / width;
                 if (cX < 0.45) leftBlocked = true;
                 if (cX > 0.55) rightBlocked = true;
               }
               if (leftBlocked && !rightBlocked) {
-                guidance = 'Obstacle ahead: $closestLabel is directly in your path. Avoid it by stepping to your right.';
+                guidance = isTagalog
+                    ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakanan.'
+                    : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your right.';
               } else if (rightBlocked && !leftBlocked) {
-                guidance = 'Obstacle ahead: $closestLabel is directly in your path. Avoid it by stepping to your left.';
+                guidance = isTagalog
+                    ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakaliwa.'
+                    : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your left.';
               } else {
-                guidance = 'Obstacle ahead: $closestLabel is directly in your path. Avoid it by stepping to your right.';
+                guidance = isTagalog
+                    ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang pakanan.'
+                    : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your right.';
               }
             } else if (direction == 'left') {
-              guidance = 'Caution: $closestLabel detected on your left. Avoid it by moving right.';
+              guidance = isTagalog
+                  ? 'Babala: may $refinedLabelText sa kaliwa mo. Iwasan ito sa pamamagitan ng pagpunta sa kanan.'
+                  : 'Caution: $refinedLabelText detected on your left. Avoid it by moving right.';
             } else {
-              guidance = 'Caution: $closestLabel detected on your right. Avoid it by moving left.';
+              guidance = isTagalog
+                  ? 'Babala: may $refinedLabelText sa kanan mo. Iwasan ito sa pamamagitan ng pagpunta sa kaliwa.'
+                  : 'Caution: $refinedLabelText detected on your right. Avoid it by moving left.';
             }
 
-            final lastArea = _objectLastAreas[closestLabel] ?? 0.0;
-            final isRapidlyApproaching = boxArea > lastArea + 0.05 && boxArea > 0.22;
+            final lastArea = _objectLastAreas[highestThreatLabel] ?? 0.0;
+            final isRapidlyApproaching = highestThreatArea > lastArea + 0.04 && highestThreatArea > 0.20;
             
             final isDifferentMessage = guidance != _lastGuidanceText;
             final timeSinceLastGuidance = _lastGuidanceTime == null 
@@ -795,43 +951,60 @@ class _HardwareScreenState extends State<HardwareScreen> {
                 : now.difference(_lastGuidanceTime!);
                 
             bool shouldSpeak = false;
-            if (isRapidlyApproaching) {
+            final isCritical = isRapidlyApproaching || maxThreatScore > 0.75;
+
+            if (isCritical) {
               String escapeDir = 'right';
               if (direction == 'left') escapeDir = 'right';
               else if (direction == 'right') escapeDir = 'left';
               else {
                 bool leftBlocked = false;
                 for (final r in objects) {
-                  if (r == closest) continue;
+                  if (r == highestThreatObject) continue;
                   final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / width;
                   if (cX < 0.45) leftBlocked = true;
                 }
                 if (leftBlocked) escapeDir = 'right';
               }
-              guidance = 'Alert: Approaching $closestLabel rapidly! Move $escapeDir immediately to avoid it.';
+              final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
+              guidance = isTagalog
+                  ? 'Babala: Mabilis kang lumalapit sa $refinedLabelText! Lumipat agad sa $escapeTagalog upang maiwasan ito.'
+                  : 'Alert: Approaching $refinedLabelText rapidly! Move $escapeDir immediately to avoid it.';
               shouldSpeak = true;
-            } else if (isDifferentMessage) {
-              shouldSpeak = timeSinceLastGuidance.inSeconds >= 3;
+              _triggerHapticAlert(isCritical: true);
+            } else if (maxThreatScore > 0.45) {
+              shouldSpeak = isDifferentMessage 
+                  ? timeSinceLastGuidance.inSeconds >= 3 
+                  : timeSinceLastGuidance.inSeconds >= 6;
+              if (shouldSpeak) {
+                _triggerHapticAlert(isCritical: false);
+              }
             } else {
-              shouldSpeak = timeSinceLastGuidance.inSeconds >= 8;
+              shouldSpeak = timeSinceLastGuidance.inSeconds >= 10;
             }
 
             if (shouldSpeak) {
               _lastGuidanceText = guidance;
               _lastGuidanceTime = now;
-              _objectLastAreas[closestLabel] = boxArea;
+              _objectLastAreas[highestThreatLabel] = highestThreatArea;
               
               if (!_isContinuousVoiceEnabled) {
                 TtsService().speak(guidance);
               }
-              NotificationService().pushObstacleAlert(direction, closestLabel);
+              NotificationService().pushObstacleAlert(direction, highestThreatLabel);
 
               setState(() {
-                _activeTitle = direction == 'center' ? 'Obstacle Directly Ahead' : 'Obstacle on ${direction[0].toUpperCase()}${direction.substring(1)}';
+                if (isCritical) {
+                  _activeTitle = isTagalog ? 'Huminto agad' : 'Stop immediately';
+                } else if (direction == 'center') {
+                  _activeTitle = isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle';
+                } else {
+                  _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+                }
                 _activeDescription = guidance;
-                _statusCardBg = isRapidlyApproaching ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
-                _statusIcon = isRapidlyApproaching ? Icons.report_problem : Icons.warning_amber_rounded;
-                _statusIconColor = isRapidlyApproaching ? Colors.red : Colors.orange;
+                _statusCardBg = isCritical ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
+                _statusIcon = isCritical ? Icons.report_problem : Icons.warning_amber_rounded;
+                _statusIconColor = isCritical ? Colors.red : Colors.orange;
               });
             }
           } else {
@@ -839,8 +1012,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
               _lastGuidanceText = "";
               _lastGuidanceTime = null;
               setState(() {
-                _activeTitle = "Path Clear";
-                _activeDescription = "No hazards detected nearby.";
+                _activeTitle = isTagalog ? "Malinis ang Daan" : "Path Clear";
+                _activeDescription = isTagalog ? "Walang nakaharang sa daanan." : "The pathway ahead is clear.";
                 _statusCardBg = const Color(0xFFE8F5E9);
                 _statusIcon = Icons.check_circle_outline;
                 _statusIconColor = Colors.green;
@@ -992,6 +1165,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   // Processes each streaming camera frame through Google ML Kit Labeler continuously
   Future<void> _processCameraImage(Uint8List nv21Bytes, Uint8List yBytes, int width, int height) async {
+    final isCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+    if (!isCurrent) {
+      TtsService().stop();
+      return;
+    }
     try {
       final Size imageSize = Size(width.toDouble(), height.toDouble());
       final InputImageRotation imageRotation = _getImageRotation();
@@ -1227,9 +1405,16 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _runContinuousVoiceLoop() async {
     if (!_isContinuousVoiceEnabled || !mounted) return;
 
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') ||
+        lang.toLowerCase().contains('filipino');
+
     setState(() {
-      _activeTitle = "Buddy Listening...";
-      _activeDescription = "Say something or remain silent to scan.";
+      _voiceState = "listening";
+      _activeTitle = isFilipino ? "Magsalita na..." : "Buddy Listening...";
+      _activeDescription = isFilipino 
+          ? "Magsalita o manatiling tahimik upang mag-scan."
+          : "Say something or remain silent to scan.";
       _statusCardBg = const Color(0xFFE8F5E9);
       _statusIcon = Icons.mic;
       _statusIconColor = Colors.green;
@@ -1243,11 +1428,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
         onResult: (text, isFinal) {
           if (!_isContinuousVoiceEnabled || !mounted) return;
           _continuousVoiceText = text;
-          // Reset the silence timer because the user is speaking/active!
           _startSilenceTimer();
         },
         onListeningStateChanged: (listening) {
-          // If STT stops externally without our timer firing, handle it S01
+          if (!listening && mounted && _voiceState == "listening") {
+            setState(() {
+              _voiceState = "idle";
+            });
+          }
         },
       );
     } catch (e) {
@@ -1267,15 +1455,28 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _silenceTimer?.cancel();
     if (!_isContinuousVoiceEnabled || !mounted) return;
 
+    final isCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+    if (!isCurrent) {
+      TtsService().stop();
+      _silenceTimer = Timer(const Duration(seconds: 2), () {
+        _processSilenceOrSpeech();
+      });
+      return;
+    }
+
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') ||
+        lang.toLowerCase().contains('filipino');
+
     try {
-      // Stop STT so we can process and speak S01
       await SttService().stopListening((_) {});
 
       final question = _continuousVoiceText.trim().toLowerCase();
       
       setState(() {
-        _activeTitle = "Buddy Thinking...";
-        _activeDescription = "Analyzing view context...";
+        _voiceState = "thinking";
+        _activeTitle = isFilipino ? "Buddy Nag-iisip..." : "Buddy Thinking...";
+        _activeDescription = isFilipino ? "Sinusuri ang paligid..." : "Analyzing view context...";
         _statusCardBg = const Color(0xFFFFF8E1);
         _statusIcon = Icons.hourglass_empty;
         _statusIconColor = Colors.orange;
@@ -1294,14 +1495,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
           "general surroundings: $mlKitLabels"
       ].join("; ");
 
-      final lang = SettingsService().selectedLanguage;
-      final isFilipino = lang.toLowerCase().contains('tagalog') ||
-          lang.toLowerCase().contains('filipino');
-
       String response = "";
       bool handledByVoiceCommand = false;
 
-      if (_isFocusModeEnabled && question.isNotEmpty && question != "listening...") {
+      // 1. Voice commands: Switch modes and interact S01
+      if (question.isNotEmpty && question != "listening...") {
         if (question.contains("object") || question.contains("bagay")) {
           setState(() {
             _selectedHudMode = HudMode.objectDetection;
@@ -1320,7 +1518,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
               ? "Lumipat na sa Face Recognition mode." 
               : "Switched to Face Recognition mode.";
           handledByVoiceCommand = true;
-        } else if (question.contains("navigation") || question.contains("lakad") || question.contains("map")) {
+        } else if (question.contains("navigation") || question.contains("lakad") || question.contains("map") || question.contains("navigate")) {
           setState(() {
             _selectedHudMode = HudMode.navigation;
           });
@@ -1329,21 +1527,76 @@ class _HardwareScreenState extends State<HardwareScreen> {
               ? "Lumipat na sa Navigation mode." 
               : "Switched to Navigation mode.";
           handledByVoiceCommand = true;
-        } else if (question.contains("exit") || question.contains("turn off") || question.contains("mamatay") || question.contains("disable")) {
+        } else if (question.contains("scenery") || question.contains("tanawin")) {
           setState(() {
-            _isFocusModeEnabled = false;
+            _selectedHudMode = HudMode.scenery;
+          });
+          _applyModeChange(HudMode.scenery);
+          response = isFilipino 
+              ? "Lumipat na sa Scenery mode." 
+              : "Switched to Scenery mode.";
+          handledByVoiceCommand = true;
+        } else if (question.contains("lock screen") || question.contains("lock mode") || question.contains("i-lock") || question.contains("susi")) {
+          setState(() {
+            _isScreenLocked = true;
           });
           response = isFilipino 
-              ? "Naka-off na ang Focus Mode." 
-              : "Focus Mode disabled.";
+              ? "Naka-lock na ang screen. Pindutin nang matagal ang screen upang i-unlock." 
+              : "Screen locked. Long press the screen to unlock.";
           handledByVoiceCommand = true;
+        } else if (question.contains("unlock screen") || question.contains("unlock mode") || question.contains("i-unlock")) {
+          setState(() {
+            _isScreenLocked = false;
+          });
+          response = isFilipino 
+              ? "Naka-unlock na ang screen." 
+              : "Screen unlocked.";
+          handledByVoiceCommand = true;
+        } else if (question.contains("search place") || question.contains("search for") || question.contains("navigate to") ||
+                   question.contains("pumunta sa") || question.contains("hanapin ang") || question.contains("hanapin sa")) {
+          // 2. Search place by speech command S01
+          final prefixes = ["search place", "search for", "navigate to", "pumunta sa", "hanapin ang", "hanapin sa"];
+          String matchedPrefix = "";
+          for (final prefix in prefixes) {
+            if (question.contains(prefix)) {
+              matchedPrefix = prefix;
+              break;
+            }
+          }
+          String searchPlace = "";
+          if (matchedPrefix.isNotEmpty) {
+            final idx = question.indexOf(matchedPrefix) + matchedPrefix.length;
+            searchPlace = question.substring(idx).trim();
+          }
+          if (searchPlace.isNotEmpty) {
+            response = isFilipino 
+                ? "Hinahanap ang $searchPlace. Sinisimulan ang ruta patungo doon." 
+                : "Searching for $searchPlace. Starting route guidance.";
+            handledByVoiceCommand = true;
+            
+            final start = const LatLng(15.1325, 120.5901);
+            final end = LatLng(15.1325 + 0.012, 120.5901 + 0.015);
+            
+            ActiveNavigationService().startNavigation(
+              destinationName: searchPlace[0].toUpperCase() + searchPlace.substring(1),
+              destinationLocation: end,
+              routePoints: [start, end],
+            );
+            ActiveNavigationService().updateProgress(
+              currentStepText: isFilipino
+                  ? "Maglakad nang diretso patungo sa $searchPlace"
+                  : "Walk straight towards $searchPlace",
+              distanceRemaining: "1.2 km",
+              timeRemaining: "15 mins",
+              currentLocation: start,
+            );
+          }
         }
       }
 
       if (handledByVoiceCommand) {
-        // Do nothing, response is already set S01
+        // Voice command processed S01
       } else if (question.isEmpty || question == "listening...") {
-        // 2 seconds of silence: describe scene automatically S01
         if (detectedItems.trim().isEmpty) {
           response = isFilipino 
               ? "Wala akong makitang malinaw na bagay sa iyong harapan."
@@ -1369,7 +1622,6 @@ Keep the response to exactly one natural, friendly sentence.
           }
         }
       } else {
-        // User spoke: query Gemini/Buddy S01
         final prompt = isFilipino
             ? """
 You are Buddy, the visual assistant dog.
@@ -1396,19 +1648,21 @@ Answer the user's question directly based on the labels. Keep the response to 1 
 
       if (mounted && _isContinuousVoiceEnabled) {
         setState(() {
-          _activeTitle = "Buddy Speaking";
+          _voiceState = "speaking";
+          _activeTitle = isFilipino ? "Nagsasalita si Buddy" : "Buddy Speaking";
           _activeDescription = response;
           _statusCardBg = const Color(0xFFE6FFFA);
           _statusIcon = Icons.volume_up;
           _statusIconColor = const Color(0xFF38A169);
         });
-        // Speak and wait for speech to finish completely!
         await TtsService().speakAwait(response);
       }
     } catch (e) {
       print("[Continuous Voice] Error in _processSilenceOrSpeech: $e");
     } finally {
-      // Wait briefly and start next cycle S01
+      setState(() {
+        _voiceState = "idle";
+      });
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted && _isContinuousVoiceEnabled) {
         _runContinuousVoiceLoop();
@@ -2214,8 +2468,71 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Column(
+    return Stack(
       children: [
+        // Speech Status floating pill S01
+        if (_isContinuousVoiceEnabled)
+          Positioned(
+            top: 70,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _voiceState == "listening"
+                      ? Colors.green.withOpacity(0.9)
+                      : _voiceState == "thinking"
+                          ? Colors.orange.withOpacity(0.9)
+                          : _voiceState == "speaking"
+                              ? Colors.blue.withOpacity(0.9)
+                              : Colors.grey.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _voiceState == "listening"
+                          ? Icons.mic
+                          : _voiceState == "thinking"
+                              ? Icons.hourglass_empty
+                              : _voiceState == "speaking"
+                                  ? Icons.volume_up
+                                  : Icons.mic_off,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _voiceState == "listening"
+                          ? (SettingsService().selectedLanguage.toLowerCase().contains("tagalog") || SettingsService().selectedLanguage.toLowerCase().contains("filipino") ? "Magsalita na" : "Speak Now")
+                          : _voiceState == "thinking"
+                              ? (SettingsService().selectedLanguage.toLowerCase().contains("tagalog") || SettingsService().selectedLanguage.toLowerCase().contains("filipino") ? "Nag-iisip..." : "Thinking...")
+                              : _voiceState == "speaking"
+                                  ? (SettingsService().selectedLanguage.toLowerCase().contains("tagalog") || SettingsService().selectedLanguage.toLowerCase().contains("filipino") ? "Nagsasalita..." : "Speaking...")
+                                  : "Idle",
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+        Column(
+          children: [
         // App Header Bar (Figma layout matching)
         Row(
           children: [
@@ -2479,77 +2796,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                       ),
                     ),
 
-                    // Floating Lock Button S01
-                    Positioned(
-                      top: 16,
-                      right: 16,
-                      child: GestureDetector(
-                        onTap: () {
-                          HapticFeedback.mediumImpact();
-                          TtsService().speak("Screen locked.");
-                          setState(() {
-                            _isScreenLocked = true;
-                          });
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
-                            shape: BoxShape.circle,
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: const Icon(
-                            Icons.lock_open,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
 
-                    // Touch Lock Screen Overlay S01
-                    if (_isScreenLocked)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onLongPress: () {
-                            HapticFeedback.mediumImpact();
-                            TtsService().speak("Screen unlocked.");
-                            setState(() {
-                              _isScreenLocked = false;
-                            });
-                          },
-                          child: Container(
-                            color: Colors.black.withOpacity(0.85),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.lock,
-                                  color: Colors.white,
-                                  size: 64,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  "Screen Locked",
-                                  style: GoogleFonts.inter(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Long press the screen to unlock",
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    color: Colors.white60,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
 
                     // Face recognition name chip — shown when a known face is detected
                     if (_detectedFaceName.isNotEmpty)
@@ -2838,373 +3085,245 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Battery controller tile (left side card)
-                          Expanded(
-                            child: Container(
-                              height: 110,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.black.withOpacity(0.04)),
-                              ),
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '${_batteryPercent}%',
-                                        style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
-                                      ),
-                                      Icon(Icons.battery_std, color: Colors.green.shade600, size: 20),
-                                    ],
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    'Battery',
-                                    style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(2),
-                                    child: LinearProgressIndicator(
-                                      value: _batteryPercent / 100.0,
-                                      backgroundColor: Colors.grey.shade200,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green.shade600),
-                                      minHeight: 4,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          // Custom Vertical Battery cylinder on the left S01
+                          Container(
+                            width: 105,
+                            height: 215,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(30),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-
-                          // Right side Column (contains Local AI, Gemini, Wifi, Audio, Hazards Scan) S01
-                          Expanded(
-                            child: Column(
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(
+                              alignment: Alignment.bottomCenter,
                               children: [
-                                Row(
-                                  children: [
-                                    // Local AI Button (Redesigned & Large) S01
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _useLocalAI = true;
-                                            _isContinuousVoiceEnabled = !_isContinuousVoiceEnabled;
-                                            _isGeminiEnabled = false;
-                                          });
-                                          if (_isContinuousVoiceEnabled) {
-                                            _runContinuousVoiceLoop();
-                                          } else {
-                                            _silenceTimer?.cancel();
-                                            SttService().stopListening((_) {});
-                                            TtsService().stop();
-                                            setState(() {
-                                              _activeTitle = "Path Clear";
-                                              _activeDescription = "No hazards detected nearby.";
-                                              _statusCardBg = const Color(0xFFE8F5E9);
-                                              _statusIcon = Icons.check_circle_outline;
-                                              _statusIconColor = Colors.green;
-                                            });
-                                          }
-                                        },
-                                        child: Container(
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            color: (_isContinuousVoiceEnabled && _useLocalAI) ? const Color(0xFF7C3AED) : const Color(0xFFF3E8FF),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.transparent : const Color(0xFFD8B4FE), width: 1.5),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                (_isContinuousVoiceEnabled && _useLocalAI) ? Icons.circle : Icons.power_settings_new,
-                                                size: 20,
-                                                color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white : const Color(0xFF7C3AED),
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Expanded(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Local AI',
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 10,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white70 : const Color(0xFF5B21B6),
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      (_isContinuousVoiceEnabled && _useLocalAI) ? 'Active' : 'Enable',
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 10,
-                                                        fontWeight: FontWeight.w900,
-                                                        color: (_isContinuousVoiceEnabled && _useLocalAI) ? Colors.white : const Color(0xFF7C3AED),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
+                                FractionallySizedBox(
+                                  heightFactor: _batteryPercent / 100.0,
+                                  widthFactor: 1.0,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF10B981),
+                                      borderRadius: BorderRadius.only(
+                                        bottomLeft: const Radius.circular(30),
+                                        bottomRight: const Radius.circular(30),
+                                        topLeft: _batteryPercent >= 95 ? const Radius.circular(30) : Radius.zero,
+                                        topRight: _batteryPercent >= 95 ? const Radius.circular(30) : Radius.zero,
                                       ),
                                     ),
-                                    const SizedBox(width: 6),
-
-                                    // Gemini Button (Redesigned & Large) S01
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _useLocalAI = false;
-                                            _isContinuousVoiceEnabled = !_isContinuousVoiceEnabled;
-                                            _isGeminiEnabled = _isContinuousVoiceEnabled;
-                                          });
-                                          if (_isContinuousVoiceEnabled) {
-                                            _runContinuousVoiceLoop();
-                                          } else {
-                                            _silenceTimer?.cancel();
-                                            SttService().stopListening((_) {});
-                                            TtsService().stop();
-                                            setState(() {
-                                              _activeTitle = "Path Clear";
-                                              _activeDescription = "No hazards detected nearby.";
-                                              _statusCardBg = const Color(0xFFE8F5E9);
-                                              _statusIcon = Icons.check_circle_outline;
-                                              _statusIconColor = Colors.green;
-                                            });
-                                          }
-                                        },
-                                        child: Container(
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.orange.shade600 : const Color(0xFFFEF3C7),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.transparent : const Color(0xFFFDE047), width: 1.5),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                (_isContinuousVoiceEnabled && !_useLocalAI) ? Icons.circle : Icons.power_settings_new,
-                                                size: 20,
-                                                color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white : Colors.orange.shade700,
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Expanded(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Gemini',
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 10,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white70 : Colors.orange.shade900,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      (_isContinuousVoiceEnabled && !_useLocalAI) ? 'Active' : 'Enable',
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 10,
-                                                        fontWeight: FontWeight.w900,
-                                                        color: (_isContinuousVoiceEnabled && !_useLocalAI) ? Colors.white : Colors.orange.shade700,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    // Focus Mode card S01
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _isFocusModeEnabled = !_isFocusModeEnabled;
-                                            if (_isFocusModeEnabled) {
-                                              _isContinuousVoiceEnabled = true;
-                                              _isGeminiEnabled = true;
-                                            }
-                                          });
-                                          if (_isFocusModeEnabled) {
-                                            TtsService().speak("Focus Mode enabled. Speak to switch modes.");
-                                            _runContinuousVoiceLoop();
-                                          } else {
-                                            TtsService().speak("Focus Mode disabled.");
-                                          }
-                                        },
-                                        child: Container(
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            color: _isFocusModeEnabled ? const Color(0xFF7C3AED) : Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.filter_center_focus, size: 18, color: _isFocusModeEnabled ? Colors.white : Colors.black54),
-                                              const SizedBox(width: 4),
-                                              Expanded(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Focus Mode',
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 9,
-                                                        color: _isFocusModeEnabled ? Colors.white70 : Colors.black54,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      _isFocusModeEnabled ? 'Enabled' : 'Disabled',
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 9,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: _isFocusModeEnabled ? Colors.white : Colors.black87,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
+                                Positioned.fill(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '${_batteryPercent}%',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                            shadows: [
+                                              const Shadow(
+                                                offset: Offset(0, 1.5),
+                                                blurRadius: 3,
+                                                color: Colors.black38,
+                                              )
                                             ],
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-
-                                    // Audio speaker card
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _isAudioSpeaker = !_isAudioSpeaker;
-                                          });
-                                        },
-                                        child: Container(
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            color: _isAudioSpeaker ? const Color(0xFF1E88E5) : Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.volume_up, size: 18, color: _isAudioSpeaker ? Colors.white : Colors.black54),
-                                              const SizedBox(width: 4),
-                                              Expanded(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Audio',
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 9,
-                                                        color: _isAudioSpeaker ? Colors.white70 : Colors.black54,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      _isAudioSpeaker ? 'Speaker' : 'Glasses',
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 9,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: _isAudioSpeaker ? Colors.white : Colors.black87,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Battery',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.white,
+                                            shadows: [
+                                              const Shadow(
+                                                offset: Offset(0, 1.5),
+                                                blurRadius: 3,
+                                                color: Colors.black38,
+                                              )
                                             ],
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    // Detection Toggle card S01
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          _toggleDetection(!_isDetectionEnabled);
-                                        },
-                                        child: Container(
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            color: _isDetectionEnabled ? const Color(0xFF48BB78) : Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                _isDetectionEnabled ? Icons.radar : Icons.radar_outlined,
-                                                size: 18,
-                                                color: _isDetectionEnabled ? Colors.white : Colors.black54,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Expanded(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Hazards Scan',
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 9,
-                                                        color: _isDetectionEnabled ? Colors.white70 : Colors.black54,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      _isDetectionEnabled ? 'Enabled' : 'Paused',
-                                                      style: GoogleFonts.inter(
-                                                        fontSize: 9,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: _isDetectionEnabled ? Colors.white : Colors.black87,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    // Placeholder to keep row alignment
-                                    const Spacer(),
-                                  ],
+                                  ),
                                 ),
                               ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Scrollable 2x2 grid panel on the right S01
+                          Expanded(
+                            child: SizedBox(
+                              height: 215,
+                              child: SingleChildScrollView(
+                                physics: const BouncingScrollPhysics(),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.center,
+                                  children: [
+                                    // EasyLens Connected (Bluetooth)
+                                    _buildControlBox(
+                                      title: 'EasyLens',
+                                      subtitle: _isBluetoothConnected ? 'Connected' : 'Disconnected',
+                                      icon: Icons.bluetooth,
+                                      activeBgColor: const Color(0xFF2B6CB0),
+                                      inactiveBgColor: const Color(0xFFEDF2F7),
+                                      activeTextColor: Colors.white,
+                                      inactiveTextColor: const Color(0xFF2D3748),
+                                      isActive: _isBluetoothConnected,
+                                      onTap: () {
+                                        setState(() {
+                                          _isBluetoothConnected = !_isBluetoothConnected;
+                                        });
+                                      },
+                                    ),
+
+                                    // Gemini AI Toggle
+                                    _buildControlBox(
+                                      title: 'Gemini',
+                                      subtitle: (_isContinuousVoiceEnabled && !_useLocalAI) ? 'Active' : 'Disable',
+                                      icon: Icons.auto_awesome,
+                                      activeBgColor: const Color(0xFFD69E2E),
+                                      inactiveBgColor: const Color(0xFFEDF2F7),
+                                      activeTextColor: Colors.white,
+                                      inactiveTextColor: const Color(0xFF2D3748),
+                                      isActive: _isContinuousVoiceEnabled && !_useLocalAI,
+                                      onTap: () {
+                                        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                                        setState(() {
+                                          if (_isContinuousVoiceEnabled && !_useLocalAI) {
+                                            _isContinuousVoiceEnabled = false;
+                                            _isGeminiEnabled = false;
+                                            TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+                                          } else {
+                                            _useLocalAI = false;
+                                            _isContinuousVoiceEnabled = true;
+                                            _isGeminiEnabled = true;
+                                            TtsService().speak(isTagalog ? "Aktibo ang Advance AI. Simulan ang tuloy-tuloy na boses." : "Advanced online AI active. Continuous voice enabled.");
+                                          }
+                                        });
+                                        if (_isContinuousVoiceEnabled) {
+                                          _runContinuousVoiceLoop();
+                                        } else {
+                                          _silenceTimer?.cancel();
+                                          SttService().stopListening((_) {});
+                                          TtsService().stop();
+                                          setState(() {
+                                            _activeTitle = "Path Clear";
+                                            _activeDescription = "No hazards detected nearby.";
+                                            _statusCardBg = const Color(0xFFE8F5E9);
+                                            _statusIcon = Icons.check_circle_outline;
+                                            _statusIconColor = Colors.green;
+                                          });
+                                        }
+                                      },
+                                    ),
+
+                                    // Local AI Toggle
+                                    _buildControlBox(
+                                      title: 'Local AI',
+                                      subtitle: (_isContinuousVoiceEnabled && _useLocalAI) ? 'Active' : 'Disable',
+                                      icon: Icons.offline_bolt_outlined,
+                                      activeBgColor: const Color(0xFF8B5CF6),
+                                      inactiveBgColor: const Color(0xFFEDF2F7),
+                                      activeTextColor: Colors.white,
+                                      inactiveTextColor: const Color(0xFF2D3748),
+                                      isActive: _isContinuousVoiceEnabled && _useLocalAI,
+                                      onTap: () {
+                                        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                                        setState(() {
+                                          if (_isContinuousVoiceEnabled && _useLocalAI) {
+                                            _isContinuousVoiceEnabled = false;
+                                            _isGeminiEnabled = false;
+                                            TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+                                          } else {
+                                            _useLocalAI = true;
+                                            _isContinuousVoiceEnabled = true;
+                                            _isGeminiEnabled = false;
+                                            TtsService().speak(isTagalog ? "Aktibo ang Local AI. Simulan ang tuloy-tuloy na boses." : "Local offline AI active. Continuous voice enabled.");
+                                          }
+                                        });
+                                        if (_isContinuousVoiceEnabled) {
+                                          _runContinuousVoiceLoop();
+                                        } else {
+                                          _silenceTimer?.cancel();
+                                          SttService().stopListening((_) {});
+                                          TtsService().stop();
+                                          setState(() {
+                                            _activeTitle = "Path Clear";
+                                            _activeDescription = "No hazards detected nearby.";
+                                            _statusCardBg = const Color(0xFFE8F5E9);
+                                            _statusIcon = Icons.check_circle_outline;
+                                            _statusIconColor = Colors.green;
+                                          });
+                                        }
+                                      },
+                                    ),
+
+                                    // Audio Route Toggle
+                                    _buildControlBox(
+                                      title: 'Audio',
+                                      subtitle: _isAudioSpeaker ? 'Speaker' : 'Glasses',
+                                      icon: Icons.volume_up,
+                                      activeBgColor: const Color(0xFF3182CE),
+                                      inactiveBgColor: const Color(0xFFEDF2F7),
+                                      activeTextColor: Colors.white,
+                                      inactiveTextColor: const Color(0xFF2D3748),
+                                      isActive: _isAudioSpeaker,
+                                      onTap: () {
+                                        setState(() {
+                                          _isAudioSpeaker = !_isAudioSpeaker;
+                                        });
+                                      },
+                                    ),
+
+                                    // Network / Wifi Toggle
+                                    _buildControlBox(
+                                      title: 'Network',
+                                      subtitle: _isWifiOn ? 'On' : 'Off',
+                                      icon: Icons.wifi,
+                                      activeBgColor: const Color(0xFF3182CE),
+                                      inactiveBgColor: const Color(0xFFEDF2F7),
+                                      activeTextColor: Colors.white,
+                                      inactiveTextColor: const Color(0xFF2D3748),
+                                      isActive: _isWifiOn,
+                                      onTap: () {
+                                        setState(() {
+                                          _isWifiOn = !_isWifiOn;
+                                        });
+                                      },
+                                    ),
+
+                                    // Lock Mode Toggle S01
+                                    _buildControlBox(
+                                      title: 'Lock Mode',
+                                      subtitle: _isScreenLocked ? 'Locked' : 'Unlocked',
+                                      icon: _isScreenLocked ? Icons.lock : Icons.lock_open,
+                                      activeBgColor: const Color(0xFFEF4444),
+                                      inactiveBgColor: const Color(0xFFEDF2F7),
+                                      activeTextColor: Colors.white,
+                                      inactiveTextColor: const Color(0xFF2D3748),
+                                      isActive: _isScreenLocked,
+                                      onTap: () {
+                                        HapticFeedback.mediumImpact();
+                                        TtsService().speak("Screen locked.");
+                                        setState(() {
+                                          _isScreenLocked = true;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -3277,6 +3396,49 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
             ],
           ),
         ),
+        if (_isScreenLocked)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onLongPress: () {
+                HapticFeedback.mediumImpact();
+                TtsService().speak("Screen unlocked.");
+                setState(() {
+                  _isScreenLocked = false;
+                });
+              },
+              child: Container(
+                color: Colors.black.withOpacity(0.85),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.lock,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "Screen Locked",
+                      style: GoogleFonts.inter(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Long press the screen to unlock",
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white60,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

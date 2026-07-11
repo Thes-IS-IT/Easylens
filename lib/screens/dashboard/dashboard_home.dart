@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
-import '../object_detection/object_detection_screen.dart';
+import '../hardware/hardware_screen.dart';
 import '../image_labeling/image_labeling_screen.dart';
 import '../face_registration/face_registration_screen.dart';
 import 'components/header_bar.dart';
@@ -108,7 +108,7 @@ class DashboardHome extends StatelessWidget {
             color: const Color(0xFF238290),
             onTap: () {
               Navigator.of(context).push(
-                AppRoute.to(const ObjectDetectionScreen()),
+                AppRoute.to(const HardwareScreen(initialStep: 4)),
               );
             },
           ),

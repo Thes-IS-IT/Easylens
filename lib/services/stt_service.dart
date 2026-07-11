@@ -43,7 +43,8 @@ class SttService {
     // Determine correct locale dynamically
     final settings = SettingsService();
     String localeId = 'en_US';
-    if (settings.selectedLanguage == 'Tagalog') {
+    final lang = settings.selectedLanguage.toLowerCase();
+    if (lang.contains('tagalog') || lang.contains('filipino')) {
       localeId = 'fil_PH';
     }
 

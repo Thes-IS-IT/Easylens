@@ -8,7 +8,7 @@ import '../../services/tts_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/rag_service.dart';
 import '../dashboard/components/custom_navbar.dart';
-import '../object_detection/object_detection_screen.dart';
+import '../hardware/hardware_screen.dart';
 import '../../utils/app_route.dart';
 
 class ImageLabelingScreen extends StatefulWidget {
@@ -353,7 +353,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
               onEasyLensTap: () {
                 TtsService().stop();
                 Navigator.of(context).pushReplacement(
-                  AppRoute.to(const ObjectDetectionScreen()),
+                  AppRoute.to(const HardwareScreen(initialStep: 4)),
                 );
               },
             ),

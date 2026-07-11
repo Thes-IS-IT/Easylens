@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
-import '../object_detection/object_detection_screen.dart';
+import '../hardware/hardware_screen.dart';
 import '../image_labeling/image_labeling_screen.dart';
 import '../rag_assistant/rag_assistant_screen.dart';
 import '../../utils/app_route.dart';
@@ -111,7 +111,7 @@ class HomeTab extends StatelessWidget {
             accentColor: const Color(0xFF4CAF50),
             onTap: () {
               Navigator.of(context).push(
-                AppRoute.to(const ObjectDetectionScreen()),
+                AppRoute.to(const HardwareScreen(initialStep: 4)),
               );
             },
           ),
