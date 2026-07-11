@@ -212,7 +212,7 @@ class RagService {
     print("[Gemma] Local session cleared.");
   }
 
-  Future<String> _queryGemmaOffline(String prompt) async {
+  Future<String> _queryGemmaOffline(String prompt, {String? systemInstruction}) async {
     return _gemmaMutex.protect(() async {
       try {
         final modelPath = await _getLocalModelPath();
@@ -235,7 +235,7 @@ class RagService {
 
         // Initialize a clean session per request to prevent history/prompt build-up latency S01
         final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
-        final session = await model.createSession();
+        final session = await model.createSession(systemInstruction: systemInstruction);
         await session.addQueryChunk(Message(text: prompt, isUser: true));
         final response = await session.getResponse();
         return response ?? "No response from offline local model.";
@@ -245,7 +245,7 @@ class RagService {
     });
   }
 
-  Stream<String> _queryGemmaOfflineStream(String prompt) async* {
+  Stream<String> _queryGemmaOfflineStream(String prompt, {String? systemInstruction}) async* {
     try {
       final modelPath = await _getLocalModelPath();
       if (modelPath == null) {
@@ -263,7 +263,7 @@ class RagService {
       }
 
       final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
-      final session = await model.createSession();
+      final session = await model.createSession(systemInstruction: systemInstruction);
       await session.addQueryChunk(Message(text: prompt, isUser: true));
       
       await for (final token in session.getResponseAsync()) {
@@ -399,40 +399,30 @@ class RagService {
 
 
 
-  String _buildGemmaPrompt(String rawQuestion, String context, String userName, String mobilityAid) {
-    final lowerQ = rawQuestion.toLowerCase();
-    
-    // Check if it is a short conversational greeting or chat query S01
-    final isConversational = rawQuestion.length < 30 &&
-        !lowerQ.contains("reports") &&
-        !lowerQ.contains("scanned") &&
-        !lowerQ.contains("nearby") &&
-        !lowerQ.contains("labels") &&
-        !lowerQ.contains("visual");
+  String _getSystemInstruction(String userName, String mobilityAid) {
+    return "You are Buddy, the friendly dog mascot and loyal visual guide dog of the EasyLens app. "
+        "Speak in the first person as a dog (warm, helper guide dog). "
+        "Keep your responses concise and under 2 sentences (or under 12 words for simple greetings). "
+        "The user's name is $userName. "
+        "The user is using the mobility aid: $mobilityAid. "
+        "You only assist with EasyLens app features, spatial navigation, safety, and visual guidance. "
+        "If the user asks an unrelated general knowledge question (e.g. history, math, science, or programming), "
+        "refuse politely and guide them back to visual navigation, staying in character as a helpful guide dog.";
+  }
 
-    if (isConversational) {
-      return "You are Buddy, the friendly dog mascot and loyal visual guide dog of the EasyLens app. "
-          "Speak in first person, stay in character, be warm/dog-like, and keep the answer under 12 words. "
-          "My name is $userName. "
-          "User: $rawQuestion";
-    }
-
+  String _buildUserPrompt(String rawQuestion, String context) {
     if (rawQuestion.contains("scanned nearby:")) {
       final regExp = RegExp(r"scanned nearby:\s*'(.*)'", caseSensitive: false);
       final match = regExp.firstMatch(rawQuestion);
       final scannedText = match != null ? match.group(1) : rawQuestion;
-      
-      return "You are Buddy, the loyal guide dog visual assistant. Provide a clear, simple, and friendly explanation of the following text scanned nearby: "
-          "'$scannedText'. Explain what it is and highlight key info like warnings, product name, or directions. Keep it under 2 sentences.";
+      return "scanned nearby: '$scannedText'";
     }
-
-    return "You are Buddy, the loyal guide dog mascot and EasyLens assistant. Speak in first person. Be helpful, warm, dog-like, and highly concise (under 2 sentences). Always stay in character. "
-        "Constraint: You can only assist with EasyLens app features, spatial navigation, safety, and visual guidance. "
-        "If the question is unrelated (e.g. general facts, history, science, math, or coding), refuse politely in character. "
-        "User's Name: $userName. "
-        "Mobility Aid: $mobilityAid. "
-        "Context: $context. "
-        "User Question: $rawQuestion";
+    
+    if (context.isEmpty) {
+      return rawQuestion;
+    }
+    
+    return "Context: $context\n\nQuestion: $rawQuestion";
   }
 
   Future<String> askBuddy(String question) async {
@@ -453,8 +443,6 @@ class RagService {
       }
     }
 
-
-
     final lowerQ = rawQuestion.toLowerCase();
     final isConversational = rawQuestion.length < 30 &&
         !lowerQ.contains("reports") &&
@@ -464,7 +452,8 @@ class RagService {
         !lowerQ.contains("visual");
 
     final context = isConversational ? "" : await retrieveContextAsync(rawQuestion);
-    final promptText = _buildGemmaPrompt(rawQuestion, context, userName, mobilityAid);
+    final userPrompt = _buildUserPrompt(rawQuestion, context);
+    final systemPrompt = _getSystemInstruction(userName, mobilityAid);
 
     String responseText = "";
 
@@ -472,10 +461,10 @@ class RagService {
     final useLocalSetting = SettingsService().useLocalAI;
     final modelPath = await _getLocalModelPath();
     if (useLocalSetting && modelPath != null) {
-      responseText = await _queryGemmaOffline(promptText);
+      responseText = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
     } else {
       // Use Online Gemini
-      final onlineRes = await askBuddyOnlineGemini(promptText);
+      final onlineRes = await askBuddyOnlineGemini(userPrompt);
       if (onlineRes.isNotEmpty) {
         responseText = onlineRes;
       } else {
@@ -506,8 +495,6 @@ class RagService {
       }
     }
 
-
-
     final lowerQ = rawQuestion.toLowerCase();
     final isConversational = rawQuestion.length < 30 &&
         !lowerQ.contains("reports") &&
@@ -517,13 +504,14 @@ class RagService {
         !lowerQ.contains("visual");
 
     final context = isConversational ? "" : await retrieveContextAsync(rawQuestion);
-    final promptText = _buildGemmaPrompt(rawQuestion, context, userName, mobilityAid);
+    final userPrompt = _buildUserPrompt(rawQuestion, context);
+    final systemPrompt = _getSystemInstruction(userName, mobilityAid);
 
     final useLocalSetting = SettingsService().useLocalAI;
     final modelPath = await _getLocalModelPath();
 
     if (useLocalSetting && modelPath != null) {
-      yield* _queryGemmaOfflineStream(promptText);
+      yield* _queryGemmaOfflineStream(userPrompt, systemInstruction: systemPrompt);
     } else {
       try {
         final onlineRes = await askBuddy(question);
@@ -540,8 +528,6 @@ class RagService {
       return generateSmartLocalResponse(question);
     }
 
-
-
     final lowerQ = question.toLowerCase();
     final isConversational = question.length < 30 &&
         !lowerQ.contains("reports") &&
@@ -551,9 +537,10 @@ class RagService {
         !lowerQ.contains("visual");
 
     final context = isConversational ? "" : await retrieveContextAsync(question);
-    final promptText = _buildGemmaPrompt(question, context, "User", "None");
+    final userPrompt = _buildUserPrompt(question, context);
+    final systemPrompt = _getSystemInstruction("User", "None");
 
-    return await _queryGemmaOffline(promptText);
+    return await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
   }
 
   String generateSmartLocalResponse(String question) {
