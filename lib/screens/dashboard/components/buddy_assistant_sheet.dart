@@ -124,84 +124,105 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
         lang.toLowerCase().contains('filipino');
 
     final prompt = """
-You are Buddy, the friendly visual assistant dog.
-User Info: Name is '$name', using mobility aid '$aid'.
-Be enthusiastic. Keep answers under 3 sentences.
-
-MCP Navigation (append exactly one tag to open a screen):
-- Home: [NAVIGATE: home]
-- Audio Nav: [NAVIGATE: nav]
-- EasyLens Camera: [NAVIGATE: hardware]
-- Text Scanner: [NAVIGATE: text]
-- Object Detector: [NAVIGATE: objects]
-- SOS Screen: [NAVIGATE: emergency]
-- Settings: [NAVIGATE: settings]
-- Notifications: [NAVIGATE: notifications]
-- Contacts: [NAVIGATE: contacts]
-- Journal: [NAVIGATE: journal]
-
-Question: $text
+You are Buddy, the friendly dog mascot. User: $name (Aid: $aid). Keep replies under 2 sentences.
+Navigation tags (append exactly one tag to END of reply to navigate):
+Home: [NAVIGATE: home], Audio: [NAVIGATE: nav], Camera: [NAVIGATE: hardware], Text: [NAVIGATE: text], Objects: [NAVIGATE: objects], SOS: [NAVIGATE: emergency], Settings: [NAVIGATE: settings], Notifications: [NAVIGATE: notifications], Contacts: [NAVIGATE: contacts], Journal: [NAVIGATE: journal].
+Q: $text
 Buddy:
 """;
 
-    String response;
     if (isFilipino) {
       // Force Online Gemini for Filipino/Tagalog language S01
-      response = await RagService().askBuddyGemini(text, name, aid);
+      final response = await RagService().askBuddyGemini(text, name, aid);
+      if (mounted) {
+        _handleResponseOutput(response, text, lang, isFilipino);
+      }
     } else {
-      // Force local Gemma for English language S01
-      response = await RagService().askBuddy(prompt);
-    }
+      // Force local Gemma for English language S01 (Streaming)
+      int assistantMsgIndex = -1;
+      setState(() {
+        _messages.add({'text': '', 'isUser': false});
+        _isThinking = false;
+        assistantMsgIndex = _messages.length - 1;
+      });
 
-    if (mounted) {
-      // Detect dynamic navigation target
-      final matchedKey = _detectNavigationTarget(text, response);
+      String accumulatedText = '';
+      DateTime lastUpdate = DateTime.now();
 
-      if (matchedKey != null && matchedKey.isNotEmpty) {
-        final isFilipino = lang.toLowerCase().contains('tagalog') ||
-            lang.toLowerCase().contains('filipino');
-            
-        final screenNames = {
-          'home': isFilipino ? 'Home screen' : 'Home screen',
-          'nav': isFilipino ? 'Audio Navigation screen' : 'Audio Navigation screen',
-          'hardware': isFilipino ? 'EasyLens Camera' : 'EasyLens Camera',
-          'text': isFilipino ? 'Text Scanner' : 'Text Scanner',
-          'objects': isFilipino ? 'Object Detector' : 'Object Detector',
-          'emergency': isFilipino ? 'SOS Emergency screen' : 'SOS Emergency screen',
-          'settings': isFilipino ? 'Settings screen' : 'Settings screen',
-          'notifications': isFilipino ? 'Notifications screen' : 'Notifications screen',
-          'contacts': isFilipino ? 'Contacts screen' : 'Contacts screen',
-          'journal': isFilipino ? 'Talaarawan ni Buddy' : "Buddy's Journal",
-        };
-        final screenName = screenNames[matchedKey] ?? matchedKey;
-        response = isFilipino 
-            ? "Aw! Nandito na tayo sa $screenName!" 
-            : "Woof! We're here on the $screenName now!";
+      await for (final token in RagService().askBuddyStream(prompt)) {
+        if (!mounted) break;
+        accumulatedText += token;
+        final now = DateTime.now();
+        if (now.difference(lastUpdate) > const Duration(milliseconds: 80)) {
+          setState(() {
+            _messages[assistantMsgIndex]['text'] = accumulatedText;
+          });
+          _scrollToBottom();
+          lastUpdate = now;
+        }
       }
 
-      if (matchedKey != null && matchedKey.isNotEmpty) {
+      if (mounted) {
         setState(() {
-          _messages.add({'text': response, 'isUser': false});
-          _isThinking = false;
+          _messages[assistantMsgIndex]['text'] = accumulatedText;
         });
         _scrollToBottom();
-      } else {
-        _animateResponse(response);
+        _handleResponseOutput(accumulatedText, text, lang, isFilipino, updateIndex: assistantMsgIndex);
       }
+    }
+  }
 
-      // Speak response concurrently (do not await so navigation is instantaneous)
-      _speakText(response);
+  void _handleResponseOutput(String response, String text, String lang, bool isFilipino, {int? updateIndex}) {
+    if (!mounted) return;
 
-      if (matchedKey != null && matchedKey.isNotEmpty && mounted) {
-        // Trigger haptic vibration for successful auto-pilot action S01
-        HapticFeedback.mediumImpact();
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) {
-            Navigator.of(context).pop();
-            widget.onNavigate(matchedKey);
-          }
-        });
-      }
+    // Detect dynamic navigation target
+    final matchedKey = _detectNavigationTarget(text, response);
+
+    if (matchedKey != null && matchedKey.isNotEmpty) {
+      final screenNames = {
+        'home': isFilipino ? 'Home screen' : 'Home screen',
+        'nav': isFilipino ? 'Audio Navigation screen' : 'Audio Navigation screen',
+        'hardware': isFilipino ? 'EasyLens Camera' : 'EasyLens Camera',
+        'text': isFilipino ? 'Text Scanner' : 'Text Scanner',
+        'objects': isFilipino ? 'Object Detector' : 'Object Detector',
+        'emergency': isFilipino ? 'SOS Emergency screen' : 'SOS Emergency screen',
+        'settings': isFilipino ? 'Settings screen' : 'Settings screen',
+        'notifications': isFilipino ? 'Notifications screen' : 'Notifications screen',
+        'contacts': isFilipino ? 'Contacts screen' : 'Contacts screen',
+        'journal': isFilipino ? 'Talaarawan ni Buddy' : "Buddy's Journal",
+      };
+      final screenName = screenNames[matchedKey] ?? matchedKey;
+      response = isFilipino 
+          ? "Aw! Nandito na tayo sa $screenName!" 
+          : "Woof! We're here on the $screenName now!";
+    }
+
+    if (updateIndex != null) {
+      setState(() {
+        _messages[updateIndex]['text'] = response;
+        _isThinking = false;
+      });
+      _scrollToBottom();
+    } else {
+      setState(() {
+        _messages.add({'text': response, 'isUser': false});
+        _isThinking = false;
+      });
+      _scrollToBottom();
+    }
+
+    // Speak response concurrently (do not await so navigation is instantaneous)
+    _speakText(response);
+
+    if (matchedKey != null && matchedKey.isNotEmpty && mounted) {
+      // Trigger haptic vibration for successful auto-pilot action S01
+      HapticFeedback.mediumImpact();
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          Navigator.of(context).pop();
+          widget.onNavigate(matchedKey);
+        }
+      });
     }
   }
 
