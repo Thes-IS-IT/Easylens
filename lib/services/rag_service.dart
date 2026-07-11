@@ -718,17 +718,15 @@ Buddy:""";
     }
   }
 
-  /// Sends a message directly to Gemini API in Filipino mode.
-  /// Used when the app language is set to Tagalog/Filipino so the response
-  /// is naturally in Tagalog without any translation step.
+  /// Sends a message directly to Gemini API. Dynamically checks the language setting S01
+  /// to provide system instructions and output in the requested language (Tagalog/English).
   Future<String> askBuddyGemini(String question, String userName, String mobilityAid) async {
     try {
-      final responseText = await executeWithApiKeyFallback((apiKey) async {
-        final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
-          apiKey: apiKey,
-          systemInstruction: Content.system(
-            'Ikaw si Buddy, ang tapat at masayang golden retriever na gabay ng EasyLens app. '
+      final lang = SettingsService().selectedLanguage;
+      final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+      final systemInstructionText = isFilipino
+          ? 'Ikaw si Buddy, ang tapat at masayang golden retriever na gabay ng EasyLens app. '
             'Lagi kang sumasagot sa wikang Filipino/Tagalog — huwag kang gumamit ng Ingles. '
             'Ikaw ay palaging masaya, matulungin, at maaasahan. '
             'Pangalan ng gumagamit: $userName. Gumagamit siya ng: $mobilityAid. '
@@ -743,19 +741,44 @@ Buddy:""";
             '[NAVIGATE: settings] — Settings\n'
             '[NAVIGATE: notifications] — Mga Abiso\n'
             '[NAVIGATE: contacts] — Mga Kontak\n'
-            '[NAVIGATE: journal] — Talaarawan ni Buddy',
-          ),
+            '[NAVIGATE: journal] — Talaarawan ni Buddy'
+          : 'You are Buddy, the loyal and friendly golden retriever guide dog mascot of the EasyLens app. '
+            'Always reply in English. '
+            'You are always happy, helpful, and reliable. '
+            'User\'s name: $userName. Using mobility aid: $mobilityAid. '
+            'Keep your responses short and clear (2-3 sentences max). '
+            'If you need to navigate to a screen, append exactly one of these tags to the END of your answer:\n'
+            '[NAVIGATE: home] — Home screen\n'
+            '[NAVIGATE: nav] — Audio Navigation\n'
+            '[NAVIGATE: hardware] — EasyLens Camera/Sensor\n'
+            '[NAVIGATE: text] — Text Scanner\n'
+            '[NAVIGATE: objects] — Object Detector\n'
+            '[NAVIGATE: emergency] — SOS Emergency\n'
+            '[NAVIGATE: settings] — Settings\n'
+            '[NAVIGATE: notifications] — Notifications\n'
+            '[NAVIGATE: contacts] — Contacts\n'
+            '[NAVIGATE: journal] — Buddy\'s Journal';
+
+      final responseText = await executeWithApiKeyFallback((apiKey) async {
+        final model = GenerativeModel(
+          model: 'gemini-3.5-flash',
+          apiKey: apiKey,
+          systemInstruction: Content.system(systemInstructionText),
         );
         final content = [Content.text(question)];
         final response = await model.generateContent(content);
-        return response.text?.trim() ?? 'Walang natanggap na sagot.';
+        return response.text?.trim() ?? (isFilipino ? 'Walang natanggap na sagot.' : 'No response received.');
       });
       
       _logToJournal(question, responseText);
       return responseText;
     } catch (e) {
-      print('[Gemini Filipino] Error: $e');
-      return 'May problema sa koneksyon. Subukan muli mamaya.';
+      print('[Gemini Online] Error: $e');
+      final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || 
+                         SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+      return isFilipino
+          ? 'May problema sa koneksyon. Subukan muli mamaya.'
+          : 'Connection error. Please try again later.';
     }
   }
 
