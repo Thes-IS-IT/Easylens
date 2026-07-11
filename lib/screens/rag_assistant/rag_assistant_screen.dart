@@ -91,24 +91,59 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
     
     _scrollToBottom();
 
-    // Call RAG Service (Gemma / Gemini fallback)
-    final reply = await _ragService.askBuddy(text);
+    // Insert an empty Buddy message first
+    final buddyTimestamp = DateTime.now();
+    bool hasAddedBuddyMessage = false;
+    String fullReply = "";
 
-    setState(() {
-      _messages.add(
-        ChatMessage(
-          text: reply,
-          isUser: false,
-          timestamp: DateTime.now(),
-        ),
-      );
-      _isBuddyThinking = false;
-    });
+    try {
+      final stream = _ragService.askBuddyStream(text);
+      await for (final token in stream) {
+        fullReply += token;
+        
+        setState(() {
+          _isBuddyThinking = false; // Turn off thinking indicator as soon as the first token arrives
+          if (!hasAddedBuddyMessage) {
+            _messages.add(
+              ChatMessage(
+                text: fullReply,
+                isUser: false,
+                timestamp: buddyTimestamp,
+              ),
+            );
+            hasAddedBuddyMessage = true;
+          } else {
+            // Re-create the message in the list with the accumulated response
+            _messages[_messages.length - 1] = ChatMessage(
+              text: fullReply,
+              isUser: false,
+              timestamp: buddyTimestamp,
+            );
+          }
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      print("[Chat] Stream error: $e");
+    }
 
-    _scrollToBottom();
-
-    // Announce reply via TTS
-    TtsService().speak(reply);
+    // In case stream was empty or failed completely
+    if (!hasAddedBuddyMessage) {
+      setState(() {
+        _isBuddyThinking = false;
+        _messages.add(
+          ChatMessage(
+            text: "No response received.",
+            isUser: false,
+            timestamp: buddyTimestamp,
+          ),
+        );
+      });
+      _scrollToBottom();
+    } else {
+      // Announce reply via TTS after generation finishes
+      TtsService().speak(fullReply);
+    }
   }
 
   void _toggleSttListening() async {

@@ -245,6 +245,37 @@ class RagService {
     });
   }
 
+  Stream<String> _queryGemmaOfflineStream(String prompt) async* {
+    try {
+      final modelPath = await _getLocalModelPath();
+      if (modelPath == null) {
+        yield "Buddy local LLM Offline: Model file not found.";
+        return;
+      }
+
+      if (!_gemmaInitialized) {
+        await FlutterGemma.initialize();
+        await FlutterGemma.installModel(
+          modelType: ModelType.gemmaIt,
+        ).fromFile(modelPath).install();
+        _gemmaInitialized = true;
+        _isGemmaModelInstalled = true;
+      }
+
+      final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
+      final session = await model.createSession();
+      await session.addQueryChunk(Message(text: prompt, isUser: true));
+      
+      await for (final token in session.getResponseAsync()) {
+        if (token != null) {
+          yield token;
+        }
+      }
+    } catch (e) {
+      yield "Local Gemma LLM failed: $e";
+    }
+  }
+
   String _getOllamaBaseUrl() {
     if (Platform.isAndroid) {
       return "http://10.0.2.2:11434";
@@ -518,6 +549,55 @@ User Question: $rawQuestion<end_of_turn>
 
     _logToJournal(rawQuestion, responseText);
     return responseText;
+  }
+
+  Stream<String> askBuddyStream(String question) async* {
+    String rawQuestion = question;
+    String userName = "User";
+    String mobilityAid = "None";
+
+    if (question.contains("User Info:")) {
+      final nameMatch = RegExp(r"Name is '([^']+)'").firstMatch(question);
+      if (nameMatch != null) userName = nameMatch.group(1) ?? "User";
+      
+      final aidMatch = RegExp(r"using mobility aid '([^']+)'").firstMatch(question);
+      if (aidMatch != null) mobilityAid = aidMatch.group(1) ?? "None";
+      
+      final questionMatch = RegExp(r"Question:\s*(.*)\s*Buddy:", caseSensitive: false, dotAll: true).firstMatch(question);
+      if (questionMatch != null) {
+        rawQuestion = questionMatch.group(1)?.trim() ?? question;
+      }
+    }
+
+    if (_isOutOfBounds(rawQuestion)) {
+      yield _getOutOfBoundsFallback();
+      return;
+    }
+
+    final lowerQ = rawQuestion.toLowerCase();
+    final isConversational = rawQuestion.length < 30 &&
+        !lowerQ.contains("reports") &&
+        !lowerQ.contains("scanned") &&
+        !lowerQ.contains("nearby") &&
+        !lowerQ.contains("labels") &&
+        !lowerQ.contains("visual");
+
+    final context = isConversational ? "" : await retrieveContextAsync(rawQuestion);
+    final promptText = _buildGemmaPrompt(rawQuestion, context, userName, mobilityAid);
+
+    final useLocalSetting = SettingsService().useLocalAI;
+    final modelPath = await _getLocalModelPath();
+
+    if (useLocalSetting && modelPath != null) {
+      yield* _queryGemmaOfflineStream(promptText);
+    } else {
+      try {
+        final onlineRes = await askBuddy(question);
+        yield onlineRes;
+      } catch (e) {
+        yield "Failed to generate reply: $e";
+      }
+    }
   }
 
   Future<String> askBuddyLocalOnly(String question) async {
