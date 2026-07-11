@@ -27,7 +27,7 @@ class BuddyAssistantSheet extends StatefulWidget {
   State<BuddyAssistantSheet> createState() => _BuddyAssistantSheetState();
 }
 
-class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
+class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
@@ -35,6 +35,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
   bool _isListening = false;
   bool _isThinking = false;
   bool _isSpeaking = false;
+  bool _isStreaming = false; // true while local Gemma is generating tokens
   bool _isAutoPilotEnabled = true;
   String _buddyState = 'idle'; // 'idle', 'thinking', 'speaking', 'error'
 
@@ -136,6 +137,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
       setState(() {
         _messages.add({'text': '', 'isUser': false});
         _isThinking = false;
+        _isStreaming = true;
         assistantMsgIndex = _messages.length - 1;
       });
 
@@ -158,6 +160,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
       if (mounted) {
         setState(() {
           _messages[assistantMsgIndex]['text'] = accumulatedText;
+          _isStreaming = false;
         });
         _scrollToBottom();
         _handleResponseOutput(accumulatedText, text, lang, isFilipino, updateIndex: assistantMsgIndex);
@@ -579,10 +582,31 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
               itemBuilder: (context, index) {
                 final msg = _messages[index];
                 final isUser = msg['isUser'] == true;
+                final isLastMsg = index == _messages.length - 1;
                 
                 // Clean navigate tags from UI bubble S01
                 final cleanText = msg['text'].replaceAll(RegExp(r'\[NAVIGATE:.*?\]'), '').trim();
 
+                // Show typing animation for empty streaming assistant bubble S01
+                if (!isUser && isLastMsg && _isStreaming && cleanText.isEmpty) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: isDefault ? const Color(0xFFF1F5F9) : AppColors.unselectedBorder,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                          bottomLeft: Radius.circular(4),
+                          bottomRight: Radius.circular(16),
+                        ),
+                      ),
+                      child: _TypingIndicator(color: AppColors.primaryButton),
+                    ),
+                  );
+                }
                 return Align(
                   alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
@@ -700,6 +724,85 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Animated three-dot typing indicator shown while Buddy is generating a response.
+class _TypingIndicator extends StatefulWidget {
+  final Color color;
+  const _TypingIndicator({required this.color});
+
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator> with TickerProviderStateMixin {
+  late List<AnimationController> _controllers;
+  late List<Animation<double>> _animations;
+
+  static const int _dotCount = 3;
+  static const Duration _dotDuration = Duration(milliseconds: 500);
+  static const Duration _dotDelay = Duration(milliseconds: 160);
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(_dotCount, (i) {
+      return AnimationController(
+        vsync: this,
+        duration: _dotDuration,
+      );
+    });
+
+    _animations = _controllers.map((c) {
+      return Tween<double>(begin: 0.0, end: -7.0).animate(
+        CurvedAnimation(parent: c, curve: Curves.easeInOut),
+      );
+    }).toList();
+
+    // Start each dot with a staggered delay
+    for (int i = 0; i < _dotCount; i++) {
+      Future.delayed(_dotDelay * i, () {
+        if (mounted) {
+          _controllers[i].repeat(reverse: true);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(_dotCount, (i) {
+        return AnimatedBuilder(
+          animation: _animations[i],
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, _animations[i].value),
+              child: child,
+            );
+          },
+          child: Container(
+            margin: EdgeInsets.only(right: i < _dotCount - 1 ? 5 : 0),
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: widget.color.withOpacity(0.75),
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+      }),
     );
   }
 }
