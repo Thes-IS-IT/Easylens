@@ -719,7 +719,7 @@ Buddy:""";
 
       final translated = await executeWithApiKeyFallback((apiKey) async {
         final model = GenerativeModel(
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.5-flash',
           apiKey: apiKey,
         );
         final content = [Content.text(prompt)];
@@ -778,7 +778,7 @@ Buddy:""";
 
       final responseText = await executeWithApiKeyFallback((apiKey) async {
         final model = GenerativeModel(
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.5-flash',
           apiKey: apiKey,
           systemInstruction: Content.system(systemInstructionText),
         );
@@ -803,7 +803,7 @@ Buddy:""";
     try {
       return await executeWithApiKeyFallback((apiKey) async {
         final model = GenerativeModel(
-          model: 'gemini-1.5-flash',
+          model: 'gemini-3.5-flash',
           apiKey: apiKey,
         );
         final content = [Content.text(prompt)];
