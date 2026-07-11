@@ -356,6 +356,69 @@ class RagService {
     yield* controller.stream;
   }
 
+  Stream<String> _queryGeminiOnlineStream(
+    String prompt, {
+    String? systemInstruction,
+    List<Map<String, dynamic>>? history,
+  }) async* {
+    final List<String> keys = [];
+    final userKey = SettingsService().geminiApiKey.trim();
+    if (userKey.isNotEmpty) {
+      keys.add(userKey);
+    }
+    keys.addAll(getGeminiApiKeys());
+
+    if (keys.isEmpty) {
+      yield "No Gemini API keys found. Please set one in Settings.";
+      return;
+    }
+
+    for (var key in keys) {
+      try {
+        final model = GenerativeModel(
+          model: 'gemini-3.5-flash',
+          apiKey: key.trim(),
+          systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
+        );
+
+        final List<Content> chatHistory = [];
+        if (history != null && history.isNotEmpty) {
+          for (final msg in history) {
+            final isUser = msg['isUser'] == true;
+            final text = (msg['text'] as String? ?? '').trim();
+            if (text.isEmpty) continue;
+            // Clean up navigation tags before sending to chat history
+            final cleanText = isUser ? text : text.replaceAll(RegExp(r'\[NAVIGATE:[^\]]+\]'), '').trim();
+            if (cleanText.isEmpty) continue;
+            
+            chatHistory.add(Content(
+              isUser ? 'user' : 'model',
+              [TextPart(cleanText)],
+            ));
+          }
+        }
+
+        final chat = model.startChat(history: chatHistory);
+        final responseStream = chat.sendMessageStream(Content.text(prompt));
+        
+        await for (final chunk in responseStream) {
+          final token = chunk.text;
+          if (token != null) {
+            yield token;
+          }
+        }
+        
+        // Successfully streamed response, exit key loop
+        return;
+      } catch (e) {
+        debugPrint('[Gemini Online Stream] Error with key: $e');
+        // Fall through to try the next key
+      }
+    }
+    
+    yield "Connection error with Gemini. Please check your network.";
+  }
+
   String _getOllamaBaseUrl() {
     if (Platform.isAndroid) {
       return "http://10.0.2.2:11434";
@@ -634,58 +697,35 @@ class RagService {
     final userPrompt = _buildUserPrompt(rawQuestion, context);
     final systemPrompt = _getSystemInstruction(userName, mobilityAid);
 
-    final lang = SettingsService().selectedLanguage;
-    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-    final modelPath = await _getLocalModelPath();
-
-    if (isFilipino) {
-      // Use Online Gemini for Filipino/Tagalog language S01
-      try {
-        final onlineRes = await askBuddyGemini(rawQuestion, userName, mobilityAid);
-        yield onlineRes;
-      } catch (e) {
-        yield generateSmartLocalResponse(rawQuestion);
+    final StringBuffer buf = StringBuffer();
+    bool yieldedAnything = false;
+    try {
+      await for (final token in _queryGeminiOnlineStream(
+        userPrompt,
+        systemInstruction: systemPrompt,
+        history: history,
+      )) {
+        buf.write(token);
+        yield token;
+        yieldedAnything = true;
       }
+    } catch (_) {}
+
+    final response = buf.toString().trim();
+    final printable = response.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
+    final isError = response.toLowerCase().contains('no gemini api key') ||
+        response.toLowerCase().contains('connection error') ||
+        response.toLowerCase().contains('failed to') ||
+        response.toLowerCase().contains('error with key');
+    
+    if (!yieldedAnything || printable.length < 5 || isError) {
+      yield generateSmartLocalResponse(rawQuestion);
     } else {
-      // Use Local Gemma for English S01, with smart fallback guard
-      if (modelPath != null) {
-        final StringBuffer buf = StringBuffer();
-        bool yieldedAnything = false;
-        try {
-          await for (final token in _queryGemmaOfflineStream(
-            userPrompt,
-            systemInstruction: systemPrompt,
-            history: history,
-          )) {
-            buf.write(token);
-            yield token;
-            yieldedAnything = true;
-          }
-        } catch (_) {}
-
-      // Fallback guard: if Gemma yielded nothing, only garbage (< 5 printable chars), or an error string S01
-        final response = buf.toString().trim();
-        final printable = response.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
-        final isError = response.toLowerCase().startsWith('local gemma') ||
-            response.toLowerCase().startsWith('buddy local llm') ||
-            response.toLowerCase().startsWith('failed to') ||
-            response.toLowerCase().startsWith('no response');
-        if (!yieldedAnything || printable.length < 5 || isError) {
-          yield generateSmartLocalResponse(rawQuestion);
-        }
-      } else {
-        // No model file — use smart local response directly S01
-        yield generateSmartLocalResponse(rawQuestion);
-      }
+      _logToJournal(rawQuestion, response);
     }
   }
 
   Future<String> askBuddyLocalOnly(String question) async {
-    final modelPath = await _getLocalModelPath();
-    if (modelPath == null) {
-      return generateSmartLocalResponse(question);
-    }
-
     final lowerQ = question.toLowerCase();
     final isConversational = question.length < 30 &&
         !lowerQ.contains("reports") &&
@@ -698,13 +738,10 @@ class RagService {
     final userPrompt = _buildUserPrompt(question, context);
     final systemPrompt = _getSystemInstruction("User", "None");
 
-    final lang = SettingsService().selectedLanguage;
-    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-
-    if (isFilipino) {
+    try {
       return await askBuddyGemini(question, "User", "None");
-    } else {
-      return await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
+    } catch (_) {
+      return generateSmartLocalResponse(question);
     }
   }
 

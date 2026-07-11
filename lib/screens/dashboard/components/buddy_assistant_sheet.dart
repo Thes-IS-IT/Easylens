@@ -112,90 +112,81 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
 
     final user = FirebaseService().currentUser;
     final name = user?.displayName ?? "User";
-    final aid = SettingsService().selectedMobilityAid;
     final lang = SettingsService().selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') ||
         lang.toLowerCase().contains('filipino');
 
-    if (isFilipino) {
-      // Force Online Gemini for Filipino/Tagalog language S01
-      final response = await RagService().askBuddyGemini(text, name, aid);
-      if (mounted) {
-        _handleResponseOutput(response, text, lang, isFilipino);
+    // Unify all languages to use online streaming Gemini with api key fallback S01
+    // Build a history slice of the last 3 turns (6 messages) for multi-turn context S01
+    // Exclude the current user message (just added) — that is the new query
+    final historySlice = _messages.length > 1
+        ? _messages
+            .sublist(0, _messages.length - 1) // all except the last (current user msg)
+            .where((m) => (m['text'] as String? ?? '').trim().isNotEmpty)
+            .toList()
+            .reversed
+            .take(6) // 3 back-and-forth turns
+            .toList()
+            .reversed
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    int assistantMsgIndex = -1;
+    setState(() {
+      _messages.add({'text': '', 'isUser': false});
+      _isThinking = false;
+      _isStreaming = true;
+      assistantMsgIndex = _messages.length - 1;
+    });
+
+    String accumulatedText = '';
+    bool errorDetected = false;
+    DateTime lastUpdate = DateTime.now();
+
+    await for (final token in RagService().askBuddyStream(
+      text,
+      userName: name,
+      history: historySlice,
+    )) {
+      if (!mounted) break;
+
+      // Detect if an error occurred and the fallback response is starting S01
+      final combined = accumulatedText + token;
+      final isModelError = combined.toLowerCase().contains('no gemini api key') ||
+          combined.toLowerCase().contains('connection error') ||
+          combined.toLowerCase().contains('failed to') ||
+          combined.toLowerCase().contains('error with key');
+      if (isModelError && !errorDetected) {
+        // Reset bubble — fallback will be the next meaningful yield
+        errorDetected = true;
+        accumulatedText = '';
+        continue;
       }
-    } else {
-      // Force local Gemma for English language S01 (Streaming)
-      // Build a history slice of the last 3 turns (6 messages) for multi-turn context S01
-      // Exclude the current user message (just added) — that is the new query
-      final historySlice = _messages.length > 1
-          ? _messages
-              .sublist(0, _messages.length - 1) // all except the last (current user msg)
-              .where((m) => (m['text'] as String? ?? '').trim().isNotEmpty)
-              .toList()
-              .reversed
-              .take(6) // 3 back-and-forth turns
-              .toList()
-              .reversed
-              .toList()
-          : <Map<String, dynamic>>[];
-
-      int assistantMsgIndex = -1;
-      setState(() {
-        _messages.add({'text': '', 'isUser': false});
-        _isThinking = false;
-        _isStreaming = true;
-        assistantMsgIndex = _messages.length - 1;
-      });
-
-      String accumulatedText = '';
-      bool gemmaErrorDetected = false;
-      DateTime lastUpdate = DateTime.now();
-
-      await for (final token in RagService().askBuddyStream(
-        text,
-        userName: name,
-        history: historySlice,
-      )) {
-        if (!mounted) break;
-
-        // Detect if Gemma errored and the fallback response is starting S01
-        final combined = accumulatedText + token;
-        final isGemmaError = combined.toLowerCase().startsWith('local gemma') ||
-            combined.toLowerCase().startsWith('buddy local llm') ||
-            combined.toLowerCase().startsWith('failed to') ||
-            combined.toLowerCase().startsWith('no response');
-        if (isGemmaError && !gemmaErrorDetected) {
-          // Reset bubble — fallback will be the next meaningful yield
-          gemmaErrorDetected = true;
-          accumulatedText = '';
-          continue;
-        }
-        if (gemmaErrorDetected) {
-          // We are now accumulating the clean fallback text
-          accumulatedText = token;
-          gemmaErrorDetected = false;
-        } else {
-          accumulatedText += token;
-        }
-
-        final now = DateTime.now();
-        if (now.difference(lastUpdate) > const Duration(milliseconds: 80)) {
-          setState(() {
-            _messages[assistantMsgIndex]['text'] = accumulatedText;
-          });
-          _scrollToBottom();
-          lastUpdate = now;
-        }
+      if (errorDetected) {
+        // We are now accumulating the clean fallback text
+        accumulatedText = token;
+        errorDetected = false;
+      } else {
+        accumulatedText += token;
       }
 
-      if (mounted) {
+      final now = DateTime.now();
+      if (now.difference(lastUpdate) > const Duration(milliseconds: 80)) {
         setState(() {
           _messages[assistantMsgIndex]['text'] = accumulatedText;
-          _isStreaming = false;
         });
         _scrollToBottom();
-        _handleResponseOutput(accumulatedText, text, lang, isFilipino, updateIndex: assistantMsgIndex);
+        lastUpdate = now;
       }
+    }
+
+    if (mounted) {
+      setState(() {
+        _messages[assistantMsgIndex]['text'] = accumulatedText;
+        _isStreaming = false;
+      });
+      _scrollToBottom();
+      _handleResponseOutput(accumulatedText, text, lang, isFilipino, updateIndex: assistantMsgIndex);
     }
   }
 
