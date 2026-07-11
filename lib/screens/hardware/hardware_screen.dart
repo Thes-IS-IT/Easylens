@@ -1267,7 +1267,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
           selectedSim = _hazardSimulations[6]; // Vehicle
         } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
           selectedSim = _hazardSimulations[3]; // Stairs
-        } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel.contains('board') || topLabel.contains('billboard') || topLabel.contains('banner')) {
+        } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel == 'board' || topLabel.contains('signboard') || topLabel.contains('billboard') || topLabel.contains('banner')) {
           try {
             final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
             final String signText = recognizedText.text.toUpperCase();
