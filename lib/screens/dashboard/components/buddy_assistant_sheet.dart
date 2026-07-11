@@ -71,6 +71,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> {
 
   @override
   void dispose() {
+    RagService().clearGemmaSession();
     TtsService().stop();
     _textController.dispose();
     _scrollController.dispose();

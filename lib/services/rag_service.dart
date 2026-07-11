@@ -203,6 +203,12 @@ class RagService {
   }
 
   final _gemmaMutex = _Mutex();
+  dynamic _gemmaSession;
+
+  void clearGemmaSession() {
+    _gemmaSession = null;
+    print("[Gemma] Local session cleared.");
+  }
 
   Future<String> _queryGemmaOffline(String prompt) async {
     return _gemmaMutex.protect(() async {
@@ -225,13 +231,16 @@ class RagService {
           _isGemmaModelInstalled = true;
         }
 
-        final model = await FlutterGemma.getActiveModel(maxTokens: 150);
-        final session = await model.createSession();
-        await session.addQueryChunk(Message(text: prompt, isUser: true));
-        final response = await session.getResponse();
-        await session.close();
+        if (_gemmaSession == null) {
+          final model = await FlutterGemma.getActiveModel(maxTokens: 150);
+          _gemmaSession = await model.createSession();
+        }
+
+        await _gemmaSession.addQueryChunk(Message(text: prompt, isUser: true));
+        final response = await _gemmaSession.getResponse();
         return response ?? "No response from offline local model.";
       } catch (e) {
+        _gemmaSession = null; // Reset on failure so it can be re-created
         return "Local Gemma LLM failed: $e";
       }
     });
