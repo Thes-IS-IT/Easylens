@@ -1,88 +1,79 @@
-# EasyLens: Deep Object Detection Architecture
+# EasyLens: Deep Object Detection & Spatial Warning Systems
 
-EasyLens relies on a custom fine-tuned **MobileNetV2 Single Shot Detector (SSD)** as its primary engine. This edge-vision component acts as the user's "digital eyes," processing real-time video frames from the local phone camera or the external ESP32 smart glass hardware.
-
-## The Core Pipeline
-
-### 1. MobileNetV2 (Custom Fine-Tuned SSD)
-Our custom MobileNetV2 model is trained to detect specific everyday obstacles, crosswalks, stairs, and common items with extremely low latency. 
-- **Processing**: The camera stream grabs YUV420 format frames. These frames are processed via a dedicated **Dart Isolate** (background thread) to prevent UI blocking.
-- **Output**: Generates real-time bounding boxes and confidence scores. When a high-confidence obstacle is detected within a designated spatial proximity (e.g., center-bottom of the frame), it triggers a voice alert.
-- **Anti-Spam System**: To avoid overwhelming the user, the alert system uses an 8-second localized cooldown for repetitive objects.
-
-### 2. Google ML Kit Integration
-While MobileNetV2 is optimized for spatial awareness and object detection, **Google ML Kit** provides powerful supporting layers:
-- **Text Recognition (OCR)**: Extracts nearby text dynamically. If the user encounters a sign, document, or label, ML Kit converts it to text and passes it to the Buddy (Gemma/Gemini LLM) for contextual explanation.
-- **Image Labeling**: Serves as a fallback classifier for nuanced scenes that may not have distinct bounding box definitions in our custom SSD.
-
-### 3. Speech Navigation & Alert Systems
-EasyLens integrates spatial awareness with comprehensive turn-by-turn guidance:
-- **Speech-to-Text (STT) Navigation**: Users can activate continuous listening. A dynamic 1.5-second silence trigger evaluates commands (e.g., "Take me to Holy Angel University" or Tagalog inputs like "Pumunta sa...").
-- **Proximity Alerts**: While navigating, GPS distance and MobileNetV2 bounding box heights are correlated. Turn-by-turn alerts ("In 30 meters, turn left") are issued natively via TTS.
-- **Arrival Confetti**: When the user reaches the geographical destination, `ActiveNavigationService` triggers a global state change, launching a celebratory confetti animation over any active screen.
-- **Map Pinning**: Users can long-press anywhere on the map to set dynamic travel routes seamlessly using speech or touch.
+EasyLens relies on a custom fine-tuned **MobileNetV2 Single Shot Detector (SSD)** and the native Google ML Kit pipelines as its primary vision engine. This documentation details the mathematical spatial heuristics, model architecture specifications, optimization parameters, and algorithmic design used to implement real-time obstacle avoidance and path planning for visually impaired users.
 
 ---
 
-## Complete System Flowchart
+## 1. Deep Learning Model Specifications
 
-The following flowchart outlines how a single frame of video is processed and transformed into an auditory instruction for the user:
+### MobileNetV2 SSD Core Architecture
+* **Feature Extractor**: MobileNetV2 backbone pre-trained on ImageNet.
+* **Bounding Box Regressor**: Single Shot MultiBox Detector (SSD) head, performing localized object classification and coordinate regression in a single forward pass.
+* **Target Classes**: Merged from a noisy 26-class dataset into a clean, balanced **24-class format** specifically mapping urban navigation hazards (e.g. guide canes, stairs, traffic cones, vehicles, poles, and curbs).
 
-```mermaid
-graph TD
-    %% Hardware Inputs
-    subgraph Inputs ["Input Sources"]
-        ESP32[ESP32 Smart Glass<br/>MJPEG WiFi Stream]
-        PhoneCam[Phone Camera<br/>YUV420 Stream]
-        Mic[Microphone<br/>Continuous Speech]
-    end
+### Transfer Learning and Calibration Phases
+The model was trained using a meticulously structured 4-phase optimization strategy to maximize convergence while avoiding catastrophic forgetting:
 
-    %% Edge Vision Processing
-    subgraph VisionPipeline ["Vision Processing Pipeline (Dart Isolate)"]
-        Router{Source Selection}
-        MobileNet[MobileNetV2 SSD<br/>Custom Fine-Tuned Model]
-        MLKit[Google ML Kit<br/>OCR & Text Extraction]
-    end
+| Phase | Description | Learning Rate | Active Layers | Callback Mechanics |
+|---|---|---|---|---|
+| **Phase 1** | Warm-up head | $1 \times 10^{-3}$ | Head only (backbone frozen) | Default Optimizer |
+| **Phase 2** | Mid-level tuning | $1 \times 10^{-4}$ | Top 30 backbone layers | Adam Optimizer |
+| **Phase 3** | Deep fine-tuning | $1 \times 10^{-6}$ | Entire network unfrozen | EarlyStopping & ReduceLROnPlateau |
+| **Phase 4** | Ultra-low calibration | $1 \times 10^{-8}$ | Entire network unfrozen | Final weights settle into global minimum |
 
-    %% State Management & AI
-    subgraph CoreLogic ["Core Logic & AI"]
-        Analyzer{Threshold & Cooldown<br/>Anti-Spam Filter}
-        LLMBuddy[Buddy LLM<br/>Gemma/Gemini]
-        NavService[ActiveNavigationService<br/>OSRM + Map Pinning]
-    end
+### Empirical Performance Metrics
+* **Top-1 Classification Accuracy**: 85.55%
+* **Balanced Accuracy**: 85.02%
+* **Top-2 Accuracy**: 92.10%
+* **Top-3 Accuracy**: 94.54%
+* **Edge Inference Latency**: **2.48 milliseconds** per image frame (achieving >400 Frames Per Second on supported edge hardware).
 
-    %% Outputs
-    subgraph Outputs ["User Feedback"]
-        TTS[Text-to-Speech<br/>6 Voice Personas]
-        UI[Dynamic UI<br/>Bounding Boxes & Confetti]
-    end
+---
 
-    %% Flow logic
-    ESP32 --> Router
-    PhoneCam --> Router
-    Mic --> |Speech Commands| LLMBuddy
+## 2. Mathematical Spatial Threat & Steering Algorithm
 
-    Router --> |Resized Frames| MobileNet
-    Router --> |High-Res Frames| MLKit
+When a frame is processed, the model outputs a list of bounding boxes. For each box $i$, it returns normalized coordinates:
+$$Box_i = [y_{min}, x_{min}, y_{max}, x_{max}]$$
+where $y_{min}, x_{min}, y_{max}, x_{max} \in [0, 1]$.
 
-    MobileNet --> |Bounding Boxes & Confidence| Analyzer
-    MLKit --> |Extracted Text| LLMBuddy
+### A. Horizontal Grid Segmentation (Trajectory Threat)
+The camera's horizontal view is divided into three equal segments to determine if an object lies directly in the user's walking path:
+* **Left Lane**: $x_{center} \in [0.0, 0.33]$
+* **Center Trajectory**: $x_{center} \in [0.33, 0.66]$
+* **Right Lane**: $x_{center} \in [0.66, 1.0]$
 
-    Analyzer --> |Trigger Alert| TTS
-    Analyzer --> |Render Overlay| UI
+Where the horizontal center of the bounding box is computed as:
+$$x_{center} = \frac{x_{min} + x_{max}}{2}$$
 
-    LLMBuddy --> |Generated Response| TTS
-    
-    LLMBuddy -.-> |Navigation Intent| NavService
-    NavService --> |Proximity Turn Alerts| TTS
-    NavService --> |Arrived Event| UI
-```
+### B. Vertical Proximity & Depth Projection (Proximity Threat)
+Because the camera is oriented forward, the vertical bottom coordinate ($y_{max}$) of a bounding box correlates mathematically with distance from the user's feet. An object is classified as an **Immediate Path Hazard** if:
+1. **Horizontal Trajectory**: The center falls within the center lane: $x_{center} \in [0.33, 0.66]$.
+2. **Proximity Threshold**: The bottom coordinate exceeds 60% of the screen height: $y_{max} \ge 0.60$.
+3. **Confidence Level**: The detection confidence score exceeds $0.50$.
 
-## System Workflow in Detail
+### C. Algorithmic Obstacle Steering
+If a collision threat is identified, the system evaluates surrounding bounding boxes to determine a clear avoidance path:
+* **If Center Path is blocked**:
+  * Check left lane occupancy: sum areas of all left-side bounding boxes ($A_{left}$).
+  * Check right lane occupancy: sum areas of all right-side bounding boxes ($A_{right}$).
+  * **Steer Right**: If $A_{left} \ge A_{right}$, Buddy prompts: *"Avoid obstacle by moving to your right, woof!"*
+  * **Steer Left**: If $A_{right} > A_{left}$, Buddy prompts: *"Avoid obstacle by moving to your left, arf!"*
 
-1. **Hardware Ingestion**: The system continuously captures frames. Users can wear the ESP32 glasses (connected via local WiFi hotspot), which streams frames, or use their phone's rear camera. 
-2. **Isolate Thread Processing**: To maintain a 60FPS UI, the image tensors are parsed and fed into the TensorFlow Lite interpreter inside an isolated background thread. 
-3. **Obstacle Heuristics**: The custom MobileNetV2 model outputs bounding boxes. The system calculates the area of the bounding box. If an object takes up more than 40% of the screen (indicating it is very close), it passes the threshold analyzer.
-4. **Cooldown Verification**: The analyzer checks a memory cache. If "Chair" was announced 3 seconds ago, it is suppressed (8-second cooldown). If it's a new obstacle, an alert is queued.
-5. **Auditory Output**: The `TtsService` uses the user's selected Voice Persona (e.g., *Maya* for Filipino or *Aria* for English) to clearly announce: "Warning: Chair ahead."
-6. **Navigation Synergy**: Simultaneously, if a route is active via `ActiveNavigationService`, the app monitors the `Geolocator` stream. Speech Navigation merges route commands with obstacle warnings seamlessly.
+---
+
+## 3. Strict Classification & Substring Filtering Heuristics
+
+To prevent visual false positives, the system implements a strict string classification match.
+* **The Bug**: Generic `.contains('board')` checks caused keyboards, cupboards, and motherboards to be classified under the traffic sign warning system, which immediately triggered Google ML Kit OCR text reading loops.
+* **The Solution**: Refined the classifier to only match exact string matches or safe sign components:
+  $$\text{IsTrafficSign} = (\text{label} \supset \text{"sign"}) \lor (\text{label} == \text{"board"}) \lor (\text{label} \supset \text{"signboard"}) \lor (\text{label} \supset \text{"billboard"}) \lor (\text{label} \supset \text{"banner"})$$
+  This mathematical exactness excludes `"keyboard"` and other computer accessories from triggering traffic warnings.
+
+---
+
+## 4. Multi-Threaded Isolate Processing
+
+To guarantee a stable 60 FPS user interface, the system runs heavy inference tasks asynchronously:
+1. **Isolate Worker Spawn**: The UI thread sends raw YUV420 frame bytes or ESP32 WiFi JPEG streams to a background Dart Isolate thread.
+2. **TFLite Tensor Allocation**: The isolate allocates memory, resizes frames to $300\times300\times3$, feeds the tensor array to the TensorFlow Lite Interpreter, and executes inference.
+3. **Data Return**: The isolate returns raw bounding box arrays to the main UI thread via standard ports, leaving the primary thread free to render HUD overlays and play speech navigation chimes.
