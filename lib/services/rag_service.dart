@@ -58,19 +58,43 @@ class RagService {
       keywords: ["firebase", "auth", "storage", "database", "save", "signup"],
     ),
   ];
+  
+  // In-memory inverted index database mapping keywords to items for O(1) query lookups S01
+  final Map<String, List<KnowledgeItem>> _invertedIndex = {};
 
   Future<void> loadKnowledgeBase() async {
     try {
       final jsonText = await rootBundle.loadString('assets/models/buddy_knowledge.json');
       final List<dynamic> data = jsonDecode(jsonText);
       _localKnowledgeBase = data.map((item) => KnowledgeItem(
-        title: item['title'],
-        content: item['content'],
-        keywords: List<String>.from(item['keywords']),
+        title: item['title'] ?? '',
+        content: item['content'] ?? '',
+        keywords: List<String>.from(item['keywords'] ?? []),
       )).toList();
-      print('[RAG] Loaded ${_localKnowledgeBase.length} knowledge items from JSON asset file');
+
+      // Index knowledge items by lowercase keywords
+      _invertedIndex.clear();
+      for (var item in _localKnowledgeBase) {
+        for (var kw in item.keywords) {
+          final cleanKw = kw.toLowerCase().trim();
+          if (cleanKw.isNotEmpty) {
+            _invertedIndex.putIfAbsent(cleanKw, () => []).add(item);
+          }
+        }
+      }
+      print('[RAG] Loaded ${_localKnowledgeBase.length} knowledge items and built inverted index database.');
     } catch (e) {
       print('[RAG] Error loading knowledge JSON asset: $e. Falling back to default list.');
+      // Index fallback list
+      _invertedIndex.clear();
+      for (var item in _localKnowledgeBase) {
+        for (var kw in item.keywords) {
+          final cleanKw = kw.toLowerCase().trim();
+          if (cleanKw.isNotEmpty) {
+            _invertedIndex.putIfAbsent(cleanKw, () => []).add(item);
+          }
+        }
+      }
     }
   }
 
@@ -250,14 +274,17 @@ class RagService {
   }
 
   Stream<String> _queryGemmaOfflineStream(String prompt, {String? systemInstruction}) async* {
-    try {
-      final modelPath = await _getLocalModelPath();
-      if (modelPath == null) {
-        yield "Buddy local LLM Offline: Model file not found.";
-        return;
-      }
+    final modelPath = await _getLocalModelPath();
+    if (modelPath == null) {
+      yield "Buddy local LLM Offline: Model file not found.";
+      return;
+    }
 
-      final sessionFuture = _gemmaMutex.protect(() async {
+    final controller = StreamController<String>();
+
+    // Queue the entire model initialization and streaming process behind the mutex
+    _gemmaMutex.protect(() async {
+      try {
         if (!_gemmaInitialized) {
           await FlutterGemma.initialize();
           await FlutterGemma.installModel(
@@ -270,33 +297,20 @@ class RagService {
         final model = await FlutterGemma.getActiveModel(maxTokens: 256);
         final session = await model.createSession(systemInstruction: systemInstruction);
         await session.addQueryChunk(Message(text: prompt, isUser: true));
-        return session;
-      });
-
-      dynamic session;
-      try {
-        session = await sessionFuture;
-      } catch (e) {
-        yield "Local Gemma LLM failed: $e";
-        return;
-      }
-
-      final streamDone = Completer<void>();
-      _gemmaMutex.protect(() => streamDone.future);
-
-      try {
+        
         await for (final token in session.getResponseAsync()) {
           if (token != null) {
-            yield token;
+            controller.add(token);
           }
         }
+      } catch (e) {
+        controller.add("Local Gemma LLM failed: $e");
       } finally {
-        streamDone.complete();
-        await Future.microtask(() {});
+        controller.close();
       }
-    } catch (e) {
-      yield "Local Gemma LLM failed: $e";
-    }
+    });
+
+    yield* controller.stream;
   }
 
   String _getOllamaBaseUrl() {
@@ -362,29 +376,39 @@ class RagService {
     }
   }
 
-  // A lightweight keyword-based RAG search
+  // A lightweight keyword-based RAG search using inverted index database mapping
   String retrieveContext(String query) {
     final cleanQuery = query.toLowerCase();
     final List<String> matchedContents = [];
+    final Set<KnowledgeItem> uniqueMatches = {};
 
-    for (var item in _localKnowledgeBase) {
-      bool match = false;
-      for (var kw in item.keywords) {
-        if (cleanQuery.contains(kw)) {
-          match = true;
-          break;
+    // Tokenize query words
+    final words = cleanQuery.split(RegExp(r'[\s,.\-!?]+'));
+    for (var word in words) {
+      if (word.length < 2) continue; // Skip very short tokens to avoid false positives
+
+      // 1. Direct O(1) keyword index lookup
+      if (_invertedIndex.containsKey(word)) {
+        uniqueMatches.addAll(_invertedIndex[word]!);
+      }
+
+      // 2. Substring keyword matches
+      for (var key in _invertedIndex.keys) {
+        if (key.contains(word) || word.contains(key)) {
+          uniqueMatches.addAll(_invertedIndex[key]!);
         }
       }
-      if (match) {
-        matchedContents.add("[${item.title}]: ${item.content}");
-      }
+    }
+
+    for (var item in uniqueMatches) {
+      matchedContents.add("[${item.title}]: ${item.content}");
     }
 
     if (matchedContents.isEmpty) {
       return "Buddy is the EasyLens vision assistant. Provide helpful, short answers to describe items or environments.";
     }
 
-    // Limit matched contents to at most 2 items S01
+    // Limit matched contents to at most 2 items S01 to avoid prompt bloat and OOM crashes
     final limitedMatches = matchedContents.take(2).toList();
     return limitedMatches.join("\n\n");
   }

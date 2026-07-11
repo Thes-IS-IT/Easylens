@@ -195,8 +195,8 @@ $newInsight
     final List<String> contexts = [];
     try {
       final journals = await getJournalsList();
-      // Look at the last 5 days of journals to avoid bloating the context
-      final recentJournals = journals.take(5).toList();
+      // Look at the last 1 day of journals to avoid bloating the context and causing OOM crashes
+      final recentJournals = journals.take(1).toList();
 
       final results = await Future.wait(recentJournals.map((journal) async {
         final file = journal['file'] as File;

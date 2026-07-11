@@ -433,7 +433,7 @@ Buddy:
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         border: Border.all(color: AppColors.unselectedBorder, width: 1.5),
       ),
-      height: MediaQuery.of(context).size.height * 0.75,
+      height: MediaQuery.of(context).size.height * 0.85,
       child: Column(
         children: [
           // ── Handler bar ────────────────────────────────────────────────
