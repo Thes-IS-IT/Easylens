@@ -225,7 +225,7 @@ class RagService {
       if (modelPath != null) {
         await _ensureGemmaInitialized(modelPath);
         // Warm up and load model weight files into memory S01
-        await FlutterGemma.getActiveModel(maxTokens: 150);
+        await FlutterGemma.getActiveModel(maxTokens: 1024);
         print("[Gemma] Real on-device engine initialized and warmed up successfully from $modelPath.");
       }
     } catch (e) {
@@ -291,7 +291,7 @@ class RagService {
 
       await _ensureGemmaInitialized(modelPath).timeout(const Duration(seconds: 8));
 
-      final model = await FlutterGemma.getActiveModel(maxTokens: 150);
+      final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
       final session = await model.createSession();
       final finalPrompt = systemInstruction != null
           ? "<start_of_turn>user\nInstruction: $systemInstruction\n\n$prompt<end_of_turn>\n<start_of_turn>model\n"
@@ -328,7 +328,7 @@ class RagService {
       try {
         await _ensureGemmaInitialized(modelPath).timeout(const Duration(seconds: 8));
 
-        final model = await FlutterGemma.getActiveModel(maxTokens: 150);
+        final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
         final session = await model.createSession();
 
         // Replay prior turns so Gemma maintains conversation memory S01
