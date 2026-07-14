@@ -315,41 +315,53 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
     }
 
     // 3. Fall back to scanning the LLM response context for screen keywords combined with navigation advice
-    if (response.contains('settings tab') || response.contains('settings screen') || response.contains('tap "settings"') || response.contains('go to the settings') || response.contains('go to settings')) {
-      return 'settings';
-    }
-    if (response.contains('notification') || response.contains('alerts')) {
-      if (response.contains('open') || response.contains('go to') || response.contains('check')) {
-        return 'notifications';
+    final hasGoDirective = response.contains('open') || 
+                           response.contains('go to') || 
+                           response.contains('navigate to') || 
+                           response.contains('switch to') || 
+                           response.contains('launch') || 
+                           response.contains('tap') || 
+                           response.contains('show') || 
+                           response.contains('pumunta') || 
+                           response.contains('buksan');
+
+    if (hasGoDirective) {
+      if (response.contains('settings tab') || response.contains('settings screen') || response.contains('tap "settings"') || response.contains('go to the settings') || response.contains('go to settings')) {
+        return 'settings';
       }
-    }
-    if (response.contains('contact') || response.contains('phonebook') || response.contains('contacts')) {
-      if (response.contains('open') || response.contains('go to') || response.contains('call') || response.contains('tap')) {
-        return 'contacts';
+      if (response.contains('notification') || response.contains('alerts')) {
+        if (response.contains('open') || response.contains('go to') || response.contains('check')) {
+          return 'notifications';
+        }
       }
-    }
-    if (response.contains('emergency') || response.contains('sos')) {
-      if (response.contains('open') || response.contains('go to') || response.contains('trigger') || response.contains('call')) {
-        return 'emergency';
+      if (response.contains('contact') || response.contains('phonebook') || response.contains('contacts')) {
+        if (response.contains('open') || response.contains('go to') || response.contains('call') || response.contains('tap')) {
+          return 'contacts';
+        }
       }
-    }
-    if (response.contains('home tab') || response.contains('dashboard') || response.contains('main screen')) {
-      return 'home';
-    }
-    if (response.contains('audio navigation') || response.contains('nav tab') || response.contains('gps')) {
-      return 'nav';
-    }
-    if (response.contains('sensor') || response.contains('camera tab') || response.contains('hardware')) {
-      return 'hardware';
-    }
-    if (response.contains('text scanner') || response.contains('scan text') || response.contains('ocr')) {
-      return 'text';
-    }
-    if (response.contains('object detector') || response.contains('detect objects') || response.contains('object detection')) {
-      return 'objects';
-    }
-    if (response.contains('journal') || response.contains('diary') || response.contains('logs') || response.contains('insights')) {
-      return 'journal';
+      if (response.contains('emergency') || response.contains('sos')) {
+        if (response.contains('open') || response.contains('go to') || response.contains('trigger') || response.contains('call')) {
+          return 'emergency';
+        }
+      }
+      if (response.contains('home tab') || response.contains('dashboard') || response.contains('main screen')) {
+        return 'home';
+      }
+      if (response.contains('audio navigation') || response.contains('nav tab') || response.contains('gps')) {
+        return 'nav';
+      }
+      if (response.contains('sensor') || response.contains('camera tab') || response.contains('hardware')) {
+        return 'hardware';
+      }
+      if (response.contains('text scanner') || response.contains('scan text') || response.contains('ocr')) {
+        return 'text';
+      }
+      if (response.contains('object detector') || response.contains('detect objects') || response.contains('object detection')) {
+        return 'objects';
+      }
+      if (response.contains('journal') || response.contains('diary') || response.contains('logs') || response.contains('insights')) {
+        return 'journal';
+      }
     }
 
     return null;
