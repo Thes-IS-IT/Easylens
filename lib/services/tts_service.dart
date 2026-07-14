@@ -277,6 +277,11 @@ class TtsService {
         rate = 0.48;
         await _setDeviceVoiceByGender('female');
         break;
+      case 'Leo (Child)':
+        pitch = 1.45;
+        rate = 0.50;
+        await _setDeviceVoiceByGender('female');
+        break;
       default:
         pitch = 1.0;
         rate = 0.5;

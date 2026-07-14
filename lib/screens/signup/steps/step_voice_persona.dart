@@ -20,6 +20,7 @@ class StepVoicePersona extends StatelessWidget {
     {'name': 'Nova (Bright)', 'desc': 'Energetic, friendly, and enthusiastic.'},
     {'name': 'Echo (Deep)', 'desc': 'Low baritone voice with strong echoes.'},
     {'name': 'Bella (Gentle)', 'desc': 'Quiet, slow-paced directions for focus.'},
+    {'name': 'Leo (Child)', 'desc': 'Cheerful and youthful child voice.'},
   ];
 
   @override

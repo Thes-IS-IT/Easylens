@@ -256,11 +256,7 @@ class RagService {
       try {
         final modelPath = await _getLocalModelPath();
         if (modelPath == null) {
-          final targetPath = await _getDynamicSavePath();
-          return "Buddy local LLM Offline Instructions:\n\n"
-              "1. Run this ADB command on your Mac to push the model file to the device:\n"
-              "   adb push model.bin $targetPath\n"
-              "2. Restart the app to run fully offline Gemma AI!";
+          return generateSmartLocalResponse(prompt);
         }
 
         if (!_gemmaInitialized) {
@@ -299,7 +295,7 @@ class RagService {
   }) async* {
     final modelPath = await _getLocalModelPath();
     if (modelPath == null) {
-      yield "Buddy local LLM Offline: Model file not found.";
+      yield generateSmartLocalResponse(prompt);
       return;
     }
 
@@ -755,8 +751,7 @@ class RagService {
       if (modelPath != null) {
         responseText = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
       } else {
-        // Fallback instructions if local model is missing
-        responseText = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
+        responseText = generateSmartLocalResponse(rawQuestion);
       }
     }
 
@@ -867,6 +862,29 @@ class RagService {
     final aid = SettingsService().selectedMobilityAid.isNotEmpty
         ? SettingsService().selectedMobilityAid
         : "None";
+
+    // 0. Curated questions and answers
+    if (lowerQ.contains("scan nearby objects") || lowerQ.contains("detect objects") || lowerQ.contains("identify objects") || lowerQ.contains("recognize objects")) {
+      return "Buddy: Arf! Open the camera screen, select Object Detection, and I will identify objects around you. Tap the screen to hear what is in front of you, woof!";
+    }
+    if (lowerQ.contains("read text") || lowerQ.contains("scan text") || lowerQ.contains("ocr") || lowerQ.contains("read signs") || lowerQ.contains("read labels")) {
+      return "Buddy: Woof! Go to the Camera Screen and select Text Scanner (OCR). I will read signs, books, and labels aloud for you, arf!";
+    }
+    if (lowerQ.contains("add a face") || lowerQ.contains("register a face") || lowerQ.contains("face registration") || lowerQ.contains("register face")) {
+      return "Buddy: Arf! Navigate to Settings and tap Face Registration. You can snap a photo to register a face so I can recognize them later, woof!";
+    }
+    if (lowerQ.contains("gps navigation") || lowerQ.contains("how to navigate") || lowerQ.contains("audio directions") || lowerQ.contains("turn-by-turn") || lowerQ.contains("directions")) {
+      return "Buddy: Woof! Open the Nav screen, type or speak your destination, and I will give you turn-by-turn audio directions to guide you safely, arf!";
+    }
+    if (lowerQ.contains("enable gemini") || lowerQ.contains("use gemini") || lowerQ.contains("gemini api") || lowerQ.contains("advanced feature") || lowerQ.contains("enable advanced")) {
+      return "Buddy: Arf! Yes! You can enable Gemini by entering your API key in Settings. Under AI Settings, you can switch between Gemini for advanced capabilities and Local AI for offline use, woof!";
+    }
+    if (lowerQ.contains("what is easylens") || lowerQ.contains("about easylens")) {
+      return "Buddy: EasyLens is an assistive app designed at Holy Angel University to help visually impaired individuals navigate and recognize things around them, arf!";
+    }
+    if (lowerQ.contains("mobility aids") || lowerQ.contains("mobility aid") || lowerQ.contains("wheelchair") || lowerQ.contains("cane")) {
+      return "Buddy: Woof! We support walking canes, wheelchairs, and guide dogs. You can select your mobility aid in the settings profile, arf!";
+    }
 
     // 1. Identity & Name questions
     if (lowerQ.contains("name") || lowerQ.contains("who am i") || lowerQ.contains("know me")) {
