@@ -24,6 +24,19 @@ class KnowledgeItem {
     required this.content,
     required this.keywords,
   });
+
+  bool get isTagalogItem {
+    final titleLower = title.toLowerCase();
+    final contentLower = content.toLowerCase();
+    // Common Tagalog/Filipino stop words
+    final tagalogWords = ['ang', 'mga', 'ng', 'sa', 'si', 'ni', 'para', 'na', 'tampok', 'gabay', 'paggamit', 'pagkakakilanlan', 'isinasalin'];
+    for (var word in tagalogWords) {
+      if (titleLower.contains(RegExp('\\b$word\\b')) || contentLower.contains(RegExp('\\b$word\\b'))) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 class RagService {
@@ -34,8 +47,9 @@ class RagService {
   bool _gemmaInitialized = false;
   bool _isGemmaModelInstalled = false;
 
-  // Cached TF-IDF engine — rebuilt once per knowledge load, not per query S01
-  TfidfEngine? _cachedEngine;
+  // Cached TF-IDF engines split by language to prevent cross-language context leakage
+  TfidfEngine? _cachedEngineEnglish;
+  TfidfEngine? _cachedEngineFilipino;
   bool _engineDirty = true;
 
   List<KnowledgeItem> _localKnowledgeBase = [
@@ -91,7 +105,8 @@ class RagService {
       }
       // Mark engine dirty so it gets rebuilt on next query S01
       _engineDirty = true;
-      _cachedEngine = null;
+      _cachedEngineEnglish = null;
+      _cachedEngineFilipino = null;
       print('[RAG] Loaded ${_localKnowledgeBase.length} knowledge items and built inverted index database.');
     } catch (e) {
       print('[RAG] Error loading knowledge JSON asset: $e. Falling back to default list.');
@@ -105,7 +120,8 @@ class RagService {
         }
       }
       _engineDirty = true;
-      _cachedEngine = null;
+      _cachedEngineEnglish = null;
+      _cachedEngineFilipino = null;
     }
   }
 
@@ -273,7 +289,7 @@ class RagService {
         return generateSmartLocalResponse(prompt);
       }
 
-      await _ensureGemmaInitialized(modelPath);
+      await _ensureGemmaInitialized(modelPath).timeout(const Duration(seconds: 8));
 
       final model = await FlutterGemma.getActiveModel(maxTokens: 150);
       final session = await model.createSession();
@@ -310,7 +326,7 @@ class RagService {
 
     Future.microtask(() async {
       try {
-        await _ensureGemmaInitialized(modelPath);
+        await _ensureGemmaInitialized(modelPath).timeout(const Duration(seconds: 8));
 
         final model = await FlutterGemma.getActiveModel(maxTokens: 150);
         final session = await model.createSession();
@@ -527,7 +543,11 @@ class RagService {
       }
     }
 
-    for (var item in uniqueMatches) {
+    final lang = SettingsService().selectedLanguage;
+    final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+    final filteredMatches = uniqueMatches.where((item) => item.isTagalogItem == isUserFilipino);
+    for (var item in filteredMatches) {
       matchedContents.add("[${item.title}]: ${item.content}");
     }
 
@@ -542,20 +562,39 @@ class RagService {
 
   Future<String> retrieveContextAsync(String query) async {
     try {
-      // 1. Build and cache static knowledge base TF-IDF index once S01
-      if (_cachedEngine == null || _engineDirty) {
-        final freshEngine = TfidfEngine();
-        for (var item in _localKnowledgeBase) {
-          freshEngine.addDocument(item.title, item.content, 'knowledge');
+      final lang = SettingsService().selectedLanguage;
+      final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+      if (isUserFilipino) {
+        if (_cachedEngineFilipino == null || _engineDirty) {
+          final freshEngine = TfidfEngine();
+          for (var item in _localKnowledgeBase) {
+            if (item.isTagalogItem) {
+              freshEngine.addDocument(item.title, item.content, 'knowledge');
+            }
+          }
+          freshEngine.calculateIdfs();
+          _cachedEngineFilipino = freshEngine;
+          _engineDirty = false;
+          print('[RAG] Static Tagalog TF-IDF engine cached.');
         }
-        freshEngine.calculateIdfs();
-        _cachedEngine = freshEngine;
-        _engineDirty = false;
-        print('[RAG] Static TF-IDF engine cached with ${_localKnowledgeBase.length} docs.');
+      } else {
+        if (_cachedEngineEnglish == null || _engineDirty) {
+          final freshEngine = TfidfEngine();
+          for (var item in _localKnowledgeBase) {
+            if (!item.isTagalogItem) {
+              freshEngine.addDocument(item.title, item.content, 'knowledge');
+            }
+          }
+          freshEngine.calculateIdfs();
+          _cachedEngineEnglish = freshEngine;
+          _engineDirty = false;
+          print('[RAG] Static English TF-IDF engine cached.');
+        }
       }
 
-      // 2. Query the static knowledge base engine S01
-      final knowledgeMatches = _cachedEngine!.search(query, limit: 2);
+      final targetEngine = isUserFilipino ? _cachedEngineFilipino : _cachedEngineEnglish;
+      final knowledgeMatches = targetEngine != null ? targetEngine.search(query, limit: 2) : <RagDocument>[];
 
       // 3. Query dynamic journals using a separate tiny temporary engine S01
       final List<RagDocument> journalMatches = [];
@@ -870,65 +909,100 @@ class RagService {
         ? SettingsService().selectedMobilityAid
         : "None";
 
+    final lang = SettingsService().selectedLanguage;
+    final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
     // 0. Curated questions and answers
     if (lowerQ.contains("scan nearby objects") || lowerQ.contains("detect objects") || lowerQ.contains("identify objects") || lowerQ.contains("recognize objects")) {
-      return "Buddy: Arf! Open the camera screen, select Object Detection, and I will identify objects around you. Tap the screen to hear what is in front of you, woof!";
+      return isUserFilipino
+          ? "Buddy: Aw! Buksan ang camera screen, piliin ang Object Detection, at tutukuyin ko ang mga bagay sa paligid mo. I-tap ang screen para marinig kung ano ang nasa harap mo, arf!"
+          : "Buddy: Arf! Open the camera screen, select Object Detection, and I will identify objects around you. Tap the screen to hear what is in front of you, woof!";
     }
     if (lowerQ.contains("read text") || lowerQ.contains("scan text") || lowerQ.contains("ocr") || lowerQ.contains("read signs") || lowerQ.contains("read labels")) {
-      return "Buddy: Woof! Go to the Camera Screen and select Text Scanner (OCR). I will read signs, books, and labels aloud for you, arf!";
+      return isUserFilipino
+          ? "Buddy: Arf! Pumunta sa Camera Screen at piliin ang Text Scanner (OCR). Babasahin ko ang mga karatula, libro, at label nang malakas para sa iyo, aw aw!"
+          : "Buddy: Woof! Go to the Camera Screen and select Text Scanner (OCR). I will read signs, books, and labels aloud for you, arf!";
     }
     if (lowerQ.contains("add a face") || lowerQ.contains("register a face") || lowerQ.contains("face registration") || lowerQ.contains("register face")) {
-      return "Buddy: Arf! Navigate to Settings and tap Face Registration. You can snap a photo to register a face so I can recognize them later, woof!";
+      return isUserFilipino
+          ? "Buddy: Aw! Pumunta sa Settings at i-tap ang Face Registration. Maaari kang kumuha ng larawan para irehistro ang mukha upang makilala ko sila mamaya, arf!"
+          : "Buddy: Arf! Navigate to Settings and tap Face Registration. You can snap a photo to register a face so I can recognize them later, woof!";
     }
     if (lowerQ.contains("gps navigation") || lowerQ.contains("how to navigate") || lowerQ.contains("audio directions") || lowerQ.contains("turn-by-turn") || lowerQ.contains("directions")) {
-      return "Buddy: Woof! Open the Nav screen, type or speak your destination, and I will give you turn-by-turn audio directions to guide you safely, arf!";
+      return isUserFilipino
+          ? "Buddy: Arf! Buksan ang Nav screen, i-type o sabihin ang iyong pupuntahan, at bibigyan kita ng direksyon bawat liko upang gabayan ka nang ligtas, aw aw!"
+          : "Buddy: Woof! Open the Nav screen, type or speak your destination, and I will give you turn-by-turn audio directions to guide you safely, arf!";
     }
     if (lowerQ.contains("enable gemini") || lowerQ.contains("use gemini") || lowerQ.contains("gemini api") || lowerQ.contains("advanced feature") || lowerQ.contains("enable advanced")) {
-      return "Buddy: Arf! Yes! You can enable Gemini by entering your API key in Settings. Under AI Settings, you can switch between Gemini for advanced capabilities and Local AI for offline use, woof!";
+      return isUserFilipino
+          ? "Buddy: Aw! Opo! Maaari mong paganahin ang Gemini sa pamamagitan ng paglalagay ng iyong API key sa Settings. Sa ilalim ng AI Settings, maaari kang magpalipat-lipat sa Gemini para sa advanced na kakayahan at Local AI para sa offline na paggamit, arf!"
+          : "Buddy: Arf! Yes! You can enable Gemini by entering your API key in Settings. Under AI Settings, you can switch between Gemini for advanced capabilities and Local AI for offline use, woof!";
     }
     if (lowerQ.contains("what is easylens") || lowerQ.contains("about easylens")) {
-      return "Buddy: EasyLens is an assistive app designed at Holy Angel University to help visually impaired individuals navigate and recognize things around them, arf!";
+      return isUserFilipino
+          ? "Buddy: Ang EasyLens ay isang assistive app na dinisenyo sa Holy Angel University upang tulungan ang mga taong may kapansanan sa paningin na mag-navigate at makilala ang mga bagay sa kanilang paligid, arf!"
+          : "Buddy: EasyLens is an assistive app designed at Holy Angel University to help visually impaired individuals navigate and recognize things around them, arf!";
     }
     if (lowerQ.contains("mobility aids") || lowerQ.contains("mobility aid") || lowerQ.contains("wheelchair") || lowerQ.contains("cane")) {
-      return "Buddy: Woof! We support walking canes, wheelchairs, and guide dogs. You can select your mobility aid in the settings profile, arf!";
+      return isUserFilipino
+          ? "Buddy: Arf! Sinusuportahan namin ang mga walking cane, wheelchair, at gabay na aso. Maaari mong piliin ang iyong mobility aid sa settings profile, aw aw!"
+          : "Buddy: Woof! We support walking canes, wheelchairs, and guide dogs. You can select your mobility aid in the settings profile, arf!";
     }
 
     // 1. Identity & Name questions
     if (lowerQ.contains("name") || lowerQ.contains("who am i") || lowerQ.contains("know me")) {
-      return "Buddy: Woof! Yes, I know you! You are $name, and you are using the $aid mobility aid. How can I help you today, arf!";
+      return isUserFilipino
+          ? "Buddy: Aw aw! Oo naman, kilala kita! Ikaw si $name, at gumagamit ka ng $aid. Paano kita matutulungan ngayon, arf!"
+          : "Buddy: Woof! Yes, I know you! You are $name, and you are using the $aid mobility aid. How can I help you today, arf!";
     }
     if (lowerQ.contains("who are you") || lowerQ.contains("your name") || lowerQ.contains("who is buddy") || lowerQ.contains("breed") || lowerQ.contains("dog")) {
-      return "Buddy: Arf! I'm Buddy, the friendly Golden Retriever mascot and AI guide dog for the EasyLens app. Woof!";
+      return isUserFilipino
+          ? "Buddy: Arf! Ako si Buddy, ang magiliw na Golden Retriever mascot at AI guide dog ng EasyLens app. Aw aw!"
+          : "Buddy: Arf! I'm Buddy, the friendly Golden Retriever mascot and AI guide dog for the EasyLens app. Woof!";
     }
 
     // 2. Creators & Thesis questions
     if (lowerQ.contains("who made") || lowerQ.contains("developer") || lowerQ.contains("created") || lowerQ.contains("thesis") || lowerQ.contains("author") || lowerQ.contains("architect") || lowerQ.contains("design") || lowerQ.contains("team") || lowerQ.contains("members")) {
-      return "Buddy: Woof! EasyLens was developed by a team of 4th-year Computer Science students at Holy Angel University: Arron Kian Parejas, Jian Kalel Marquez, Graciella Mhervie Jimenez, and Jenica Sarah Tongol, arf!";
+      return isUserFilipino
+          ? "Buddy: Aw aw! Ang EasyLens ay binuo ng pangkat ng mga mag-aaral ng Computer Science sa Holy Angel University: Arron Kian Parejas, Jian Kalel Marquez, Graciella Mhervie Jimenez, at Jenica Sarah Tongol, arf!"
+          : "Buddy: Woof! EasyLens was developed by a team of 4th-year Computer Science students at Holy Angel University: Arron Kian Parejas, Jian Kalel Marquez, Graciella Mhervie Jimenez, and Jenica Sarah Tongol, arf!";
     }
 
     // 3. Greeting questions
     if (lowerQ == "hi" || lowerQ == "hello" || lowerQ == "hey" || lowerQ.contains("kamusta") || lowerQ.contains("kumusta")) {
-      return "Buddy: Woof! Hi $name! I'm ready to help you navigate or answer questions about EasyLens, arf!";
+      return isUserFilipino
+          ? "Buddy: Aw aw! Kumusta si $name! Handa na akong tulungan kang mag-navigate o sumagot ng mga tanong tungkol sa EasyLens, arf!"
+          : "Buddy: Woof! Hi $name! I'm ready to help you navigate or answer questions about EasyLens, arf!";
     }
 
     // 4. Emergency / SOS questions
     if (lowerQ.contains("sos") || lowerQ.contains("emergency") || lowerQ.contains("help")) {
-      return "Buddy: Arf! If you need help, tap the SOS button to send your GPS coordinates to your caregiver contact immediately! [NAVIGATE: emergency]";
+      return isUserFilipino
+          ? "Buddy: Arf! Kung kailangan mo ng tulong, i-tap ang SOS button para ipadala agad ang iyong lokasyon sa iyong caregiver! [NAVIGATE: emergency]"
+          : "Buddy: Arf! If you need help, tap the SOS button to send your GPS coordinates to your caregiver contact immediately! [NAVIGATE: emergency]";
     }
 
     // 5. Navigation target guides
     if (lowerQ.contains("go to") || lowerQ.contains("navigate") || lowerQ.contains("where is") || lowerQ.contains("how to walk")) {
       if (lowerQ.contains("hau") || lowerQ.contains("holy angel")) {
-        return "Buddy: Holy Angel University is at Angeles City, Pampanga (GPS: 15.1325, 120.5901). I can navigate you there! [NAVIGATE: nav]";
+        return isUserFilipino
+            ? "Buddy: Ang Holy Angel University ay nasa Angeles City, Pampanga. Maaari kitang gabayan doon! [NAVIGATE: nav]"
+            : "Buddy: Holy Angel University is at Angeles City, Pampanga (GPS: 15.1325, 120.5901). I can navigate you there! [NAVIGATE: nav]";
       }
       if (lowerQ.contains("auf") || lowerQ.contains("angeles university")) {
-        return "Buddy: Angeles University Foundation is along MacArthur Highway, Angeles City. [NAVIGATE: nav]";
+        return isUserFilipino
+            ? "Buddy: Ang Angeles University Foundation ay nasa MacArthur Highway, Angeles City. [NAVIGATE: nav]"
+            : "Buddy: Angeles University Foundation is along MacArthur Highway, Angeles City. [NAVIGATE: nav]";
       }
       if (lowerQ.contains("sm") || lowerQ.contains("clark")) {
-        return "Buddy: SM City Clark is at M.A. Roxas Highway, Clark Freeport Zone. [NAVIGATE: nav]";
+        return isUserFilipino
+            ? "Buddy: Ang SM City Clark ay nasa M.A. Roxas Highway, Clark Freeport Zone. [NAVIGATE: nav]"
+            : "Buddy: SM City Clark is at M.A. Roxas Highway, Clark Freeport Zone. [NAVIGATE: nav]";
       }
       if (lowerQ.contains("nepo")) {
-        return "Buddy: Nepo Mall is located at St. Joseph Street, Angeles City. [NAVIGATE: nav]";
+        return isUserFilipino
+            ? "Buddy: Ang Nepo Mall ay nasa St. Joseph Street, Angeles City. [NAVIGATE: nav]"
+            : "Buddy: Nepo Mall is located at St. Joseph Street, Angeles City. [NAVIGATE: nav]";
       }
     }
 
@@ -939,6 +1013,9 @@ class RagService {
     int bestScore = 0;
 
     for (var item in _localKnowledgeBase) {
+      if (item.isTagalogItem != isUserFilipino) {
+        continue;
+      }
       int score = 0;
       for (var kw in item.keywords) {
         if (lowerQ.contains(kw.toLowerCase())) {
@@ -960,10 +1037,14 @@ class RagService {
       // Keep it under 2 sentences to stay in character
       final sentences = bestMatch.content.split(RegExp(r'(?<=[.!?])\s+'));
       final summary = sentences.take(2).join(" ");
-      return "Buddy: Woof! According to my database: $summary Arf!";
+      return isUserFilipino
+          ? "Buddy: Aw! Ayon sa aking database: $summary Arf!"
+          : "Buddy: Woof! According to my database: $summary Arf!";
     }
 
-    return "Buddy: Arf! I see a clear pathway ahead. Let me know if you want me to describe the scene, navigate somewhere, or set up emergency alerts, woof!";
+    return isUserFilipino
+        ? "Buddy: Aw aw! Nakikita ko ang malinaw na daan sa unahan. Sabihin mo lang kung nais mong ilarawan ko ang paligid, mag-navigate, o mag-set up ng emergency alert, arf!"
+        : "Buddy: Arf! I see a clear pathway ahead. Let me know if you want me to describe the scene, navigate somewhere, or set up emergency alerts, woof!";
   }
 
   /// Builds a Tagalog-language Gemma prompt.
