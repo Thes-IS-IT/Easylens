@@ -313,7 +313,7 @@ class RagService {
           _isGemmaModelInstalled = true;
         }
 
-        final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
+        final model = await FlutterGemma.getActiveModel(maxTokens: 150);
         final session = await model.createSession();
 
         // Replay prior turns so Gemma maintains conversation memory S01
@@ -790,7 +790,7 @@ class RagService {
     final StringBuffer buf = StringBuffer();
     bool yieldedAnything = false;
     try {
-      if (useLocal && modelPath != null) {
+      if (useLocal) {
         await for (final token in _queryGemmaOfflineStream(
           userPrompt,
           systemInstruction: systemPrompt,

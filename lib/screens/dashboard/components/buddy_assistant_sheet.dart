@@ -559,7 +559,9 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isFilipino ? 'Buddy Lokal AI' : 'Buddy Local AI',
+                          SettingsService().useLocalAI 
+                              ? (isFilipino ? 'Buddy Lokal AI' : 'Buddy Local AI')
+                              : (isFilipino ? 'Buddy Gemini AI' : 'Buddy Gemini AI'),
                           style: GoogleFonts.inter(
                             fontWeight: FontWeight.bold,
                             fontSize: isKeyboardOpen ? 16 : 20,
@@ -585,6 +587,36 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                     );
                   }),
                 ),
+                const SizedBox(width: 8),
+                ActionChip(
+                  backgroundColor: AppColors.lightBackground,
+                  side: BorderSide(color: AppColors.cardBorder.withOpacity(0.3)),
+                  avatar: Icon(
+                    SettingsService().useLocalAI ? Icons.offline_bolt_rounded : Icons.cloud_done_rounded,
+                    size: 16,
+                    color: SettingsService().useLocalAI ? Colors.orange : Colors.green,
+                  ),
+                  label: Text(
+                    SettingsService().useLocalAI ? 'Local' : 'Gemini',
+                    style: GoogleFonts.inter(
+                      fontSize: 12, 
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryText,
+                    ),
+                  ),
+                  onPressed: () {
+                    final newVal = !SettingsService().useLocalAI;
+                    SettingsService().updateSettings(useLocalAI: newVal);
+                    setState(() {});
+                    final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+                        SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                    final msg = newVal
+                        ? (isTagalog ? "Aktibo ang Local AI." : "Local offline AI active.")
+                        : (isTagalog ? "Aktibo ang Gemini AI." : "Gemini online AI active.");
+                    TtsService().speak(msg);
+                  },
+                ),
+                const SizedBox(width: 8),
                 IconButton(
                   icon: Icon(Icons.close, color: AppColors.primaryText),
                   onPressed: () => Navigator.of(context).pop(),
