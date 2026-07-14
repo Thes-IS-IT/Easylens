@@ -1119,8 +1119,8 @@ class RagService {
     }
 
     return isUserFilipino
-        ? "Nakikita ko ang malinaw na daan sa unahan. Sabihin mo lang kung nais mong ilarawan ko ang paligid, mag-navigate, o mag-set up ng emergency alert."
-        : "I see a clear pathway ahead. Let me know if you want me to describe the scene, navigate somewhere, or set up emergency alerts.";
+        ? "Kasalukuyan akong tumatakbo sa offline Local AI mode, kaya limitado ang aking kakayahang sagutin ang pangkalahatang tanong na ito. Mangyaring suriin ang iyong internet o lumipat sa Gemini mode para sa advanced na mga tanong."
+        : "I am currently running in offline Local AI mode, which has limited capability to answer this general query. Please check your internet connection or switch to Gemini mode for advanced questions.";
   }
 
   /// Builds a Tagalog-language Gemma prompt.
