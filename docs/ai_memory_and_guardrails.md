@@ -44,6 +44,10 @@ graph TD
 * **Daily Insights**: A background processor groups interactions by day and runs local summary metrics to extract key insights, user preferences, and frequently mentioned mobility aids.
 * **RAG Injector**: During a prompt assembly cycle, the system queries the past 7 days of summaries. Relevant memories are extracted and injected into the prompt context under the header `[Buddy's Memory/Past Journals]`.
 
+### Unified Memory Architecture
+* **Software-Level Unified Knowledge Pool**: The memory database is fully shared between the local Gemma model and the cloud Gemini model. Regardless of model execution routing, both systems query the exact same local SQLite `JournalService` files and `buddy_knowledge.json` index. This guarantees consistent awareness, memory, and mascot identity.
+* **Hardware-Level Shared Memory Execution**: Because modern mobile System-on-Chips (Snapdragon/MediaTek on Android, Apple Silicon on iOS) employ a unified memory architecture (where CPU cores and GPU shaders share the same physical RAM pool), loading the local LLM (`model.bin`) does not suffer from high copy or bus overhead. The on-device `flutter_gemma` runner accesses model weights directly within the shared address space, reducing initial load latency.
+
 ---
 
 ## 2. Local Database Index & TF-IDF Search Engine
