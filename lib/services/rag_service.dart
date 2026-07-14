@@ -934,6 +934,11 @@ class RagService {
     final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
 
     // 0. Curated questions and answers
+    if (lowerQ.contains("how to use this app") || lowerQ.contains("how to use the app") || lowerQ.contains("app guide") || lowerQ.contains("how to use") || lowerQ.contains("instructions") || lowerQ.contains("tutorial") || lowerQ.contains("guide")) {
+      return isUserFilipino
+          ? "Paano gamitin ang EasyLens: 1) Mag-swipe pakaliwa o pakanan para lumipat ng screen (Dashboard, Camera, Audio Nav, Settings). 2) Pindutin ang Mic button para kausapin si Buddy. 3) Double-tap para sa mga may kapansanan sa paningin. 4) Gamitin ang Camera para sa Object Detection at Text Scanner (OCR), at Settings para magrehistro ng mukha o SOS caregiver contact."
+          : "To use EasyLens: 1) Swipe horizontally to switch between tabs (Dashboard, Camera, Audio Nav, Settings). 2) Tap the Mic button to talk to Buddy. 3) Double-tap is supported for low-vision navigation. 4) Use the Camera screen for Object Detection and Text Scanner (OCR), and Settings to register faces or configure emergency SOS caregivers.";
+    }
     if (lowerQ.contains("scan nearby objects") || lowerQ.contains("detect objects") || lowerQ.contains("identify objects") || lowerQ.contains("recognize objects")) {
       return isUserFilipino
           ? "Buksan ang camera screen, piliin ang Object Detection, at tutukuyin ko ang mga bagay sa paligid mo. I-tap ang screen para marinig kung ano ang nasa harap mo."

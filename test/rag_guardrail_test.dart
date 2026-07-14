@@ -49,5 +49,10 @@ void main() {
       final response = await RagService().askBuddyLocalOnly("how to register a face?");
       expect(response, contains("Face Registration"));
     });
+
+    test('Test Curated Q&As: How to use this app', () async {
+      final response = await RagService().askBuddyLocalOnly("How to use this app?");
+      expect(response, contains("Swipe horizontally to switch"));
+    });
   });
 }
