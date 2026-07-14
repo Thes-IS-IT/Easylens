@@ -207,17 +207,10 @@ class RagService {
     try {
       final modelPath = await _getLocalModelPath();
       if (modelPath != null) {
-        await _gemmaMutex.protect(() async {
-          await FlutterGemma.initialize();
-          await FlutterGemma.installModel(
-            modelType: ModelType.gemmaIt,
-          ).fromFile(modelPath).install();
-          _gemmaInitialized = true;
-          _isGemmaModelInstalled = true;
-          // Warm up and load model weight files into memory S01
-          await FlutterGemma.getActiveModel(maxTokens: 150);
-          print("[Gemma] Real on-device engine initialized and warmed up successfully from $modelPath.");
-        });
+        await _ensureGemmaInitialized(modelPath);
+        // Warm up and load model weight files into memory S01
+        await FlutterGemma.getActiveModel(maxTokens: 150);
+        print("[Gemma] Real on-device engine initialized and warmed up successfully from $modelPath.");
       }
     } catch (e) {
       print("[Gemma] Pre-init failed: $e");
@@ -246,7 +239,26 @@ class RagService {
     return null;
   }
 
-  final _gemmaMutex = _Mutex();
+  Future<void>? _gemmaInitFuture;
+
+  Future<void> _ensureGemmaInitialized(String modelPath) async {
+    if (_gemmaInitialized) return;
+    _gemmaInitFuture ??= () async {
+      try {
+        await FlutterGemma.initialize();
+        await FlutterGemma.installModel(
+          modelType: ModelType.gemmaIt,
+        ).fromFile(modelPath).install();
+        _gemmaInitialized = true;
+        _isGemmaModelInstalled = true;
+      } catch (e) {
+        _gemmaInitFuture = null; // Allow retry on error
+        rethrow;
+      }
+    }();
+    await _gemmaInitFuture;
+  }
+
   dynamic _gemmaSession;
 
   void clearGemmaSession() {
@@ -255,40 +267,32 @@ class RagService {
   }
 
   Future<String> _queryGemmaOffline(String prompt, {String? systemInstruction}) async {
-    return _gemmaMutex.protect(() async {
-      try {
-        final modelPath = await _getLocalModelPath();
-        if (modelPath == null) {
-          return generateSmartLocalResponse(prompt);
-        }
-
-        if (!_gemmaInitialized) {
-          await FlutterGemma.initialize();
-          await FlutterGemma.installModel(
-            modelType: ModelType.gemmaIt,
-          ).fromFile(modelPath).install();
-          _gemmaInitialized = true;
-          _isGemmaModelInstalled = true;
-        }
-
-        final model = await FlutterGemma.getActiveModel(maxTokens: 150);
-        final session = await model.createSession();
-        final finalPrompt = systemInstruction != null
-            ? "<start_of_turn>user\nInstruction: $systemInstruction\n\n$prompt<end_of_turn>\n<start_of_turn>model\n"
-            : "<start_of_turn>user\n$prompt<end_of_turn>\n<start_of_turn>model\n";
-        await session.addQueryChunk(Message(text: finalPrompt, isUser: true));
-        final response = await session.getResponse();
-        if (response == null) return "No response from offline local model.";
-        return response
-            .replaceAll('<start_of_turn>user', '')
-            .replaceAll('<start_of_turn>model', '')
-            .replaceAll('<start_of_turn>', '')
-            .replaceAll('<end_of_turn>', '')
-            .trim();
-      } catch (e) {
-        return "Local Gemma LLM failed: $e";
+    try {
+      final modelPath = await _getLocalModelPath();
+      if (modelPath == null) {
+        return generateSmartLocalResponse(prompt);
       }
-    });
+
+      await _ensureGemmaInitialized(modelPath);
+
+      final model = await FlutterGemma.getActiveModel(maxTokens: 150);
+      final session = await model.createSession();
+      final finalPrompt = systemInstruction != null
+          ? "<start_of_turn>user\nInstruction: $systemInstruction\n\n$prompt<end_of_turn>\n<start_of_turn>model\n"
+          : "<start_of_turn>user\n$prompt<end_of_turn>\n<start_of_turn>model\n";
+      await session.addQueryChunk(Message(text: finalPrompt, isUser: true));
+      
+      final response = await session.getResponse().timeout(const Duration(seconds: 5));
+      if (response == null) return "No response from offline local model.";
+      return response
+          .replaceAll('<start_of_turn>user', '')
+          .replaceAll('<start_of_turn>model', '')
+          .replaceAll('<start_of_turn>', '')
+          .replaceAll('<end_of_turn>', '')
+          .trim();
+    } catch (e) {
+      return "Local Gemma LLM failed: $e";
+    }
   }
 
   Stream<String> _queryGemmaOfflineStream(
@@ -304,17 +308,9 @@ class RagService {
 
     final controller = StreamController<String>();
 
-    // Queue the entire model initialization and streaming process behind the mutex
-    _gemmaMutex.protect(() async {
+    Future.microtask(() async {
       try {
-        if (!_gemmaInitialized) {
-          await FlutterGemma.initialize();
-          await FlutterGemma.installModel(
-            modelType: ModelType.gemmaIt,
-          ).fromFile(modelPath).install();
-          _gemmaInitialized = true;
-          _isGemmaModelInstalled = true;
-        }
+        await _ensureGemmaInitialized(modelPath);
 
         final model = await FlutterGemma.getActiveModel(maxTokens: 150);
         final session = await model.createSession();
@@ -350,7 +346,15 @@ class RagService {
             : "<start_of_turn>user\n$prompt<end_of_turn>\n<start_of_turn>model\n";
         await session.addQueryChunk(Message(text: finalPrompt, isUser: true));
 
-        await for (final token in session.getResponseAsync()) {
+        // 5-second timeout on the response stream
+        final responseStream = session.getResponseAsync().timeout(
+          const Duration(seconds: 5),
+          onTimeout: (sink) {
+            sink.close();
+          },
+        );
+
+        await for (final token in responseStream) {
           if (token != null) {
             final cleaned = token
                 .replaceAll('<start_of_turn>user', '')
