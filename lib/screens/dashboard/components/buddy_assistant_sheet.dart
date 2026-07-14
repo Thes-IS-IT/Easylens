@@ -448,6 +448,61 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
     }
   }
 
+  Widget _buildQuickSuggestionsPanel() {
+    final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+        SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+
+    final List<String> questions = isFilipino
+        ? [
+            "Ano ang EasyLens?",
+            "Paano magbasa ng teksto?",
+            "Paano tukuyin ang mga bagay?",
+            "Paano magrehistro ng mukha?",
+            "Paano gamitin ang app?",
+            "Ano ang panahon?",
+          ]
+        : [
+            "What is EasyLens?",
+            "How to read text?",
+            "How to detect objects?",
+            "How to register a face?",
+            "How to use this app?",
+            "What is the weather?",
+          ];
+
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      color: AppColors.primaryBackground,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: questions.length,
+        itemBuilder: (context, index) {
+          final q = questions[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ActionChip(
+              backgroundColor: AppColors.lightBackground,
+              side: BorderSide(color: AppColors.cardBorder.withOpacity(0.3)),
+              label: Text(
+                q,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryText,
+                ),
+              ),
+              onPressed: () {
+                _handleSendMessage(q);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SettingsService().selectedContrastTheme;
@@ -725,6 +780,9 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                 ),
               ),
             ),
+
+          if (!_isThinking && !_isStreaming && _messages.length <= 1)
+            _buildQuickSuggestionsPanel(),
 
           Divider(height: 1, color: AppColors.unselectedBorder),
 
