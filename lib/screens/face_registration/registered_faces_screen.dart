@@ -6,6 +6,7 @@ import '../../constants/colors.dart';
 import '../dashboard/components/custom_navbar.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
 import 'face_registration_screen.dart';
+import '../../utils/app_route.dart';
 
 class RegisteredFacesScreen extends StatefulWidget {
   const RegisteredFacesScreen({super.key});
@@ -204,9 +205,7 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const FaceRegistrationScreen(),
-            ),
+            AppRoute.to(const FaceRegistrationScreen()),
           );
           await _load();
         },

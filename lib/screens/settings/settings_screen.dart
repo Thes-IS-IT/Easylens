@@ -247,11 +247,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   const Icon(Icons.key, color: Color(0xFF3B82F6), size: 28),
                   const SizedBox(width: 10),
-                  Text(
-                    TranslationService.translate('gemini_dialog_title', lang),
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryText,
+                  Expanded(
+                    child: Text(
+                      TranslationService.translate('gemini_dialog_title', lang),
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryText,
+                      ),
                     ),
                   ),
                 ],
@@ -437,11 +439,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               const Icon(Icons.cloud_download, color: Color(0xFF3B82F6), size: 28),
               const SizedBox(width: 10),
-              Text(
-                isFilipino ? "May Update!" : "Update Available!",
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryText,
+              Expanded(
+                child: Text(
+                  isFilipino ? "May Update!" : "Update Available!",
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText,
+                  ),
                 ),
               ),
             ],

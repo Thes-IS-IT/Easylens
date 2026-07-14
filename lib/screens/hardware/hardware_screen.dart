@@ -262,6 +262,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _loadRegisteredFaces();
     Esp32Service().addListener(_onEsp32FrameAvailable);
     BuddyAssistantSheet.isVisible.addListener(_onBuddyVisibilityChanged);
+
+    // Auto-connect to ESP32 camera if not connected
+    if (!Esp32Service().isConnected && !Esp32Service().isConnecting) {
+      Esp32Service().connect();
+    }
   }
 
   @override
@@ -728,6 +733,12 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   Future<void> _initializeCamera() async {
+    if (!Esp32Service().isConnected && !Esp32Service().isConnecting) {
+      await Esp32Service().connect().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => false,
+      );
+    }
     if (Esp32Service().isConnected) {
       setState(() {
         _isCameraInitialized = true;
@@ -1553,6 +1564,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
     setState(() {
       _pairStep = 3;
     });
+    if (!Esp32Service().isConnected && !Esp32Service().isConnecting) {
+      Esp32Service().connect();
+    }
   }
 
   void _onCancelOrBack() {
@@ -2655,7 +2669,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
 
   // ── SCREEN 4: Dynamic Object Detection & Hardware Controls Screen ────
   Widget _buildObjectDetectionScreen() {
-    if (!_isCameraInitialized || _cameraController == null) {
+    if (!_isCameraInitialized || (_cameraController == null && !Esp32Service().isConnected)) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -2812,10 +2826,13 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   fit: StackFit.expand,
                   children: [
                     if (Esp32Service().isConnected && Esp32Service().currentFrame != null)
-                      Image.memory(
-                        Esp32Service().currentFrame!,
-                        fit: BoxFit.cover,
-                        gaplessPlayback: true,
+                      RotatedBox(
+                        quarterTurns: 3, // Rotate 270 degrees clockwise for correct vertical alignment of ESP32-CAM
+                        child: Image.memory(
+                          Esp32Service().currentFrame!,
+                          fit: BoxFit.cover,
+                          gaplessPlayback: true,
+                        ),
                       )
                     else if (_cameraController != null && _cameraController!.value.isInitialized)
                       CameraPreview(_cameraController!)

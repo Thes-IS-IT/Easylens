@@ -215,7 +215,7 @@ class RagService {
           _gemmaInitialized = true;
           _isGemmaModelInstalled = true;
           // Warm up and load model weight files into memory S01
-          await FlutterGemma.getActiveModel(maxTokens: 1024);
+          await FlutterGemma.getActiveModel(maxTokens: 150);
           print("[Gemma] Real on-device engine initialized and warmed up successfully from $modelPath.");
         });
       }
@@ -272,14 +272,20 @@ class RagService {
           _isGemmaModelInstalled = true;
         }
 
-        final model = await FlutterGemma.getActiveModel(maxTokens: 1024);
+        final model = await FlutterGemma.getActiveModel(maxTokens: 150);
         final session = await model.createSession();
         final finalPrompt = systemInstruction != null
-            ? "Instruction: $systemInstruction\n\n$prompt"
-            : prompt;
+            ? "<start_of_turn>user\nInstruction: $systemInstruction\n\n$prompt<end_of_turn>\n<start_of_turn>model\n"
+            : "<start_of_turn>user\n$prompt<end_of_turn>\n<start_of_turn>model\n";
         await session.addQueryChunk(Message(text: finalPrompt, isUser: true));
         final response = await session.getResponse();
-        return response ?? "No response from offline local model.";
+        if (response == null) return "No response from offline local model.";
+        return response
+            .replaceAll('<start_of_turn>user', '')
+            .replaceAll('<start_of_turn>model', '')
+            .replaceAll('<start_of_turn>', '')
+            .replaceAll('<end_of_turn>', '')
+            .trim();
       } catch (e) {
         return "Local Gemma LLM failed: $e";
       }
@@ -328,21 +334,33 @@ class RagService {
             // Strip navigation tags from assistant messages before feeding back
             final cleanText = msgText.replaceAll(RegExp(r'\[NAVIGATE:.*?\]'), '').trim();
             if (cleanText.isEmpty) continue;
+            
+            final formattedHistoryText = msg['isUser'] == true
+                ? "<start_of_turn>user\n$cleanText<end_of_turn>"
+                : "<start_of_turn>model\n$cleanText<end_of_turn>";
+ 
             await session.addQueryChunk(
-              Message(text: cleanText, isUser: msg['isUser'] == true),
+              Message(text: formattedHistoryText, isUser: msg['isUser'] == true),
             );
           }
         }
 
         // Add the current user query prepended with the system instruction
         final finalPrompt = systemInstruction != null
-            ? "Instruction: $systemInstruction\n\n$prompt"
-            : prompt;
+            ? "<start_of_turn>user\nInstruction: $systemInstruction\n\n$prompt<end_of_turn>\n<start_of_turn>model\n"
+            : "<start_of_turn>user\n$prompt<end_of_turn>\n<start_of_turn>model\n";
         await session.addQueryChunk(Message(text: finalPrompt, isUser: true));
 
         await for (final token in session.getResponseAsync()) {
           if (token != null) {
-            controller.add(token);
+            final cleaned = token
+                .replaceAll('<start_of_turn>user', '')
+                .replaceAll('<start_of_turn>model', '')
+                .replaceAll('<start_of_turn>', '')
+                .replaceAll('<end_of_turn>', '');
+            if (cleaned.isNotEmpty) {
+              controller.add(cleaned);
+            }
           }
         }
       } catch (e) {
@@ -624,6 +642,72 @@ class RagService {
     return "Context:\n$context\n\nQuestion:\n$rawQuestion";
   }
 
+  bool _isOffTopicForVisualAssistance(String query) {
+    final lower = query.toLowerCase().trim();
+    if (lower.isEmpty) return false;
+
+    // If it contains visual/assistive/navigational keywords, it's ON-topic
+    final visualKeywords = {
+      'see', 'look', 'front', 'around', 'scanned', 'read', 'text', 'sign', 
+      'label', 'hazard', 'object', 'obstacle', 'person', 'people', 'face', 
+      'path', 'navigate', 'go to', 'where', 'find', 'locate', 'buddy', 'guide',
+      'nakakita', 'nakikita', 'tingnan', 'harap', 'paligid', 'basahin', 'teksto',
+      'babala', 'bagay', 'tao', 'mukha', 'daan', 'pumunta', 'nasaan', 'hanapin'
+    };
+    for (var vk in visualKeywords) {
+      if (lower.contains(vk)) return false;
+    }
+
+    // 1. Math check (contains math operators between digits or math keywords)
+    final mathPattern = RegExp(r'\d+\s*[\+\-\*\/=]\s*\d+');
+    if (mathPattern.hasMatch(lower)) return true;
+
+    final mathKeywords = {
+      'calculate', 'solve', 'equation', 'arithmetic', 'algebra', 'calculus', 
+      'multiplication', 'division', 'addition', 'subtraction', 'square root',
+      'plus', 'minus', 'divided by', 'times', 'multiplied by', 'equals'
+    };
+    for (var keyword in mathKeywords) {
+      if (lower.contains(keyword)) return true;
+    }
+
+    // Check for raw math expressions like "1 + 1"
+    final rawMathPattern = RegExp(r'^\s*[\d\s+\-*/()=]+$');
+    if (rawMathPattern.hasMatch(lower) && 
+        (lower.contains('+') || lower.contains('-') || lower.contains('*') || lower.contains('/') || lower.contains('='))) {
+      return true;
+    }
+
+    // 2. Programming/Tech off-topic keywords
+    final techKeywords = {
+      'write code', 'coding', 'programming', 'javascript', 'python', 'html', 
+      'css', 'java', 'c++', 'c#', 'react', 'flutter code', 'software development'
+    };
+    for (var keyword in techKeywords) {
+      if (lower.contains(keyword)) return true;
+    }
+
+    // 3. General knowledge / Trivia off-topic keywords
+    final triviaKeywords = {
+      'capital of', 'who is the president', 'historical facts', 'tell me a story about',
+      'recipe for', 'how to cook', 'define photosynthesis', 'speed of light', 
+      'distance to the moon', 'tell me a joke', 'who directed the movie'
+    };
+    for (var keyword in triviaKeywords) {
+      if (lower.contains(keyword)) return true;
+    }
+
+    return false;
+  }
+
+  String _getOffTopicRejectionMessage(String lang) {
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    if (isFilipino) {
+      return "Woof! Disenyo po ako para tumulong sa may mga kapansanan sa paningin at pag-navigate. Hindi ko po kayo matutulungan sa mga pangkalahatang tanong, math, o trivia.";
+    }
+    return "Woof! I'm designed specifically to assist with visual impairment and navigation. I cannot help with general queries, math, or trivia.";
+  }
+
   Future<String> askBuddy(String question) async {
     String rawQuestion = question;
     String userName = "User";
@@ -642,6 +726,11 @@ class RagService {
       }
     }
 
+    final lang = SettingsService().selectedLanguage;
+    if (_isOffTopicForVisualAssistance(rawQuestion)) {
+      return _getOffTopicRejectionMessage(lang);
+    }
+
     final lowerQ = rawQuestion.toLowerCase();
     final isConversational = rawQuestion.length < 30 &&
         !lowerQ.contains("reports") &&
@@ -653,8 +742,6 @@ class RagService {
     final context = isConversational ? "" : await retrieveContextAsync(rawQuestion);
     final userPrompt = _buildUserPrompt(rawQuestion, context);
     final systemPrompt = _getSystemInstruction(userName, mobilityAid);
-
-    final lang = SettingsService().selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     final modelPath = await _getLocalModelPath();
 
@@ -684,6 +771,11 @@ class RagService {
   }) async* {
     // Read user context from settings directly S01
     final rawQuestion = question.trim();
+    final lang = SettingsService().selectedLanguage;
+    if (_isOffTopicForVisualAssistance(rawQuestion)) {
+      yield _getOffTopicRejectionMessage(lang);
+      return;
+    }
     final mobilityAid = SettingsService().selectedMobilityAid.isNotEmpty
         ? SettingsService().selectedMobilityAid
         : 'None';
@@ -697,17 +789,32 @@ class RagService {
     final userPrompt = _buildUserPrompt(rawQuestion, context);
     final systemPrompt = _getSystemInstruction(userName, mobilityAid);
 
+    final useLocal = SettingsService().useLocalAI;
+    final modelPath = await _getLocalModelPath();
+ 
     final StringBuffer buf = StringBuffer();
     bool yieldedAnything = false;
     try {
-      await for (final token in _queryGeminiOnlineStream(
-        userPrompt,
-        systemInstruction: systemPrompt,
-        history: history,
-      )) {
-        buf.write(token);
-        yield token;
-        yieldedAnything = true;
+      if (useLocal && modelPath != null) {
+        await for (final token in _queryGemmaOfflineStream(
+          userPrompt,
+          systemInstruction: systemPrompt,
+          history: history,
+        )) {
+          buf.write(token);
+          yield token;
+          yieldedAnything = true;
+        }
+      } else {
+        await for (final token in _queryGeminiOnlineStream(
+          userPrompt,
+          systemInstruction: systemPrompt,
+          history: history,
+        )) {
+          buf.write(token);
+          yield token;
+          yieldedAnything = true;
+        }
       }
     } catch (_) {}
 
@@ -726,6 +833,10 @@ class RagService {
   }
 
   Future<String> askBuddyLocalOnly(String question) async {
+    final lang = SettingsService().selectedLanguage;
+    if (_isOffTopicForVisualAssistance(question)) {
+      return _getOffTopicRejectionMessage(lang);
+    }
     final lowerQ = question.toLowerCase();
     final isConversational = question.length < 30 &&
         !lowerQ.contains("reports") &&
@@ -738,11 +849,15 @@ class RagService {
     final userPrompt = _buildUserPrompt(question, context);
     final systemPrompt = _getSystemInstruction("User", "None");
 
-    try {
-      return await askBuddyGemini(question, "User", "None");
-    } catch (_) {
-      return generateSmartLocalResponse(question);
+    final modelPath = await _getLocalModelPath();
+    if (modelPath != null) {
+      try {
+        return await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
+      } catch (_) {
+        return generateSmartLocalResponse(question);
+      }
     }
+    return generateSmartLocalResponse(question);
   }
 
   String generateSmartLocalResponse(String question) {

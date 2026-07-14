@@ -8,6 +8,7 @@ import '../../constants/colors.dart';
 import '../dashboard/components/custom_navbar.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
 import 'registered_faces_screen.dart';
+import '../../utils/app_route.dart';
 
 class FaceRegistrationScreen extends StatefulWidget {
   const FaceRegistrationScreen({super.key});
@@ -291,9 +292,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         TextButton.icon(
           onPressed: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const RegisteredFacesScreen(),
-              ),
+              AppRoute.to(const RegisteredFacesScreen()),
             );
           },
           icon: const Icon(Icons.people_alt_rounded,
@@ -599,9 +598,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           ),
           onTap: () {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => const RegisteredFacesScreen(),
-              ),
+              AppRoute.to(const RegisteredFacesScreen()),
             );
           },
         ),

@@ -813,10 +813,13 @@ class _DevicesScreenState extends State<DevicesScreen>
           return Stack(
             fit: StackFit.expand,
             children: [
-              Image.memory(
-                frame,
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
+              RotatedBox(
+                quarterTurns: 3, // Rotate 270 degrees clockwise for correct vertical alignment of ESP32-CAM
+                child: Image.memory(
+                  frame,
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                ),
               ),
               // Live indicator
               Positioned(
