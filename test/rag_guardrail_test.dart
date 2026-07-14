@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easylens/services/rag_service.dart';
+import 'package:easylens/services/weather_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +54,16 @@ void main() {
     test('Test Curated Q&As: How to use this app', () async {
       final response = await RagService().askBuddyLocalOnly("How to use this app?");
       expect(response, contains("Swipe horizontally to switch"));
+    });
+
+    test('Test Curated Q&As: Weather Fallback', () async {
+      final weather = WeatherService();
+      weather.currentTemp = 28.5;
+      weather.weatherDescription = 'Partly Cloudy';
+
+      final response = await RagService().askBuddyLocalOnly("what is the weather today?");
+      expect(response, contains("28.5°C"));
+      expect(response, contains("Partly Cloudy"));
     });
   });
 }

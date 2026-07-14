@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'journal_service.dart';
 import 'settings_service.dart';
 import 'firebase_service.dart';
+import 'weather_service.dart';
 
 
 class KnowledgeItem {
@@ -683,9 +684,15 @@ class RagService {
 
 
   String _getSystemInstruction(String userName, String mobilityAid) {
+    final weather = WeatherService();
+    final weatherText = (weather.currentTemp != null && weather.weatherDescription != null)
+        ? "Today's weather is ${weather.currentTemp}°C (${weather.weatherDescription})."
+        : "Today's weather information is unavailable.";
+
     return "You are Buddy, the friendly Golden Retriever guide dog mascot of the EasyLens app. "
         "EasyLens was built as a CS thesis at Holy Angel University (HAU) by developer Arron Kian Parejas and team. "
         "The user's name is $userName. The user's mobility aid is $mobilityAid. "
+        "$weatherText "
         "Keep your response warm, friendly, helpful, and very short (under 2 sentences). "
         "Use the provided Context (which includes both EasyLens knowledge base info and the user's personal memories/journals) to answer the Question directly.";
   }
@@ -938,6 +945,18 @@ class RagService {
       return isUserFilipino
           ? "Paano gamitin ang EasyLens: 1) Mag-swipe pakaliwa o pakanan para lumipat ng screen (Dashboard, Camera, Audio Nav, Settings). 2) Pindutin ang Mic button para kausapin si Buddy. 3) Double-tap para sa mga may kapansanan sa paningin. 4) Gamitin ang Camera para sa Object Detection at Text Scanner (OCR), at Settings para magrehistro ng mukha o SOS caregiver contact."
           : "To use EasyLens: 1) Swipe horizontally to switch between tabs (Dashboard, Camera, Audio Nav, Settings). 2) Tap the Mic button to talk to Buddy. 3) Double-tap is supported for low-vision navigation. 4) Use the Camera screen for Object Detection and Text Scanner (OCR), and Settings to register faces or configure emergency SOS caregivers.";
+    }
+    if (lowerQ.contains("weather") || lowerQ.contains("temp") || lowerQ.contains("forecast") || lowerQ.contains("panahon")) {
+      final weather = WeatherService();
+      if (weather.currentTemp != null && weather.weatherDescription != null) {
+        return isUserFilipino
+            ? "Ang kasalukuyang panahon ngayon ay ${weather.currentTemp!.toStringAsFixed(1)}°C (${weather.weatherDescription})."
+            : "The current weather is ${weather.currentTemp!.toStringAsFixed(1)}°C (${weather.weatherDescription}).";
+      } else {
+        return isUserFilipino
+            ? "Hindi ko makuha ang kasalukuyang impormasyon ng panahon. Mangyaring tiyakin na bukas ang iyong GPS at internet."
+            : "I cannot retrieve the current weather information right now. Please ensure your GPS and internet connection are active.";
+      }
     }
     if (lowerQ.contains("scan nearby objects") || lowerQ.contains("detect objects") || lowerQ.contains("identify objects") || lowerQ.contains("recognize objects")) {
       return isUserFilipino

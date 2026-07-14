@@ -10,8 +10,9 @@ import 'components/dashboard_button.dart';
 import '../../utils/app_route.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
+import '../../services/weather_service.dart';
 
-class DashboardHome extends StatelessWidget {
+class DashboardHome extends StatefulWidget {
   final String displayName;
   final ValueChanged<int> onTabSelected;
   final VoidCallback onSOSSelected;
@@ -32,6 +33,24 @@ class DashboardHome extends StatelessWidget {
     required this.onBuddyAssistantTap,
     required this.onFaceRegistrationSelected,
   });
+
+  @override
+  State<DashboardHome> createState() => _DashboardHomeState();
+}
+
+class _DashboardHomeState extends State<DashboardHome> {
+  @override
+  void initState() {
+    super.initState();
+    _loadWeather();
+  }
+
+  Future<void> _loadWeather() async {
+    await WeatherService().fetchWeather();
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   String _getFormattedDateText(String language) {
     final now = DateTime.now();
@@ -59,6 +78,129 @@ class DashboardHome extends StatelessWidget {
     }
   }
 
+  Widget _buildWeatherWidget(String lang) {
+    final weather = WeatherService();
+    if (weather.currentTemp == null) {
+      return const SizedBox.shrink();
+    }
+
+    final tempStr = "${weather.currentTemp!.toStringAsFixed(1)}°C";
+    final desc = weather.weatherDescription ?? 'Clear';
+
+    IconData weatherIcon = Icons.wb_sunny;
+    Color iconColor = Colors.orangeAccent;
+    if (desc.toLowerCase().contains('cloud')) {
+      weatherIcon = Icons.cloud;
+      iconColor = Colors.blueGrey;
+    } else if (desc.toLowerCase().contains('rain') || desc.toLowerCase().contains('drizzle')) {
+      weatherIcon = Icons.umbrella;
+      iconColor = Colors.blue;
+    } else if (desc.toLowerCase().contains('fog') || desc.toLowerCase().contains('mist')) {
+      weatherIcon = Icons.blur_on;
+      iconColor = Colors.grey;
+    } else if (desc.toLowerCase().contains('snow')) {
+      weatherIcon = Icons.ac_unit;
+      iconColor = Colors.lightBlueAccent;
+    } else if (desc.toLowerCase().contains('thunderstorm')) {
+      weatherIcon = Icons.flash_on;
+      iconColor = Colors.amber;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primaryText.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.unselectedBorder.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(weatherIcon, color: iconColor, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            "$tempStr • $desc",
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStormyWarningCard(String lang) {
+    final weather = WeatherService();
+    if (!weather.isStormy || weather.hasDismissedStormWarning) {
+      return const SizedBox.shrink();
+    }
+
+    final isFilipino = lang.toLowerCase().contains('filipino') || lang.toLowerCase().contains('tagalog');
+    final warningTitle = isFilipino ? "Babala sa Panahon" : "Weather Warning";
+    final warningText = isFilipino 
+        ? "Mukhang mapanganib sa labas dahil sa masamang panahon."
+        : "It seems outside is dangerous due to stormy conditions.";
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2), // Light red background
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFFCA5A5), // Red border
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: Color(0xFFDC2626), // Danger red
+            size: 32,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  warningTitle,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF991B1B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  warningText,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: const Color(0xFF7F1D1D),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, color: Color(0xFF991B1B), size: 20),
+            onPressed: () async {
+              await weather.dismissWarningForToday();
+              setState(() {});
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -73,19 +215,19 @@ class DashboardHome extends StatelessWidget {
             title: TranslationService.translate('talk_to_buddy', lang),
             icon: Icons.chat_bubble_outline,
             color: const Color(0xFF6B21A8),
-            onTap: onBuddyAssistantTap,
+            onTap: widget.onBuddyAssistantTap,
           ),
           'easylens': DashboardButton(
             title: TranslationService.translate('easylens', lang),
             icon: Icons.visibility,
             color: const Color(0xFF002663),
-            onTap: () => onTabSelected(2),
+            onTap: () => widget.onTabSelected(2),
           ),
           'faces': DashboardButton(
             title: TranslationService.translate('register_face', lang),
             icon: Icons.face_retouching_natural,
             color: const Color(0xFF7C3AED),
-            onTap: onFaceRegistrationSelected,
+            onTap: widget.onFaceRegistrationSelected,
           ),
           'text': DashboardButton(
             title: TranslationService.translate('nearby_text', lang),
@@ -96,7 +238,7 @@ class DashboardHome extends StatelessWidget {
                 AppRoute.to(ImageLabelingScreen(
                   onTabSelected: (index) {
                     Navigator.of(context).pop();
-                    onTabSelected(index);
+                    widget.onTabSelected(index);
                   },
                 )),
               );
@@ -116,13 +258,13 @@ class DashboardHome extends StatelessWidget {
             title: TranslationService.translate('audio_navigation', lang),
             icon: Icons.near_me,
             color: const Color(0xFF85581A),
-            onTap: () => onTabSelected(1),
+            onTap: () => widget.onTabSelected(1),
           ),
           'sos': DashboardButton(
             title: TranslationService.translate('sos_emergency', lang),
             icon: Icons.phone_in_talk,
             color: const Color(0xFFC53030),
-            onTap: onSOSSelected,
+            onTap: widget.onSOSSelected,
           ),
         };
 
@@ -140,10 +282,10 @@ class DashboardHome extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: HeaderBar(
-                onSOSSelected: onSOSSelected,
-                onSettingsSelected: onSettingsSelected,
-                onNotificationsSelected: onNotificationsSelected,
-                onContactsSelected: onContactsSelected,
+                onSOSSelected: widget.onSOSSelected,
+                onSettingsSelected: widget.onSettingsSelected,
+                onNotificationsSelected: widget.onNotificationsSelected,
+                onContactsSelected: widget.onContactsSelected,
               ),
             ),
 
@@ -155,6 +297,7 @@ class DashboardHome extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildStormyWarningCard(lang),
                   Text(
                     _getFormattedDateText(lang),
                     style: GoogleFonts.inter(
@@ -165,26 +308,40 @@ class DashboardHome extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text.rich(
-                    TextSpan(
-                      text: _getGreetingText(lang),
-                      style: GoogleFonts.inter(
-                        fontSize: 26,
-                        color: AppColors.primaryText,
-                      ),
-                      children: [
-                        const TextSpan(text: ' '),
-                        TextSpan(
-                          text: displayName,
-                          style: GoogleFonts.inter(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.primaryText,
-                          ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text.rich(
+                              TextSpan(
+                                text: _getGreetingText(lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 26,
+                                  color: AppColors.primaryText,
+                                ),
+                                children: [
+                                  const TextSpan(text: ' '),
+                                  TextSpan(
+                                    text: widget.displayName,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.primaryText,
+                                    ),
+                                  ),
+                                  const TextSpan(text: '!'),
+                                ],
+                              ),
+                            ),
+                            _buildWeatherWidget(lang),
+                          ],
                         ),
-                        const TextSpan(text: '!'),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -207,4 +364,5 @@ class DashboardHome extends StatelessWidget {
       },
     );
   }
+}
 }
