@@ -225,6 +225,9 @@ class RagService {
   }
 
   Future<String?> _getLocalModelPath() async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      return null;
+    }
     final dynamicPath = await _getDynamicSavePath();
     if (File(dynamicPath).existsSync()) {
       return dynamicPath;
