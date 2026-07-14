@@ -28,7 +28,10 @@ class TtsService {
         IosTextToSpeechAudioMode.voicePrompt,
       );
     }
-    await _loadDeviceVoices();
+    // Load voices after a short delay to allow TTS engine binding to complete S01
+    Future.delayed(const Duration(seconds: 3), () {
+      _loadDeviceVoices();
+    });
   }
 
   /// Loads and caches all voices available on the device.
@@ -141,6 +144,9 @@ class TtsService {
 
   /// Picks a device voice matching [gender] for the current language.
   Future<void> _setDeviceVoiceByGender(String gender) async {
+    if (_deviceVoices.isEmpty) {
+      await _loadDeviceVoices();
+    }
     if (_deviceVoices.isEmpty) return;
 
     final langCode = _getLangCode().toLowerCase();

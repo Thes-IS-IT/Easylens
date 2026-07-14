@@ -801,6 +801,12 @@ class RagService {
       return _getOffTopicRejectionMessage(lang);
     }
 
+    final quick = getQuickCuratedAnswer(rawQuestion);
+    if (quick != null) {
+      _logToJournal(rawQuestion, quick);
+      return quick;
+    }
+
     final lowerQ = rawQuestion.toLowerCase();
     final isConversational = rawQuestion.length < 30 &&
         !lowerQ.contains("reports") &&
@@ -843,6 +849,12 @@ class RagService {
     final lang = SettingsService().selectedLanguage;
     if (_isOffTopicForVisualAssistance(rawQuestion)) {
       yield _getOffTopicRejectionMessage(lang);
+      return;
+    }
+
+    final quick = getQuickCuratedAnswer(rawQuestion);
+    if (quick != null) {
+      yield quick;
       return;
     }
     final mobilityAid = SettingsService().selectedMobilityAid.isNotEmpty
@@ -906,6 +918,11 @@ class RagService {
     if (_isOffTopicForVisualAssistance(question)) {
       return _getOffTopicRejectionMessage(lang);
     }
+
+    final quick = getQuickCuratedAnswer(question);
+    if (quick != null) {
+      return quick;
+    }
     final lowerQ = question.toLowerCase();
     final isConversational = question.length < 30 &&
         !lowerQ.contains("reports") &&
@@ -929,22 +946,20 @@ class RagService {
     return generateSmartLocalResponse(question);
   }
 
-  String generateSmartLocalResponse(String question) {
+  String? getQuickCuratedAnswer(String question) {
     final lowerQ = question.toLowerCase().trim();
+    final lang = SettingsService().selectedLanguage;
+    final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     final user = FirebaseService().currentUser;
     final name = user?.displayName ?? "friend";
     final aid = SettingsService().selectedMobilityAid.isNotEmpty
         ? SettingsService().selectedMobilityAid
         : "None";
 
-    final lang = SettingsService().selectedLanguage;
-    final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-
-    // 0. Curated questions and answers
     if (lowerQ.contains("how to use this app") || lowerQ.contains("how to use the app") || lowerQ.contains("app guide") || lowerQ.contains("how to use") || lowerQ.contains("instructions") || lowerQ.contains("tutorial") || lowerQ.contains("guide")) {
       return isUserFilipino
           ? "Paano gamitin ang EasyLens: 1) Mag-swipe pakaliwa o pakanan para lumipat ng screen (Dashboard, Camera, Audio Nav, Settings). 2) Pindutin ang Mic button para kausapin si Buddy. 3) Double-tap para sa mga may kapansanan sa paningin. 4) Gamitin ang Camera para sa Object Detection at Text Scanner (OCR), at Settings para magrehistro ng mukha o SOS caregiver contact."
-          : "To use EasyLens: 1) Swipe horizontally to switch between tabs (Dashboard, Camera, Audio Nav, Settings). 2) Tap the Mic button to talk to Buddy. 3) Double-tap is supported for low-vision navigation. 4) Use the Camera screen for Object Detection and Text Scanner (OCR), and Settings to register faces or configure emergency SOS caregivers.";
+          : "To use EasyLens: 1) Swipe horizontally to switch between tabs (Dashboard, Camera, Nav, Settings). 2) Tap the Mic button to talk to Buddy. 3) Double-tap is supported for low-vision navigation. 4) Use the Camera screen for Object Detection and Text Scanner (OCR), and Settings to register faces or configure emergency SOS caregivers.";
     }
     if (lowerQ.contains("weather") || lowerQ.contains("temp") || lowerQ.contains("forecast") || lowerQ.contains("panahon")) {
       final weather = WeatherService();
@@ -983,16 +998,32 @@ class RagService {
           ? "Opo! Maaari mong paganahin ang Gemini sa pamamagitan ng paglalagay ng iyong API key sa Settings. Sa ilalim ng AI Settings, maaari kang magpalipat-lipat sa Gemini para sa advanced na kakayahan at Local AI para sa offline na paggamit."
           : "Yes! You can enable Gemini by entering your API key in Settings. Under AI Settings, you can switch between Gemini for advanced capabilities and Local AI for offline use.";
     }
-    if (lowerQ.contains("what is easylens") || lowerQ.contains("about easylens")) {
+    if (lowerQ.contains("what is easylens") || lowerQ.contains("about easylens") || lowerQ.contains("what is easy lens") || lowerQ.contains("ano ang easylens") || lowerQ.contains("ano ang easy lens")) {
       return isUserFilipino
-          ? "Ang EasyLens ay isang assistive app na dinisenyo sa Holy Angel University upang tulungan ang mga taong may kapansanan sa paningin na mag-navigate at makilala ang mga bagay sa kanilang paligid."
-          : "EasyLens is an assistive app designed at Holy Angel University to help visually impaired individuals navigate and recognize things around them.";
+          ? "Ang EasyLens ay isang assistive app na dinisenyo sa Holy Angel University upang tulungan ang mga may kapansanan sa paningin sa pamamagitan ng paggamit ng AI para sa object detection, text scanning (OCR), at voice-guided navigation."
+          : "EasyLens is an assistive app designed at Holy Angel University to help visually impaired individuals navigate and recognize things around them by using AI for object detection, text scanning (OCR), and voice-guided navigation.";
     }
     if (lowerQ.contains("mobility aids") || lowerQ.contains("mobility aid") || lowerQ.contains("wheelchair") || lowerQ.contains("cane")) {
       return isUserFilipino
           ? "Sinusuportahan namin ang mga walking cane, wheelchair, at gabay na aso. Maaari mong piliin ang iyong mobility aid sa settings profile."
           : "We support walking canes, wheelchairs, and guide dogs. You can select your mobility aid in the settings profile.";
     }
+    return null;
+  }
+
+  String generateSmartLocalResponse(String question) {
+    final quick = getQuickCuratedAnswer(question);
+    if (quick != null) return quick;
+
+    final lowerQ = question.toLowerCase().trim();
+    final user = FirebaseService().currentUser;
+    final name = user?.displayName ?? "friend";
+    final aid = SettingsService().selectedMobilityAid.isNotEmpty
+        ? SettingsService().selectedMobilityAid
+        : "None";
+
+    final lang = SettingsService().selectedLanguage;
+    final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
 
     // 1. Identity & Name questions
     if (lowerQ.contains("name") || lowerQ.contains("who am i") || lowerQ.contains("know me")) {
