@@ -195,9 +195,14 @@ class RagService {
       
       if (await file.exists()) {
         final size = await file.length();
-        if (size > 100000000) {
+        if (size >= 1200000000) {
           print('[RAG] Model already extracted at $savePath.');
           return;
+        } else {
+          print('[RAG] Local model at $savePath is incomplete/corrupted (${size} bytes) - deleting.');
+          try {
+            await file.delete();
+          } catch (_) {}
         }
       }
 
@@ -238,8 +243,16 @@ class RagService {
       return null;
     }
     final dynamicPath = await _getDynamicSavePath();
-    if (File(dynamicPath).existsSync()) {
-      return dynamicPath;
+    final dynamicFile = File(dynamicPath);
+    if (dynamicFile.existsSync()) {
+      if (dynamicFile.lengthSync() >= 1200000000) {
+        return dynamicPath;
+      } else {
+        print('[RAG] Local model at $dynamicPath is incomplete/corrupted (${dynamicFile.lengthSync()} bytes) - deleting.');
+        try {
+          dynamicFile.deleteSync();
+        } catch (_) {}
+      }
     }
     final paths = [
       "/storage/emulated/0/Android/data/com.company.easylens/files/model.bin",
@@ -248,8 +261,16 @@ class RagService {
       "/sdcard/Download/model.bin",
     ];
     for (var path in paths) {
-      if (File(path).existsSync()) {
-        return path;
+      final file = File(path);
+      if (file.existsSync()) {
+        if (file.lengthSync() >= 1200000000) {
+          return path;
+        } else {
+          print('[RAG] Local model at $path is incomplete/corrupted (${file.lengthSync()} bytes) - deleting.');
+          try {
+            file.deleteSync();
+          } catch (_) {}
+        }
       }
     }
     return null;
