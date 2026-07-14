@@ -55,6 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _startShakeListening();
     _playDashboardBark();
     SpeechNavigationNotifier.tabChangeNotifier.addListener(_onSpeechTabChange);
+    SpeechNavigationNotifier.openBuddyNotifier.addListener(_onSpeechOpenBuddy);
   }
 
   Future<void> _checkTutorialStatus() async {
@@ -70,6 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     SpeechNavigationNotifier.tabChangeNotifier.removeListener(_onSpeechTabChange);
+    SpeechNavigationNotifier.openBuddyNotifier.removeListener(_onSpeechOpenBuddy);
     _stopShakeListening();
     _barkPlayer.dispose();
     super.dispose();
@@ -79,6 +81,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final idx = SpeechNavigationNotifier.tabChangeNotifier.value;
     if (idx != null && mounted) {
       _onTabChanged(idx);
+    }
+  }
+
+  void _onSpeechOpenBuddy() {
+    final shouldOpen = SpeechNavigationNotifier.openBuddyNotifier.value;
+    if (shouldOpen == true && mounted && !_isBuddySheetOpen) {
+      _openBuddyAssistant();
     }
   }
 

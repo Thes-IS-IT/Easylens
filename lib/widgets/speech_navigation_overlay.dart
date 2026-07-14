@@ -21,11 +21,14 @@ import '../screens/settings/customize_home_screen.dart';
 import '../screens/face_registration/face_registration_screen.dart';
 import '../screens/settings/profile_details_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/image_labeling/image_labeling_screen.dart';
+import '../screens/hardware/hardware_screen.dart';
 
 class SpeechNavigationNotifier {
   static final ValueNotifier<int?> tabChangeNotifier = ValueNotifier<int?>(null);
   static final ValueNotifier<String?> searchPlaceNotifier = ValueNotifier<String?>(null);
   static final ValueNotifier<int?> selectResultNotifier = ValueNotifier<int?>(null);
+  static final ValueNotifier<bool?> openBuddyNotifier = ValueNotifier<bool?>(null);
   static List<Map<String, dynamic>> activeSearchResults = [];
   
   static void changeTab(int index) {
@@ -371,6 +374,26 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
         ? cleanText.replaceAll("click ", "").replaceAll("pindutin ", "").trim() 
         : cleanText;
     
+    if (target.contains("buddy") || target.contains("chat") || target.contains("kausap")) {
+      SpeechNavigationNotifier.openBuddyNotifier.value = true;
+      Future.delayed(const Duration(milliseconds: 50), () {
+        SpeechNavigationNotifier.openBuddyNotifier.value = null;
+      });
+      return isFilipino ? "Binubuksan ang chatbot ni Buddy" : "Opening Buddy chatbot";
+    }
+    if (target.contains("text") || target.contains("ocr") || target.contains("basa")) {
+      navigatorKey.currentState?.push(AppRoute.to(ImageLabelingScreen(
+        onTabSelected: (index) {
+          navigatorKey.currentState?.pop();
+          SpeechNavigationNotifier.changeTab(index);
+        },
+      )));
+      return isFilipino ? "Binubuksan ang text scanner" : "Opening text scanner";
+    }
+    if (target.contains("object") || target.contains("bagay") || target.contains("detector") || target.contains("sensor")) {
+      navigatorKey.currentState?.push(AppRoute.to(const HardwareScreen(initialStep: 4)));
+      return isFilipino ? "Binubuksan ang object detector" : "Opening object detector";
+    }
     if (target.contains("help") || target.contains("guide") || target.contains("tulong")) {
       navigatorKey.currentState?.push(AppRoute.to(const HelpGuideScreen()));
       return isFilipino ? "Binubuksan ang gabay sa tulong" : "Opening help guide";
