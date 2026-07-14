@@ -766,9 +766,9 @@ class RagService {
   String _getOffTopicRejectionMessage(String lang) {
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     if (isFilipino) {
-      return "Woof! Disenyo po ako para tumulong sa may mga kapansanan sa paningin at pag-navigate. Hindi ko po kayo matutulungan sa mga pangkalahatang tanong, math, o trivia.";
+      return "Disenyo po ako para tumulong sa may mga kapansanan sa paningin at pag-navigate. Hindi ko po kayo matutulungan sa mga pangkalahatang tanong, math, o trivia.";
     }
-    return "Woof! I'm designed specifically to assist with visual impairment and navigation. I cannot help with general queries, math, or trivia.";
+    return "I'm designed specifically to assist with visual impairment and navigation. I cannot help with general queries, math, or trivia.";
   }
 
   Future<String> askBuddy(String question) async {
@@ -936,94 +936,94 @@ class RagService {
     // 0. Curated questions and answers
     if (lowerQ.contains("scan nearby objects") || lowerQ.contains("detect objects") || lowerQ.contains("identify objects") || lowerQ.contains("recognize objects")) {
       return isUserFilipino
-          ? "Buddy: Aw! Buksan ang camera screen, piliin ang Object Detection, at tutukuyin ko ang mga bagay sa paligid mo. I-tap ang screen para marinig kung ano ang nasa harap mo, arf!"
-          : "Buddy: Arf! Open the camera screen, select Object Detection, and I will identify objects around you. Tap the screen to hear what is in front of you, woof!";
+          ? "Buksan ang camera screen, piliin ang Object Detection, at tutukuyin ko ang mga bagay sa paligid mo. I-tap ang screen para marinig kung ano ang nasa harap mo."
+          : "Open the camera screen, select Object Detection, and I will identify objects around you. Tap the screen to hear what is in front of you.";
     }
     if (lowerQ.contains("read text") || lowerQ.contains("scan text") || lowerQ.contains("ocr") || lowerQ.contains("read signs") || lowerQ.contains("read labels")) {
       return isUserFilipino
-          ? "Buddy: Arf! Pumunta sa Camera Screen at piliin ang Text Scanner (OCR). Babasahin ko ang mga karatula, libro, at label nang malakas para sa iyo, aw aw!"
-          : "Buddy: Woof! Go to the Camera Screen and select Text Scanner (OCR). I will read signs, books, and labels aloud for you, arf!";
+          ? "Pumunta sa Camera Screen at piliin ang Text Scanner (OCR). Babasahin ko ang mga karatula, libro, at label nang malakas para sa iyo."
+          : "Go to the Camera Screen and select Text Scanner (OCR). I will read signs, books, and labels aloud for you.";
     }
     if (lowerQ.contains("add a face") || lowerQ.contains("register a face") || lowerQ.contains("face registration") || lowerQ.contains("register face")) {
       return isUserFilipino
-          ? "Buddy: Aw! Pumunta sa Settings at i-tap ang Face Registration. Maaari kang kumuha ng larawan para irehistro ang mukha upang makilala ko sila mamaya, arf!"
-          : "Buddy: Arf! Navigate to Settings and tap Face Registration. You can snap a photo to register a face so I can recognize them later, woof!";
+          ? "Pumunta sa Settings at i-tap ang Face Registration. Maaari kang kumuha ng larawan para irehistro ang mukha upang makilala ko sila mamaya."
+          : "Navigate to Settings and tap Face Registration. You can snap a photo to register a face so I can recognize them later.";
     }
     if (lowerQ.contains("gps navigation") || lowerQ.contains("how to navigate") || lowerQ.contains("audio directions") || lowerQ.contains("turn-by-turn") || lowerQ.contains("directions")) {
       return isUserFilipino
-          ? "Buddy: Arf! Buksan ang Nav screen, i-type o sabihin ang iyong pupuntahan, at bibigyan kita ng direksyon bawat liko upang gabayan ka nang ligtas, aw aw!"
-          : "Buddy: Woof! Open the Nav screen, type or speak your destination, and I will give you turn-by-turn audio directions to guide you safely, arf!";
+          ? "Buksan ang Nav screen, i-type o sabihin ang iyong pupuntahan, at bibigyan kita ng direksyon bawat liko upang gabayan ka nang ligtas."
+          : "Open the Nav screen, type or speak your destination, and I will give you turn-by-turn audio directions to guide you safely.";
     }
     if (lowerQ.contains("enable gemini") || lowerQ.contains("use gemini") || lowerQ.contains("gemini api") || lowerQ.contains("advanced feature") || lowerQ.contains("enable advanced")) {
       return isUserFilipino
-          ? "Buddy: Aw! Opo! Maaari mong paganahin ang Gemini sa pamamagitan ng paglalagay ng iyong API key sa Settings. Sa ilalim ng AI Settings, maaari kang magpalipat-lipat sa Gemini para sa advanced na kakayahan at Local AI para sa offline na paggamit, arf!"
-          : "Buddy: Arf! Yes! You can enable Gemini by entering your API key in Settings. Under AI Settings, you can switch between Gemini for advanced capabilities and Local AI for offline use, woof!";
+          ? "Opo! Maaari mong paganahin ang Gemini sa pamamagitan ng paglalagay ng iyong API key sa Settings. Sa ilalim ng AI Settings, maaari kang magpalipat-lipat sa Gemini para sa advanced na kakayahan at Local AI para sa offline na paggamit."
+          : "Yes! You can enable Gemini by entering your API key in Settings. Under AI Settings, you can switch between Gemini for advanced capabilities and Local AI for offline use.";
     }
     if (lowerQ.contains("what is easylens") || lowerQ.contains("about easylens")) {
       return isUserFilipino
-          ? "Buddy: Ang EasyLens ay isang assistive app na dinisenyo sa Holy Angel University upang tulungan ang mga taong may kapansanan sa paningin na mag-navigate at makilala ang mga bagay sa kanilang paligid, arf!"
-          : "Buddy: EasyLens is an assistive app designed at Holy Angel University to help visually impaired individuals navigate and recognize things around them, arf!";
+          ? "Ang EasyLens ay isang assistive app na dinisenyo sa Holy Angel University upang tulungan ang mga taong may kapansanan sa paningin na mag-navigate at makilala ang mga bagay sa kanilang paligid."
+          : "EasyLens is an assistive app designed at Holy Angel University to help visually impaired individuals navigate and recognize things around them.";
     }
     if (lowerQ.contains("mobility aids") || lowerQ.contains("mobility aid") || lowerQ.contains("wheelchair") || lowerQ.contains("cane")) {
       return isUserFilipino
-          ? "Buddy: Arf! Sinusuportahan namin ang mga walking cane, wheelchair, at gabay na aso. Maaari mong piliin ang iyong mobility aid sa settings profile, aw aw!"
-          : "Buddy: Woof! We support walking canes, wheelchairs, and guide dogs. You can select your mobility aid in the settings profile, arf!";
+          ? "Sinusuportahan namin ang mga walking cane, wheelchair, at gabay na aso. Maaari mong piliin ang iyong mobility aid sa settings profile."
+          : "We support walking canes, wheelchairs, and guide dogs. You can select your mobility aid in the settings profile.";
     }
 
     // 1. Identity & Name questions
     if (lowerQ.contains("name") || lowerQ.contains("who am i") || lowerQ.contains("know me")) {
       return isUserFilipino
-          ? "Buddy: Aw aw! Oo naman, kilala kita! Ikaw si $name, at gumagamit ka ng $aid. Paano kita matutulungan ngayon, arf!"
-          : "Buddy: Woof! Yes, I know you! You are $name, and you are using the $aid mobility aid. How can I help you today, arf!";
+          ? "Oo naman, kilala kita! Ikaw si $name, at gumagamit ka ng $aid. Paano kita matutulungan ngayon?"
+          : "Yes, I know you! You are $name, and you are using the $aid mobility aid. How can I help you today?";
     }
     if (lowerQ.contains("who are you") || lowerQ.contains("your name") || lowerQ.contains("who is buddy") || lowerQ.contains("breed") || lowerQ.contains("dog")) {
       return isUserFilipino
-          ? "Buddy: Arf! Ako si Buddy, ang magiliw na Golden Retriever mascot at AI guide dog ng EasyLens app. Aw aw!"
-          : "Buddy: Arf! I'm Buddy, the friendly Golden Retriever mascot and AI guide dog for the EasyLens app. Woof!";
+          ? "Ako si Buddy, ang magiliw na Golden Retriever mascot at AI guide dog ng EasyLens app."
+          : "I'm Buddy, the friendly Golden Retriever mascot and AI guide dog for the EasyLens app.";
     }
 
     // 2. Creators & Thesis questions
     if (lowerQ.contains("who made") || lowerQ.contains("developer") || lowerQ.contains("created") || lowerQ.contains("thesis") || lowerQ.contains("author") || lowerQ.contains("architect") || lowerQ.contains("design") || lowerQ.contains("team") || lowerQ.contains("members")) {
       return isUserFilipino
-          ? "Buddy: Aw aw! Ang EasyLens ay binuo ng pangkat ng mga mag-aaral ng Computer Science sa Holy Angel University: Arron Kian Parejas, Jian Kalel Marquez, Graciella Mhervie Jimenez, at Jenica Sarah Tongol, arf!"
-          : "Buddy: Woof! EasyLens was developed by a team of 4th-year Computer Science students at Holy Angel University: Arron Kian Parejas, Jian Kalel Marquez, Graciella Mhervie Jimenez, and Jenica Sarah Tongol, arf!";
+          ? "Ang EasyLens ay binuo ng pangkat ng mga mag-aaral ng Computer Science sa Holy Angel University: Arron Kian Parejas, Jian Kalel Marquez, Graciella Mhervie Jimenez, at Jenica Sarah Tongol."
+          : "EasyLens was developed by a team of 4th-year Computer Science students at Holy Angel University: Arron Kian Parejas, Jian Kalel Marquez, Graciella Mhervie Jimenez, and Jenica Sarah Tongol.";
     }
 
     // 3. Greeting questions
     if (lowerQ == "hi" || lowerQ == "hello" || lowerQ == "hey" || lowerQ.contains("kamusta") || lowerQ.contains("kumusta")) {
       return isUserFilipino
-          ? "Buddy: Aw aw! Kumusta si $name! Handa na akong tulungan kang mag-navigate o sumagot ng mga tanong tungkol sa EasyLens, arf!"
-          : "Buddy: Woof! Hi $name! I'm ready to help you navigate or answer questions about EasyLens, arf!";
+          ? "Kumusta si $name! Handa na akong tulungan kang mag-navigate o sumagot ng mga tanong tungkol sa EasyLens."
+          : "Hi $name! I'm ready to help you navigate or answer questions about EasyLens.";
     }
 
     // 4. Emergency / SOS questions
     if (lowerQ.contains("sos") || lowerQ.contains("emergency") || lowerQ.contains("help")) {
       return isUserFilipino
-          ? "Buddy: Arf! Kung kailangan mo ng tulong, i-tap ang SOS button para ipadala agad ang iyong lokasyon sa iyong caregiver! [NAVIGATE: emergency]"
-          : "Buddy: Arf! If you need help, tap the SOS button to send your GPS coordinates to your caregiver contact immediately! [NAVIGATE: emergency]";
+          ? "Kung kailangan mo ng tulong, i-tap ang SOS button para ipadala agad ang iyong lokasyon sa iyong caregiver! [NAVIGATE: emergency]"
+          : "If you need help, tap the SOS button to send your GPS coordinates to your caregiver contact immediately! [NAVIGATE: emergency]";
     }
 
     // 5. Navigation target guides
     if (lowerQ.contains("go to") || lowerQ.contains("navigate") || lowerQ.contains("where is") || lowerQ.contains("how to walk")) {
       if (lowerQ.contains("hau") || lowerQ.contains("holy angel")) {
         return isUserFilipino
-            ? "Buddy: Ang Holy Angel University ay nasa Angeles City, Pampanga. Maaari kitang gabayan doon! [NAVIGATE: nav]"
-            : "Buddy: Holy Angel University is at Angeles City, Pampanga (GPS: 15.1325, 120.5901). I can navigate you there! [NAVIGATE: nav]";
+            ? "Ang Holy Angel University ay nasa Angeles City, Pampanga. Maaari kitang gabayan doon! [NAVIGATE: nav]"
+            : "Holy Angel University is at Angeles City, Pampanga (GPS: 15.1325, 120.5901). I can navigate you there! [NAVIGATE: nav]";
       }
       if (lowerQ.contains("auf") || lowerQ.contains("angeles university")) {
         return isUserFilipino
-            ? "Buddy: Ang Angeles University Foundation ay nasa MacArthur Highway, Angeles City. [NAVIGATE: nav]"
-            : "Buddy: Angeles University Foundation is along MacArthur Highway, Angeles City. [NAVIGATE: nav]";
+            ? "Ang Angeles University Foundation ay nasa MacArthur Highway, Angeles City. [NAVIGATE: nav]"
+            : "Angeles University Foundation is along MacArthur Highway, Angeles City. [NAVIGATE: nav]";
       }
       if (lowerQ.contains("sm") || lowerQ.contains("clark")) {
         return isUserFilipino
-            ? "Buddy: Ang SM City Clark ay nasa M.A. Roxas Highway, Clark Freeport Zone. [NAVIGATE: nav]"
-            : "Buddy: SM City Clark is at M.A. Roxas Highway, Clark Freeport Zone. [NAVIGATE: nav]";
+            ? "Ang SM City Clark ay nasa M.A. Roxas Highway, Clark Freeport Zone. [NAVIGATE: nav]"
+            : "SM City Clark is at M.A. Roxas Highway, Clark Freeport Zone. [NAVIGATE: nav]";
       }
       if (lowerQ.contains("nepo")) {
         return isUserFilipino
-            ? "Buddy: Ang Nepo Mall ay nasa St. Joseph Street, Angeles City. [NAVIGATE: nav]"
-            : "Buddy: Nepo Mall is located at St. Joseph Street, Angeles City. [NAVIGATE: nav]";
+            ? "Ang Nepo Mall ay nasa St. Joseph Street, Angeles City. [NAVIGATE: nav]"
+            : "Nepo Mall is located at St. Joseph Street, Angeles City. [NAVIGATE: nav]";
       }
     }
 
@@ -1059,13 +1059,13 @@ class RagService {
       final sentences = bestMatch.content.split(RegExp(r'(?<=[.!?])\s+'));
       final summary = sentences.take(2).join(" ");
       return isUserFilipino
-          ? "Buddy: Aw! Ayon sa aking database: $summary Arf!"
-          : "Buddy: Woof! According to my database: $summary Arf!";
+          ? "Ayon sa aking database: $summary"
+          : "According to my database: $summary";
     }
 
     return isUserFilipino
-        ? "Buddy: Aw aw! Nakikita ko ang malinaw na daan sa unahan. Sabihin mo lang kung nais mong ilarawan ko ang paligid, mag-navigate, o mag-set up ng emergency alert, arf!"
-        : "Buddy: Arf! I see a clear pathway ahead. Let me know if you want me to describe the scene, navigate somewhere, or set up emergency alerts, woof!";
+        ? "Nakikita ko ang malinaw na daan sa unahan. Sabihin mo lang kung nais mong ilarawan ko ang paligid, mag-navigate, o mag-set up ng emergency alert."
+        : "I see a clear pathway ahead. Let me know if you want me to describe the scene, navigate somewhere, or set up emergency alerts.";
   }
 
   /// Builds a Tagalog-language Gemma prompt.

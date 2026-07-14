@@ -51,8 +51,8 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
         SettingsService().selectedLanguage.toLowerCase().contains('filipino');
 
     final welcomeMsg = isFilipino
-        ? "Aw! Kumusta $name! Ako si Buddy, ang iyong lokal na AI katulong. Maaari mong paganahin ang advanced na Gemini o baguhin sa Local AI sa settings. Sabihin mo sa akin kung ano ang gusto mong ipaliwanag o kung saan mo gustong pumunta!"
-        : "Woof! Hi $name! I'm Buddy, your local on-device LLM helper. You can enable advanced Gemini or switch to Local AI in settings. Tell me what to explain or where to navigate!";
+        ? "Kumusta $name! Ako si Buddy, ang iyong lokal na AI katulong. Maaari mong paganahin ang advanced na Gemini o baguhin sa Local AI sa settings. Sabihin mo sa akin kung ano ang gusto mong ipaliwanag o kung saan mo gustong pumunta!"
+        : "Hi $name! I'm Buddy, your local on-device LLM helper. You can enable advanced Gemini or switch to Local AI in settings. Tell me what to explain or where to navigate!";
 
     _messages.add({
       'text': welcomeMsg,
@@ -211,8 +211,8 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       };
       final screenName = screenNames[matchedKey] ?? matchedKey;
       response = isFilipino 
-          ? "Aw! Nandito na tayo sa $screenName!" 
-          : "Woof! We're here on the $screenName now!";
+          ? "Nandito na tayo sa $screenName!" 
+          : "We're here on the $screenName now!";
     }
 
     if (updateIndex != null) {

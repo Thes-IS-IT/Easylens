@@ -45,7 +45,7 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
     // Add initial greeting message from Buddy
     _messages.add(
       ChatMessage(
-        text: "Woof! Hello there! I'm Buddy, your EasyLens vision assistant. How can I help you explore today? Ask me about my features, safety guidelines, or Firebase support!",
+        text: "Hello there! I'm Buddy, your EasyLens vision assistant. How can I help you explore today? Ask me about my features, safety guidelines, or Firebase support!",
         isUser: false,
         timestamp: DateTime.now(),
       ),

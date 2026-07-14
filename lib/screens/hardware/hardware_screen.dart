@@ -1973,7 +1973,7 @@ Keep the response to exactly one natural, friendly sentence.
     await Future.delayed(const Duration(milliseconds: 900));
 
     if (_isCameraCovered) {
-      final response = "Woof! It looks completely dark! It seems the camera lens is covered. Please check it so I can see your surroundings.";
+      final response = "It looks completely dark! It seems the camera lens is covered. Please check it so I can see your surroundings.";
       if (mounted) {
         modalSetState(() {
           _geminiAssistantResponse = response;
