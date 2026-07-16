@@ -74,6 +74,8 @@ class TranslationService {
       'tutorial_chat_desc': 'Ask Buddy questions about visual surroundings or EasyLens operations. Toggle offline Local AI (Gemma) vs. online Gemini using settings, and tap the History button to review logs!',
       'tutorial_settings_title': 'Personalize EasyLens',
       'tutorial_settings_desc': 'Customize your language, voice feedback speed, haptic warnings, and mobility aids. All preferences will automatically sync to Firestore to secure your settings!',
+      'tutorial_navigation_title': 'Walking Navigation',
+      'tutorial_navigation_desc': 'Search destinations via text or voice, and receive hands-free turn-by-turn guidance. Buddy will play audio chimes to help you reach target doorways!',
       'tutorial_got_it': 'Got it!',
     },
     'fil': {
@@ -150,6 +152,8 @@ class TranslationService {
       'tutorial_chat_desc': 'Magtanong kay Buddy tungkol sa iyong paligid o EasyLens. Magpalit mula sa offline Local AI (Gemma) o online Gemini sa mga setting, at gamitin ang History button para sa mga nakaraang pag-uusap!',
       'tutorial_settings_title': 'I-personalize ang EasyLens',
       'tutorial_settings_desc': 'I-customize ang wika, bilis ng feedback ng boses, haptic na babala, at mobility aids. Lahat ng iyong kagustuhan ay awtomatikong mag-si-sync sa Firestore!',
+      'tutorial_navigation_title': 'Paglalakad at Nabigasyon',
+      'tutorial_navigation_desc': 'Maghanap ng direksyon gamit ang sulat o boses para sa turn-by-turn na gabay. May tutunog na chimes kapag malapit na sa pinto!',
       'tutorial_got_it': 'Naintindihan ko!',
     }
   };

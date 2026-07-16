@@ -23,6 +23,7 @@ import '../screens/settings/profile_details_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/image_labeling/image_labeling_screen.dart';
 import '../screens/hardware/hardware_screen.dart';
+import '../screens/devices/devices_screen.dart';
 import '../services/rag_service.dart';
 
 class SpeechNavigationNotifier {
@@ -30,6 +31,7 @@ class SpeechNavigationNotifier {
   static final ValueNotifier<String?> searchPlaceNotifier = ValueNotifier<String?>(null);
   static final ValueNotifier<int?> selectResultNotifier = ValueNotifier<int?>(null);
   static final ValueNotifier<bool?> openBuddyNotifier = ValueNotifier<bool?>(null);
+  static final ValueNotifier<String?> hardwareControlNotifier = ValueNotifier<String?>(null);
   static List<Map<String, dynamic>> activeSearchResults = [];
   
   static void changeTab(int index) {
@@ -50,6 +52,13 @@ class SpeechNavigationNotifier {
     selectResultNotifier.value = index;
     Future.delayed(const Duration(milliseconds: 50), () {
       selectResultNotifier.value = null;
+    });
+  }
+
+  static void triggerHardwareControl(String control) {
+    hardwareControlNotifier.value = control;
+    Future.delayed(const Duration(milliseconds: 50), () {
+      hardwareControlNotifier.value = null;
     });
   }
 }
@@ -352,6 +361,12 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Binubuksan ang mga setting" : "Navigating to settings";
     }
 
+    // 4b. Devices / Glasses Screen
+    if (cleanText.contains("go to devices") || cleanText.contains("open devices") || cleanText.contains("devices") || cleanText.contains("glasses") || cleanText.contains("salamin") || cleanText.contains("hardware screen") || cleanText.contains("device")) {
+      _pushAndRecord(const DevicesScreen(), "Glasses Settings");
+      return isFilipino ? "Binubuksan ang screen ng salamin" : "Navigating to devices screen";
+    }
+
     // 5. Notifications Screen
     if (cleanText.contains("go to notifications") || cleanText.contains("open notifications") || cleanText.contains("notifications") || cleanText.contains("mga abiso") || cleanText.contains("abiso")) {
       _pushAndRecord(const NotificationsScreen(), "Notifications");
@@ -382,6 +397,43 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
         ? cleanText.replaceAll("click ", "").replaceAll("pindutin ", "").trim() 
         : cleanText;
     
+    if (target.contains("scenery") || target.contains("tanawin")) {
+      SpeechNavigationNotifier.triggerHardwareControl("scenery");
+      return isFilipino ? "Binubuksan ang scenery mode" : "Switching to scenery mode";
+    }
+    if (target.contains("face recognition") || target.contains("faces") || target.contains("pagkilala sa mukha")) {
+      SpeechNavigationNotifier.triggerHardwareControl("faces");
+      return isFilipino ? "Binubuksan ang face recognition" : "Switching to face recognition mode";
+    }
+    if (target.contains("navigation mode") || target.contains("warnings") || target.contains("babala")) {
+      SpeechNavigationNotifier.triggerHardwareControl("navigation");
+      return isFilipino ? "Binubuksan ang mga babala sa nabigasyon" : "Switching to navigation mode";
+    }
+    if (target.contains("bluetooth") || target.contains("easylens connection") || target.contains("koneksyon")) {
+      SpeechNavigationNotifier.triggerHardwareControl("bluetooth");
+      return isFilipino ? "Binabago ang koneksyon ng bluetooth" : "Toggling bluetooth connection";
+    }
+    if (target.contains("gemini") || target.contains("advance ai") || target.contains("online ai")) {
+      SpeechNavigationNotifier.triggerHardwareControl("gemini");
+      return isFilipino ? "Binabago ang katayuan ng Gemini AI" : "Toggling Gemini AI";
+    }
+    if (target.contains("local ai") || target.contains("offline ai")) {
+      SpeechNavigationNotifier.triggerHardwareControl("local_ai");
+      return isFilipino ? "Binabago ang katayuan ng Local AI" : "Toggling Local AI";
+    }
+    if (target.contains("audio") || target.contains("speaker") || target.contains("glasses audio")) {
+      SpeechNavigationNotifier.triggerHardwareControl("audio");
+      return isFilipino ? "Binabago ang audio output" : "Toggling audio output";
+    }
+    if (target.contains("network") || target.contains("wifi")) {
+      SpeechNavigationNotifier.triggerHardwareControl("network");
+      return isFilipino ? "Binabago ang katayuan ng internet" : "Toggling network connection";
+    }
+    if (target.contains("lock mode") || target.contains("screen lock") || target.contains("i-lock")) {
+      SpeechNavigationNotifier.triggerHardwareControl("lock");
+      return isFilipino ? "Binabago ang lock mode" : "Toggling lock mode";
+    }
+
     if (target.contains("buddy") || target.contains("chat") || target.contains("kausap")) {
       SpeechNavigationNotifier.openBuddyNotifier.value = true;
       Future.delayed(const Duration(milliseconds: 50), () {
@@ -457,7 +509,11 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       "customize", "isaayos",
       "face", "mukha", "register",
       "logout", "log out", "umalis",
-      "profile", "detalye"
+      "profile", "detalye",
+      "devices", "glasses", "salamin", "device",
+      "scenery", "tanawin", "faces", "face recognition", "pagkilala sa mukha",
+      "bluetooth", "koneksyon", "gemini", "online ai", "local ai", "offline ai",
+      "audio", "speaker", "network", "wifi", "lock mode", "screen lock", "i-lock"
     ];
     
     final clean = text.toLowerCase();

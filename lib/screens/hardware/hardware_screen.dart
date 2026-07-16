@@ -28,6 +28,7 @@ import 'package:battery_plus/battery_plus.dart';
 import '../../widgets/screen_tutorial_card.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
 import '../contacts/contacts_screen.dart';
+import '../../widgets/speech_navigation_overlay.dart';
 import '../../utils/app_route.dart';
 
 enum HudMode {
@@ -61,6 +62,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   bool _isProcessingFrame = false;
   bool _wasPathBlocked = false;
+  DateTime? _lastHazardDetectionTime;
 
   // Native Object Detector
   ObjectDetector? _objectDetector;
@@ -70,6 +72,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
   List<String> _cocoLabels = [];
   final TfliteProcessor _tfliteProcessor = TfliteProcessor();
   List<SSDResult> _tfliteDetections = [];
+  int _lastLabelerTime = 0;
+  final List<String> _conversationHistory = [];
   bool _isContinuousVoiceEnabled = false;
   String _continuousVoiceText = '';
   Timer? _silenceTimer;
@@ -146,11 +150,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
     },
     {
       'title': 'Traffic Sign Located',
-      'desc': 'Approaching a crosswalk or intersection warning sign.',
+      'desc': 'Traffic sign detected. Slow down and proceed carefully.',
       'bg': Color(0xFFE8EAF6),
       'icon': Icons.remove_road_rounded,
       'iconColor': Colors.indigo,
-      'speech': 'Traffic sign located. Approaching a crosswalk.'
+      'speech': 'Traffic sign located. Slow down and proceed carefully.'
     },
     {
       'title': 'Caution',
@@ -162,11 +166,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
     },
     {
       'title': 'Stairs Detected',
-      'desc': 'Step carefully.',
+      'desc': 'Slow down and step carefully.',
       'bg': Color(0xFFFFF8E1),
       'icon': Icons.stairs_rounded,
       'iconColor': Colors.orange,
-      'speech': 'Stairs detected. Step carefully.'
+      'speech': 'Stairs detected. Slow down and step carefully.'
     },
     {
       'title': 'Low Light Detected',
@@ -186,19 +190,19 @@ class _HardwareScreenState extends State<HardwareScreen> {
     },
     {
       'title': 'Vehicle Detected',
-      'desc': 'A jeepney, tricycle, or vehicle approaching. Please wait.',
+      'desc': 'Vehicle approaching. Please slow down and wait.',
       'bg': Color(0xFFFFF8E1),
       'icon': Icons.directions_car_rounded,
       'iconColor': Colors.orange,
-      'speech': 'Vehicle detected. A vehicle is approaching. Please wait.'
+      'speech': 'Vehicle detected. A vehicle is approaching. Please slow down and wait.'
     },
     {
       'title': 'Damaged Pathway',
-      'desc': 'Potholes or severe road damage detected. Step carefully.',
+      'desc': 'Pothole detected. Slow down and step carefully.',
       'bg': Color(0xFFFFF8E1),
       'icon': Icons.trending_down_rounded,
       'iconColor': Colors.orange,
-      'speech': 'Damaged pathway. Potholes or road damage detected.'
+      'speech': 'Damaged pathway. Pothole detected. Slow down and step carefully.'
     },
     {
       'title': 'Multiple Hazards',
@@ -210,11 +214,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
     },
     {
       'title': 'Obstacle Ahead',
-      'desc': 'Object blocking path.',
+      'desc': 'Object blocking path. Slow down.',
       'bg': Color(0xFFFFF8E1),
       'icon': Icons.block_flipped,
       'iconColor': Colors.orange,
-      'speech': 'Obstacle ahead. Object blocking path.'
+      'speech': 'Obstacle ahead. Object blocking path. Slow down.'
     },
     {
       'title': 'Fire Hazard!',
@@ -234,11 +238,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
     },
     {
       'title': 'Person Detected',
-      'desc': 'A person is nearby. Proceed carefully.',
+      'desc': 'A person is nearby. Please slow down.',
       'bg': Color(0xFFE8EAF6),
       'icon': Icons.person_rounded,
       'iconColor': Colors.indigo,
-      'speech': 'Person detected nearby.'
+      'speech': 'Person detected. A person is nearby. Please slow down.'
     },
     {
       'title': 'GO Signal Detected',
@@ -247,6 +251,22 @@ class _HardwareScreenState extends State<HardwareScreen> {
       'icon': Icons.arrow_circle_right_outlined,
       'iconColor': Colors.green,
       'speech': 'Go signal detected. Proceed carefully.'
+    },
+    {
+      'title': 'Traffic Light Detected',
+      'desc': 'Traffic light detected. Slow down and check the signal.',
+      'bg': Color(0xFFE8EAF6),
+      'icon': Icons.traffic_rounded,
+      'iconColor': Colors.indigo,
+      'speech': 'Traffic light detected. Slow down and check the signal.'
+    },
+    {
+      'title': 'Elevator Detected',
+      'desc': 'Elevator or lift located in front of you.',
+      'bg': Color(0xFFE0F7FA),
+      'icon': Icons.elevator_rounded,
+      'iconColor': Colors.teal,
+      'speech': 'Slow down. Elevator detected ahead.'
     }
   ];
 
@@ -262,6 +282,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     FaceRegistrationService().addListener(_loadRegisteredFaces);
     Esp32Service().addListener(_onEsp32FrameAvailable);
     BuddyAssistantSheet.isVisible.addListener(_onBuddyVisibilityChanged);
+    SpeechNavigationNotifier.hardwareControlNotifier.addListener(_onSpeechHardwareControl);
 
     // Auto-connect to ESP32 camera if not connected
     if (!Esp32Service().isConnected && !Esp32Service().isConnecting) {
@@ -305,6 +326,159 @@ class _HardwareScreenState extends State<HardwareScreen> {
     });
   }
 
+  void _onSpeechHardwareControl() {
+    final control = SpeechNavigationNotifier.hardwareControlNotifier.value;
+    if (control == null || !mounted) return;
+
+    final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+
+    if (control == 'scenery') {
+      setState(() {
+        _selectedHudMode = HudMode.scenery;
+      });
+      _applyModeChange(HudMode.scenery);
+    } else if (control == 'faces') {
+      setState(() {
+        _selectedHudMode = HudMode.faceRecognition;
+      });
+      _applyModeChange(HudMode.faceRecognition);
+    } else if (control == 'navigation') {
+      setState(() {
+        _selectedHudMode = HudMode.navigation;
+      });
+      _applyModeChange(HudMode.navigation);
+    } else if (control == 'objects') {
+      setState(() {
+        _selectedHudMode = HudMode.objectDetection;
+      });
+      _applyModeChange(HudMode.objectDetection);
+    } else if (control == 'bluetooth') {
+      setState(() {
+        _isBluetoothConnected = !_isBluetoothConnected;
+      });
+      TtsService().speak(
+        _isBluetoothConnected 
+            ? (isTagalog ? "Konektado na ang salamin." : "Glasses connected.")
+            : (isTagalog ? "Idinekoneta ang salamin." : "Glasses disconnected.")
+      );
+    } else if (control == 'gemini') {
+      setState(() {
+        if (_isContinuousVoiceEnabled && !_useLocalAI) {
+          _isContinuousVoiceEnabled = false;
+          _isGeminiEnabled = false;
+          _silenceTimer?.cancel();
+          _conversationHistory.clear();
+          SttService().stopListening((_) {});
+          TtsService().stop();
+          TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+        } else {
+          _useLocalAI = false;
+          _isContinuousVoiceEnabled = true;
+          _isGeminiEnabled = true;
+          _conversationHistory.clear();
+          TtsService().speak(isTagalog ? "Aktibo ang Advance AI. Simulan ang tuloy-tuloy na boses." : "Advanced online AI active. Continuous voice enabled.");
+          _runContinuousVoiceLoop();
+        }
+      });
+    } else if (control == 'local_ai') {
+      setState(() {
+        if (_isContinuousVoiceEnabled && _useLocalAI) {
+          _isContinuousVoiceEnabled = false;
+          _isGeminiEnabled = false;
+          _silenceTimer?.cancel();
+          _conversationHistory.clear();
+          SttService().stopListening((_) {});
+          TtsService().stop();
+          TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+        } else {
+          _useLocalAI = true;
+          _isContinuousVoiceEnabled = true;
+          _isGeminiEnabled = false;
+          _conversationHistory.clear();
+          TtsService().speak(isTagalog ? "Aktibo ang Local AI. Simulan ang tuloy-tuloy na boses." : "Local offline AI active. Continuous voice enabled.");
+          _runContinuousVoiceLoop();
+        }
+      });
+    } else if (control == 'audio') {
+      setState(() {
+        _isAudioSpeaker = !_isAudioSpeaker;
+      });
+      TtsService().speak(
+        _isAudioSpeaker 
+            ? (isTagalog ? "Output sa speaker." : "Outputting to speaker.")
+            : (isTagalog ? "Output sa salamin." : "Outputting to glasses.")
+      );
+    } else if (control == 'network') {
+      setState(() {
+        _isWifiOn = !_isWifiOn;
+      });
+      TtsService().speak(
+        _isWifiOn 
+            ? (isTagalog ? "Naka-on ang internet." : "Network connection enabled.")
+            : (isTagalog ? "Naka-off ang internet." : "Network connection disabled.")
+      );
+    } else if (control == 'lock') {
+      setState(() {
+        _isScreenLocked = !_isScreenLocked;
+      });
+      TtsService().speak(
+        _isScreenLocked 
+            ? (isTagalog ? "Naka-lock ang screen." : "Screen locked.")
+            : (isTagalog ? "Naka-unlock ang screen." : "Screen unlocked.")
+      );
+    }
+  }
+
+  void _onCameraFrameReceived(CameraImage image) {
+    if (_isPaused) return;
+    if (!_isDetectionEnabled) return;
+    if (_isProcessingFrame) return;
+    if (!mounted) return;
+
+    _isProcessingFrame = true;
+
+    Future.microtask(() async {
+      if (!mounted) {
+        _isProcessingFrame = false;
+        return;
+      }
+      try {
+        final nv21Bytes = await _yuvToNv21Async(image);
+        final yBytes = Uint8List.fromList(image.planes[0].bytes);
+        final width = image.width;
+        final height = image.height;
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+        if (_selectedHudMode == HudMode.faceRecognition) {
+          if (nowMs - _lastFaceDetectionTime > 1500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
+            _lastFaceDetectionTime = nowMs;
+            await _detectFaceOnFrame(nv21Bytes, width, height);
+          }
+        } else if (_selectedHudMode == HudMode.navigation) {
+          if (nowMs - _lastObjectDetectionTime > 800 && _objectDetector != null) {
+            _lastObjectDetectionTime = nowMs;
+            await _detectObjectsOnFrame(nv21Bytes, width, height);
+          } else if (nowMs - _lastLabelerTime > 800) {
+            _lastLabelerTime = nowMs;
+            await _processCameraImage(nv21Bytes, yBytes, width, height);
+          }
+        } else if (_selectedHudMode == HudMode.objectDetection) {
+          if (nowMs - _lastObjectDetectionTime > 400) {
+            _lastObjectDetectionTime = nowMs;
+            await _detectAndProcessTfliteOnly(nv21Bytes, width, height);
+          }
+        } else {
+          await _processCameraImage(nv21Bytes, yBytes, width, height);
+        }
+      } catch (e) {
+        print("ML Kit frame processing error: $e");
+      } finally {
+        await Future.delayed(const Duration(milliseconds: 400));
+        _isProcessingFrame = false;
+      }
+    });
+  }
+
   void _onBuddyVisibilityChanged() {
     final isBuddyVisible = BuddyAssistantSheet.isVisible.value;
     if (isBuddyVisible) {
@@ -325,55 +499,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
           _isStreamingPausedForBuddy = false;
         });
         try {
-          _cameraController!.startImageStream((CameraImage image) {
-            if (_isPaused) return;
-            if (!_isDetectionEnabled) return;
-            if (_isProcessingFrame) return;
-            if (!mounted) return;
-
-            _isProcessingFrame = true;
-
-            Future.microtask(() async {
-              if (!mounted) {
-                _isProcessingFrame = false;
-                return;
-              }
-              try {
-                final nv21Bytes = await _yuvToNv21Async(image);
-                final yBytes = Uint8List.fromList(image.planes[0].bytes);
-                final width = image.width;
-                final height = image.height;
-                final nowMs = DateTime.now().millisecondsSinceEpoch;
-
-                if (_selectedHudMode == HudMode.faceRecognition) {
-                  if (nowMs - _lastFaceDetectionTime > 1500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
-                    _lastFaceDetectionTime = nowMs;
-                    await _detectFaceOnFrame(nv21Bytes, width, height);
-                  }
-                } else if (_selectedHudMode == HudMode.navigation) {
-                  // Navigation mode: only run object detection, skip image labeling
-                  // to halve memory/CPU usage per frame.
-                  if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
-                    _lastObjectDetectionTime = nowMs;
-                    await _detectObjectsOnFrame(nv21Bytes, width, height);
-                  }
-                } else if (_selectedHudMode == HudMode.objectDetection) {
-                  if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
-                    _lastObjectDetectionTime = nowMs;
-                    await _detectObjectsOnFrame(nv21Bytes, width, height);
-                  }
-                  await _processCameraImage(nv21Bytes, yBytes, width, height);
-                } else {
-                  await _processCameraImage(nv21Bytes, yBytes, width, height);
-                }
-              } catch (e) {
-                print("ML Kit frame processing error: $e");
-              } finally {
-                await Future.delayed(const Duration(milliseconds: 400));
-                _isProcessingFrame = false;
-              }
-            });
-          });
+          _cameraController!.startImageStream(_onCameraFrameReceived);
           print('[Camera] Resumed image stream because Buddy Assistant is closed.');
         } catch (e) {
           print('[Camera] Error restarting image stream: $e');
@@ -386,6 +512,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   void dispose() {
     FaceRegistrationService().removeListener(_loadRegisteredFaces);
     BuddyAssistantSheet.isVisible.removeListener(_onBuddyVisibilityChanged);
+    SpeechNavigationNotifier.hardwareControlNotifier.removeListener(_onSpeechHardwareControl);
     Esp32Service().removeListener(_onEsp32FrameAvailable);
     _silenceTimer?.cancel();
     SttService().stopListening((_) {});
@@ -461,12 +588,12 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
 
     try {
-      final modelBytes = await rootBundle.load('assets/models/mobilenetv2.tflite');
-      final labelsContent = await rootBundle.loadString('assets/models/mobilenetv2.txt');
+      final modelBytes = await rootBundle.load('assets/models/ssd_mobilenet.tflite');
+      final labelsContent = await rootBundle.loadString('assets/models/ssd_labels.txt');
       await _tfliteProcessor.init(modelBytes.buffer.asUint8List(), labelsContent);
-      print("SSD MobileNet V2 initialized successfully");
+      print("[SSD] SSD MobileNet V1 initialized successfully. isReady=${_tfliteProcessor.isReady}");
     } catch (e) {
-      print("Non-fatal: SSD MobileNet V2 assets not loaded: $e");
+      print("[SSD] Non-fatal: SSD MobileNet model not loaded: $e");
     }
   }
 
@@ -617,7 +744,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   void _initializeMLKitLabeler() {
-    final options = ImageLabelerOptions(confidenceThreshold: 0.5);
+    final options = ImageLabelerOptions(confidenceThreshold: 0.35);
     _imageLabeler = ImageLabeler(options: options);
   }
 
@@ -791,55 +918,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         await _cameraController!.initialize();
         
         // Start streaming frames continuously for ML Kit labeling and SSD MobileNet V2
-        _cameraController!.startImageStream((CameraImage image) {
-          if (_isPaused) return;
-          if (!_isDetectionEnabled) return;
-          if (_isProcessingFrame) return;
-          if (!mounted) return;
-
-          _isProcessingFrame = true;
-
-          Future.microtask(() async {
-            if (!mounted) {
-              _isProcessingFrame = false;
-              return;
-            }
-            try {
-              final nv21Bytes = await _yuvToNv21Async(image);
-              final yBytes = Uint8List.fromList(image.planes[0].bytes);
-              final width = image.width;
-              final height = image.height;
-              final nowMs = DateTime.now().millisecondsSinceEpoch;
-
-              if (_selectedHudMode == HudMode.faceRecognition) {
-                if (nowMs - _lastFaceDetectionTime > 1500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
-                  _lastFaceDetectionTime = nowMs;
-                  await _detectFaceOnFrame(nv21Bytes, width, height);
-                }
-              } else if (_selectedHudMode == HudMode.navigation) {
-                // Navigation mode: only run object detection, skip image labeling
-                // to halve memory/CPU usage per frame.
-                if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
-                  _lastObjectDetectionTime = nowMs;
-                  await _detectObjectsOnFrame(nv21Bytes, width, height);
-                }
-              } else if (_selectedHudMode == HudMode.objectDetection) {
-                if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
-                  _lastObjectDetectionTime = nowMs;
-                  await _detectObjectsOnFrame(nv21Bytes, width, height);
-                }
-                await _processCameraImage(nv21Bytes, yBytes, width, height);
-              } else {
-                await _processCameraImage(nv21Bytes, yBytes, width, height);
-              }
-            } catch (e) {
-              print("ML Kit frame processing error: $e");
-            } finally {
-              await Future.delayed(const Duration(milliseconds: 400));
-              _isProcessingFrame = false;
-            }
-          });
-        });
+        _cameraController!.startImageStream(_onCameraFrameReceived);
 
         if (mounted) {
           setState(() {
@@ -859,15 +938,22 @@ class _HardwareScreenState extends State<HardwareScreen> {
   String _getLabelForObject(DetectedObject r) {
     if (r.labels.isNotEmpty) {
       final firstLabel = r.labels.first;
+      String lbl = 'object';
       if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-        String lbl = _refineLabel(firstLabel.text).toLowerCase();
-        if (lbl.contains('fog')) lbl = 'wall';
-        return lbl;
+        lbl = _refineLabel(firstLabel.text).toLowerCase();
       } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-        String lbl = _refineLabel(_cocoLabels[firstLabel.index]).toLowerCase();
-        if (lbl.contains('fog')) lbl = 'wall';
-        return lbl;
+        lbl = _refineLabel(_cocoLabels[firstLabel.index]).toLowerCase();
       }
+      if (lbl.contains('fog')) lbl = 'wall';
+      
+      final humanParts = [
+        'leg', 'arm', 'foot', 'hand', 'head', 'body', 'face', 'nose', 'eye', 'mouth', 'hair', 
+        'human', 'pedestrian', 'man', 'woman', 'child', 'boy', 'girl', 'people', 'cyclist', 'rider', 'bystander'
+      ];
+      if (humanParts.any((part) => lbl.contains(part))) {
+        lbl = 'person';
+      }
+      return lbl;
     }
     return 'object';
   }
@@ -999,6 +1085,376 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
+  /// Runs TFLite SSD MobileNet inference on NV21 camera bytes for navigation mode.
+  /// Produces real COCO labels (person, chair, car, etc.) instead of ML Kit's generic 'Object'.
+  /// Falls back to ML Kit ObjectDetector if TFLite model isn't loaded.
+  Future<void> _detectAndProcessNavigationTflite(Uint8List nv21Bytes, int width, int height) async {
+    if (!mounted) return;
+    // Fallback to ML Kit if TFLite model not ready
+    if (!_tfliteProcessor.isReady) {
+      if (_objectDetector != null) {
+        await _detectObjectsOnFrame(nv21Bytes, width, height);
+      }
+      return;
+    }
+    try {
+      final rgbInput = _tfliteProcessor.prepareInputFromNv21(nv21Bytes, width, height);
+      final results = _tfliteProcessor.runInference(rgbInput);
+      if (!mounted) return;
+      await _processNavigationTfliteResults(results);
+    } catch (e) {
+      print('[Navigation TFLite] Inference error: $e');
+    }
+  }
+
+  /// Processes TFLite SSD results for navigation warnings.
+  /// Uses normalized bounding box coordinates (0–1) from SSDResult directly.
+  Future<void> _processNavigationTfliteResults(List<SSDResult> results) async {
+    if (!mounted) return;
+    final now = DateTime.now();
+    final lang = SettingsService().selectedLanguage;
+    final isTagalog = lang.toLowerCase().contains('tagalog') ||
+        lang.toLowerCase().contains('filipino');
+
+    // Filter to confidence > 0.40, excluding generic indoor clutter but explicitly allowing structural elements
+    final ignoredLabels = [
+      'chair', 'table', 'sofa', 'couch', 'bed', 'pottedplant', 'tv', 'laptop', 
+      'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 
+      'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 
+      'hair drier', 'toothbrush', 'cup', 'bottle', 'wine glass', 'fork', 'knife', 
+      'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 
+      'hot dog', 'pizza', 'donut', 'cake', 'handbag', 'tie', 'suitcase', 'frisbee', 
+      'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 
+      'skateboard', 'surfboard', 'tennis racket'
+    ];
+
+    final validResults = results.where((r) {
+      if (r.confidence <= 0.40 || r.label == '???' || r.label.isEmpty) return false;
+      final labelLower = _refineLabel(r.label).toLowerCase();
+      
+      // Always allow critical structural hazards
+      if (labelLower.contains('stair') || labelLower.contains('step') || 
+          labelLower.contains('elevator') || labelLower.contains('wall') || 
+          labelLower.contains('door')) {
+        return true;
+      }
+      
+      return !ignoredLabels.any((ignored) => labelLower.contains(ignored));
+    }).toList();
+
+    if (validResults.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _tfliteDetections = [];
+        });
+      }
+      _clearPath(isTagalog);
+      return;
+    }
+
+    // Update detections for bounding box rendering in Navigation Mode
+    if (mounted) {
+      setState(() {
+        _tfliteDetections = validResults;
+      });
+    }
+
+    // Find the closest (largest area) object
+    SSDResult? targetResult;
+    double largestArea = 0.0;
+
+    for (final r in validResults) {
+      final w = (r.xMax - r.xMin).abs();
+      final h = (r.yMax - r.yMin).abs();
+      final area = w * h;
+      if (area > largestArea) {
+        largestArea = area;
+        targetResult = r;
+      }
+    }
+
+    if (targetResult == null || largestArea < 0.03) {
+      if (mounted) {
+        setState(() {
+          _tfliteDetections = [];
+        });
+      }
+      _clearPath(isTagalog);
+      return;
+    }
+
+    // Centering: In portrait mode, raw image Y maps to screen X.
+    // Normalized horizontal center on screen is: 1.0 - (yMin + yMax) / 2
+    final normCenterX = 1.0 - ((targetResult.yMin + targetResult.yMax) / 2.0);
+    final isCentered = normCenterX >= 0.38 && normCenterX <= 0.62;
+    final direction = normCenterX < 0.38 ? 'left' : (normCenterX > 0.62 ? 'right' : 'center');
+
+    String refinedLabel = _refineLabel(targetResult.label);
+    
+    // Map human parts and detailed person labels to "person"
+    final humanParts = [
+      'leg', 'arm', 'foot', 'hand', 'head', 'body', 'face', 'nose', 'eye', 'mouth', 'hair', 
+      'human', 'pedestrian', 'man', 'woman', 'child', 'boy', 'girl', 'people', 'cyclist', 'rider', 'bystander'
+    ];
+    if (humanParts.any((part) => refinedLabel.toLowerCase().contains(part))) {
+      refinedLabel = 'person';
+    }
+    
+    final displayLabel = refinedLabel[0].toUpperCase() + refinedLabel.substring(1);
+
+    final hazardKeywords = [
+      'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
+      'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush'
+    ];
+    final isHazard = hazardKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
+
+    if (isCentered && largestArea > 0.45) {
+      // STOP immediately — extremely close centered obstacle covering the camera
+      final guidance = isTagalog
+          ? 'Huminto agad. May $displayLabel sa iyong tapat. Mangyaring tumabi upang maiwasan ito.'
+          : 'Stop immediately. $displayLabel is directly in front of you. Please step aside to avoid it.';
+
+      _triggerHapticAlert(isCritical: true);
+      _wasPathBlocked = true;
+
+      final isDifferent = guidance != _lastGuidanceText;
+      final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+      
+      bool shouldSpeak = false;
+      if (isDifferent) {
+        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+          shouldSpeak = true;
+        }
+      } else {
+        if (elapsed.inSeconds >= 10) {
+          shouldSpeak = true;
+        }
+      }
+
+      if (shouldSpeak) {
+        _lastGuidanceText = guidance;
+        _lastGuidanceTime = now;
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(guidance);
+        }
+        NotificationService().pushObstacleAlert('center', refinedLabel);
+      }
+
+      if (mounted) {
+        setState(() {
+          _activeTitle = isTagalog ? 'Huminto agad' : 'Stop immediately';
+          _activeDescription = guidance;
+          _statusCardBg = const Color(0xFFFFEBEE);
+          _statusIcon = Icons.report_problem;
+          _statusIconColor = Colors.red;
+        });
+      }
+    } else if (isCentered && largestArea > 0.18) {
+      // AVOID — centered obstacle at medium-close distance
+      // Check which side is clearer using correct raw Y to screen X mapping
+      bool leftBlocked = false;
+      bool rightBlocked = false;
+      for (final r in validResults) {
+        if (r == targetResult) continue;
+        final cX = 1.0 - ((r.yMin + r.yMax) / 2.0);
+        if (cX < 0.38) leftBlocked = true;
+        if (cX > 0.62) rightBlocked = true;
+      }
+      final escapeDir = (leftBlocked && !rightBlocked) ? 'right' : 'left';
+      final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
+
+      final guidance = isTagalog
+          ? 'May harang sa harap: ang $displayLabel ay nasa tapat mo. Tumabi sa iyong $escapeTagalog upang maiwasan ito.'
+          : 'Obstacle ahead: $displayLabel is directly in your path. Step aside to your $escapeDir to avoid it.';
+
+      _triggerHapticAlert(isCritical: false);
+      _wasPathBlocked = true;
+
+      final isDifferent = guidance != _lastGuidanceText;
+      final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+      
+      bool shouldSpeak = false;
+      if (isDifferent) {
+        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+          shouldSpeak = true;
+        }
+      } else {
+        if (elapsed.inSeconds >= 10) {
+          shouldSpeak = true;
+        }
+      }
+
+      if (shouldSpeak) {
+        _lastGuidanceText = guidance;
+        _lastGuidanceTime = now;
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(guidance);
+        }
+        NotificationService().pushObstacleAlert('center', refinedLabel);
+      }
+
+      if (mounted) {
+        setState(() {
+          _activeTitle = isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle';
+          _activeDescription = guidance;
+          _statusCardBg = const Color(0xFFFFF3E0);
+          _statusIcon = Icons.warning_amber_rounded;
+          _statusIconColor = Colors.orange;
+        });
+      }
+    } else if (isHazard && largestArea > 0.02) {
+      // SLOW DOWN — structural hazard (wall, pothole, step, etc.) detected early
+      final String guidance;
+      if (isCentered) {
+        guidance = isTagalog
+            ? 'Magdahan-dahan. May harang na $displayLabel sa iyong harap.'
+            : 'Slow down. $displayLabel hazard detected ahead.';
+      } else {
+        final sideDir = direction == 'left' ? (isTagalog ? 'kaliwa' : 'left') : (isTagalog ? 'kanan' : 'right');
+        guidance = isTagalog
+            ? 'Magdahan-dahan. May harang na $displayLabel sa iyong $sideDir.'
+            : 'Slow down. $displayLabel hazard detected on your $sideDir.';
+      }
+
+      _triggerHapticAlert(isCritical: false);
+
+      final isDifferent = guidance != _lastGuidanceText;
+      final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+      
+      bool shouldSpeak = false;
+      if (isDifferent) {
+        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+          shouldSpeak = true;
+        }
+      } else {
+        if (elapsed.inSeconds >= 10) {
+          shouldSpeak = true;
+        }
+      }
+
+      if (shouldSpeak) {
+        _lastGuidanceText = guidance;
+        _lastGuidanceTime = now;
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(guidance);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+          _activeDescription = guidance;
+          _statusCardBg = const Color(0xFFFFFDE7);
+          _statusIcon = Icons.speed;
+          _statusIconColor = Colors.yellow[800]!;
+        });
+      }
+    } else if ((isCentered && largestArea > 0.03) || (!isCentered && largestArea > 0.06)) {
+      // SLOW DOWN — standard object further away or side object close by
+      final String guidance;
+      if (isCentered) {
+        guidance = isTagalog
+            ? 'Magdahan-dahan. May $displayLabel sa iyong harap.'
+            : 'Slow down. $displayLabel detected ahead.';
+      } else {
+        final sideDir = direction == 'left' ? (isTagalog ? 'kaliwa' : 'left') : (isTagalog ? 'kanan' : 'right');
+        guidance = isTagalog
+            ? 'Magdahan-dahan. May $displayLabel sa iyong $sideDir.'
+            : 'Slow down. $displayLabel detected on your $sideDir.';
+      }
+
+      final isDifferent = guidance != _lastGuidanceText;
+      final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+      
+      bool shouldSpeak = false;
+      if (isDifferent) {
+        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+          shouldSpeak = true;
+        }
+      } else {
+        if (elapsed.inSeconds >= 10) {
+          shouldSpeak = true;
+        }
+      }
+
+      if (shouldSpeak) {
+        _lastGuidanceText = guidance;
+        _lastGuidanceTime = now;
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(guidance);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+          _activeDescription = guidance;
+          _statusCardBg = const Color(0xFFFFFDE7);
+          _statusIcon = Icons.speed;
+          _statusIconColor = Colors.yellow[800]!;
+        });
+      }
+    } else {
+      _clearPath(isTagalog);
+    }
+  }
+
+  /// Runs TFLite SSD MobileNet inference on NV21 camera bytes for Object Detection Mode.
+  /// Sets _tfliteDetections to draw bounding boxes and announces detected items via TTS.
+  Future<void> _detectAndProcessTfliteOnly(Uint8List nv21Bytes, int width, int height) async {
+    if (!_tfliteProcessor.isReady || !mounted) return;
+    try {
+      final rgbInput = _tfliteProcessor.prepareInputFromNv21(nv21Bytes, width, height);
+      final results = _tfliteProcessor.runInference(rgbInput);
+      if (!mounted) return;
+      
+      final validResults = results.where((r) => r.confidence > 0.40 && r.label != '???' && r.label.isNotEmpty).toList();
+      setState(() {
+        _tfliteDetections = validResults;
+      });
+
+      // TTS announcement in Object Detection Mode using MobileNet labels
+      final now = DateTime.now();
+      if (validResults.isNotEmpty) {
+        final detectedNames = validResults
+            .take(3)
+            .map((r) => _refineLabel(r.label))
+            .join(", ");
+        final alertKey = 'detection_list_tflite';
+        final lastSpoken = _lastSpokenMap[alertKey];
+        final isDifferent = detectedNames != _lastSpokenObjectText;
+        final cooldownElapsed = lastSpoken == null ||
+            now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
+        if (cooldownElapsed && detectedNames.isNotEmpty) {
+          _lastSpokenMap[alertKey] = now;
+          _lastSpokenObjectText = detectedNames;
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak("Detected objects in view: $detectedNames.");
+          }
+          
+          setState(() {
+            _activeTitle = "Objects Detected";
+            _activeDescription = "Detected: $detectedNames";
+            _statusCardBg = const Color(0xFFE6FFFA);
+            _statusIcon = Icons.search;
+            _statusIconColor = const Color(0xFF38A169);
+          });
+        }
+      } else {
+        setState(() {
+          _activeTitle = "Scanning Objects";
+          _activeDescription = "Searching for objects in view...";
+          _statusCardBg = const Color(0xFFF1F8E9);
+          _statusIcon = Icons.radar_outlined;
+          _statusIconColor = const Color(0xFF81C784);
+        });
+      }
+    } catch (e) {
+      print('[TFLite ObjectDetection] Inference error: $e');
+    }
+  }
+
+  /// Processes ML Kit Object Detector results for walking navigation warnings.
   Future<void> _processObjectResults(List<DetectedObject> objects, Size imageSize) async {
     if (!mounted) return;
     final double width = imageSize.width;
@@ -1031,156 +1487,245 @@ class _HardwareScreenState extends State<HardwareScreen> {
         }
       }
 
-      if (targetObject != null && largestArea > 0.05) {
-        final normCenterX = 1.0 - (((targetObject.boundingBox.top + targetObject.boundingBox.bottom) / 2.0) / height);
-        final isCentered = normCenterX >= 0.38 && normCenterX <= 0.62;
-        final direction = normCenterX < 0.38 ? 'left' : (normCenterX > 0.62 ? 'right' : 'center');
+      // Map human parts and detailed person labels to "person"
+      final humanParts = [
+        'leg', 'arm', 'foot', 'hand', 'head', 'body', 'face', 'nose', 'eye', 'mouth', 'hair', 
+        'human', 'pedestrian', 'man', 'woman', 'child', 'boy', 'girl', 'people', 'cyclist', 'rider', 'bystander'
+      ];
+      if (humanParts.any((part) => targetLabel.toLowerCase().contains(part))) {
+        targetLabel = 'person';
+      }
+
+      if (targetObject == null || largestArea < 0.03) {
+        final elapsedHazard = _lastHazardDetectionTime == null 
+            ? const Duration(seconds: 99) 
+            : now.difference(_lastHazardDetectionTime!);
+        if (elapsedHazard.inMilliseconds > 2500) {
+          _clearPath(isTagalog);
+        }
+        return;
+      }
+
+      // Centering: In portrait mode, raw image Y maps to screen X.
+      final normCenterX = 1.0 - (((targetObject.boundingBox.top + targetObject.boundingBox.bottom) / 2.0) / height);
+      final isCentered = normCenterX >= 0.38 && normCenterX <= 0.62;
+      final direction = normCenterX < 0.38 ? 'left' : (normCenterX > 0.62 ? 'right' : 'center');
+      
+      final refinedLabel = targetLabel[0].toUpperCase() + targetLabel.substring(1);
+
+      final hazardKeywords = [
+        'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
+        'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush',
+        'traffic light', 'traffic sign', 'stop sign'
+      ];
+      final isHazard = hazardKeywords.any((k) => targetLabel.toLowerCase().contains(k));
+
+      if (isCentered && largestArea > 0.45) {
+        // STOP immediately — extremely close centered obstacle covering the camera
+        final guidance = isTagalog
+            ? 'Huminto agad. May $refinedLabel sa iyong tapat. Mangyaring tumabi upang maiwasan ito.'
+            : 'Stop immediately. $refinedLabel is directly in front of you. Please step aside to avoid it.';
+
+        _triggerHapticAlert(isCritical: true);
+        _wasPathBlocked = true;
+
+        final isDifferent = guidance != _lastGuidanceText;
+        final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
         
-        final refinedLabel = targetLabel[0].toUpperCase() + targetLabel.substring(1);
-
-        if (isCentered) {
-          if (largestArea > 0.20) {
-            // Stop immediately
-            final guidance = isTagalog
-                ? 'Huminto agad. May $refinedLabel sa iyong tapat.'
-                : 'Stop immediately. $refinedLabel is directly in front of you.';
-                
-            _triggerHapticAlert(isCritical: true);
-            _wasPathBlocked = true;
-
-            final isDifferent = guidance != _lastGuidanceText;
-            final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
-            if (isDifferent || elapsed.inSeconds >= 3) {
-              _lastGuidanceText = guidance;
-              _lastGuidanceTime = now;
-              if (!_isContinuousVoiceEnabled) {
-                TtsService().speak(guidance);
-              }
-              NotificationService().pushObstacleAlert('center', targetLabel);
-            }
-
-            setState(() {
-              _activeTitle = isTagalog ? 'Huminto agad' : 'Stop immediately';
-              _activeDescription = guidance;
-              _statusCardBg = const Color(0xFFFFEBEE);
-              _statusIcon = Icons.report_problem;
-              _statusIconColor = Colors.red;
-            });
-          } else {
-            // Avoid Obstacle
-            bool leftBlocked = false;
-            bool rightBlocked = false;
-            for (final r in objects) {
-              if (r == targetObject) continue;
-              final cX = 1.0 - (((r.boundingBox.top + r.boundingBox.bottom) / 2.0) / height);
-              if (cX < 0.42) leftBlocked = true;
-              if (cX > 0.58) rightBlocked = true;
-            }
-            final escapeDir = (leftBlocked && !rightBlocked) ? 'right' : 'left';
-            final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
-
-            final guidance = isTagalog
-                ? 'May harang sa harap: ang $refinedLabel ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang sa $escapeTagalog.'
-                : 'Obstacle ahead: $refinedLabel is directly in your path. Avoid it by stepping to your $escapeDir.';
-
-            _triggerHapticAlert(isCritical: false);
-            _wasPathBlocked = true;
-
-            final isDifferent = guidance != _lastGuidanceText;
-            final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
-            if (isDifferent || elapsed.inSeconds >= 5) {
-              _lastGuidanceText = guidance;
-              _lastGuidanceTime = now;
-              if (!_isContinuousVoiceEnabled) {
-                TtsService().speak(guidance);
-              }
-              NotificationService().pushObstacleAlert('center', targetLabel);
-            }
-
-            setState(() {
-              _activeTitle = isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle';
-              _activeDescription = guidance;
-              _statusCardBg = const Color(0xFFFFF3E0);
-              _statusIcon = Icons.warning_amber_rounded;
-              _statusIconColor = Colors.orange;
-            });
+        bool shouldSpeak = false;
+        if (isDifferent) {
+          if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+            shouldSpeak = true;
           }
         } else {
-          // On the side: Slow Down
-          if (largestArea > 0.08) {
-            final sideDir = direction == 'left' ? (isTagalog ? 'kaliwa' : 'left') : (isTagalog ? 'kanan' : 'right');
-            final guidance = isTagalog
-                ? 'Magdahan-dahan. May $refinedLabel sa iyong $sideDir.'
-                : 'Slow down. $refinedLabel detected on your $sideDir.';
-
-            final isDifferent = guidance != _lastGuidanceText;
-            final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
-            if (isDifferent || elapsed.inSeconds >= 6) {
-              _lastGuidanceText = guidance;
-              _lastGuidanceTime = now;
-              if (!_isContinuousVoiceEnabled) {
-                TtsService().speak(guidance);
-              }
-            }
-
-            setState(() {
-              _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
-              _activeDescription = guidance;
-              _statusCardBg = const Color(0xFFFFFDE7);
-              _statusIcon = Icons.speed;
-              _statusIconColor = Colors.yellow[800]!;
-            });
-          } else {
-            _clearPath(isTagalog);
+          if (elapsed.inSeconds >= 10) {
+            shouldSpeak = true;
           }
         }
-      } else {
-        _clearPath(isTagalog);
-      }
-    } else if (_selectedHudMode == HudMode.objectDetection) {
-      if (objects.isNotEmpty) {
-        final detectedNames = objects
-            .take(3)
-            .map((r) {
-              if (r.labels.isEmpty) return 'Object';
-              final label = r.labels.first;
-              if (label.text.isNotEmpty && label.text != 'Unknown') {
-                return label.text;
-              } else if (_cocoLabels.isNotEmpty && label.index < _cocoLabels.length) {
-                return _cocoLabels[label.index];
-              }
-              return 'Object';
-            })
-            .where((name) => name != '???')
-            .join(", ");
-        final alertKey = 'detection_list';
-        final lastSpoken = _lastSpokenMap[alertKey];
-        final isDifferent = detectedNames != _lastSpokenObjectText;
-        final cooldownElapsed = lastSpoken == null ||
-            now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
-        if (cooldownElapsed && detectedNames.isNotEmpty) {
-          _lastSpokenMap[alertKey] = now;
-          _lastSpokenObjectText = detectedNames;
+
+        if (shouldSpeak) {
+          _lastGuidanceText = guidance;
+          _lastGuidanceTime = now;
           if (!_isContinuousVoiceEnabled) {
-            TtsService().speak("Detected objects in view: $detectedNames.");
+            TtsService().speak(guidance);
           }
-          
+          NotificationService().pushObstacleAlert('center', targetLabel);
+        }
+
+        if (mounted) {
           setState(() {
-            _activeTitle = "Objects Detected";
-            _activeDescription = "Detected: $detectedNames";
-            _statusCardBg = const Color(0xFFE6FFFA);
-            _statusIcon = Icons.search;
-            _statusIconColor = const Color(0xFF38A169);
+            _activeTitle = isTagalog ? 'Huminto agad' : 'Stop immediately';
+            _activeDescription = guidance;
+            _statusCardBg = const Color(0xFFFFEBEE);
+            _statusIcon = Icons.report_problem;
+            _statusIconColor = Colors.red;
+          });
+        }
+      } else if (isCentered && largestArea > 0.18) {
+        // AVOID — centered obstacle at medium-close distance
+        bool leftBlocked = false;
+        bool rightBlocked = false;
+        for (final r in objects) {
+          if (r == targetObject) continue;
+          final cX = 1.0 - (((r.boundingBox.top + r.boundingBox.bottom) / 2.0) / height);
+          if (cX < 0.38) leftBlocked = true;
+          if (cX > 0.62) rightBlocked = true;
+        }
+        final escapeDir = (leftBlocked && !rightBlocked) ? 'right' : 'left';
+        final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
+
+        final guidance = isTagalog
+            ? 'May harang sa harap: ang $refinedLabel ay nasa tapat mo. Tumabi sa iyong $escapeTagalog upang maiwasan ito.'
+            : 'Obstacle ahead: $refinedLabel is directly in your path. Step aside to your $escapeDir to avoid it.';
+
+        _triggerHapticAlert(isCritical: false);
+        _wasPathBlocked = true;
+
+        final isDifferent = guidance != _lastGuidanceText;
+        final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+        
+        bool shouldSpeak = false;
+        if (isDifferent) {
+          if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+            shouldSpeak = true;
+          }
+        } else {
+          if (elapsed.inSeconds >= 10) {
+            shouldSpeak = true;
+          }
+        }
+
+        if (shouldSpeak) {
+          _lastGuidanceText = guidance;
+          _lastGuidanceTime = now;
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak(guidance);
+          }
+          NotificationService().pushObstacleAlert('center', targetLabel);
+        }
+
+        if (mounted) {
+          setState(() {
+            _activeTitle = isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle';
+            _activeDescription = guidance;
+            _statusCardBg = const Color(0xFFFFF3E0);
+            _statusIcon = Icons.warning_amber_rounded;
+            _statusIconColor = Colors.orange;
+          });
+        }
+      } else if (isHazard && largestArea > 0.02) {
+        // SLOW DOWN — structural hazard (wall, pothole, step, etc.) detected early
+        final String guidance;
+        if (targetLabel.contains('traffic light')) {
+          guidance = isTagalog
+              ? 'Magdahan-dahan. May traffic light sa iyong harap.'
+              : 'Slow down. Traffic light detected ahead.';
+        } else if (targetLabel.contains('traffic sign') || targetLabel.contains('stop sign')) {
+          guidance = isTagalog
+              ? 'Magdahan-dahan. May traffic sign sa iyong harap.'
+              : 'Slow down. Traffic sign detected ahead.';
+        } else if (isCentered) {
+          guidance = isTagalog
+              ? 'Magdahan-dahan. May harang na $refinedLabel sa iyong harap. Mangyaring tumabi.'
+              : 'Slow down. $refinedLabel hazard detected ahead. Please step aside.';
+        } else if (direction == 'left') {
+          guidance = isTagalog
+              ? 'Magdahan-dahan. May harang na $refinedLabel sa iyong kaliwa. Mangyaring lumipat sa kanan.'
+              : 'Slow down. $refinedLabel hazard detected on your left. Please move to the right.';
+        } else {
+          guidance = isTagalog
+              ? 'Magdahan-dahan. May harang na $refinedLabel sa iyong kanan. Mangyaring lumipat sa kaliwa.'
+              : 'Slow down. $refinedLabel hazard detected on your right. Please move to the left.';
+        }
+
+        _triggerHapticAlert(isCritical: false);
+
+        final isDifferent = guidance != _lastGuidanceText;
+        final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+        
+        bool shouldSpeak = false;
+        if (isDifferent) {
+          if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+            shouldSpeak = true;
+          }
+        } else {
+          if (elapsed.inSeconds >= 10) {
+            shouldSpeak = true;
+          }
+        }
+
+        if (shouldSpeak) {
+          _lastGuidanceText = guidance;
+          _lastGuidanceTime = now;
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak(guidance);
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+            _activeDescription = guidance;
+            _statusCardBg = const Color(0xFFFFFDE7);
+            _statusIcon = Icons.speed;
+            _statusIconColor = Colors.yellow[800]!;
+          });
+        }
+      } else if ((isCentered && largestArea > 0.03) || (!isCentered && largestArea > 0.06)) {
+        // SLOW DOWN — standard object further away or side object close by
+        final String guidance;
+        if (isCentered) {
+          guidance = isTagalog
+              ? 'Magdahan-dahan. May $refinedLabel sa iyong harap. Mangyaring tumabi.'
+              : 'Slow down. $refinedLabel detected ahead. Please step aside.';
+        } else if (direction == 'left') {
+          guidance = isTagalog
+              ? 'Magdahan-dahan. May $refinedLabel sa iyong kaliwa. Mangyaring lumipat sa kanan.'
+              : 'Slow down. $refinedLabel detected on your left. Please move to the right.';
+        } else {
+          guidance = isTagalog
+              ? 'Magdahan-dahan. May $refinedLabel sa iyong kanan. Mangyaring lumipat sa kaliwa.'
+              : 'Slow down. $refinedLabel detected on your right. Please move to the left.';
+        }
+
+        final isDifferent = guidance != _lastGuidanceText;
+        final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+        
+        bool shouldSpeak = false;
+        if (isDifferent) {
+          if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+            shouldSpeak = true;
+          }
+        } else {
+          if (elapsed.inSeconds >= 10) {
+            shouldSpeak = true;
+          }
+        }
+
+        if (shouldSpeak) {
+          _lastGuidanceText = guidance;
+          _lastGuidanceTime = now;
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak(guidance);
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+            _activeDescription = guidance;
+            _statusCardBg = const Color(0xFFFFFDE7);
+            _statusIcon = Icons.speed;
+            _statusIconColor = Colors.yellow[800]!;
           });
         }
       } else {
-        setState(() {
-          _activeTitle = "Scanning Objects";
-          _activeDescription = "Searching for objects in view...";
-          _statusCardBg = const Color(0xFFF1F8E9);
-          _statusIcon = Icons.radar_outlined;
-          _statusIconColor = const Color(0xFF81C784);
-        });
+        final elapsedHazard = _lastHazardDetectionTime == null 
+            ? const Duration(seconds: 99) 
+            : now.difference(_lastHazardDetectionTime!);
+        if (elapsedHazard.inMilliseconds > 2500) {
+          _clearPath(isTagalog);
+        }
       }
     }
   }
@@ -1332,7 +1877,27 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
 
     if (labels.isNotEmpty && mounted) {
-      final topLabelText = _refineLabel(labels[0].label);
+      ImageLabel? targetLabelObj;
+      for (final l in labels) {
+        final labelText = _refineLabel(l.label).toLowerCase();
+        final isBackground = labelText.contains('floor') || 
+                             labelText.contains('ground') || 
+                             labelText.contains('sky') || 
+                             labelText.contains('ceiling') || 
+                             labelText.contains('indoor') || 
+                             labelText.contains('room') ||
+                             labelText.contains('building') ||
+                             labelText.contains('architecture') ||
+                             labelText.contains('house') ||
+                             labelText.contains('infrastructure');
+        if (!isBackground) {
+          targetLabelObj = l;
+          break;
+        }
+      }
+      targetLabelObj ??= labels[0];
+
+      final topLabelText = _refineLabel(targetLabelObj.label);
       final topLabel = topLabelText.toLowerCase();
 
       if (mounted) {
@@ -1352,76 +1917,107 @@ class _HardwareScreenState extends State<HardwareScreen> {
             'iconColor': Colors.red,
             'speech': 'The camera is covered. Please remove any obstruction.'
           };
-        } else if (_selectedHudMode == HudMode.navigation) {
-          // Bypassing general labeling in navigation mode: TF Lite centering warning system is active
-          return;
-        } else if (topLabel.contains('fire') || topLabel.contains('smoke') || topLabel.contains('flame')) {
-          selectedSim = _hazardSimulations[10]; // Fire
-        } else if (topLabel.contains('car') || topLabel.contains('bus') || topLabel.contains('truck') || topLabel.contains('vehicle') || topLabel.contains('traffic')) {
-          selectedSim = _hazardSimulations[6]; // Vehicle
-        } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
-          selectedSim = _hazardSimulations[3]; // Stairs
-        } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel == 'board' || topLabel.contains('signboard') || topLabel.contains('billboard') || topLabel.contains('banner')) {
-          try {
-            final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
-            final String signText = recognizedText.text.toUpperCase();
-            if (signText.contains('STOP')) {
-              selectedSim = _hazardSimulations[11]; // STOP!
-              selectedSim = Map<String, dynamic>.from(selectedSim!)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
-            } else if (signText.contains('GO') || signText.contains('WALK') || signText.contains('CROSS')) {
-              selectedSim = _hazardSimulations[13]; // GO Signal Detected
-            } else {
-              selectedSim = _hazardSimulations[1]; // General Traffic Sign
-              if (recognizedText.text.trim().isNotEmpty) {
-                final words = recognizedText.text.split('\n').first.trim();
-                selectedSim = Map<String, dynamic>.from(selectedSim!)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
-              }
-            }
-          } catch (e) {
-            selectedSim = _hazardSimulations[1]; // General Traffic Sign
-          }
-        } else if (topLabel.contains('pothole') || topLabel.contains('crack') || topLabel.contains('hole') || topLabel.contains('depression')) {
-          selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
-        } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
-          selectedSim = _hazardSimulations[12]; // Person Detected
-        } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway')) {
-          selectedSim = {
-            'title': 'Door Detected',
-            'desc': 'Door or entrance located in front of you.',
-            'bg': const Color(0xFFE0F7FA),
-            'icon': Icons.meeting_room,
-            'iconColor': Colors.teal,
-            'speech': 'Door or entrance detected ahead.'
-          };
-        } else if (topLabel.contains('tree') || topLabel.contains('branch') || topLabel.contains('pole') || topLabel.contains('wall') || topLabel.contains('obstacle') || topLabel.contains('post') || topLabel.contains('barrier')) {
-          selectedSim = _hazardSimulations[9]; // Obstacle ahead
         } else {
-          final cleanLabel = topLabelText[0].toUpperCase() + topLabelText.substring(1);
-          final isPathway = topLabel.contains('floor') || 
-                            topLabel.contains('ground') || 
-                            topLabel.contains('sky') || 
-                            topLabel.contains('ceiling') || 
-                            topLabel.contains('indoor') ||
-                            topLabel.contains('room');
+          if (_selectedHudMode == HudMode.navigation) {
+            final essentialKeywords = [
+              'stair', 'step', 'escalator', 'elevator', 'lift',
+              'door', 'gate', 'entrance', 'doorway', 'exit',
+              'wall', 'partition', 'fence', 'barrier', 'post', 'pole', 'column', 'pillar',
+              'pothole', 'hole', 'crack', 'depression',
+              'car', 'bus', 'truck', 'vehicle', 'jeepney', 'tricycle', 'motorcycle', 'bicycle',
+              'person', 'human', 'man', 'woman', 'pedestrian',
+              'sign', 'traffic light', 'traffic signal', 'light signal',
+              'chair', 'table', 'desk', 'bench', 'bin', 'trash', 'garbage', 'dumpster',
+              'tree', 'branch', 'bush', 'plant', 'obstacle'
+            ];
+            final isEssential = essentialKeywords.any((k) => topLabel.contains(k));
+            if (!isEssential) {
+              return;
+            }
+            _lastHazardDetectionTime = DateTime.now();
+          }
 
-          if (_selectedHudMode == HudMode.navigation && !isPathway) {
+          if (topLabel.contains('elevator') || topLabel.contains('lift')) {
+            selectedSim = _hazardSimulations[15]; // Elevator
+          } else if (topLabel.contains('traffic light') || topLabel.contains('traffic signal') || topLabel.contains('light signal')) {
+            selectedSim = _hazardSimulations[14]; // Traffic Light
+          } else if (topLabel.contains('fire') || topLabel.contains('smoke') || topLabel.contains('flame')) {
+            selectedSim = _hazardSimulations[10]; // Fire
+          } else if (topLabel.contains('car') || topLabel.contains('bus') || topLabel.contains('truck') || topLabel.contains('vehicle') || topLabel.contains('traffic')) {
+            selectedSim = _hazardSimulations[6]; // Vehicle
+          } else if (topLabel.contains('stair') || topLabel.contains('step') || topLabel.contains('escalator')) {
+            selectedSim = _hazardSimulations[3]; // Stairs
+          } else if (topLabel.contains('sign') || topLabel.contains('traffic sign') || topLabel == 'board' || topLabel.contains('signboard') || topLabel.contains('billboard') || topLabel.contains('banner')) {
+            try {
+              final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+              final String signText = recognizedText.text.toUpperCase();
+              if (signText.contains('STOP')) {
+                selectedSim = _hazardSimulations[11]; // STOP!
+                selectedSim = Map<String, dynamic>.from(selectedSim!)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
+              } else if (signText.contains('GO') || signText.contains('WALK') || signText.contains('CROSS')) {
+                selectedSim = _hazardSimulations[13]; // GO Signal Detected
+              } else {
+                selectedSim = _hazardSimulations[1]; // General Traffic Sign
+                if (recognizedText.text.trim().isNotEmpty) {
+                  final words = recognizedText.text.split('\n').first.trim();
+                  selectedSim = Map<String, dynamic>.from(selectedSim!)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
+                }
+              }
+            } catch (e) {
+              selectedSim = _hazardSimulations[1]; // General Traffic Sign
+            }
+          } else if (topLabel.contains('pothole') || topLabel.contains('crack') || topLabel.contains('hole') || topLabel.contains('depression')) {
+            selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
+          } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
+            selectedSim = _hazardSimulations[12]; // Person Detected
+          } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway')) {
             selectedSim = {
-              'title': '$cleanLabel Obstacle',
-              'desc': '$cleanLabel is blocking your path. Step aside.',
-              'bg': const Color(0xFFFFF3E0),
-              'icon': Icons.warning_amber_rounded,
+              'title': 'Door Detected',
+              'desc': 'Slow down. Door or entrance located in front of you.',
+              'bg': const Color(0xFFE0F7FA),
+              'icon': Icons.meeting_room,
+              'iconColor': Colors.teal,
+              'speech': 'Slow down. Door or entrance detected ahead.'
+            };
+          } else if (topLabel.contains('wall')) {
+            selectedSim = {
+              'title': 'Wall Detected',
+              'desc': 'Slow down. Wall blocking path.',
+              'bg': const Color(0xFFFFF8E1),
+              'icon': Icons.fence_rounded,
               'iconColor': Colors.orange,
-              'speech': 'Caution: $cleanLabel detected directly in front of you. Please step aside to avoid it.'
+              'speech': 'Wall detected. Slow down.'
             };
+          } else if (topLabel.contains('tree') || topLabel.contains('branch') || topLabel.contains('pole') || topLabel.contains('obstacle') || topLabel.contains('post') || topLabel.contains('barrier')) {
+            selectedSim = _hazardSimulations[9]; // Obstacle ahead
           } else {
-            selectedSim = {
-              'title': '$cleanLabel Detected',
-              'desc': '$cleanLabel located in front of you.',
-              'bg': const Color(0xFFE8F5E9),
-              'icon': Icons.check_circle_outline,
-              'iconColor': Colors.green,
-              'speech': '$cleanLabel detected.'
-            };
+            final cleanLabel = topLabelText[0].toUpperCase() + topLabelText.substring(1);
+            final isPathway = topLabel.contains('floor') || 
+                              topLabel.contains('ground') || 
+                              topLabel.contains('sky') || 
+                              topLabel.contains('ceiling') || 
+                              topLabel.contains('indoor') ||
+                              topLabel.contains('room');
+
+            if (_selectedHudMode == HudMode.navigation && !isPathway) {
+              selectedSim = {
+                'title': '$cleanLabel Obstacle',
+                'desc': 'Slow down. $cleanLabel detected ahead. Please step aside.',
+                'bg': const Color(0xFFFFF3E0),
+                'icon': Icons.warning_amber_rounded,
+                'iconColor': Colors.orange,
+                'speech': 'Slow down. $cleanLabel detected ahead. Please step aside.'
+              };
+            } else {
+              selectedSim = {
+                'title': '$cleanLabel Detected',
+                'desc': '$cleanLabel located in front of you.',
+                'bg': const Color(0xFFE8F5E9),
+                'icon': Icons.check_circle_outline,
+                'iconColor': Colors.green,
+                'speech': '$cleanLabel detected.'
+              };
+            }
           }
         }
 
@@ -1671,6 +2267,34 @@ class _HardwareScreenState extends State<HardwareScreen> {
     });
   }
 
+  Future<Uint8List?> _captureCurrentImageBytes() async {
+    if (Esp32Service().isConnected) {
+      final frame = Esp32Service().currentFrame;
+      if (frame != null && frame.isNotEmpty) {
+        return frame;
+      }
+    }
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        final wasStreaming = _cameraController!.value.isStreamingImages;
+        if (wasStreaming) {
+          await _cameraController!.stopImageStream();
+        }
+        final xfile = await _cameraController!.takePicture();
+        final bytes = await xfile.readAsBytes();
+        if (wasStreaming && mounted && _isContinuousVoiceEnabled) {
+          try {
+            await _cameraController!.startImageStream(_onCameraFrameReceived);
+          } catch (_) {}
+        }
+        return bytes;
+      } catch (e) {
+        print("Error capturing native camera image for Gemini: $e");
+      }
+    }
+    return null;
+  }
+
   Future<void> _processSilenceOrSpeech() async {
     _silenceTimer?.cancel();
     if (!_isContinuousVoiceEnabled || !mounted) return;
@@ -1817,7 +2441,13 @@ class _HardwareScreenState extends State<HardwareScreen> {
       if (handledByVoiceCommand) {
         // Voice command processed S01
       } else if (question.isEmpty || question == "listening...") {
-        if (detectedItems.trim().isEmpty) {
+        if (detectedItems.trim().isEmpty && !_useLocalAI) {
+          final imageBytes = await _captureCurrentImageBytes();
+          final prompt = isFilipino
+              ? "You are Buddy, the visual assistant dog. Describe what you see in the provided image in Tagalog. Start the response with 'Nakakita ako ng...' or 'Nakikita ko ang...'. Keep the response to exactly one natural, friendly sentence."
+              : "You are Buddy, the visual assistant dog. Describe what you see in the provided image. Start the response with 'I saw...' or 'I see...' (e.g. 'I see a laptop on a table'). Keep the response to exactly one natural, friendly sentence.";
+          response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
+        } else if (detectedItems.trim().isEmpty) {
           response = isFilipino 
               ? "Wala akong makitang malinaw na bagay sa iyong harapan."
               : "I don't see any clear objects in front of you.";
@@ -1838,32 +2468,56 @@ Keep the response to exactly one natural, friendly sentence.
           if (_useLocalAI) {
             response = await RagService().askBuddyLocalOnly(prompt);
           } else {
-            response = await RagService().askBuddyOnlineGemini(prompt);
+            final imageBytes = await _captureCurrentImageBytes();
+            response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
           }
         }
       } else {
-        final prompt = isFilipino
-            ? """
-You are Buddy, the visual assistant dog.
-The user asked: "$question".
-The camera reports these environment labels: $detectedItems.
-Answer the user's question directly in Tagalog based on the labels. Keep the response to 1 or 2 friendly sentences.
-"""
-            : """
-You are Buddy, the friendly dog mascot and EasyLens assistant.
-The user asked: "$question".
-The camera reports these environment labels: $detectedItems.
-Answer the user's question directly based on the labels. Keep the response to 1 or 2 friendly sentences.
-""";
+        final historyContext = _conversationHistory.isNotEmpty 
+            ? "Conversation history context for context awareness:\n${_conversationHistory.join('\n')}\n\n" 
+            : "";
         if (_useLocalAI) {
+          final prompt = isFilipino
+              ? """
+You are Buddy, the visual assistant dog.
+${historyContext}The user asked: "$question".
+The camera reports these environment labels: $detectedItems.
+Answer the user's question directly in Tagalog based on the labels and history context. Keep the response to 1 or 2 friendly sentences.
+"""
+              : """
+You are Buddy, the friendly dog mascot and EasyLens assistant.
+${historyContext}The user asked: "$question".
+The camera reports these environment labels: $detectedItems.
+Answer the user's question directly based on the labels and history context. Keep the response to 1 or 2 friendly sentences.
+""";
           response = await RagService().askBuddyLocalOnly(prompt);
         } else {
-          response = await RagService().askBuddyOnlineGemini(prompt);
+          final prompt = isFilipino
+              ? """
+You are Buddy, the visual assistant dog.
+${historyContext}The user asked: "$question".
+Answer the user's question directly in Tagalog based on the provided camera image and history context. Keep the response to 1 or 2 friendly sentences.
+"""
+              : """
+You are Buddy, the friendly dog mascot and EasyLens assistant.
+${historyContext}The user asked: "$question".
+Answer the user's question directly based on the provided camera image and history context. Keep the response to 1 or 2 friendly sentences.
+""";
+          final imageBytes = await _captureCurrentImageBytes();
+          response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
         }
       }
 
       if (response.isEmpty) {
         response = isFilipino ? "Pasensya na, hindi ko naintindihan." : "Sorry, I didn't catch that.";
+      }
+
+      if (question.isNotEmpty && question != "listening...") {
+        _conversationHistory.add("User: $question");
+        _conversationHistory.add("Buddy: $response");
+        if (_conversationHistory.length > 10) {
+          _conversationHistory.removeRange(0, 2);
+        }
       }
 
       if (mounted && _isContinuousVoiceEnabled) {
@@ -2860,7 +3514,53 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                           ),
                         ),
                       ),
-                    if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation)
+                    if (_selectedHudMode == HudMode.objectDetection) ...[
+                      if (_tfliteDetections.isNotEmpty)
+                        ..._tfliteDetections.map((r) {
+                            // SSDResult coordinates are already normalized (0..1)
+                            // Rotate coordinates: raw Y (yMin, yMax) maps to screen X (left, width)
+                            double left = ((1.0 - r.yMax) * constraints.maxWidth).clamp(0.0, constraints.maxWidth);
+                            double width = ((r.yMax - r.yMin) * constraints.maxWidth).clamp(0.0, constraints.maxWidth - left);
+                            
+                            // Rotate coordinates: raw X (xMin, xMax) maps to screen Y (top, height)
+                            double top = (r.xMin * constraints.maxHeight).clamp(0.0, constraints.maxHeight);
+                            double height = ((r.xMax - r.xMin) * constraints.maxHeight).clamp(0.0, constraints.maxHeight - top);
+                            
+                            final label = _refineLabel(r.label);
+                            final displayLabel = '${label[0].toUpperCase()}${label.substring(1)} (${(r.confidence * 100).toInt()}%)';
+
+                            return AnimatedPositioned(
+                              key: ValueKey(r.label + r.xMin.toString() + r.yMin.toString()),
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOutCubic,
+                              left: left,
+                              top: top,
+                              width: width.clamp(0.0, constraints.maxWidth - left),
+                              height: height.clamp(0.0, constraints.maxHeight - top),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.cyanAccent, width: 2.5),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Container(
+                                    color: Colors.cyanAccent,
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    child: Text(
+                                      displayLabel,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          })
+                    ] else if (_selectedHudMode == HudMode.navigation) ...[
                       if (_detectedObjectsList.isNotEmpty)
                         ..._detectedObjectsList.map((obj) {
                             final r = obj.boundingBox;
@@ -2881,8 +3581,15 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                 label = _refineLabel(_cocoLabels[firstLabel.index]);
                               }
                             }
+                            final humanParts = [
+                              'leg', 'arm', 'foot', 'hand', 'head', 'body', 'face', 'nose', 'eye', 'mouth', 'hair', 
+                              'human', 'pedestrian', 'man', 'woman', 'child', 'boy', 'girl', 'people', 'cyclist', 'rider', 'bystander'
+                            ];
+                            if (humanParts.any((part) => label.toLowerCase().contains(part))) {
+                              label = 'person';
+                            }
                             final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
-                            final displayLabel = '$label$trackingStr';
+                            final displayLabel = '${label[0].toUpperCase()}${label.substring(1)}$trackingStr';
 
                             return AnimatedPositioned(
                               key: ValueKey(obj.trackingId ?? obj.boundingBox.topLeft.toString()),
@@ -2918,13 +3625,32 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                       else if (_latestMLKitLabels.isNotEmpty)
                         Builder(
                           builder: (context) {
-                            final topLabel = _latestMLKitLabels.first;
-                            final isPathway = topLabel.toLowerCase().contains('floor') || 
-                                              topLabel.toLowerCase().contains('ground') || 
-                                              topLabel.toLowerCase().contains('sky') ||
-                                              topLabel.toLowerCase().contains('ceiling') ||
-                                              topLabel.toLowerCase().contains('indoor') ||
-                                              topLabel.toLowerCase().contains('room');
+                            String displayLabel = "";
+                            for (final label in _latestMLKitLabels) {
+                              final isPathway = label.toLowerCase().contains('floor') || 
+                                                label.toLowerCase().contains('ground') || 
+                                                label.toLowerCase().contains('sky') ||
+                                                label.toLowerCase().contains('ceiling') ||
+                                                label.toLowerCase().contains('indoor') ||
+                                                label.toLowerCase().contains('room') ||
+                                                label.toLowerCase().contains('building') ||
+                                                label.toLowerCase().contains('architecture') ||
+                                                label.toLowerCase().contains('house') ||
+                                                label.toLowerCase().contains('infrastructure');
+                              if (!isPathway) {
+                                displayLabel = label;
+                                break;
+                              }
+                            }
+                            if (displayLabel.isEmpty) {
+                              displayLabel = _latestMLKitLabels.first;
+                            }
+                            final isPathway = displayLabel.toLowerCase().contains('floor') || 
+                                              displayLabel.toLowerCase().contains('ground') || 
+                                              displayLabel.toLowerCase().contains('sky') ||
+                                              displayLabel.toLowerCase().contains('ceiling') ||
+                                              displayLabel.toLowerCase().contains('indoor') ||
+                                              displayLabel.toLowerCase().contains('room');
                             if (isPathway) return const SizedBox.shrink();
                             
                             double left = constraints.maxWidth * 0.15;
@@ -2951,7 +3677,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                     color: Colors.orangeAccent,
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     child: Text(
-                                      "$topLabel (Tracked)",
+                                      "$displayLabel (Tracked)",
                                       style: GoogleFonts.inter(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -2963,7 +3689,8 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                               ),
                             );
                           },
-                        ),
+                        )
+                    ],
 
                     // Draw face bounding boxes dynamically in Face Recognition mode
                     if (_selectedHudMode == HudMode.faceRecognition && _faceImageSize != Size.zero)
@@ -3249,52 +3976,74 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
         const SizedBox(height: 12),
 
         // Status Card overlay displaying ML Kit Hazard warning matching mockup
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: _statusCardBg,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: _statusIconColor.withOpacity(0.12),
-                radius: 20,
-                child: Icon(_statusIcon, color: _statusIconColor, size: 24),
+        ListenableBuilder(
+          listenable: ActiveNavigationService(),
+          builder: (context, _) {
+            final activeNav = ActiveNavigationService();
+            final isArrived = activeNav.isNavigating && activeNav.hasArrived;
+            final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+                SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+            
+            final title = isArrived 
+                ? (isTagalog ? "Nakarating Ka Na" : "Destination Arrived") 
+                : _activeTitle;
+            final desc = isArrived 
+                ? (isTagalog 
+                    ? "Nakarating ka na sa iyong patutunguhan, ${activeNav.destinationName}." 
+                    : "You have arrived at your destination, ${activeNav.destinationName}.") 
+                : _activeDescription;
+            final bg = isArrived ? const Color(0xFFE9F7EF) : _statusCardBg;
+            final icon = isArrived ? Icons.pin_drop_rounded : _statusIcon;
+            final iconColor = isArrived ? Colors.green : _statusIconColor;
+
+            return Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(24),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _activeTitle,
-                      style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: iconColor.withOpacity(0.12),
+                    radius: 20,
+                    child: Icon(icon, color: iconColor, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          desc,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _activeDescription,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ],
-                ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    child: Text(
+                      'ACTIVE',
+                      style: GoogleFonts.inter(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                child: Text(
-                  'ACTIVE',
-                  style: GoogleFonts.inter(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
         const SizedBox(height: 12),
 
@@ -3451,11 +4200,13 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                           if (_isContinuousVoiceEnabled && !_useLocalAI) {
                                             _isContinuousVoiceEnabled = false;
                                             _isGeminiEnabled = false;
+                                            _conversationHistory.clear();
                                             TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
                                           } else {
                                             _useLocalAI = false;
                                             _isContinuousVoiceEnabled = true;
                                             _isGeminiEnabled = true;
+                                            _conversationHistory.clear();
                                             TtsService().speak(isTagalog ? "Aktibo ang Advance AI. Simulan ang tuloy-tuloy na boses." : "Advanced online AI active. Continuous voice enabled.");
                                           }
                                         });
@@ -3492,11 +4243,13 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                           if (_isContinuousVoiceEnabled && _useLocalAI) {
                                             _isContinuousVoiceEnabled = false;
                                             _isGeminiEnabled = false;
+                                            _conversationHistory.clear();
                                             TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
                                           } else {
                                             _useLocalAI = true;
                                             _isContinuousVoiceEnabled = true;
                                             _isGeminiEnabled = false;
+                                            _conversationHistory.clear();
                                             TtsService().speak(isTagalog ? "Aktibo ang Local AI. Simulan ang tuloy-tuloy na boses." : "Local offline AI active. Continuous voice enabled.");
                                           }
                                         });

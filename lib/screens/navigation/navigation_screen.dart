@@ -19,6 +19,7 @@ import '../../services/settings_service.dart';
 import '../../services/active_navigation_service.dart';
 import '../../services/translation_service.dart';
 import '../../widgets/speech_navigation_overlay.dart';
+import '../../widgets/screen_tutorial_card.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -195,6 +196,32 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _initializeLocationTracking();
     SpeechNavigationNotifier.searchPlaceNotifier.addListener(_onVoiceSearchRequested);
     SpeechNavigationNotifier.selectResultNotifier.addListener(_onVoiceSelectRequested);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'navigation',
+        titleKey: 'tutorial_navigation_title',
+        descriptionKey: 'tutorial_navigation_desc',
+        mascotAsset: 'assets/Mascots/03 Loading.gif',
+      );
+
+      final activeNav = ActiveNavigationService();
+      if (activeNav.isNavigating && activeNav.activePlace != null) {
+        setState(() {
+          _selectedPlace = Map<String, dynamic>.from(activeNav.activePlace!);
+          _routePoints = List<LatLng>.from(activeNav.routePoints);
+          _stepLocations = List<LatLng>.from(activeNav.stepLocations);
+          _currentStepIndex = activeNav.currentStepIndex;
+          _navState = 1;
+        });
+        if (activeNav.destinationLocation != null) {
+          _mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(activeNav.destinationLocation!, 16.0),
+          );
+        }
+      }
+    });
   }
 
   @override
@@ -409,6 +436,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             distanceRemaining: _selectedPlace!['dist'],
             timeRemaining: _selectedPlace!['time'],
             currentLocation: _currentLocation,
+            currentStepIndex: _currentStepIndex,
           );
           // Critical turn info bypasses all cooldowns
           TtsService().speak(_formatStep(steps[_currentStepIndex], unit));
@@ -530,12 +558,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
               destinationName: _selectedPlace!['name'],
               destinationLocation: end,
               routePoints: points,
+              activePlace: _selectedPlace,
+              stepLocations: stepLocations,
             );
             ActiveNavigationService().updateProgress(
               currentStepText: _selectedPlace!['steps'][_currentStepIndex.clamp(0, parsedSteps.length - 1)],
               distanceRemaining: distStr,
               timeRemaining: timeStr,
               currentLocation: start,
+              currentStepIndex: _currentStepIndex,
             );
           }
         }
@@ -570,12 +601,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
           destinationName: _selectedPlace!['name'],
           destinationLocation: end,
           routePoints: [start, end],
+          activePlace: _selectedPlace,
+          stepLocations: fallbackLocs,
         );
         ActiveNavigationService().updateProgress(
           currentStepText: _selectedPlace!['steps'][_currentStepIndex.clamp(0, _selectedPlace!['steps'].length - 1)],
           distanceRemaining: _selectedPlace!['dist'],
           timeRemaining: _selectedPlace!['time'],
           currentLocation: start,
+          currentStepIndex: _currentStepIndex,
         );
       }
     } finally {
@@ -827,6 +861,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         distanceRemaining: _selectedPlace!['dist'],
         timeRemaining: _selectedPlace!['time'],
         currentLocation: _currentLocation,
+        currentStepIndex: _currentStepIndex,
       );
     } else {
       setState(() {
@@ -934,10 +969,76 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
+    final bool canPop = _navState == 0;
+    return PopScope(
+      canPop: canPop,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        
+        final lang = SettingsService().selectedLanguage;
+        final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+        
+        TtsService().speak(
+          isTagalog
+              ? "Sigurado ka bang nais mong lumabas? Mananatiling aktibo ang iyong nabigasyon sa background."
+              : "Are you sure you want to exit? Your navigation will remain active in the background."
+        );
+        
+        final action = await showDialog<String>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(
+                isTagalog ? "Aktibong Nabigasyon" : "Active Navigation",
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+              content: Text(
+                isTagalog
+                    ? "Nais mo bang lumabas at panatilihin ang nabigasyon, o ganap na ihinto ito?"
+                    : "Do you want to exit and keep navigation active, or stop it entirely?",
+                style: GoogleFonts.inter(fontSize: 14),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop('keep'),
+                  child: Text(
+                    isTagalog ? "Ipagpatuloy sa Background" : "Keep in Background",
+                    style: GoogleFonts.inter(color: const Color(0xFF002663), fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop('stop'),
+                  child: Text(
+                    isTagalog ? "Ihinto" : "Stop Navigation",
+                    style: GoogleFonts.inter(color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop('cancel'),
+                  child: Text(
+                    isTagalog ? "Ipagpatuloy Dito" : "Cancel",
+                    style: GoogleFonts.inter(color: Colors.grey),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+        
+        if (!context.mounted) return;
+        
+        if (action == 'keep') {
+          Navigator.of(context).pop();
+        } else if (action == 'stop') {
+          _cancelNavigation();
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Stack(
+          children: [
           // ── GOOGLE MAPS BACKGROUND ──
           Positioned.fill(
             child: GoogleMap(
@@ -1058,8 +1159,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ── MAP MARKERS GENERATION ──
   Set<Marker> _getMapMarkers() {

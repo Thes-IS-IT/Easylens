@@ -16,6 +16,10 @@ class ActiveNavigationService extends ChangeNotifier {
   List<LatLng> _routePoints = [];
   bool _hasArrived = false;
 
+  Map<String, dynamic>? _activePlace;
+  List<LatLng> _stepLocations = [];
+  int _currentStepIndex = 0;
+
   bool get isNavigating => _isNavigating;
   String get destinationName => _destinationName;
   String get currentStepText => _currentStepText;
@@ -26,6 +30,10 @@ class ActiveNavigationService extends ChangeNotifier {
   List<LatLng> get routePoints => _routePoints;
   bool get hasArrived => _hasArrived;
 
+  Map<String, dynamic>? get activePlace => _activePlace;
+  List<LatLng> get stepLocations => _stepLocations;
+  int get currentStepIndex => _currentStepIndex;
+
   void triggerArrival() {
     _hasArrived = true;
     notifyListeners();
@@ -35,12 +43,17 @@ class ActiveNavigationService extends ChangeNotifier {
     required String destinationName,
     required LatLng destinationLocation,
     required List<LatLng> routePoints,
+    Map<String, dynamic>? activePlace,
+    List<LatLng> stepLocations = const [],
   }) {
     _isNavigating = true;
     _hasArrived = false;
     _destinationName = destinationName;
     _destinationLocation = destinationLocation;
     _routePoints = routePoints;
+    _activePlace = activePlace;
+    _stepLocations = stepLocations;
+    _currentStepIndex = 0;
     notifyListeners();
   }
 
@@ -49,10 +62,12 @@ class ActiveNavigationService extends ChangeNotifier {
     required String distanceRemaining,
     required String timeRemaining,
     LatLng? currentLocation,
+    int currentStepIndex = 0,
   }) {
     _currentStepText = currentStepText;
     _distanceRemaining = distanceRemaining;
     _timeRemaining = timeRemaining;
+    _currentStepIndex = currentStepIndex;
     if (currentLocation != null) {
       _currentLocation = currentLocation;
     }
@@ -69,6 +84,9 @@ class ActiveNavigationService extends ChangeNotifier {
     _currentLocation = null;
     _destinationLocation = null;
     _routePoints = [];
+    _activePlace = null;
+    _stepLocations = [];
+    _currentStepIndex = 0;
     notifyListeners();
   }
 }

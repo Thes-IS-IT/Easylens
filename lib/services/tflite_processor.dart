@@ -63,14 +63,21 @@ class TfliteProcessor {
       }
 
       if (_locIdx == -1 || _clsIdx == -1 || _scrIdx == -1 || _cntIdx == -1) {
-        print('[SSD] Shape-based indexing failed. Falling back to standard order (0, 1, 2, 3).');
-        _locIdx = 0;
-        _clsIdx = 1;
-        _scrIdx = 2;
-        _cntIdx = 3;
-        _maxDetections = 10;
-        if (outputTensors.isNotEmpty && outputTensors[0].shape.length >= 2) {
-          _maxDetections = outputTensors[0].shape[1];
+        if (outputTensors.length >= 4) {
+          print('[SSD] Shape-based indexing failed. Falling back to standard order (0, 1, 2, 3).');
+          _locIdx = 0;
+          _clsIdx = 1;
+          _scrIdx = 2;
+          _cntIdx = 3;
+          _maxDetections = 10;
+          if (outputTensors.isNotEmpty && outputTensors[0].shape.length >= 2) {
+            _maxDetections = outputTensors[0].shape[1];
+          }
+        } else {
+          print('[SSD] Model has ${outputTensors.length} outputs — not a valid SSD model. Aborting init.');
+          _interpreter?.close();
+          _interpreter = null;
+          return;
         }
       }
       print('[SSD] Mapped output indexes: loc=$_locIdx, cls=$_clsIdx, scr=$_scrIdx, cnt=$_cntIdx');
@@ -85,6 +92,45 @@ class TfliteProcessor {
     } catch (e) {
       print('[SSD] Init error: $e');
     }
+  }
+
+  bool get isReady => _isReady;
+  int get inputSize => _inputSize;
+
+  /// Converts NV21 camera bytes to a 300×300 RGB Uint8List ready for [runInference].
+  /// Performs downsampling inline without the `image` package.
+  Uint8List prepareInputFromNv21(Uint8List nv21, int srcWidth, int srcHeight) {
+    final int targetSize = _inputSize; // 300
+    final rgb = Uint8List(targetSize * targetSize * 3);
+    final int uvStart = srcWidth * srcHeight;
+
+    for (int ty = 0; ty < targetSize; ty++) {
+      final int sy = (ty * srcHeight) ~/ targetSize;
+      for (int tx = 0; tx < targetSize; tx++) {
+        final int sx = (tx * srcWidth) ~/ targetSize;
+
+        // Y plane
+        final int yVal = nv21[sy * srcWidth + sx] & 0xFF;
+
+        // UV plane (interleaved V, U) — NV21 layout
+        final int uvRow = sy >> 1;
+        final int uvCol = (sx >> 1) << 1; // even-aligned
+        final int uvIdx = uvStart + uvRow * srcWidth + uvCol;
+        final int v = (uvIdx < nv21.length ? nv21[uvIdx] : 128) & 0xFF;
+        final int u = (uvIdx + 1 < nv21.length ? nv21[uvIdx + 1] : 128) & 0xFF;
+
+        // YUV → RGB
+        int r = (yVal + 1.370705 * (v - 128)).round().clamp(0, 255);
+        int g = (yVal - 0.337633 * (u - 128) - 0.698001 * (v - 128)).round().clamp(0, 255);
+        int b = (yVal + 1.732446 * (u - 128)).round().clamp(0, 255);
+
+        final int outIdx = (ty * targetSize + tx) * 3;
+        rgb[outIdx] = r;
+        rgb[outIdx + 1] = g;
+        rgb[outIdx + 2] = b;
+      }
+    }
+    return rgb;
   }
 
   List<SSDResult> runInference(Uint8List rgbData) {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart' show rootBundle;
@@ -1474,14 +1475,22 @@ Buddy:""";
     }
   }
 
-  Future<String> askBuddyOnlineGemini(String prompt) async {
+  Future<String> askBuddyOnlineGemini(String prompt, {Uint8List? imageBytes}) async {
     try {
       return await executeWithApiKeyFallback((apiKey) async {
         final model = GenerativeModel(
           model: 'gemini-3.5-flash',
           apiKey: apiKey,
         );
-        final content = [Content.text(prompt)];
+        final content = [
+          if (imageBytes != null)
+            Content.multi([
+              DataPart('image/jpeg', imageBytes),
+              TextPart(prompt),
+            ])
+          else
+            Content.text(prompt)
+        ];
         final response = await model.generateContent(content);
         return response.text?.trim() ?? "";
       });
