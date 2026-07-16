@@ -8,6 +8,7 @@ import '../../../services/stt_service.dart';
 import '../../../services/rag_service.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/settings_service.dart';
+import '../../../widgets/chat_history_viewer.dart';
 
 class BuddyAssistantSheet extends StatefulWidget {
   final Function(String) onNavigate;
@@ -569,6 +570,10 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                         : (isTagalog ? "Aktibo ang Gemini AI." : "Gemini online AI active.");
                     TtsService().speak(msg);
                   },
+                ),
+                IconButton(
+                  icon: Icon(Icons.history, color: AppColors.primaryText),
+                  onPressed: () => ChatHistoryViewer.showHistorySheet(context),
                 ),
                 const SizedBox(width: 8),
                 IconButton(

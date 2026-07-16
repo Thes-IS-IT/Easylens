@@ -5,6 +5,7 @@ import '../../constants/colors.dart';
 import '../../services/rag_service.dart';
 import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
+import '../../widgets/chat_history_viewer.dart';
 
 class ChatMessage {
   final String text;
@@ -275,6 +276,12 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.history, color: AppColors.primaryText),
+            onPressed: () => ChatHistoryViewer.showHistorySheet(context),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
