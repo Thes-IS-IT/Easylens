@@ -129,19 +129,20 @@ class NotificationService extends ChangeNotifier {
   // --- Convenience push helpers (called from hardware_screen etc.) ---
 
   Future<void> pushObstacleAlert(String direction, String objectLabel) async {
-    await push(
-      type: NotificationType.obstacle,
-      title: 'Obstacle Detected',
-      body: '$objectLabel detected ${direction == "center" ? "directly ahead" : "on your $direction"}. Take caution.',
-    );
+    // Transient obstacle alerts are spoken and drawn on the HUD.
+    // They are not persisted to avoid notification spam and disk writing lag.
   }
 
   Future<void> pushWarning(String warningTitle, String detail) async {
-    await push(
-      type: NotificationType.warning,
-      title: warningTitle,
-      body: detail,
-    );
+    final titleUpper = warningTitle.toUpperCase();
+    // Only persist critical safety hazard alerts to the notifications log
+    if (titleUpper.contains('STOP') || titleUpper.contains('FIRE') || titleUpper.contains('HAZARD') || titleUpper.contains('EMERGENCY')) {
+      await push(
+        type: NotificationType.warning,
+        title: warningTitle,
+        body: detail,
+      );
+    }
   }
 
   Future<void> pushBatteryAlert(int percent) async {
