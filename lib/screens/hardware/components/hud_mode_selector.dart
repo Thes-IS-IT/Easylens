@@ -31,7 +31,7 @@ class HudModeSelector extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'HUD MODE',
+            'BUDDY MODE',
             style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w900,
