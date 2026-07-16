@@ -30,7 +30,7 @@ class SettingsService extends ChangeNotifier {
   bool speechNavigation = false;
   double speechRate = 0.5;
   double speechPitch = 0.5;
-  List<String> homeScreenCards = ['buddy', 'easylens', 'faces', 'text', 'objects', 'navigation', 'sos'];
+  List<String> homeScreenCards = ['buddy', 'easylens', 'faces', 'text', 'navigation', 'sos'];
 
   // Local AI and Floating Mascot control
   bool useLocalAI = true;
@@ -59,8 +59,9 @@ class SettingsService extends ChangeNotifier {
       speechNavigation = prefs.getBool('speechNavigation') ?? false;
       speechRate = prefs.getDouble('speechRate') ?? 0.5;
       speechPitch = prefs.getDouble('speechPitch') ?? 0.5;
-      homeScreenCards = prefs.getStringList('homeScreenCards') ?? ['buddy', 'easylens', 'faces', 'text', 'objects', 'navigation', 'sos'];
+      homeScreenCards = prefs.getStringList('homeScreenCards') ?? ['buddy', 'easylens', 'faces', 'text', 'navigation', 'sos'];
       homeScreenCards.remove('journal');
+      homeScreenCards.remove('objects');
 
       useLocalAI = prefs.getBool('useLocalAI') ?? true;
       showFloatingMascot = prefs.getBool('showFloatingMascot') ?? true;
