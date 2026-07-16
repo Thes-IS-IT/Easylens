@@ -329,10 +329,15 @@ class _HardwareScreenState extends State<HardwareScreen> {
             if (_isPaused) return;
             if (!_isDetectionEnabled) return;
             if (_isProcessingFrame) return;
+            if (!mounted) return;
 
             _isProcessingFrame = true;
 
             Future.microtask(() async {
+              if (!mounted) {
+                _isProcessingFrame = false;
+                return;
+              }
               try {
                 final nv21Bytes = await _yuvToNv21Async(image);
                 final yBytes = Uint8List.fromList(image.planes[0].bytes);
@@ -345,7 +350,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
                     _lastFaceDetectionTime = nowMs;
                     await _detectFaceOnFrame(nv21Bytes, width, height);
                   }
-                } else if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) {
+                } else if (_selectedHudMode == HudMode.navigation) {
+                  // Navigation mode: only run object detection, skip image labeling
+                  // to halve memory/CPU usage per frame.
+                  if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
+                    _lastObjectDetectionTime = nowMs;
+                    await _detectObjectsOnFrame(nv21Bytes, width, height);
+                  }
+                } else if (_selectedHudMode == HudMode.objectDetection) {
                   if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
                     _lastObjectDetectionTime = nowMs;
                     await _detectObjectsOnFrame(nv21Bytes, width, height);
@@ -382,6 +394,13 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _objectDetectionTimer?.cancel();
     _objectDetector?.close();
     _tfliteProcessor.dispose();
+    // Stop the image stream BEFORE disposing the camera controller
+    // to prevent frames from piling up in native memory after disposal.
+    try {
+      if (_cameraController != null && _cameraController!.value.isStreamingImages) {
+        _cameraController!.stopImageStream();
+      }
+    } catch (_) {}
     _cameraController?.dispose();
     _imageLabeler?.close();
     _textRecognizer.close();
@@ -776,10 +795,15 @@ class _HardwareScreenState extends State<HardwareScreen> {
           if (_isPaused) return;
           if (!_isDetectionEnabled) return;
           if (_isProcessingFrame) return;
+          if (!mounted) return;
 
           _isProcessingFrame = true;
 
           Future.microtask(() async {
+            if (!mounted) {
+              _isProcessingFrame = false;
+              return;
+            }
             try {
               final nv21Bytes = await _yuvToNv21Async(image);
               final yBytes = Uint8List.fromList(image.planes[0].bytes);
@@ -792,7 +816,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
                   _lastFaceDetectionTime = nowMs;
                   await _detectFaceOnFrame(nv21Bytes, width, height);
                 }
-              } else if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) {
+              } else if (_selectedHudMode == HudMode.navigation) {
+                // Navigation mode: only run object detection, skip image labeling
+                // to halve memory/CPU usage per frame.
+                if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
+                  _lastObjectDetectionTime = nowMs;
+                  await _detectObjectsOnFrame(nv21Bytes, width, height);
+                }
+              } else if (_selectedHudMode == HudMode.objectDetection) {
                 if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
                   _lastObjectDetectionTime = nowMs;
                   await _detectObjectsOnFrame(nv21Bytes, width, height);
