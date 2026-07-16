@@ -887,8 +887,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 102,
-        height: 102,
         decoration: BoxDecoration(
           color: isActive ? activeBgColor : inactiveBgColor,
           borderRadius: BorderRadius.circular(24),
@@ -904,17 +902,17 @@ class _HardwareScreenState extends State<HardwareScreen> {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 28,
+              size: 26,
               color: isActive ? activeTextColor : const Color(0xFF475569),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               title,
               style: GoogleFonts.inter(
@@ -3379,13 +3377,13 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                           Expanded(
                             child: SizedBox(
                               height: 215,
-                              child: SingleChildScrollView(
+                              child: GridView.count(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 8,
+                                crossAxisSpacing: 8,
+                                childAspectRatio: 1.0,
                                 physics: const BouncingScrollPhysics(),
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  alignment: WrapAlignment.center,
-                                  children: [
+                                children: [
                                     // EasyLens Connected (Bluetooth)
                                     _buildControlBox(
                                       title: 'EasyLens',
@@ -3537,8 +3535,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                         });
                                       },
                                     ),
-                                  ],
-                                ),
+                                ],
                               ),
                             ),
                           ),
