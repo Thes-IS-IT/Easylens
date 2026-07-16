@@ -211,7 +211,21 @@ class TtsService {
 
     Map<String, String>? selectedVoice;
 
-    if (gender == 'male') {
+    if (gender == 'child') {
+      // iOS / macOS / Android child voice names
+      const childNames = [
+        'joelle', 'noelle', 'child', 'kid', 'junior', 'young', 'boy', 'girl',
+      ];
+
+      for (final v in localeVoices) {
+        final name = (v['name'] ?? '').toLowerCase();
+        final isExplicitChild = name.contains('child') || name.contains('kid') || name.contains('young');
+        if (isExplicitChild || childNames.any((k) => name.contains(k))) {
+          selectedVoice = v;
+          break;
+        }
+      }
+    } else if (gender == 'male') {
       // iOS / macOS voice names
       const maleNames = [
         'daniel', 'arthur', 'gordon', 'aaron', 'rishi', 'jorge',
@@ -327,7 +341,7 @@ class TtsService {
       case 'Leo (Child)':
         pitch = 1.65; // High pitch to simulate a cute child voice
         rate = 0.55;  // Cheerful and fast pace
-        await _setDeviceVoiceByGender('female');
+        await _setDeviceVoiceByGender('child');
         break;
       default:
         pitch = 1.0;
