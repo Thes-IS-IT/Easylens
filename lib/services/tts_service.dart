@@ -16,6 +16,8 @@ class TtsService {
     _initializeTts();
   }
 
+  bool _isLoadingVoices = false;
+
   void _initializeTts() async {
     await _flutterTts.setSharedInstance(true);
     if (Platform.isIOS) {
@@ -28,18 +30,36 @@ class TtsService {
         IosTextToSpeechAudioMode.voicePrompt,
       );
     }
-    // Load voices after a short delay to allow TTS engine binding to complete S01
-    Future.delayed(const Duration(seconds: 3), () {
-      _loadDeviceVoices();
+
+    _flutterTts.setStartHandler(() {
+      if (!_voicesLoaded && !_isLoadingVoices && Platform.isAndroid) {
+        _loadDeviceVoices();
+      }
     });
+
+    _flutterTts.setCompletionHandler(() {
+      if (!_voicesLoaded && !_isLoadingVoices && Platform.isAndroid) {
+        _loadDeviceVoices();
+      }
+    });
+
+    _flutterTts.setErrorHandler((_) {
+      if (!_voicesLoaded && !_isLoadingVoices && Platform.isAndroid) {
+        _loadDeviceVoices();
+      }
+    });
+
+    if (Platform.isIOS || Platform.isMacOS) {
+      Future.delayed(const Duration(seconds: 3), () {
+        _loadDeviceVoices();
+      });
+    }
   }
 
   /// Loads and caches all voices available on the device.
   Future<void> _loadDeviceVoices() async {
-    if (Platform.isAndroid) {
-      _voicesLoaded = true;
-      return;
-    }
+    if (_voicesLoaded || _isLoadingVoices) return;
+    _isLoadingVoices = true;
     try {
       final voices = await _flutterTts.getVoices;
       if (voices != null && voices is List && voices.isNotEmpty) {
@@ -57,6 +77,8 @@ class TtsService {
       }
     } catch (e) {
       print('[TTS] Warning: Failed to fetch platform voices: $e');
+    } finally {
+      _isLoadingVoices = false;
     }
   }
 
@@ -66,7 +88,7 @@ class TtsService {
     if (!_settingsService.voiceFeedback) return;
 
     // Lazily load voices if not yet cached
-    if (!_voicesLoaded) {
+    if (!_voicesLoaded && (Platform.isIOS || Platform.isMacOS)) {
       await _loadDeviceVoices();
     }
 
@@ -79,7 +101,7 @@ class TtsService {
     await _settingsService.loadSettingsFromLocal();
     if (!_settingsService.voiceFeedback) return;
 
-    if (!_voicesLoaded) {
+    if (!_voicesLoaded && (Platform.isIOS || Platform.isMacOS)) {
       await _loadDeviceVoices();
     }
 
@@ -148,11 +170,6 @@ class TtsService {
 
   /// Picks a device voice matching [gender] for the current language.
   Future<void> _setDeviceVoiceByGender(String gender) async {
-    if (Platform.isAndroid) {
-      // Bypassing setVoice on Android to prevent native NullPointerException crash
-      // in flutter_tts when Android's TTS service gets unbound/disconnected.
-      return;
-    }
     if (_deviceVoices.isEmpty) {
       await _loadDeviceVoices();
     }
