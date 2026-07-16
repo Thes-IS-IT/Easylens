@@ -28,6 +28,7 @@ import '../../services/notification_service.dart';
 import '../../services/esp32_service.dart';
 import '../devices/devices_screen.dart';
 import 'package:battery_plus/battery_plus.dart';
+import '../../widgets/screen_tutorial_card.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
 import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
@@ -2801,6 +2802,12 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
           ],
         ),
         const SizedBox(height: 12),
+        ScreenTutorialCard(
+          tutorialKey: 'camera',
+          title: 'Using Visual Scanning',
+          description: 'Toggle between Object Detection, Face Recognition, Navigation warnings, and Scenery scanning at the bottom. Tap the battery or bluetooth panel cards for status reports!',
+          mascotAsset: 'assets/Mascots/03 Loading.gif',
+        ),
 
         // Live Camera Preview with bounding boxes overlay
         Expanded(

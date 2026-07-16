@@ -6,6 +6,7 @@ import '../../services/rag_service.dart';
 import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
 import '../../widgets/chat_history_viewer.dart';
+import '../../widgets/screen_tutorial_card.dart';
 
 class ChatMessage {
   final String text;
@@ -286,6 +287,12 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            ScreenTutorialCard(
+              tutorialKey: 'chat',
+              title: 'Talking to Buddy',
+              description: 'Ask Buddy questions about visual surroundings or EasyLens operations. Toggle offline Local AI (Gemma) vs. online Gemini using settings, and tap the History button to review logs!',
+              mascotAsset: 'assets/Mascots/06 Thinking.gif',
+            ),
             // Gemma Installer progress card (if offline Gemma is not downloaded yet)
             if (!isLocalActive)
               Container(

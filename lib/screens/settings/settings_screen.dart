@@ -19,6 +19,7 @@ import '../../utils/app_route.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../widgets/screen_tutorial_card.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -646,6 +647,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontWeight: FontWeight.w900,
                       color: headerTextColor,
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  ScreenTutorialCard(
+                    tutorialKey: 'settings',
+                    title: 'Personalize EasyLens',
+                    description: 'Customize your language, voice feedback speed, haptic warnings, and mobility aids. All preferences will automatically sync to Firestore to secure your settings!',
+                    mascotAsset: 'assets/Mascots/01 Happy.gif',
                   ),
 
               // 3. PROFILE Section

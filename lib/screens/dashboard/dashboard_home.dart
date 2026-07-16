@@ -11,6 +11,7 @@ import '../../utils/app_route.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
 import '../../services/weather_service.dart';
+import '../../widgets/screen_tutorial_card.dart';
 
 class DashboardHome extends StatefulWidget {
   final String displayName;
@@ -302,6 +303,12 @@ class _DashboardHomeState extends State<DashboardHome> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildStormyWarningCard(lang),
+                  ScreenTutorialCard(
+                    tutorialKey: 'home',
+                    title: 'Welcome to EasyLens!',
+                    description: 'This is your main dashboard. You can quickly view active navigation cards, check the local weather, or tap "Visual Assistant" to open Buddy\'s offline/online chat sheet!',
+                    mascotAsset: 'assets/Mascots/05 Welcome.gif',
+                  ),
                   Text(
                     _getFormattedDateText(lang),
                     style: GoogleFonts.inter(
