@@ -144,6 +144,11 @@ class TtsService {
 
   /// Picks a device voice matching [gender] for the current language.
   Future<void> _setDeviceVoiceByGender(String gender) async {
+    if (Platform.isAndroid) {
+      // Bypassing setVoice on Android to prevent native NullPointerException crash
+      // in flutter_tts when Android's TTS service gets unbound/disconnected.
+      return;
+    }
     if (_deviceVoices.isEmpty) {
       await _loadDeviceVoices();
     }
