@@ -2,7 +2,31 @@
 
 ## Overview
 
-The walking navigation system provides real-time obstacle warnings for visually impaired users. It uses Google ML Kit's object detector to track objects in the camera feed and maps their positions to **4 distinct guidance states**.
+The walking navigation system provides real-time obstacle warnings and turn-by-turn guidance for visually impaired users. It uses Google ML Kit's object detector to track objects in the camera feed and maps their positions to **4 distinct guidance states** alongside GPS-based directional waypoint cues.
+
+---
+
+## Routing, Location Tracking & Navigation Algorithms
+
+EasyLens integrates global map routing with localized safety metrics to construct a safe walking corridor:
+
+### 1. Pedestrian Shortest Path Routing: Dijkstra's / A* Search Algorithm
+* **Algorithm**: **Dijkstra's Algorithm / A\* Search** (used internally by Google Maps Directions API).
+* **Details**: Computes the optimal walking paths along pedestrian networks, sidewalks, and crosswalk segments, returning a collection of coordinate waypoints and localized routing instructions.
+
+### 2. Distance Calculations: The Haversine Formula
+* **Algorithm**: **Haversine Formula**.
+* **Details**: To calculate the exact real-time great-circle distance (arc distance over the Earth's spherical surface) between the user's current GPS location $(lat_1, lon_1)$ and the next navigation waypoint step $(lat_2, lon_2)$, the system solves the Haversine equation on-device:
+  $$d = 2R \cdot \arcsin\left(\sqrt{\sin^2\left(\frac{lat_2 - lat_1}{2}\right) + \cos(lat_1) \cdot \cos(lat_2) \cdot \sin^2\left(\frac{lon_2 - lon_1}{2}\right)}\right)$$
+  Where $R$ is the mean radius of the Earth (6,371,000 meters). This ensures accurate coordinate distance mapping.
+
+### 3. Dynamic 30-Meter Turn Warning System
+* **Trigger Mechanism**:
+  - The `ActiveNavigationService` continuously polls the device GPS provider and computes the Haversine distance to the next path node.
+  - When the user approaches a transition coordinate and the distance drops to **$\le 30$ meters**, the system preemptively announces the turn action via Text-to-Speech (e.g., *"In 30 meters, turn right on acacia street"*).
+  - The warning is repeated at smaller intervals as they approach, concluding with an immediate notification at the corner.
+
+---
 
 ---
 

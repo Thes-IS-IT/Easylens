@@ -11,9 +11,27 @@ User Query  → RAG Pipeline → Gemma (offline) | Gemini (cloud) | Ollama (loca
 
 ---
 
-## 1. On-Device ML Kit Models
+## Core Machine Learning & Vision Algorithms
 
-All ML Kit models run **on-device** with zero latency and no internet required.
+EasyLens utilizes specialized, high-performance algorithms to perform real-time visual scene parsing on edge devices:
+
+### 1. Object Detection: SSD MobileNet V2
+* **Algorithm**: **Single Shot MultiBox Detector (SSD) with a MobileNet V2 backbone**.
+* **Details**: SSD performs localization (bounding box coordinates) and classification (class label scores) in a single unified feedforward convolutional network. MobileNet V2 serves as the feature extractor, utilizing depthwise separable convolutions and linear bottlenecks to minimize CPU and RAM cycles on mobile hardware.
+
+### 2. Face Detection & Recognition: Convolutional Landmarks + L2 Euclidean Distance
+* **Detection Algorithm**: A **Multi-task Cascade Convolutional Network (MTCNN)** / Google Face Detector that outputs bounding boxes, rotation angles, and landmark locations.
+* **Recognition Algorithm**: **L2 Euclidean Distance Vector Matching** (nearest-neighbor search). The face image is cropped and translated into a 128-dimensional normalized floating-point embedding vector space. When recognizing a face, the system calculates the L2 Euclidean distance between the live embedding vector and the registered vectors database:
+  $$\text{Distance} = \sqrt{\sum_{i=1}^{n} (p_i - q_i)^2}$$
+  If the L2 distance is below a strict confidence threshold (typically $d \le 0.6$), it announces the user's name.
+
+### 3. Image Labeling: MobileNet V3 / CNN Classifier
+* **Algorithm**: **MobileNet V3 Large / Small Convolutional Neural Network**.
+* **Details**: Performs real-time multi-label classification on the raw video stream, returning semantic labels mapped to COCO or Google Knowledge Graph taxonomies.
+
+---
+
+## 1. On-Device ML Kit Models
 
 ### Image Labeling (`google_mlkit_image_labeling`)
 - **Purpose:** Classifies the scene visible in the camera (e.g., "furniture", "person", "outdoor")
