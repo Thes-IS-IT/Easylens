@@ -36,6 +36,10 @@ class TtsService {
 
   /// Loads and caches all voices available on the device.
   Future<void> _loadDeviceVoices() async {
+    if (Platform.isAndroid) {
+      _voicesLoaded = true;
+      return;
+    }
     try {
       final voices = await _flutterTts.getVoices;
       if (voices != null && voices is List && voices.isNotEmpty) {
