@@ -32,9 +32,9 @@ No dependency injection is used. Services are accessed globally via their factor
 |---|---|
 | **File** | `lib/services/tts_service.dart` |
 | **Pattern** | Singleton |
-| **Purpose** | Text-to-Speech wrapper with voice persona support (Max, Aria, Nova). Manages pitch, rate, and language switching. |
+| **Purpose** | Text-to-Speech wrapper with voice persona support (Max, Aria, Nova, Leo). Manages pitch, rate, and language switching. |
 | **Key Methods** | `speak(String text)`, `stop()`, `setVoicePersona(String id)` |
-| **⚠️ Android Workaround** | `setVoice()` is **bypassed on Android** to prevent a native `NullPointerException` crash in `FlutterTtsPlugin.setVoice` when the TTS engine is unbound. Only `setLanguage()` is used on Android. |
+| **⚠️ Android Workaround** | Uses **lazy event-triggered loading** on Android to call `getVoices()` and `setVoice()` safely only after the engine is fully bound. Clips pitch to `[0.5, 2.0]` on Android to prevent service binder crashes. |
 
 ---
 
@@ -76,8 +76,8 @@ No dependency injection is used. Services are accessed globally via their factor
 |---|---|
 | **File** | `lib/services/notification_service.dart` |
 | **Pattern** | Singleton |
-| **Purpose** | In-app notification system. Stores notifications in `SharedPreferences` as JSON. Supports obstacle alerts, battery alerts, Buddy follow-ups. |
-| **Key Methods** | `initialize()`, `pushObstacleAlert()`, `pushBuddyFollowUp()`, `getUnreadCount()` |
+| **Purpose** | High-performance notification system. Persists only critical safety alerts (like `"STOP"`, `"FIRE"`, `"HAZARD"`, or `"EMERGENCY"`) to SharedPreferences to prevent frame-skipping disk I/O lag. |
+| **Key Methods** | `initialize()`, `pushObstacleAlert()`, `pushWarning()`, `getUnreadCount()` |
 
 ---
 

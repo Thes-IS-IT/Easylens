@@ -6,16 +6,29 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 
 ## 🔴 Critical — Active Workarounds in Code
 
-### 1. Android TTS `setVoice` NullPointerException
+### 1. Android TTS `setVoice` NullPointerException (Resolved with Lazy Binding)
 | | |
 |---|---|
-| **Severity** | Critical (native JVM crash) |
+| **Severity** | Resolved / Mitigated |
 | **Platform** | Android only |
-| **Symptom** | App crashes with `NullPointerException` at `FlutterTtsPlugin.setVoice` when the TextToSpeech engine becomes unbound or disconnected |
-| **Root Cause** | The `flutter_tts` plugin's Kotlin implementation calls `Set.iterator()` on a null voice set when the TTS engine is in an unbound state |
-| **Workaround** | `TtsService._setDeviceVoiceByGender()` checks `Platform.isAndroid` and **skips the `setVoice` call entirely** on Android. Only `setLanguage()` is used, which is sufficient for English and Tagalog. |
+| **Symptom** | App crashes with `NullPointerException` at `FlutterTtsPlugin.setVoice` when calling getVoices or setVoice before the TextToSpeech engine is fully bound. |
+| **Root Cause** | The `flutter_tts` plugin's Kotlin implementation calls `Set.iterator()` on a null voice set if accessed before `onServiceConnected` completes. Additionally, setting a pitch below `0.5` causes Android's native TTS service binder connection to fail with a `DeadObjectException` / error -22. |
+| **Workaround** | 1. **Lazy Loading**: Deferred `getVoices()` loading on Android using `setStartHandler`, `setCompletionHandler`, and `setErrorHandler` callback triggers. Voices are only loaded in the background after the first speech has finished, ensuring the engine is fully bound.<br>2. **Pitch Safety Clamping**: Enforced safety boundaries `[0.5, 2.0]` on the final pitch value set on Android. |
 | **File** | `lib/services/tts_service.dart` |
-| **Impact** | Voice persona switching (Max/Aria/Nova) only changes pitch and rate on Android, not the actual voice engine. iOS uses the full native voice selection. |
+| **Impact** | Voice persona switching (Max/Aria/Nova/Leo) now dynamically selects actual native male, female, or child voiceover files on Android without binder crashes. |
+
+---
+
+### 1b. Notification Database Disk Write Lag (Resolved)
+| | |
+|---|---|
+| **Severity** | Resolved / Mitigated |
+| **Platform** | All |
+| **Symptom** | Choreographer skips dozens of frames and main thread lags during walks. |
+| **Root Cause** | Writing transient walking obstacle alerts and ambient scenery updates to SharedPreferences on every frame creates heavy disk I/O bottlenecks and layout rebuilds. |
+| **Workaround** | Filtered notifications: transient obstacle alerts are spoken and displayed but not saved to disk. Only critical alerts containing `"STOP"`, `"FIRE"`, `"HAZARD"`, or `"EMERGENCY"` are written to persistent storage. |
+| **File** | `lib/services/notification_service.dart` |
+| **Impact** | Zero jank or main thread lag during continuous object scanning and navigation. |
 
 ---
 

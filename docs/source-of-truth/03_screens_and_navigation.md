@@ -81,10 +81,11 @@ graph LR
 | | |
 |---|---|
 | **Path** | `lib/screens/hardware/hardware_screen.dart` |
-| **Size** | ~3,700 lines — **the largest and most complex screen** |
-| **Purpose** | Real-time camera feed with 4 HUD modes |
+| **Size** | ~3,100 lines — **refactored for modularity** |
+| **Purpose** | Real-time camera feed with 4 Buddy/HUD modes. |
 | **HUD Modes** | `HudMode.navigation`, `HudMode.objectDetection`, `HudMode.faceRecognition`, default (image labeling) |
-| **Key Concerns** | Memory management (camera frames), ML Kit lifecycle, TTS announcements |
+| **Modular Sub-Components** | Located under `lib/screens/hardware/components/`:<br>- [pairing_wizard.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/pairing_wizard.dart) (Onboarding connection steps)<br>- [hud_camera_view.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_camera_view.dart) (Camera previews & label drawings)<br>- [hud_controls_panel.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_controls_panel.dart) (Status indicators grid)<br>- [hud_mode_selector.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_mode_selector.dart) (Horizontal mode switch tab row) |
+| **Key Concerns** | Memory management (alternating ML Kit pipelines), dynamic TTS voice persona selection |
 
 ### 7. RAG Assistant Screen (Buddy Chat)
 | | |
