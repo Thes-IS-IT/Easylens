@@ -19,6 +19,9 @@ class HudControlsPanel extends StatelessWidget {
   final VoidCallback onLockToggled;
   final VoidCallback onLocalAiToggled;
 
+  final Widget modeSelector;
+  final Widget disconnectButton;
+
   const HudControlsPanel({
     super.key,
     required this.batteryPercent,
@@ -35,6 +38,8 @@ class HudControlsPanel extends StatelessWidget {
     required this.onAudioToggled,
     required this.onLockToggled,
     required this.onLocalAiToggled,
+    required this.modeSelector,
+    required this.disconnectButton,
   });
 
   @override
@@ -241,6 +246,10 @@ class HudControlsPanel extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  modeSelector,
+                  const SizedBox(height: 12),
+                  disconnectButton,
                 ],
               ),
             ),

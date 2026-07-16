@@ -3125,6 +3125,75 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
               ),
             ),
             const SizedBox(height: 12),
+            // Status Card overlay displaying ML Kit Hazard warning matching mockup
+            ListenableBuilder(
+              listenable: ActiveNavigationService(),
+              builder: (context, _) {
+                final activeNav = ActiveNavigationService();
+                final isArrived = activeNav.isNavigating && activeNav.hasArrived;
+                
+                final title = isArrived 
+                    ? (isTagalog ? "Nakarating Ka Na" : "Destination Arrived") 
+                    : _activeTitle;
+                final desc = isArrived 
+                    ? (isTagalog 
+                        ? "Nakarating ka na sa iyong patutunguhan, ${activeNav.destinationName}." 
+                        : "You have arrived at your destination, ${activeNav.destinationName}.") 
+                    : _activeDescription;
+                final bg = isArrived ? const Color(0xFFE9F7EF) : _statusCardBg;
+                final icon = isArrived ? Icons.pin_drop_rounded : _statusIcon;
+                final iconColor = isArrived ? Colors.green : _statusIconColor;
+
+                return Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: iconColor.withOpacity(0.12),
+                        radius: 20,
+                        child: Icon(icon, color: iconColor, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              desc,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        child: Text(
+                          'ACTIVE',
+                          style: GoogleFonts.inter(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
             HudControlsPanel(
               batteryPercent: _batteryPercent,
               isBluetoothConnected: _isBluetoothConnected,
@@ -3216,102 +3285,29 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   _isScreenLocked = true;
                 });
               },
-            ),
-            const SizedBox(height: 12),
-            HudModeSelector(
-              selectedHudMode: _selectedHudMode,
-              onModeChanged: (mode) {
-                setState(() {
-                  _selectedHudMode = mode;
-                  _applyModeChange(mode);
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            // Status Card overlay displaying ML Kit Hazard warning matching mockup
-            ListenableBuilder(
-              listenable: ActiveNavigationService(),
-              builder: (context, _) {
-                final activeNav = ActiveNavigationService();
-                final isArrived = activeNav.isNavigating && activeNav.hasArrived;
-                final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
-                    SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-                
-                final title = isArrived 
-                    ? (isTagalog ? "Nakarating Ka Na" : "Destination Arrived") 
-                    : _activeTitle;
-                final desc = isArrived 
-                    ? (isTagalog 
-                        ? "Nakarating ka na sa iyong patutunguhan, ${activeNav.destinationName}." 
-                        : "You have arrived at your destination, ${activeNav.destinationName}.") 
-                    : _activeDescription;
-                final bg = isArrived ? const Color(0xFFE9F7EF) : _statusCardBg;
-                final icon = isArrived ? Icons.pin_drop_rounded : _statusIcon;
-                final iconColor = isArrived ? Colors.green : _statusIconColor;
-
-                return Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: bg,
-                    borderRadius: BorderRadius.circular(24),
+              modeSelector: HudModeSelector(
+                selectedHudMode: _selectedHudMode,
+                onModeChanged: (mode) {
+                  setState(() {
+                    _selectedHudMode = mode;
+                    _applyModeChange(mode);
+                  });
+                },
+              ),
+              disconnectButton: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF002663),
+                    side: const BorderSide(color: Color(0xFF002663), width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: iconColor.withOpacity(0.12),
-                        radius: 20,
-                        child: Icon(icon, color: iconColor, size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              desc,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        child: Text(
-                          'ACTIVE',
-                          style: GoogleFonts.inter(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
+                  onPressed: _onCancelOrBack,
+                  child: Text(
+                    'Disconnect HUD Feed',
+                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF002663),
-                  side: const BorderSide(color: Color(0xFF002663), width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                ),
-                onPressed: _onCancelOrBack,
-                child: Text(
-                  'Disconnect HUD Feed',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
