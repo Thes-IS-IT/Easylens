@@ -30,6 +30,10 @@ import '../dashboard/components/buddy_assistant_sheet.dart';
 import '../contacts/contacts_screen.dart';
 import '../../widgets/speech_navigation_overlay.dart';
 import '../../utils/app_route.dart';
+import 'components/pairing_wizard.dart';
+import 'components/hud_mode_selector.dart';
+import 'components/hud_controls_panel.dart';
+import 'components/hud_camera_view.dart';
 
 enum HudMode {
   navigation,
@@ -2987,368 +2991,24 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
 
   @override
   Widget build(BuildContext context) {
-    switch (_pairStep) {
-      case 1:
-        return _buildMainScreen();
-      case 2:
-        return _buildPairingStartScreen();
-      case 3:
-        return _buildScanningScreen();
-      case 4:
-        return _buildObjectDetectionScreen();
-      default:
-        return _buildMainScreen();
+    if (_pairStep <= 3) {
+      return PairingWizard(
+        pairStep: _pairStep,
+        onInitializeCamera: _initializeCamera,
+        onAddDevice: _onAddDevice,
+        onStartPairing: _onStartPairing,
+        onCancelOrBack: _onCancelOrBack,
+      );
     }
+    return _buildObjectDetectionScreen();
   }
 
-  // ── SCREEN 1: EasyLens Glasses Main View ──────────────────────────────
-  Widget _buildMainScreen() {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Bar mirroring Figma
-          Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Text(
-                  'SOS',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.black.withOpacity(0.06)),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Row(
-                  children: [
-                    // Live unread badge on notification bell
-                    ListenableBuilder(
-                      listenable: NotificationService(),
-                      builder: (ctx, _) {
-                        final unread = NotificationService().unreadCount;
-                        return Badge(
-                          isLabelVisible: unread > 0,
-                          label: Text(
-                            unread > 9 ? '9+' : '$unread',
-                            style: const TextStyle(fontSize: 9, color: Colors.white),
-                          ),
-                          backgroundColor: const Color(0xFFDC2626),
-                          child: IconButton(
-                            icon: Icon(
-                              unread > 0
-                                  ? Icons.notifications_active
-                                  : Icons.notifications_none,
-                              size: 20,
-                              color: unread > 0 ? const Color(0xFFDC2626) : null,
-                            ),
-                            onPressed: () => _navigateTo(const NotificationsScreen()),
-                            constraints: const BoxConstraints(),
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.people_outline, size: 20),
-                      onPressed: () => _navigateTo(const ContactsScreen()),
-                      constraints: const BoxConstraints(),
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                    ),
-                    // ESP32 device status icon
-                    ListenableBuilder(
-                      listenable: Esp32Service(),
-                      builder: (ctx, _) {
-                        final connected = Esp32Service().isConnected;
-                        return IconButton(
-                          icon: Icon(
-                            connected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-                            size: 20,
-                            color: connected ? const Color(0xFF10B981) : null,
-                          ),
-                          onPressed: () => _navigateTo(const DevicesScreen()),
-                          constraints: const BoxConstraints(),
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          tooltip: connected ? 'Glasses connected' : 'Connect glasses',
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined, size: 20),
-                      onPressed: () => _navigateTo(const SettingsScreen()),
-                      constraints: const BoxConstraints(),
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          Text(
-            'EasyLens Glasses',
-            style: GoogleFonts.inter(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF002663),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Pair your glasses to unlock a new dimension of augmented reality. Once connected, your lightweight smart glasses will work seamlessly with your Buddy hardware to project real-time information, interactive filters, and custom AR elements directly into your field of view.',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 24),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.asset(
-              'assets/images/suit_glasses.png',
-              width: double.infinity,
-              height: 220,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey.shade200,
-                height: 220,
-                child: const Icon(Icons.image_not_supported, size: 48),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF002663),
-                      side: const BorderSide(color: Color(0xFF002663), width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                    ),
-                    onPressed: _initializeCamera,
-                    icon: const Icon(Icons.camera_alt_outlined, size: 20),
-                    label: Text(
-                      'Use Camera',
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF002663),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                      elevation: 0,
-                    ),
-                    onPressed: _onAddDevice,
-                    icon: const Icon(Icons.add, size: 20),
-                    label: Text(
-                      'Add Device',
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── SCREEN 2: Start Pairing Screen ──────────────────────────────────
-  Widget _buildPairingStartScreen() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'SOS',
-              style: GoogleFonts.inter(
-                color: Colors.transparent,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const Spacer(),
-            CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 20,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.black54, size: 18),
-                onPressed: _onCancelOrBack,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Center(
-          child: Column(
-            children: [
-              Text(
-                'EasyLens Glasses',
-                style: GoogleFonts.inter(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF002663),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  'Start pairing your EasyLens Glasses to the Buddy app. Click on Start pairing process to start pairing your EasyLens Glasses with the Buddy app.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 48),
-              Image.asset(
-                'assets/images/mockup_glasses.png',
-                width: 280,
-                height: 180,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Colors.grey.shade100,
-                  width: 280,
-                  height: 180,
-                  child: const Icon(Icons.image_not_supported, size: 48),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF002663),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-              elevation: 0,
-            ),
-            onPressed: _onStartPairing,
-            child: Text(
-              'Start pairing process',
-              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── SCREEN 3: Searching Screen (GIF) ────────────────────────────────
-  Widget _buildScanningScreen() {
-    return Column(
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF002663),
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: Colors.black.withOpacity(0.06)),
-              ),
-            ),
-            onPressed: _onCancelOrBack,
-            icon: const Icon(Icons.arrow_back_ios, size: 16),
-            label: Text(
-              'Back',
-              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        const Spacer(),
-        Image.asset(
-          'assets/Mascots/03 Loading.gif',
-          width: 180,
-          height: 180,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => const CircularProgressIndicator(),
-        ),
-        const SizedBox(height: 36),
-        Text(
-          'Searching for Glasses',
-          style: GoogleFonts.inter(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF002663),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Text(
-            'Ensure your EasyLens glasses are turned on, fully charged, and near your phone.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-              height: 1.5,
-            ),
-          ),
-        ),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF002663),
-              side: const BorderSide(color: Color(0xFF002663), width: 1.5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-            ),
-            onPressed: _onCancelOrBack,
-            child: Text(
-              'Cancel Search',
-              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── SCREEN 4: Dynamic Object Detection & Hardware Controls Screen ────
   Widget _buildObjectDetectionScreen() {
     if (!_isCameraInitialized || (_cameraController == null && !Esp32Service().isConnected)) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
 
     return Stack(
       children: [
@@ -3395,11 +3055,11 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                     const SizedBox(width: 8),
                     Text(
                       _voiceState == "listening"
-                          ? (SettingsService().selectedLanguage.toLowerCase().contains("tagalog") || SettingsService().selectedLanguage.toLowerCase().contains("filipino") ? "Magsalita na" : "Speak Now")
+                          ? (isTagalog ? "Magsalita na" : "Speak Now")
                           : _voiceState == "thinking"
-                              ? (SettingsService().selectedLanguage.toLowerCase().contains("tagalog") || SettingsService().selectedLanguage.toLowerCase().contains("filipino") ? "Nag-iisip..." : "Thinking...")
+                              ? (isTagalog ? "Nag-iisip..." : "Thinking...")
                               : _voiceState == "speaking"
-                                  ? (SettingsService().selectedLanguage.toLowerCase().contains("tagalog") || SettingsService().selectedLanguage.toLowerCase().contains("filipino") ? "Nagsasalita..." : "Speaking...")
+                                  ? (isTagalog ? "Nagsasalita..." : "Speaking...")
                                   : "Idle",
                       style: GoogleFonts.inter(
                         color: Colors.white,
@@ -3415,997 +3075,144 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
 
         Column(
           children: [
-            // App Header Bar (Figma layout matching)
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () {
-                _navigateTo(const EmergencyScreen());
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Text(
-                  'SOS',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
+            Expanded(
+              child: HudCameraView(
+                selectedHudMode: _selectedHudMode,
+                tfliteDetections: _tfliteDetections,
+                detectedObjectsList: _detectedObjectsList,
+                latestMLKitLabels: _latestMLKitLabels,
+                detectedFacesList: _detectedFacesList,
+                faceImageSize: _faceImageSize,
+                detectedFaceName: _detectedFaceName,
+                faceIdToNameMap: _faceIdToNameMap,
+                registeredFaces: _registeredFaces,
+                cameraController: _cameraController,
+                isCameraInitialized: _isCameraInitialized,
+                cocoLabels: _cocoLabels,
               ),
             ),
-            const Spacer(),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.black.withOpacity(0.06)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Row(
-                children: [
-                  ListenableBuilder(
-                    listenable: NotificationService(),
-                    builder: (ctx, _) {
-                      final unread = NotificationService().unreadCount;
-                      return Badge(
-                        isLabelVisible: unread > 0,
-                        label: Text(
-                          unread > 9 ? '9+' : '$unread',
-                          style: const TextStyle(fontSize: 9, color: Colors.white),
-                        ),
-                        backgroundColor: const Color(0xFFDC2626),
-                        child: IconButton(
-                          icon: Icon(
-                            unread > 0
-                                ? Icons.notifications_active
-                                : Icons.notifications_none,
-                            size: 20,
-                            color: unread > 0 ? const Color(0xFFDC2626) : null,
-                          ),
-                          onPressed: () => _navigateTo(const NotificationsScreen()),
-                          constraints: const BoxConstraints(),
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                        ),
-                      );
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.people_outline, size: 20),
-                    onPressed: () => _navigateTo(const ContactsScreen()),
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined, size: 20),
-                    onPressed: () => _navigateTo(const SettingsScreen()),
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            HudControlsPanel(
+              batteryPercent: _batteryPercent,
+              isBluetoothConnected: _isBluetoothConnected,
+              isGeminiEnabled: _isGeminiEnabled,
+              isWifiOn: _isWifiOn,
+              isAudioSpeaker: _isAudioSpeaker,
+              isScreenLocked: _isScreenLocked,
+              useLocalAI: _useLocalAI,
+              isContinuousVoiceEnabled: _isContinuousVoiceEnabled,
+              onBluetoothToggled: () {
+                setState(() {
+                  _isBluetoothConnected = !_isBluetoothConnected;
+                });
+              },
+              onGeminiToggled: () {
+                setState(() {
+                  if (_isContinuousVoiceEnabled && !_useLocalAI) {
+                    _isContinuousVoiceEnabled = false;
+                    _isGeminiEnabled = false;
+                    _conversationHistory.clear();
+                    TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+                  } else {
+                    _useLocalAI = false;
+                    _isContinuousVoiceEnabled = true;
+                    _isGeminiEnabled = true;
+                    _conversationHistory.clear();
+                    TtsService().speak(isTagalog ? "Aktibo ang Advance AI. Simulan ang tuloy-tuloy na boses." : "Advanced online AI active. Continuous voice enabled.");
+                  }
+                });
+                if (_isContinuousVoiceEnabled) {
+                  _runContinuousVoiceLoop();
+                } else {
+                  _silenceTimer?.cancel();
+                  SttService().stopListening((_) {});
+                  TtsService().stop();
+                  setState(() {
+                    _activeTitle = "Path Clear";
+                    _activeDescription = "No hazards detected nearby.";
+                    _statusCardBg = const Color(0xFFE8F5E9);
+                    _statusIcon = Icons.check_circle_outline;
+                    _statusIconColor = Colors.green;
+                  });
+                }
+              },
+              onLocalAiToggled: () {
+                setState(() {
+                  if (_isContinuousVoiceEnabled && _useLocalAI) {
+                    _isContinuousVoiceEnabled = false;
+                    _isGeminiEnabled = false;
+                    _conversationHistory.clear();
+                    TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+                  } else {
+                    _useLocalAI = true;
+                    _isContinuousVoiceEnabled = true;
+                    _isGeminiEnabled = false;
+                    _conversationHistory.clear();
+                    TtsService().speak(isTagalog ? "Aktibo ang Local AI. Simulan ang tuloy-tuloy na boses." : "Local offline AI active. Continuous voice enabled.");
+                  }
+                });
+                if (_isContinuousVoiceEnabled) {
+                  _runContinuousVoiceLoop();
+                } else {
+                  _silenceTimer?.cancel();
+                  SttService().stopListening((_) {});
+                  TtsService().stop();
+                  setState(() {
+                    _activeTitle = "Path Clear";
+                    _activeDescription = "No hazards detected nearby.";
+                    _statusCardBg = const Color(0xFFE8F5E9);
+                    _statusIcon = Icons.check_circle_outline;
+                    _statusIconColor = Colors.green;
+                  });
+                }
+              },
+              onAudioToggled: () {
+                setState(() {
+                  _isAudioSpeaker = !_isAudioSpeaker;
+                });
+              },
+              onWifiToggled: () {
+                setState(() {
+                  _isWifiOn = !_isWifiOn;
+                });
+              },
+              onLockToggled: () {
+                HapticFeedback.mediumImpact();
+                TtsService().speak("Screen locked.");
+                setState(() {
+                  _isScreenLocked = true;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            HudModeSelector(
+              selectedHudMode: _selectedHudMode,
+              onModeChanged: (mode) {
+                setState(() {
+                  _selectedHudMode = mode;
+                  _applyModeChange(mode);
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF002663),
+                  side: const BorderSide(color: Color(0xFF002663), width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                ),
+                onPressed: _onCancelOrBack,
+                child: Text(
+                  'Disconnect HUD Feed',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-
-        // Live Camera Preview with bounding boxes overlay
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (Esp32Service().isConnected && Esp32Service().currentFrame != null)
-                      RotatedBox(
-                        quarterTurns: 3, // Rotate 270 degrees clockwise for correct vertical alignment of ESP32-CAM
-                        child: Image.memory(
-                          Esp32Service().currentFrame!,
-                          fit: BoxFit.cover,
-                          gaplessPlayback: true,
-                        ),
-                      )
-                    else if (_cameraController != null && _cameraController!.value.isInitialized)
-                      CameraPreview(_cameraController!)
-                    else
-                      Container(
-                        color: Colors.black,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                      ),
-                    if (_selectedHudMode == HudMode.objectDetection) ...[
-                      if (_tfliteDetections.isNotEmpty)
-                        ..._tfliteDetections.map((r) {
-                            // SSDResult coordinates are already normalized (0..1)
-                            // Rotate coordinates: raw Y (yMin, yMax) maps to screen X (left, width)
-                            double left = ((1.0 - r.yMax) * constraints.maxWidth).clamp(0.0, constraints.maxWidth);
-                            double width = ((r.yMax - r.yMin) * constraints.maxWidth).clamp(0.0, constraints.maxWidth - left);
-                            
-                            // Rotate coordinates: raw X (xMin, xMax) maps to screen Y (top, height)
-                            double top = (r.xMin * constraints.maxHeight).clamp(0.0, constraints.maxHeight);
-                            double height = ((r.xMax - r.xMin) * constraints.maxHeight).clamp(0.0, constraints.maxHeight - top);
-                            
-                            final label = _refineLabel(r.label);
-                            final displayLabel = '${label[0].toUpperCase()}${label.substring(1)} (${(r.confidence * 100).toInt()}%)';
-
-                            return AnimatedPositioned(
-                              key: ValueKey(r.label + r.xMin.toString() + r.yMin.toString()),
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOutCubic,
-                              left: left,
-                              top: top,
-                              width: width.clamp(0.0, constraints.maxWidth - left),
-                              height: height.clamp(0.0, constraints.maxHeight - top),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.cyanAccent, width: 2.5),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Container(
-                                    color: Colors.cyanAccent,
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    child: Text(
-                                      displayLabel,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          })
-                    ] else if (_selectedHudMode == HudMode.navigation) ...[
-                      if (_detectedObjectsList.isNotEmpty)
-                        ..._detectedObjectsList.map((obj) {
-                            final r = obj.boundingBox;
-                            final double imgWidth = _faceImageSize != Size.zero ? _faceImageSize.width : 640.0;
-                            final double imgHeight = _faceImageSize != Size.zero ? _faceImageSize.height : 480.0;
-                            
-                            double left = ((1.0 - (r.bottom / imgHeight)) * constraints.maxWidth).clamp(0.0, constraints.maxWidth);
-                            double top = ((r.left / imgWidth) * constraints.maxHeight).clamp(0.0, constraints.maxHeight);
-                            double width = ((r.height / imgHeight) * constraints.maxWidth).clamp(0.0, constraints.maxWidth - left);
-                            double height = ((r.width / imgWidth) * constraints.maxHeight).clamp(0.0, constraints.maxHeight - top);
-                            
-                            String label = 'Object';
-                            if (obj.labels.isNotEmpty) {
-                              final firstLabel = obj.labels.first;
-                              if (firstLabel.text.isNotEmpty && firstLabel.text != 'Unknown') {
-                                label = _refineLabel(firstLabel.text);
-                              } else if (_cocoLabels.isNotEmpty && firstLabel.index < _cocoLabels.length) {
-                                label = _refineLabel(_cocoLabels[firstLabel.index]);
-                              }
-                            }
-                            final humanParts = [
-                              'leg', 'arm', 'foot', 'hand', 'head', 'body', 'face', 'nose', 'eye', 'mouth', 'hair', 
-                              'human', 'pedestrian', 'man', 'woman', 'child', 'boy', 'girl', 'people', 'cyclist', 'rider', 'bystander'
-                            ];
-                            if (humanParts.any((part) => label.toLowerCase().contains(part))) {
-                              label = 'person';
-                            }
-                            final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
-                            final displayLabel = '${label[0].toUpperCase()}${label.substring(1)}$trackingStr';
-
-                            return AnimatedPositioned(
-                              key: ValueKey(obj.trackingId ?? obj.boundingBox.topLeft.toString()),
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOutCubic,
-                              left: left,
-                              top: top,
-                              width: width.clamp(0.0, constraints.maxWidth - left),
-                              height: height.clamp(0.0, constraints.maxHeight - top),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.cyanAccent, width: 2.5),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Container(
-                                    color: Colors.cyanAccent,
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    child: Text(
-                                      displayLabel,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          })
-                      else if (_latestMLKitLabels.isNotEmpty)
-                        Builder(
-                          builder: (context) {
-                            String displayLabel = "";
-                            for (final label in _latestMLKitLabels) {
-                              final isPathway = label.toLowerCase().contains('floor') || 
-                                                label.toLowerCase().contains('ground') || 
-                                                label.toLowerCase().contains('sky') ||
-                                                label.toLowerCase().contains('ceiling') ||
-                                                label.toLowerCase().contains('indoor') ||
-                                                label.toLowerCase().contains('room') ||
-                                                label.toLowerCase().contains('building') ||
-                                                label.toLowerCase().contains('architecture') ||
-                                                label.toLowerCase().contains('house') ||
-                                                label.toLowerCase().contains('infrastructure');
-                              if (!isPathway) {
-                                displayLabel = label;
-                                break;
-                              }
-                            }
-                            if (displayLabel.isEmpty) {
-                              displayLabel = _latestMLKitLabels.first;
-                            }
-                            final isPathway = displayLabel.toLowerCase().contains('floor') || 
-                                              displayLabel.toLowerCase().contains('ground') || 
-                                              displayLabel.toLowerCase().contains('sky') ||
-                                              displayLabel.toLowerCase().contains('ceiling') ||
-                                              displayLabel.toLowerCase().contains('indoor') ||
-                                              displayLabel.toLowerCase().contains('room');
-                            if (isPathway) return const SizedBox.shrink();
-                            
-                            double left = constraints.maxWidth * 0.15;
-                            double top = constraints.maxHeight * 0.20;
-                            double width = constraints.maxWidth * 0.70;
-                            double height = constraints.maxHeight * 0.50;
-                            
-                            return AnimatedPositioned(
-                              key: const ValueKey('mlkit_label'),
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOutCubic,
-                              left: left,
-                              top: top,
-                              width: width,
-                              height: height,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.orangeAccent, width: 2.5),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Container(
-                                    color: Colors.orangeAccent,
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    child: Text(
-                                      "$displayLabel (Tracked)",
-                                      style: GoogleFonts.inter(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        )
-                    ],
-
-                    // Draw face bounding boxes dynamically in Face Recognition mode
-                    if (_selectedHudMode == HudMode.faceRecognition && _faceImageSize != Size.zero)
-                      ..._detectedFacesList.map((face) {
-                        final r = face.boundingBox;
-                        final scaleX = constraints.maxWidth / _faceImageSize.height;
-                        final scaleY = constraints.maxHeight / _faceImageSize.width;
-                        
-                        double left = r.left * scaleX;
-                        double top = r.top * scaleY;
-                        double width = r.width * scaleX;
-                        double height = r.height * scaleY;
-                        
-                        final trackingId = face.trackingId;
-                        String name = "Face";
-                        if (trackingId != null && _faceIdToNameMap.containsKey(trackingId)) {
-                          name = _faceIdToNameMap[trackingId]!;
-                        } else if (_registeredFaces.isNotEmpty) {
-                          name = _registeredFaces.first.name;
-                        }
-                        final trackingStr = trackingId != null ? " #:$trackingId" : "";
-                        
-                        return AnimatedPositioned(
-                          key: ValueKey(face.trackingId ?? face.boundingBox.topLeft.toString()),
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOutCubic,
-                          left: left,
-                          top: top,
-                          width: width.clamp(0.0, constraints.maxWidth - left),
-                          height: height.clamp(0.0, constraints.maxHeight - top),
-                          child: Container(
-                            decoration: BoxDecoration(
-                                border: Border.all(color: const Color(0xFF7C3AED), width: 2.5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Align(
-                              alignment: Alignment.topLeft,
-                              child: Container(
-                                  color: const Color(0xFF7C3AED),
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                child: Text(
-                                  "$name$trackingStr",
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.lens, color: Colors.green, size: 10),
-                            const SizedBox(width: 8),
-                            Text(
-                              'HUD FEED ACTIVE',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-
-
-                    // Face recognition name chip — shown when a known face is detected
-                    if (_detectedFaceName.isNotEmpty)
-                      Positioned(
-                        bottom: 16,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 400),
-                            opacity: _detectedFaceName.isNotEmpty ? 1.0 : 0.0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF7C3AED),
-                                    Color(0xFF4F46E5),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF7C3AED)
-                                        .withOpacity(0.5),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.face_retouching_natural,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _detectedFaceName,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    
-                    ListenableBuilder(
-                      listenable: ActiveNavigationService(),
-                      builder: (context, _) {
-                        final activeNav = ActiveNavigationService();
-                        if (_selectedHudMode != HudMode.navigation) {
-                          return const SizedBox.shrink();
-                        }
-                        
-                        return Stack(
-                          children: [
-                            Positioned(
-                              top: 16,
-                              right: 16,
-                              left: 150,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.75),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1.5),
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                child: activeNav.isNavigating
-                                    ? Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                activeNav.currentStepText.toLowerCase().contains('left')
-                                                    ? Icons.turn_left
-                                                    : (activeNav.currentStepText.toLowerCase().contains('right')
-                                                        ? Icons.turn_right
-                                                        : Icons.directions),
-                                                color: Colors.cyanAccent,
-                                                size: 16,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  activeNav.currentStepText,
-                                                  style: GoogleFonts.inter(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  maxLines: 2,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            "To: ${activeNav.destinationName} • ${activeNav.distanceRemaining} (${activeNav.timeRemaining})",
-                                            style: GoogleFonts.inter(
-                                              color: Colors.cyanAccent,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Row(
-                                        children: [
-                                          const Icon(Icons.explore_outlined, color: Colors.amber, size: 14),
-                                          const SizedBox(width: 6),
-                                          Expanded(
-                                            child: Text(
-                                              "Start navigation on the Maps tab to synchronize turn directions here.",
-                                              style: GoogleFonts.inter(
-                                                color: Colors.white70,
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                              ),
-                            ),
-                            
-                            if (activeNav.isNavigating)
-                              Positioned(
-                                bottom: 16,
-                                right: 16,
-                                child: Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(60),
-                                    border: Border.all(color: Colors.cyanAccent, width: 2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.4),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(60),
-                                    child: GoogleMap(
-                                      key: ValueKey(activeNav.currentLocation),
-                                      initialCameraPosition: CameraPosition(
-                                        target: activeNav.currentLocation ?? const LatLng(15.1325, 120.5901),
-                                        zoom: 16.0,
-                                      ),
-                                      markers: {
-                                        Marker(
-                                          markerId: const MarkerId('current_loc'),
-                                          position: activeNav.currentLocation ?? const LatLng(15.1325, 120.5901),
-                                          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
-                                        ),
-                                        if (activeNav.destinationLocation != null)
-                                          Marker(
-                                            markerId: const MarkerId('destination'),
-                                            position: activeNav.destinationLocation!,
-                                          ),
-                                      },
-                                      polylines: {
-                                        Polyline(
-                                          polylineId: const PolylineId('route_poly'),
-                                          points: activeNav.routePoints,
-                                          color: Colors.cyan,
-                                          width: 4,
-                                        ),
-                                      },
-                                      myLocationButtonEnabled: false,
-                                      zoomControlsEnabled: false,
-                                      mapToolbarEnabled: false,
-                                      compassEnabled: false,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Status Card overlay displaying ML Kit Hazard warning matching mockup
-        ListenableBuilder(
-          listenable: ActiveNavigationService(),
-          builder: (context, _) {
-            final activeNav = ActiveNavigationService();
-            final isArrived = activeNav.isNavigating && activeNav.hasArrived;
-            final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
-                SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-            
-            final title = isArrived 
-                ? (isTagalog ? "Nakarating Ka Na" : "Destination Arrived") 
-                : _activeTitle;
-            final desc = isArrived 
-                ? (isTagalog 
-                    ? "Nakarating ka na sa iyong patutunguhan, ${activeNav.destinationName}." 
-                    : "You have arrived at your destination, ${activeNav.destinationName}.") 
-                : _activeDescription;
-            final bg = isArrived ? const Color(0xFFE9F7EF) : _statusCardBg;
-            final icon = isArrived ? Icons.pin_drop_rounded : _statusIcon;
-            final iconColor = isArrived ? Colors.green : _statusIconColor;
-
-            return Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: iconColor.withOpacity(0.12),
-                    radius: 20,
-                    child: Icon(icon, color: iconColor, size: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          desc,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    child: Text(
-                      'ACTIVE',
-                      style: GoogleFonts.inter(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-
-        // Bottom Dashboard Card Controls matching mockups exactly
-        Container(
-          height: 230, // Fixed height for visual consistency and larger camera S01
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -4))
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Column(
-            children: [
-              // Pull indicator line
-              Center(
-                child: Container(
-                  width: 50,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Scrollable content area S01
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Custom Vertical Battery cylinder on the left S01
-                          Container(
-                            width: 105,
-                            height: 215,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Stack(
-                              alignment: Alignment.bottomCenter,
-                              children: [
-                                FractionallySizedBox(
-                                  heightFactor: _batteryPercent / 100.0,
-                                  widthFactor: 1.0,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981),
-                                      borderRadius: BorderRadius.only(
-                                        bottomLeft: const Radius.circular(30),
-                                        bottomRight: const Radius.circular(30),
-                                        topLeft: _batteryPercent >= 95 ? const Radius.circular(30) : Radius.zero,
-                                        topRight: _batteryPercent >= 95 ? const Radius.circular(30) : Radius.zero,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Positioned.fill(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          '${_batteryPercent}%',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            shadows: [
-                                              const Shadow(
-                                                offset: Offset(0, 1.5),
-                                                blurRadius: 3,
-                                                color: Colors.black38,
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Battery',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.white,
-                                            shadows: [
-                                              const Shadow(
-                                                offset: Offset(0, 1.5),
-                                                blurRadius: 3,
-                                                color: Colors.black38,
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          // Scrollable 2x2 grid panel on the right S01
-                          Expanded(
-                            child: SizedBox(
-                              height: 215,
-                              child: GridView.count(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 8,
-                                crossAxisSpacing: 8,
-                                childAspectRatio: 1.0,
-                                physics: const BouncingScrollPhysics(),
-                                children: [
-                                    // EasyLens Connected (Bluetooth)
-                                    _buildControlBox(
-                                      title: 'EasyLens',
-                                      subtitle: _isBluetoothConnected ? 'Connected' : 'Disconnected',
-                                      icon: Icons.bluetooth,
-                                      activeBgColor: const Color(0xFF2B6CB0),
-                                      inactiveBgColor: const Color(0xFFEDF2F7),
-                                      activeTextColor: Colors.white,
-                                      inactiveTextColor: const Color(0xFF2D3748),
-                                      isActive: _isBluetoothConnected,
-                                      onTap: () {
-                                        setState(() {
-                                          _isBluetoothConnected = !_isBluetoothConnected;
-                                        });
-                                      },
-                                    ),
-
-                                    // Gemini AI Toggle
-                                    _buildControlBox(
-                                      title: 'Gemini',
-                                      subtitle: (_isContinuousVoiceEnabled && !_useLocalAI) ? 'Active' : 'Disable',
-                                      icon: Icons.auto_awesome,
-                                      activeBgColor: const Color(0xFFD69E2E),
-                                      inactiveBgColor: const Color(0xFFEDF2F7),
-                                      activeTextColor: Colors.white,
-                                      inactiveTextColor: const Color(0xFF2D3748),
-                                      isActive: _isContinuousVoiceEnabled && !_useLocalAI,
-                                      onTap: () {
-                                        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-                                        setState(() {
-                                          if (_isContinuousVoiceEnabled && !_useLocalAI) {
-                                            _isContinuousVoiceEnabled = false;
-                                            _isGeminiEnabled = false;
-                                            _conversationHistory.clear();
-                                            TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
-                                          } else {
-                                            _useLocalAI = false;
-                                            _isContinuousVoiceEnabled = true;
-                                            _isGeminiEnabled = true;
-                                            _conversationHistory.clear();
-                                            TtsService().speak(isTagalog ? "Aktibo ang Advance AI. Simulan ang tuloy-tuloy na boses." : "Advanced online AI active. Continuous voice enabled.");
-                                          }
-                                        });
-                                        if (_isContinuousVoiceEnabled) {
-                                          _runContinuousVoiceLoop();
-                                        } else {
-                                          _silenceTimer?.cancel();
-                                          SttService().stopListening((_) {});
-                                          TtsService().stop();
-                                          setState(() {
-                                            _activeTitle = "Path Clear";
-                                            _activeDescription = "No hazards detected nearby.";
-                                            _statusCardBg = const Color(0xFFE8F5E9);
-                                            _statusIcon = Icons.check_circle_outline;
-                                            _statusIconColor = Colors.green;
-                                          });
-                                        }
-                                      },
-                                    ),
-
-                                    // Local AI Toggle
-                                    _buildControlBox(
-                                      title: 'Local AI',
-                                      subtitle: (_isContinuousVoiceEnabled && _useLocalAI) ? 'Active' : 'Disable',
-                                      icon: Icons.offline_bolt_outlined,
-                                      activeBgColor: const Color(0xFF8B5CF6),
-                                      inactiveBgColor: const Color(0xFFEDF2F7),
-                                      activeTextColor: Colors.white,
-                                      inactiveTextColor: const Color(0xFF2D3748),
-                                      isActive: _isContinuousVoiceEnabled && _useLocalAI,
-                                      onTap: () {
-                                        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-                                        setState(() {
-                                          if (_isContinuousVoiceEnabled && _useLocalAI) {
-                                            _isContinuousVoiceEnabled = false;
-                                            _isGeminiEnabled = false;
-                                            _conversationHistory.clear();
-                                            TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
-                                          } else {
-                                            _useLocalAI = true;
-                                            _isContinuousVoiceEnabled = true;
-                                            _isGeminiEnabled = false;
-                                            _conversationHistory.clear();
-                                            TtsService().speak(isTagalog ? "Aktibo ang Local AI. Simulan ang tuloy-tuloy na boses." : "Local offline AI active. Continuous voice enabled.");
-                                          }
-                                        });
-                                        if (_isContinuousVoiceEnabled) {
-                                          _runContinuousVoiceLoop();
-                                        } else {
-                                          _silenceTimer?.cancel();
-                                          SttService().stopListening((_) {});
-                                          TtsService().stop();
-                                          setState(() {
-                                            _activeTitle = "Path Clear";
-                                            _activeDescription = "No hazards detected nearby.";
-                                            _statusCardBg = const Color(0xFFE8F5E9);
-                                            _statusIcon = Icons.check_circle_outline;
-                                            _statusIconColor = Colors.green;
-                                          });
-                                        }
-                                      },
-                                    ),
-
-                                    // Audio Route Toggle
-                                    _buildControlBox(
-                                      title: 'Audio',
-                                      subtitle: _isAudioSpeaker ? 'Speaker' : 'Glasses',
-                                      icon: Icons.volume_up,
-                                      activeBgColor: const Color(0xFF3182CE),
-                                      inactiveBgColor: const Color(0xFFEDF2F7),
-                                      activeTextColor: Colors.white,
-                                      inactiveTextColor: const Color(0xFF2D3748),
-                                      isActive: _isAudioSpeaker,
-                                      onTap: () {
-                                        setState(() {
-                                          _isAudioSpeaker = !_isAudioSpeaker;
-                                        });
-                                      },
-                                    ),
-
-                                    // Network / Wifi Toggle
-                                    _buildControlBox(
-                                      title: 'Network',
-                                      subtitle: _isWifiOn ? 'On' : 'Off',
-                                      icon: Icons.wifi,
-                                      activeBgColor: const Color(0xFF3182CE),
-                                      inactiveBgColor: const Color(0xFFEDF2F7),
-                                      activeTextColor: Colors.white,
-                                      inactiveTextColor: const Color(0xFF2D3748),
-                                      isActive: _isWifiOn,
-                                      onTap: () {
-                                        setState(() {
-                                          _isWifiOn = !_isWifiOn;
-                                        });
-                                      },
-                                    ),
-
-                                    // Lock Mode Toggle S01
-                                    _buildControlBox(
-                                      title: 'Lock Mode',
-                                      subtitle: _isScreenLocked ? 'Locked' : 'Unlocked',
-                                      icon: _isScreenLocked ? Icons.lock : Icons.lock_open,
-                                      activeBgColor: const Color(0xFFEF4444),
-                                      inactiveBgColor: const Color(0xFFEDF2F7),
-                                      activeTextColor: Colors.white,
-                                      inactiveTextColor: const Color(0xFF2D3748),
-                                      isActive: _isScreenLocked,
-                                      onTap: () {
-                                        HapticFeedback.mediumImpact();
-                                        TtsService().speak("Screen locked.");
-                                        setState(() {
-                                          _isScreenLocked = true;
-                                        });
-                                      },
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Mode selection section S01
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            )
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'HUD MODE',
-                              style: GoogleFonts.inter(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.grey.shade500,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                _buildModeButton(HudMode.navigation, 'Nav', Icons.directions_walk, const Color(0xFF1E88E5)),
-                                const SizedBox(width: 4),
-                                _buildModeButton(HudMode.objectDetection, 'Objects', Icons.radar, const Color(0xFF43A047)),
-                                const SizedBox(width: 4),
-                                _buildModeButton(HudMode.scenery, 'Scenery', Icons.photo_size_select_actual, const Color(0xFFF4511E)),
-                                const SizedBox(width: 4),
-                                _buildModeButton(HudMode.faceRecognition, 'Faces', Icons.face_retouching_natural, const Color(0xFF7C3AED)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Done back button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF002663),
-                            side: const BorderSide(color: Color(0xFF002663), width: 1.5),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          ),
-                          onPressed: _onCancelOrBack,
-                          child: Text(
-                            'Disconnect HUD Feed',
-                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        ],  // Close Column children
-        ),  // Close Column
       ],
     );
   }
