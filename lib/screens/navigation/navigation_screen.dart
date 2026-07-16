@@ -106,6 +106,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   int _lastGpsAlertTime = 0;
   int _lastTurnIndexAnnounced = -1;
   int _lastProximityIndexAnnounced = -1;
+  double? _lastDynamicAnnouncedDistanceM;
 
   // HAU Location coordinates (Pampanga, PH)
   static const LatLng _hauLatLng = LatLng(15.1325, 120.5901);
@@ -213,6 +214,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           _routePoints = List<LatLng>.from(activeNav.routePoints);
           _stepLocations = List<LatLng>.from(activeNav.stepLocations);
           _currentStepIndex = activeNav.currentStepIndex;
+          _lastDynamicAnnouncedDistanceM = null;
           _navState = 1;
         });
         if (activeNav.destinationLocation != null) {
@@ -424,11 +426,31 @@ class _NavigationScreenState extends State<NavigationScreen> {
         stepTarget.longitude,
       );
 
+      // A2. Periodic 30m voice guidance update
+      if (_lastDynamicAnnouncedDistanceM == null) {
+        _lastDynamicAnnouncedDistanceM = distToStepM;
+      } else {
+        final diff = (_lastDynamicAnnouncedDistanceM! - distToStepM).abs();
+        if (diff >= 30.0) {
+          _lastDynamicAnnouncedDistanceM = distToStepM;
+          final announceDist = unit == 'Imperial'
+              ? '${(distToStepM * 3.28084).round()} feet'
+              : '${distToStepM.round()} meters';
+          final isTagalog = SettingsService().selectedLanguage == 'Tagalog';
+          TtsService().speak(
+            isTagalog
+                ? 'Maglakad nang diretso nang $announceDist, tapos $currentStepText'
+                : 'Go forward for $announceDist, then $currentStepText'
+          );
+        }
+      }
+
       // A. Critical turn alert (within 20 meters): Auto-advance immediately and read the step
       if (distToStepM < 20) {
         if (_currentStepIndex < steps.length - 1) {
           setState(() {
             _currentStepIndex++;
+            _lastDynamicAnnouncedDistanceM = null;
           });
           // Update global navigation status bar
           ActiveNavigationService().updateProgress(
@@ -442,7 +464,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
           TtsService().speak(_formatStep(steps[_currentStepIndex], unit));
         }
       } 
-      // B. Proximity Warning (within 60 meters): Alert upcoming action
       else if (distToStepM < 60) {
         if (_lastTurnIndexAnnounced != _currentStepIndex || (now - _lastTurnAlertTime > 12000)) {
           _lastTurnAlertTime = now;
@@ -786,6 +807,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     setState(() {
       _selectedPlace = place;
       _currentStepIndex = 0;
+      _lastDynamicAnnouncedDistanceM = null;
       _hasAnnouncedArrival = false;
       _lastNavAlertTime = 0;
       _navState = 1;
@@ -881,6 +903,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _navState = 0;
       _selectedPlace = null;
       _currentStepIndex = 0;
+      _lastDynamicAnnouncedDistanceM = null;
       _hasAnnouncedArrival = false;
       _searchController.clear();
       _searchResults = List.from(_allPlaces);
