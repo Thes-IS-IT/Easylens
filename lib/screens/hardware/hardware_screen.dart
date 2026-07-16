@@ -2859,7 +2859,10 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                             final trackingStr = obj.trackingId != null ? ' #:${obj.trackingId}' : '';
                             final displayLabel = '$label$trackingStr';
 
-                            return Positioned(
+                            return AnimatedPositioned(
+                              key: ValueKey(obj.trackingId ?? obj.boundingBox.topLeft.toString()),
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOutCubic,
                               left: left,
                               top: top,
                               width: width.clamp(0.0, constraints.maxWidth - left),
@@ -2904,7 +2907,10 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                             double width = constraints.maxWidth * 0.70;
                             double height = constraints.maxHeight * 0.50;
                             
-                            return Positioned(
+                            return AnimatedPositioned(
+                              key: const ValueKey('mlkit_label'),
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOutCubic,
                               left: left,
                               top: top,
                               width: width,
@@ -2955,7 +2961,10 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                         }
                         final trackingStr = trackingId != null ? " #:$trackingId" : "";
                         
-                        return Positioned(
+                        return AnimatedPositioned(
+                          key: ValueKey(face.trackingId ?? face.boundingBox.topLeft.toString()),
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
                           left: left,
                           top: top,
                           width: width.clamp(0.0, constraints.maxWidth - left),
