@@ -102,6 +102,21 @@ class HomeTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
+          // Tool 1: Object Detection
+          _buildFeatureCard(
+            context: context,
+            title: 'Local Object Detection',
+            subtitle: 'Identify 80 standard COCO items locally in real-time.',
+            icon: Icons.center_focus_strong_outlined,
+            accentColor: const Color(0xFF4CAF50),
+            onTap: () {
+              Navigator.of(context).push(
+                AppRoute.to(const HardwareScreen(initialStep: 4)),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
           // Tool 2: ML Kit Labeling
           _buildFeatureCard(
             context: context,
