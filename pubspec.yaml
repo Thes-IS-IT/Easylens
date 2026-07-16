@@ -66,6 +66,7 @@ dependencies:
   audioplayers: ^6.1.0
   url_launcher: ^6.3.2
   flutter_local_notifications: ^22.0.1
+  text_to_speech: ^0.2.3
 
 dev_dependencies:
   flutter_test:

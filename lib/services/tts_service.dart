@@ -283,7 +283,7 @@ class TtsService {
         await _setDeviceVoiceByGender('female');
         break;
       case 'Max (Bold)':
-        pitch = isAndroid ? 0.50 : 0.85;
+        pitch = isAndroid ? 0.55 : 0.85;
         rate = 0.55;
         await _setDeviceVoiceByGender('male');
         break;
@@ -293,7 +293,7 @@ class TtsService {
         await _setDeviceVoiceByGender('female');
         break;
       case 'Echo (Deep)':
-        pitch = isAndroid ? 0.38 : 0.65;
+        pitch = isAndroid ? 0.50 : 0.65;
         rate = 0.45;
         await _setDeviceVoiceByGender('male');
         break;
@@ -320,9 +320,15 @@ class TtsService {
     final double pitchMultiplier = 0.5 + _settingsService.speechPitch;
     final double rateMultiplier = 0.5 + _settingsService.speechRate;
 
-    final double finalPitch = (isAndroid && (_settingsService.selectedVoicePersona == 'Max (Bold)' || _settingsService.selectedVoicePersona == 'Echo (Deep)'))
+    double finalPitch = (isAndroid && (_settingsService.selectedVoicePersona == 'Max (Bold)' || _settingsService.selectedVoicePersona == 'Echo (Deep)'))
         ? pitch
         : pitch * pitchMultiplier;
+
+    // Safety clip for Android TTS engine to prevent DeadObjectException and binder crashes
+    if (isAndroid) {
+      if (finalPitch < 0.5) finalPitch = 0.5;
+      if (finalPitch > 2.0) finalPitch = 2.0;
+    }
 
     await _flutterTts.setPitch(finalPitch);
     await _flutterTts.setSpeechRate(rate * rateMultiplier);
