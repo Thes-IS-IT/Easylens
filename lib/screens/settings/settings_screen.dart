@@ -6,7 +6,6 @@ import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
 import '../onboarding/onboarding_screen.dart';
-import '../notifications/notifications_screen.dart';
 import '../notifications/notification_settings_screen.dart';
 import 'profile_details_screen.dart';
 import 'help_guide_screen.dart';

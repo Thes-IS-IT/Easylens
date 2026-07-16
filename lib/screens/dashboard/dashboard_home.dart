@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../hardware/hardware_screen.dart';
 import '../image_labeling/image_labeling_screen.dart';
-import '../face_registration/face_registration_screen.dart';
 import 'components/header_bar.dart';
 import 'components/mascot_banner.dart';
 import 'components/dashboard_button.dart';
