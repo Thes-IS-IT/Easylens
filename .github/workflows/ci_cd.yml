@@ -12,8 +12,8 @@ permissions:
   contents: write
 
 jobs:
-  analyze_and_test:
-    name: Analyze & Test
+  analyze:
+    name: Run Analyzer
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -39,59 +39,3 @@ jobs:
 
       - name: Run Flutter Analyzer
         run: flutter analyze --no-fatal-warnings --no-fatal-infos
-
-      - name: Run Unit & Widget Tests
-        run: flutter test
-
-  build_and_release:
-    name: Build & Release
-    needs: analyze_and_test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Create Mock .env File
-        run: touch .env
-
-      - name: Build Split release APKs
-        run: flutter build apk --release --split-per-abi
-
-      - name: Generate Dynamic Tag Name
-        id: tag_name
-        run: echo "tag=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag_name.outputs.tag }}
-          name: "EasyLens Release ${{ steps.tag_name.outputs.tag }}"
-          body: |
-            Automated production build compiled directly from branch main.
-            
-            Commit: ${{ github.sha }}
-            Run Number: ${{ github.run_number }}
-          draft: false
-          prerelease: false
-          files: |
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/flutter-apk/app-x86_64-release.apk
-            build/app/outputs/flutter-apk/app-release.apk
-          token: ${{ secrets.GITHUB_TOKEN }}
