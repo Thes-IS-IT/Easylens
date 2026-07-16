@@ -859,11 +859,12 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final registeredName = namesSeen.isNotEmpty ? namesSeen.join(' and ') : _registeredFaces.first.name;
       final now = DateTime.now();
       final cooldownElapsed = _lastFaceAnnouncedAt == null ||
-          now.difference(_lastFaceAnnouncedAt!).inSeconds >= 10;
+          now.difference(_lastFaceAnnouncedAt!).inSeconds >= 20;
 
       if (cooldownElapsed) {
         _lastFaceAnnouncedAt = now;
-        final msg = 'Buddy sees $registeredName nearby.';
+        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+        final msg = isTagalog ? "Nakakita ako kay $registeredName" : "I see $registeredName";
         if (!_isContinuousVoiceEnabled) {
           TtsService().speak(msg);
         }
@@ -1436,12 +1437,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
         final lastSpoken = _lastSpokenMap[alertKey];
         final isDifferent = detectedNames != _lastSpokenObjectText;
         final cooldownElapsed = lastSpoken == null ||
-            now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
+            now.difference(lastSpoken).inSeconds >= (isDifferent ? 12 : 30);
         if (cooldownElapsed && detectedNames.isNotEmpty) {
           _lastSpokenMap[alertKey] = now;
           _lastSpokenObjectText = detectedNames;
+          final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+          final phrase = isTagalog ? "Nakakita ako ng $detectedNames" : "I see $detectedNames";
           if (!_isContinuousVoiceEnabled) {
-            TtsService().speak("Detected objects in view: $detectedNames.");
+            TtsService().speak(phrase);
           }
           
           setState(() {
@@ -2077,11 +2080,41 @@ class _HardwareScreenState extends State<HardwareScreen> {
         if (ambientLabels.isNotEmpty) {
           final isDifferent = ambientLabels != _lastSpokenSceneryText;
           final cooldownElapsed = lastSpoken == null ||
-              now.difference(lastSpoken).inSeconds >= (isDifferent ? 3 : 10);
+              now.difference(lastSpoken).inSeconds >= (isDifferent ? 15 : 35);
           if (cooldownElapsed) {
             _lastSpokenMap[alertKey] = now;
             _lastSpokenSceneryText = ambientLabels;
-            final speech = "Surroundings resemble a $ambientLabels scenery.";
+
+            final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+            final isOutside = _latestMLKitLabels.any((label) {
+              final l = label.toLowerCase();
+              return l.contains('outside') ||
+                     l.contains('nature') ||
+                     l.contains('road') ||
+                     l.contains('sky') ||
+                     l.contains('building') ||
+                     l.contains('street') ||
+                     l.contains('outdoor') ||
+                     l.contains('tree') ||
+                     l.contains('grass') ||
+                     l.contains('plant') ||
+                     l.contains('vehicle') ||
+                     l.contains('car') ||
+                     l.contains('sidewalk') ||
+                     l.contains('park') ||
+                     l.contains('garden') ||
+                     l.contains('scenery') ||
+                     l.contains('infrastructure');
+            });
+
+            final speech = isOutside
+                ? (isTagalog
+                    ? "Mag-ingat palagi, tila nasa labas ka. Nakikita ko ang $ambientLabels."
+                    : "Always be careful, you are most likely outside. I see $ambientLabels.")
+                : (isTagalog
+                    ? "Mukhang nasa loob ka ng silid. Nakikita ko ang $ambientLabels."
+                    : "It seems you are indoors. I see $ambientLabels.");
+
             if (!_isContinuousVoiceEnabled) {
               TtsService().speak(speech);
             }
