@@ -27,6 +27,7 @@ import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
 import '../../services/undo_service.dart';
 import '../../widgets/speech_navigation_overlay.dart';
+import '../../services/rag_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -110,6 +111,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final previousIndex = _currentIndex;
     final wasOnHome = _currentIndex == 0;
     final goingHome = index == 0;
+
+    final tabNames = ["Dashboard Home", "Audio Navigation", "Camera/Hardware Mode"];
+    if (index >= 0 && index < tabNames.length) {
+      final name = tabNames[index];
+      RagService.recordNavigation(name, actionDescription: isUndo ? "Undid switch to $name" : "Switched tab to $name");
+    }
+
     setState(() => _currentIndex = index);
     if (goingHome && !wasOnHome) {
       _playDashboardBark();
@@ -185,12 +193,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _accelerometerSubscription?.cancel();
   }  void _navigateTo(Widget screen, String description) {
     final nav = Navigator.of(context);
+    final prev = RagService.currentScreen;
+    
+    RagService.recordNavigation(description, actionDescription: "Navigated to $description");
+
     UndoService().add(() {
       if (nav.canPop()) {
+        RagService.recordNavigation(prev, actionDescription: "Undid navigation to $description");
         nav.pop();
       }
     }, description: "Pop screen: $description");
-    nav.push(AppRoute.to(screen));
+
+    Future.microtask(() async {
+      await nav.push(AppRoute.to(screen));
+      RagService.recordNavigation(prev, actionDescription: "Returned from $description");
+    });
   }
 
   void _onShakeDetected() {

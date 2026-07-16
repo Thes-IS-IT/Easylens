@@ -38,7 +38,6 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
   bool _isThinking = false;
   bool _isSpeaking = false;
   bool _isStreaming = false; // true while local Gemma is generating tokens
-  bool _isAutoPilotEnabled = true;
   String _buddyState = 'idle'; // 'idle', 'thinking', 'speaking', 'error'
 
   @override
@@ -314,56 +313,6 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       if (query.contains('journal') || query.contains('diary') || query.contains('logs') || query.contains('insights') || query.contains('memory') || query.contains('talaarawan')) return 'journal';
     }
 
-    // 3. Fall back to scanning the LLM response context for screen keywords combined with navigation advice
-    final hasGoDirective = response.contains('open') || 
-                           response.contains('go to') || 
-                           response.contains('navigate to') || 
-                           response.contains('switch to') || 
-                           response.contains('launch') || 
-                           response.contains('tap') || 
-                           response.contains('show') || 
-                           response.contains('pumunta') || 
-                           response.contains('buksan');
-
-    if (hasGoDirective) {
-      if (response.contains('settings tab') || response.contains('settings screen') || response.contains('tap "settings"') || response.contains('go to the settings') || response.contains('go to settings')) {
-        return 'settings';
-      }
-      if (response.contains('notification') || response.contains('alerts')) {
-        if (response.contains('open') || response.contains('go to') || response.contains('check')) {
-          return 'notifications';
-        }
-      }
-      if (response.contains('contact') || response.contains('phonebook') || response.contains('contacts')) {
-        if (response.contains('open') || response.contains('go to') || response.contains('call') || response.contains('tap')) {
-          return 'contacts';
-        }
-      }
-      if (response.contains('emergency') || response.contains('sos')) {
-        if (response.contains('open') || response.contains('go to') || response.contains('trigger') || response.contains('call')) {
-          return 'emergency';
-        }
-      }
-      if (response.contains('home tab') || response.contains('dashboard') || response.contains('main screen')) {
-        return 'home';
-      }
-      if (response.contains('audio navigation') || response.contains('nav tab') || response.contains('gps')) {
-        return 'nav';
-      }
-      if (response.contains('sensor') || response.contains('camera tab') || response.contains('hardware')) {
-        return 'hardware';
-      }
-      if (response.contains('text scanner') || response.contains('scan text') || response.contains('ocr')) {
-        return 'text';
-      }
-      if (response.contains('object detector') || response.contains('detect objects') || response.contains('object detection')) {
-        return 'objects';
-      }
-      if (response.contains('journal') || response.contains('diary') || response.contains('logs') || response.contains('insights')) {
-        return 'journal';
-      }
-    }
-
     return null;
   }
 
@@ -532,69 +481,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
             ),
           ),
           
-          // Auto-Pilot Mode Status & Toggle
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      _isAutoPilotEnabled ? Icons.bolt : Icons.power_settings_new_rounded,
-                      color: _isAutoPilotEnabled ? const Color(0xFF10B981) : Colors.grey,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _isAutoPilotEnabled ? 'AUTO-PILOT ACTIVE' : 'AUTO-PILOT INACTIVE',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: _isAutoPilotEnabled ? const Color(0xFF10B981) : Colors.grey,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.mediumImpact();
-                    setState(() {
-                      _isAutoPilotEnabled = !_isAutoPilotEnabled;
-                      // If enabled and not listening, start listening automatically
-                      if (_isAutoPilotEnabled && !_isListening && !_isThinking && !_isSpeaking) {
-                        _toggleListening();
-                      }
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _isAutoPilotEnabled
-                          ? const Color(0xFF10B981).withOpacity(0.12)
-                          : Colors.grey.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _isAutoPilotEnabled
-                            ? const Color(0xFF10B981)
-                            : Colors.grey,
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Text(
-                      _isAutoPilotEnabled ? 'Hands-Free' : 'Tap to Talk',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: _isAutoPilotEnabled ? const Color(0xFF10B981) : Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+
           
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 24, vertical: isKeyboardOpen ? 6 : 16),

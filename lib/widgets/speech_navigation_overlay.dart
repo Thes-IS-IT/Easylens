@@ -23,6 +23,7 @@ import '../screens/settings/profile_details_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/image_labeling/image_labeling_screen.dart';
 import '../screens/hardware/hardware_screen.dart';
+import '../services/rag_service.dart';
 
 class SpeechNavigationNotifier {
   static final ValueNotifier<int?> tabChangeNotifier = ValueNotifier<int?>(null);
@@ -73,6 +74,13 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
   double? _btnTop;
   bool _isDragging = false;
   int _pendingSearchFlow = 0;
+
+  Future<void> _pushAndRecord(Widget screen, String description) async {
+    final prev = RagService.currentScreen;
+    RagService.recordNavigation(description, actionDescription: "Speech command navigated to $description");
+    await navigatorKey.currentState?.push(AppRoute.to(screen));
+    RagService.recordNavigation(prev, actionDescription: "Returned from $description via speech back action");
+  }
 
   @override
   void dispose() {
@@ -340,25 +348,25 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
     // 4. Settings Screen
     if (cleanText.contains("go to settings") || cleanText.contains("open settings") || cleanText.contains("settings") || cleanText.contains("mga setting") || cleanText.contains("buksan ang setting")) {
-      navigatorKey.currentState?.push(AppRoute.to(const SettingsScreen()));
+      _pushAndRecord(const SettingsScreen(), "Settings");
       return isFilipino ? "Binubuksan ang mga setting" : "Navigating to settings";
     }
 
     // 5. Notifications Screen
     if (cleanText.contains("go to notifications") || cleanText.contains("open notifications") || cleanText.contains("notifications") || cleanText.contains("mga abiso") || cleanText.contains("abiso")) {
-      navigatorKey.currentState?.push(AppRoute.to(const NotificationsScreen()));
+      _pushAndRecord(const NotificationsScreen(), "Notifications");
       return isFilipino ? "Binubuksan ang mga abiso" : "Navigating to notifications";
     }
 
     // 6. Contacts Screen
     if (cleanText.contains("go to contacts") || cleanText.contains("open contacts") || cleanText.contains("contacts") || cleanText.contains("mga kontak") || cleanText.contains("kontak")) {
-      navigatorKey.currentState?.push(AppRoute.to(const ContactsScreen()));
+      _pushAndRecord(const ContactsScreen(), "Contacts");
       return isFilipino ? "Binubuksan ang mga contact" : "Navigating to contacts";
     }
 
     // 7. Emergency Screen
     if (cleanText.contains("go to emergency") || cleanText.contains("emergency") || cleanText.contains("sos") || cleanText.contains("saklolo")) {
-      navigatorKey.currentState?.push(AppRoute.to(const EmergencyScreen()));
+      _pushAndRecord(const EmergencyScreen(), "Emergency SOS");
       return isFilipino ? "Binubuksan ang emergency" : "Navigating to emergency";
     }
 
@@ -382,36 +390,36 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Binubuksan ang chatbot ni Buddy" : "Opening Buddy chatbot";
     }
     if (target.contains("text") || target.contains("ocr") || target.contains("basa")) {
-      navigatorKey.currentState?.push(AppRoute.to(ImageLabelingScreen(
+      _pushAndRecord(ImageLabelingScreen(
         onTabSelected: (index) {
           navigatorKey.currentState?.pop();
           SpeechNavigationNotifier.changeTab(index);
         },
-      )));
+      ), "Text Scanner");
       return isFilipino ? "Binubuksan ang text scanner" : "Opening text scanner";
     }
     if (target.contains("object") || target.contains("bagay") || target.contains("detector") || target.contains("sensor")) {
-      navigatorKey.currentState?.push(AppRoute.to(const HardwareScreen(initialStep: 4)));
+      _pushAndRecord(const HardwareScreen(initialStep: 4), "Object Detector");
       return isFilipino ? "Binubuksan ang object detector" : "Opening object detector";
     }
     if (target.contains("help") || target.contains("guide") || target.contains("tulong")) {
-      navigatorKey.currentState?.push(AppRoute.to(const HelpGuideScreen()));
+      _pushAndRecord(const HelpGuideScreen(), "Help Guide");
       return isFilipino ? "Binubuksan ang gabay sa tulong" : "Opening help guide";
     }
     if (target.contains("password") || target.contains("palitan")) {
-      navigatorKey.currentState?.push(AppRoute.to(const ChangePasswordScreen()));
+      _pushAndRecord(const ChangePasswordScreen(), "Change Password");
       return isFilipino ? "Binubuksan ang palitan ng password" : "Opening change password";
     }
     if (target.contains("units") || target.contains("yunit")) {
-      navigatorKey.currentState?.push(AppRoute.to(const UnitsScreen()));
+      _pushAndRecord(const UnitsScreen(), "Units Settings");
       return isFilipino ? "Binubuksan ang mga unit" : "Opening units setting";
     }
     if (target.contains("customize") || target.contains("home screen")) {
-      navigatorKey.currentState?.push(AppRoute.to(const CustomizeHomeScreen()));
+      _pushAndRecord(const CustomizeHomeScreen(), "Customize Home Screen");
       return isFilipino ? "Inaayos ang home screen" : "Opening home screen customizer";
     }
     if (target.contains("face") || target.contains("mukha") || target.contains("register")) {
-      navigatorKey.currentState?.push(AppRoute.to(const FaceRegistrationScreen()));
+      _pushAndRecord(const FaceRegistrationScreen(), "Face Registration");
       return isFilipino ? "Binubuksan ang pagrehistro ng mukha" : "Opening face registration";
     }
     if (target.contains("logout") || target.contains("log out") || target.contains("umalis")) {
@@ -423,7 +431,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Umalis sa account" : "Logging out";
     }
     if (target.contains("profile") || target.contains("detalye")) {
-      navigatorKey.currentState?.push(AppRoute.to(const ProfileDetailsScreen()));
+      _pushAndRecord(const ProfileDetailsScreen(), "Profile Details");
       return isFilipino ? "Binubuksan ang profile" : "Opening profile details";
     }
 

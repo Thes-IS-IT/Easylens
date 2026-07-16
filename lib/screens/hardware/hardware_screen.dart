@@ -260,6 +260,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _initBatteryTracker();
     _initFaceDetector();
     _loadRegisteredFaces();
+    FaceRegistrationService().addListener(_loadRegisteredFaces);
     Esp32Service().addListener(_onEsp32FrameAvailable);
     BuddyAssistantSheet.isVisible.addListener(_onBuddyVisibilityChanged);
 
@@ -361,6 +362,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   @override
   void dispose() {
+    FaceRegistrationService().removeListener(_loadRegisteredFaces);
     BuddyAssistantSheet.isVisible.removeListener(_onBuddyVisibilityChanged);
     Esp32Service().removeListener(_onEsp32FrameAvailable);
     _silenceTimer?.cancel();

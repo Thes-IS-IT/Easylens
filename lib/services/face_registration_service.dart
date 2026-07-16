@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 /// A single registered face profile persisted to SharedPreferences.
 class FaceProfile {
@@ -30,7 +31,7 @@ class FaceProfile {
       );
 }
 
-class FaceRegistrationService {
+class FaceRegistrationService extends ChangeNotifier {
   static const _prefsKey = 'registered_face_profiles';
 
   static final FaceRegistrationService _instance =
@@ -48,6 +49,7 @@ class FaceRegistrationService {
       _prefsKey,
       profiles.map((p) => jsonEncode(p.toJson())).toList(),
     );
+    notifyListeners();
   }
 
   /// Load all stored [FaceProfile] objects from local storage.
@@ -72,11 +74,13 @@ class FaceRegistrationService {
       _prefsKey,
       profiles.map((p) => jsonEncode(p.toJson())).toList(),
     );
+    notifyListeners();
   }
 
   /// Remove all registered face profiles.
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefsKey);
+    notifyListeners();
   }
 }

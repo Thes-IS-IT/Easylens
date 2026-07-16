@@ -8,11 +8,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'journal_service.dart';
 import 'settings_service.dart';
 import 'firebase_service.dart';
 import 'weather_service.dart';
+import 'active_navigation_service.dart';
 
 
 class KnowledgeItem {
@@ -43,7 +45,31 @@ class KnowledgeItem {
 class RagService {
   static final RagService _instance = RagService._internal();
   factory RagService() => _instance;
-  RagService._internal();
+
+  static String currentScreen = "Dashboard Home";
+  static String lastScreen = "None";
+  static String lastAction = "Open App";
+
+  static void recordNavigation(String targetScreen, {String? actionDescription}) {
+    lastScreen = currentScreen;
+    currentScreen = targetScreen;
+    lastAction = actionDescription ?? "Navigated to $targetScreen";
+  }
+  RagService._internal() {
+    _populateInvertedIndex();
+  }
+
+  void _populateInvertedIndex() {
+    _invertedIndex.clear();
+    for (var item in _localKnowledgeBase) {
+      for (var kw in item.keywords) {
+        final cleanKw = kw.toLowerCase().trim();
+        if (cleanKw.isNotEmpty) {
+          _invertedIndex.putIfAbsent(cleanKw, () => []).add(item);
+        }
+      }
+    }
+  }
 
   bool _gemmaInitialized = false;
   bool _isGemmaModelInstalled = false;
@@ -95,15 +121,7 @@ class RagService {
       )).toList();
 
       // Index knowledge items by lowercase keywords
-      _invertedIndex.clear();
-      for (var item in _localKnowledgeBase) {
-        for (var kw in item.keywords) {
-          final cleanKw = kw.toLowerCase().trim();
-          if (cleanKw.isNotEmpty) {
-            _invertedIndex.putIfAbsent(cleanKw, () => []).add(item);
-          }
-        }
-      }
+      _populateInvertedIndex();
       // Mark engine dirty so it gets rebuilt on next query S01
       _engineDirty = true;
       _cachedEngineEnglish = null;
@@ -111,15 +129,7 @@ class RagService {
       print('[RAG] Loaded ${_localKnowledgeBase.length} knowledge items and built inverted index database.');
     } catch (e) {
       print('[RAG] Error loading knowledge JSON asset: $e. Falling back to default list.');
-      _invertedIndex.clear();
-      for (var item in _localKnowledgeBase) {
-        for (var kw in item.keywords) {
-          final cleanKw = kw.toLowerCase().trim();
-          if (cleanKw.isNotEmpty) {
-            _invertedIndex.putIfAbsent(cleanKw, () => []).add(item);
-          }
-        }
-      }
+      _populateInvertedIndex();
       _engineDirty = true;
       _cachedEngineEnglish = null;
       _cachedEngineFilipino = null;
@@ -683,16 +693,83 @@ class RagService {
 
 
 
-  String _getSystemInstruction(String userName, String mobilityAid) {
+  Future<Map<String, String>> _getDynamicContext() async {
+    final now = DateTime.now();
+    final weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final weekday = weekdays[now.weekday - 1];
+    final dateStr = "$weekday, ${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+
+    String locationStr = "Unknown Location";
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        var permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+          Position? pos = await Geolocator.getLastKnownPosition();
+          if (pos == null) {
+            pos = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.low,
+              timeLimit: const Duration(seconds: 1),
+            );
+          }
+          if (pos != null) {
+            locationStr = "Latitude ${pos.latitude.toStringAsFixed(4)}, Longitude ${pos.longitude.toStringAsFixed(4)}";
+            try {
+              final response = await http.get(
+                Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.latitude}&lon=${pos.longitude}&zoom=10'),
+                headers: {'User-Agent': 'EasyLensApp/1.0 (cs-thesis)'},
+              ).timeout(const Duration(milliseconds: 1500));
+              if (response.statusCode == 200) {
+                final data = jsonDecode(response.body);
+                final address = data['address'];
+                if (address != null) {
+                  final city = address['city'] ?? address['town'] ?? address['village'] ?? address['municipality'] ?? address['county'] ?? address['state'];
+                  if (city != null) {
+                    locationStr = "$city ($locationStr)";
+                  }
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+
+    return {
+      'date': dateStr,
+      'time': timeStr,
+      'location': locationStr,
+    };
+  }
+
+  String _getSystemInstruction(
+    String userName,
+    String mobilityAid, {
+    required String date,
+    required String time,
+    required String location,
+  }) {
     final weather = WeatherService();
     final weatherText = (weather.currentTemp != null && weather.weatherDescription != null)
         ? "Today's weather is ${weather.currentTemp}°C (${weather.weatherDescription})."
         : "Today's weather information is unavailable.";
 
+    final navService = ActiveNavigationService();
+    final navText = navService.isNavigating
+        ? "The user is currently actively navigating to '${navService.destinationName}' using the app's GPS guidance."
+        : "The user is not currently navigating via GPS.";
+
+    final appStateText = "The user is currently on the '$currentScreen' screen. "
+        "Their last visited screen was '$lastScreen', and their last action was '$lastAction'.";
+
     return "You are Buddy, the friendly Golden Retriever guide dog mascot of the EasyLens app. "
         "EasyLens was built as a CS thesis at Holy Angel University (HAU) by developer Arron Kian Parejas and team. "
         "The user's name is $userName. The user's mobility aid is $mobilityAid. "
+        "Current Date: $date. Current Time: $time. User's Current Location: $location. "
         "$weatherText "
+        "$navText "
+        "$appStateText "
         "Keep your response warm, friendly, helpful, and very short (under 2 sentences). "
         "Use the provided Context (which includes both EasyLens knowledge base info and the user's personal memories/journals) to answer the Question directly.";
   }
@@ -817,7 +894,19 @@ class RagService {
 
     final context = isConversational ? "" : await retrieveContextAsync(rawQuestion);
     final userPrompt = _buildUserPrompt(rawQuestion, context);
-    final systemPrompt = _getSystemInstruction(userName, mobilityAid);
+
+    if (WeatherService().currentTemp == null) {
+      await WeatherService().fetchWeather().timeout(const Duration(seconds: 2), onTimeout: () {});
+    }
+
+    final dynContext = await _getDynamicContext();
+    final systemPrompt = _getSystemInstruction(
+      userName,
+      mobilityAid,
+      date: dynContext['date']!,
+      time: dynContext['time']!,
+      location: dynContext['location']!,
+    );
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     final modelPath = await _getLocalModelPath();
 
@@ -868,7 +957,19 @@ class RagService {
 
     final context = isGreeting ? "" : await retrieveContextAsync(rawQuestion);
     final userPrompt = _buildUserPrompt(rawQuestion, context);
-    final systemPrompt = _getSystemInstruction(userName, mobilityAid);
+
+    if (WeatherService().currentTemp == null) {
+      await WeatherService().fetchWeather().timeout(const Duration(seconds: 2), onTimeout: () {});
+    }
+
+    final dynContext = await _getDynamicContext();
+    final systemPrompt = _getSystemInstruction(
+      userName,
+      mobilityAid,
+      date: dynContext['date']!,
+      time: dynContext['time']!,
+      location: dynContext['location']!,
+    );
 
     final useLocal = SettingsService().useLocalAI;
     final modelPath = await _getLocalModelPath();
@@ -933,7 +1034,19 @@ class RagService {
 
     final context = isConversational ? "" : await retrieveContextAsync(question);
     final userPrompt = _buildUserPrompt(question, context);
-    final systemPrompt = _getSystemInstruction("User", "None");
+
+    if (WeatherService().currentTemp == null) {
+      await WeatherService().fetchWeather().timeout(const Duration(seconds: 2), onTimeout: () {});
+    }
+
+    final dynContext = await _getDynamicContext();
+    final systemPrompt = _getSystemInstruction(
+      "User",
+      "None",
+      date: dynContext['date']!,
+      time: dynContext['time']!,
+      location: dynContext['location']!,
+    );
 
     final modelPath = await _getLocalModelPath();
     if (modelPath != null) {
