@@ -5,66 +5,76 @@ import '../constants/colors.dart';
 import '../services/settings_service.dart';
 import '../services/translation_service.dart';
 
-class ScreenTutorialCard extends StatefulWidget {
+class ScreenTutorialCard extends StatelessWidget {
+  const ScreenTutorialCard({
+    super.key,
+    required String tutorialKey,
+    required String titleKey,
+    required String descriptionKey,
+    required String mascotAsset,
+  });
+
+  static Future<void> showIfNeeded(
+    BuildContext context, {
+    required String tutorialKey,
+    required String titleKey,
+    required String descriptionKey,
+    required String mascotAsset,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeen = prefs.getBool('seen_tutorial_$tutorialKey') ?? false;
+    if (hasSeen) return;
+
+    if (!context.mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.6), // Dim backdrop
+      builder: (context) {
+        return _TutorialDialog(
+          tutorialKey: tutorialKey,
+          titleKey: titleKey,
+          descriptionKey: descriptionKey,
+          mascotAsset: mascotAsset,
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox.shrink(); // No longer used inline S01
+  }
+}
+
+class _TutorialDialog extends StatefulWidget {
   final String tutorialKey;
   final String titleKey;
   final String descriptionKey;
   final String mascotAsset;
-  final VoidCallback? onDismissed;
 
-  const ScreenTutorialCard({
-    super.key,
+  const _TutorialDialog({
     required this.tutorialKey,
     required this.titleKey,
     required this.descriptionKey,
     required this.mascotAsset,
-    this.onDismissed,
   });
 
   @override
-  State<ScreenTutorialCard> createState() => _ScreenTutorialCardState();
+  State<_TutorialDialog> createState() => _TutorialDialogState();
 }
 
-class _ScreenTutorialCardState extends State<ScreenTutorialCard> {
-  bool _isVisible = false;
-  bool _isLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkTutorialStatus();
-  }
-
-  Future<void> _checkTutorialStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeen = prefs.getBool('seen_tutorial_${widget.tutorialKey}') ?? false;
-    if (mounted) {
-      setState(() {
-        _isVisible = !hasSeen;
-        _isLoaded = true;
-      });
-    }
-  }
-
-  Future<void> _dismissTutorial() async {
+class _TutorialDialogState extends State<_TutorialDialog> {
+  Future<void> _dismiss() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('seen_tutorial_${widget.tutorialKey}', true);
     if (mounted) {
-      setState(() {
-        _isVisible = false;
-      });
-    }
-    if (widget.onDismissed != null) {
-      widget.onDismissed!();
+      Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isLoaded || !_isVisible) {
-      return const SizedBox.shrink();
-    }
-
     return ListenableBuilder(
       listenable: SettingsService(),
       builder: (context, _) {
@@ -76,98 +86,94 @@ class _ScreenTutorialCardState extends State<ScreenTutorialCard> {
         final descText = TranslationService.translate(widget.descriptionKey, lang);
         final gotItText = TranslationService.translate('tutorial_got_it', lang);
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-          decoration: BoxDecoration(
-            color: isDefault ? Colors.white : AppColors.primaryBackground,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.cardBorder.withOpacity(0.15),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadowColor,
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          elevation: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDefault ? Colors.white : AppColors.primaryBackground,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: AppColors.cardBorder.withOpacity(0.15),
+                width: 1.5,
               ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Mascot GIF on the left
-                    Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        color: isDefault ? const Color(0xFFF0F7FF) : Colors.black.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.asset(
-                          widget.mascotAsset,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
-                            Icons.help_outline_rounded,
-                            color: Colors.blueAccent,
-                            size: 32,
-                          ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Mascot container with padding to fit the GIF correctly S01
+                      Container(
+                        width: 96,
+                        height: 96,
+                        padding: const EdgeInsets.all(8), // Add padding so it doesn't crop the mascot
+                        decoration: BoxDecoration(
+                          color: isDefault ? const Color(0xFFF0F7FF) : Colors.black.withOpacity(0.2),
+                          shape: BoxShape.circle,
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Text details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(right: 24.0), // make space for close button
-                            child: Text(
-                              titleText,
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryText,
-                              ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            widget.mascotAsset,
+                            fit: BoxFit.contain, // Fit contain to avoid cropping
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.help_outline_rounded,
+                              color: Colors.blueAccent,
+                              size: 40,
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            descText,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textMuted,
-                              height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
+                      Text(
+                        titleText,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryText,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        descText,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textMuted,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       // Dismiss Button
                       SizedBox(
-                        height: 36,
+                        width: double.infinity,
+                        height: 48,
                         child: ElevatedButton(
-                          onPressed: _dismissTutorial,
+                          onPressed: _dismiss,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryButton,
                             foregroundColor: AppColors.primaryButtonText,
-                            elevation: 0,
+                            elevation: 2,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(24),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
                           ),
                           child: Text(
                             gotItText,
                             style: GoogleFonts.inter(
-                              fontSize: 12,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -176,25 +182,24 @@ class _ScreenTutorialCardState extends State<ScreenTutorialCard> {
                     ],
                   ),
                 ),
+                // Top-right close button
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textMuted.withOpacity(0.6),
+                      size: 24,
+                    ),
+                    onPressed: _dismiss,
+                  ),
+                ),
               ],
             ),
           ),
-          // Top-right close button
-          Positioned(
-            top: 8,
-            right: 8,
-            child: IconButton(
-              icon: Icon(
-                Icons.close_rounded,
-                color: AppColors.textMuted.withOpacity(0.6),
-                size: 20,
-              ),
-              onPressed: _dismissTutorial,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
-  });
-}
+  }
 }

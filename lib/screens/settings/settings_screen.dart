@@ -61,6 +61,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _speechNavigation = settings.speechNavigation;
     _useLocalAI = settings.useLocalAI;
     _showFloatingMascot = settings.showFloatingMascot;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'settings',
+        titleKey: 'tutorial_settings_title',
+        descriptionKey: 'tutorial_settings_desc',
+        mascotAsset: 'assets/Mascots/01 Happy.gif',
+      );
+    });
   }
 
   void _saveSettings() {
@@ -648,12 +658,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ScreenTutorialCard(
-                    tutorialKey: 'settings',
-                    titleKey: 'tutorial_settings_title',
-                    descriptionKey: 'tutorial_settings_desc',
-                    mascotAsset: 'assets/Mascots/01 Happy.gif',
-                  ),
 
               // 3. PROFILE Section
               _buildSectionTitle(TranslationService.translate('profile', lang)),

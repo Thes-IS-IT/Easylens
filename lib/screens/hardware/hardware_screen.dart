@@ -266,6 +266,16 @@ class _HardwareScreenState extends State<HardwareScreen> {
     if (!Esp32Service().isConnected && !Esp32Service().isConnecting) {
       Esp32Service().connect();
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'camera',
+        titleKey: 'tutorial_camera_title',
+        descriptionKey: 'tutorial_camera_desc',
+        mascotAsset: 'assets/Mascots/03 Loading.gif',
+      );
+    });
   }
 
   @override
@@ -2799,12 +2809,6 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
           ],
         ),
         const SizedBox(height: 12),
-        ScreenTutorialCard(
-          tutorialKey: 'camera',
-          titleKey: 'tutorial_camera_title',
-          descriptionKey: 'tutorial_camera_desc',
-          mascotAsset: 'assets/Mascots/03 Loading.gif',
-        ),
 
         // Live Camera Preview with bounding boxes overlay
         Expanded(

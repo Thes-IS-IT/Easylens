@@ -52,6 +52,16 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
         timestamp: DateTime.now(),
       ),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'chat',
+        titleKey: 'tutorial_chat_title',
+        descriptionKey: 'tutorial_chat_desc',
+        mascotAsset: 'assets/Mascots/06 Thinking.gif',
+      );
+    });
   }
 
   @override
@@ -287,12 +297,6 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            ScreenTutorialCard(
-              tutorialKey: 'chat',
-              titleKey: 'tutorial_chat_title',
-              descriptionKey: 'tutorial_chat_desc',
-              mascotAsset: 'assets/Mascots/06 Thinking.gif',
-            ),
             // Gemma Installer progress card (if offline Gemma is not downloaded yet)
             if (!isLocalActive)
               Container(

@@ -46,6 +46,15 @@ class _DashboardHomeState extends State<DashboardHome> {
   void initState() {
     super.initState();
     _loadWeather();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'home',
+        titleKey: 'tutorial_home_title',
+        descriptionKey: 'tutorial_home_desc',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+      );
+    });
   }
 
   Future<void> _loadWeather() async {
@@ -302,12 +311,6 @@ class _DashboardHomeState extends State<DashboardHome> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildStormyWarningCard(lang),
-                  ScreenTutorialCard(
-                    tutorialKey: 'home',
-                    titleKey: 'tutorial_home_title',
-                    descriptionKey: 'tutorial_home_desc',
-                    mascotAsset: 'assets/Mascots/05 Welcome.gif',
-                  ),
                   Text(
                     _getFormattedDateText(lang),
                     style: GoogleFonts.inter(
