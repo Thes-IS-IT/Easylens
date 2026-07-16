@@ -348,7 +348,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
               } catch (e) {
                 print("ML Kit frame processing error: $e");
               } finally {
-                await Future.delayed(const Duration(milliseconds: 300));
+                await Future.delayed(const Duration(milliseconds: 400));
                 _isProcessingFrame = false;
               }
             });
@@ -795,7 +795,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
             } catch (e) {
               print("ML Kit frame processing error: $e");
             } finally {
-              await Future.delayed(const Duration(milliseconds: 300));
+              await Future.delayed(const Duration(milliseconds: 400));
               _isProcessingFrame = false;
             }
           });
@@ -1293,10 +1293,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
       }
     } catch (e) {
       print('ML Kit Frame processing error: $e');
-    } finally {
-      // Sleep briefly (400ms) to maintain a fast but stable frame process loop (no lag, no drop)
-      await Future.delayed(const Duration(milliseconds: 400));
-      _isProcessingFrame = false;
     }
   }
 
