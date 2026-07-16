@@ -2804,8 +2804,8 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
         const SizedBox(height: 12),
         ScreenTutorialCard(
           tutorialKey: 'camera',
-          title: 'Using Visual Scanning',
-          description: 'Toggle between Object Detection, Face Recognition, Navigation warnings, and Scenery scanning at the bottom. Tap the battery or bluetooth panel cards for status reports!',
+          titleKey: 'tutorial_camera_title',
+          descriptionKey: 'tutorial_camera_desc',
           mascotAsset: 'assets/Mascots/03 Loading.gif',
         ),
 

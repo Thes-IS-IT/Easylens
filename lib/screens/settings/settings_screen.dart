@@ -651,8 +651,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 16),
                   ScreenTutorialCard(
                     tutorialKey: 'settings',
-                    title: 'Personalize EasyLens',
-                    description: 'Customize your language, voice feedback speed, haptic warnings, and mobility aids. All preferences will automatically sync to Firestore to secure your settings!',
+                    titleKey: 'tutorial_settings_title',
+                    descriptionKey: 'tutorial_settings_desc',
                     mascotAsset: 'assets/Mascots/01 Happy.gif',
                   ),
 

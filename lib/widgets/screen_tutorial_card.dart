@@ -3,19 +3,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/colors.dart';
 import '../services/settings_service.dart';
+import '../services/translation_service.dart';
 
 class ScreenTutorialCard extends StatefulWidget {
   final String tutorialKey;
-  final String title;
-  final String description;
+  final String titleKey;
+  final String descriptionKey;
   final String mascotAsset;
   final VoidCallback? onDismissed;
 
   const ScreenTutorialCard({
     super.key,
     required this.tutorialKey,
-    required this.title,
-    required this.description,
+    required this.titleKey,
+    required this.descriptionKey,
     required this.mascotAsset,
     this.onDismissed,
   });
@@ -64,80 +65,88 @@ class _ScreenTutorialCardState extends State<ScreenTutorialCard> {
       return const SizedBox.shrink();
     }
 
-    final settings = SettingsService();
-    final isDefault = settings.selectedContrastTheme == 'Default';
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        final settings = SettingsService();
+        final lang = settings.selectedLanguage;
+        final isDefault = settings.selectedContrastTheme == 'Default';
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        color: isDefault ? Colors.white : AppColors.primaryBackground,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.cardBorder.withOpacity(0.15),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowColor,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+        final titleText = TranslationService.translate(widget.titleKey, lang);
+        final descText = TranslationService.translate(widget.descriptionKey, lang);
+        final gotItText = TranslationService.translate('tutorial_got_it', lang);
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+          decoration: BoxDecoration(
+            color: isDefault ? Colors.white : AppColors.primaryBackground,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.cardBorder.withOpacity(0.15),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowColor,
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Mascot GIF on the left
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: isDefault ? const Color(0xFFF0F7FF) : Colors.black.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      widget.mascotAsset,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.help_outline_rounded,
-                        color: Colors.blueAccent,
-                        size: 32,
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Mascot GIF on the left
+                    Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: isDefault ? const Color(0xFFF0F7FF) : Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Text details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 24.0), // make space for close button
-                        child: Text(
-                          widget.title,
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryText,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          widget.mascotAsset,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.help_outline_rounded,
+                            color: Colors.blueAccent,
+                            size: 32,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        widget.description,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textMuted,
-                          height: 1.4,
+                    ),
+                    const SizedBox(width: 16),
+                    // Text details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 24.0), // make space for close button
+                            child: Text(
+                              titleText,
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryText,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            descText,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textMuted,
+                              height: 1.4,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -156,7 +165,7 @@ class _ScreenTutorialCardState extends State<ScreenTutorialCard> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                           ),
                           child: Text(
-                            "Got it!",
+                            gotItText,
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -186,5 +195,6 @@ class _ScreenTutorialCardState extends State<ScreenTutorialCard> {
         ],
       ),
     );
-  }
+  });
+}
 }

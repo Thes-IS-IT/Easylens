@@ -305,8 +305,8 @@ class _DashboardHomeState extends State<DashboardHome> {
                   _buildStormyWarningCard(lang),
                   ScreenTutorialCard(
                     tutorialKey: 'home',
-                    title: 'Welcome to EasyLens!',
-                    description: 'This is your main dashboard. You can quickly view active navigation cards, check the local weather, or tap "Visual Assistant" to open Buddy\'s offline/online chat sheet!',
+                    titleKey: 'tutorial_home_title',
+                    descriptionKey: 'tutorial_home_desc',
                     mascotAsset: 'assets/Mascots/05 Welcome.gif',
                   ),
                   Text(

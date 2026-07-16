@@ -289,8 +289,8 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
           children: [
             ScreenTutorialCard(
               tutorialKey: 'chat',
-              title: 'Talking to Buddy',
-              description: 'Ask Buddy questions about visual surroundings or EasyLens operations. Toggle offline Local AI (Gemma) vs. online Gemini using settings, and tap the History button to review logs!',
+              titleKey: 'tutorial_chat_title',
+              descriptionKey: 'tutorial_chat_desc',
               mascotAsset: 'assets/Mascots/06 Thinking.gif',
             ),
             // Gemma Installer progress card (if offline Gemma is not downloaded yet)

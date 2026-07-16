@@ -66,6 +66,15 @@ class TranslationService {
       'gemini_dialog_testing': 'Testing...',
       'gemini_dialog_test_success': 'API Key is valid!',
       'gemini_dialog_test_failed': 'Invalid API Key or connection issue.',
+      'tutorial_home_title': 'Welcome to EasyLens!',
+      'tutorial_home_desc': 'This is your main dashboard. You can quickly view active navigation cards, check the local weather, or tap "Visual Assistant" to open Buddy\'s offline/online chat sheet!',
+      'tutorial_camera_title': 'Using Visual Scanning',
+      'tutorial_camera_desc': 'Toggle between Object Detection, Face Recognition, Navigation warnings, and Scenery scanning at the bottom. Tap the battery or bluetooth panel cards for status reports!',
+      'tutorial_chat_title': 'Talking to Buddy',
+      'tutorial_chat_desc': 'Ask Buddy questions about visual surroundings or EasyLens operations. Toggle offline Local AI (Gemma) vs. online Gemini using settings, and tap the History button to review logs!',
+      'tutorial_settings_title': 'Personalize EasyLens',
+      'tutorial_settings_desc': 'Customize your language, voice feedback speed, haptic warnings, and mobility aids. All preferences will automatically sync to Firestore to secure your settings!',
+      'tutorial_got_it': 'Got it!',
     },
     'fil': {
       'settings': 'Mga Setting',
@@ -133,6 +142,15 @@ class TranslationService {
       'gemini_dialog_testing': 'Sinusubukan...',
       'gemini_dialog_test_success': 'Valid ang API Key!',
       'gemini_dialog_test_failed': 'Hindi valid ang API Key o may problema sa koneksyon.',
+      'tutorial_home_title': 'Maligayang pagdating sa EasyLens!',
+      'tutorial_home_desc': 'Ito ang iyong pangunahing dashboard. Maaari mong tingnan ang mga aktibong card ng nabigasyon, alamin ang lokal na panahon, o i-tap ang "Visual Assistant" para buksan ang chat sheet ni Buddy!',
+      'tutorial_camera_title': 'Paggamit ng Visual Scanning',
+      'tutorial_camera_desc': 'Magpalipat-lipat sa Object Detection, Face Recognition, mga babala sa Nabigasyon, at Scenery scanning sa ibaba. I-tap ang mga panel ng baterya o bluetooth para sa ulat ng katayuan!',
+      'tutorial_chat_title': 'Pakikipag-usap kay Buddy',
+      'tutorial_chat_desc': 'Magtanong kay Buddy tungkol sa iyong paligid o EasyLens. Magpalit mula sa offline Local AI (Gemma) o online Gemini sa mga setting, at gamitin ang History button para sa mga nakaraang pag-uusap!',
+      'tutorial_settings_title': 'I-personalize ang EasyLens',
+      'tutorial_settings_desc': 'I-customize ang wika, bilis ng feedback ng boses, haptic na babala, at mobility aids. Lahat ng iyong kagustuhan ay awtomatikong mag-si-sync sa Firestore!',
+      'tutorial_got_it': 'Naintindihan ko!',
     }
   };
 
