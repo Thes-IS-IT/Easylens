@@ -105,6 +105,16 @@ class RagService {
       content: "EasyLens uses Firebase Auth for secure, password-less or credential-based signup/login, and Firebase Storage to save user preference configurations and captured analytics reports.",
       keywords: ["firebase", "auth", "storage", "database", "save", "signup"],
     ),
+    KnowledgeItem(
+      title: "EasyLens Warning & Hazard System",
+      content: "EasyLens features a real-time hazard mapping and warning system. Critical dangers like 'STOP!' (immediate obstacle) and 'Fire Hazard!' (smoke/fire detected) trigger double high-vibration alerts and spoken instructions. Moderate dangers like 'Vehicle Detected', 'Damaged Pathway', 'Stairs Detected', 'Obstacle Ahead', and 'Caution' trigger single medium-impact haptic feedback and custom audio warnings.",
+      keywords: ["warning", "hazard", "danger", "alert", "fire", "stop", "stairs", "vehicle", "haptic", "vibrate", "sensor", "babala", "panganib", "sunog"],
+    ),
+    KnowledgeItem(
+      title: "Audio Navigation System",
+      content: "The EasyLens Audio Navigation tab uses live GPS routing, turn-by-turn spoken guidance, and active threat scoring. High threat objects (e.g. fast-approaching vehicles) trigger immediate haptic warnings and voice advice to stop or move aside safely.",
+      keywords: ["navigation", "gps", "routing", "map", "threat", "traffic", "turns", "guidance", "nabigasyon", "mapa", "gabay"],
+    ),
   ];
   
   // In-memory inverted index database mapping keywords to items for O(1) query lookups S01

@@ -855,6 +855,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   void _triggerHapticAlert({required bool isCritical}) {
+    final hapticEnabled = SettingsService().hapticFeedback;
+    if (!hapticEnabled) return;
+
     Future.microtask(() async {
       try {
         if (isCritical) {

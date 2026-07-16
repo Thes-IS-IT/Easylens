@@ -1183,6 +1183,16 @@
     "title": "EasyLens Pangkat ng Pag-develop at Tungkulin sa Proyekto (Tagalog)",
     "content": "Ang EasyLens ay nilikha at dinisenyo ng isang mahusay na koponan: Developer: Arron Kian Parejas; Hardware Engineer: Jian Kalel Marquez; Pagsusulat ng Dokumentasyon at UIX Design: Graciella Mhervie Jimenez at Jenica Sarah Tongol. Proud na sinasabi ni Buddy: 'Woof! Ginawa nila ako para tulungan ka, arf!'",
     "keywords": ["developer tagalog", "pangkat", "gumawa", "arron kian parejas", "jian kalel marquez", "graciella mhervie jimenez", "jenica sarah tongol", "sino gumawa ng easylens", "mga may-akda"]
+  },
+  {
+    "title": "EasyLens Warning & Hazard System",
+    "content": "EasyLens features a real-time hazard mapping and warning system. Critical dangers like 'STOP!' (immediate obstacle) and 'Fire Hazard!' (smoke/fire detected) trigger double high-vibration alerts and spoken instructions. Moderate dangers like 'Vehicle Detected', 'Damaged Pathway', 'Stairs Detected', 'Obstacle Ahead', and 'Caution' trigger single medium-impact haptic feedback and custom audio warnings.",
+    "keywords": ["warning", "hazard", "danger", "alert", "fire", "stop", "stairs", "vehicle", "haptic", "vibrate", "sensor", "babala", "panganib", "sunog"]
+  },
+  {
+    "title": "Audio Navigation System",
+    "content": "The EasyLens Audio Navigation tab uses live GPS routing, turn-by-turn spoken guidance, and active threat scoring. High threat objects (e.g. fast-approaching vehicles) trigger immediate haptic warnings and voice advice to stop or move aside safely.",
+    "keywords": ["navigation", "gps", "routing", "map", "threat", "traffic", "turns", "guidance", "nabigasyon", "mapa", "gabay"]
   }
 ]
 
