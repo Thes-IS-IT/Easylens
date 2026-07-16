@@ -274,6 +274,7 @@ class TtsService {
   Future<void> _applyVoicePersona() async {
     double pitch = 1.0;
     double rate = 0.5;
+    final isAndroid = Platform.isAndroid;
 
     switch (_settingsService.selectedVoicePersona) {
       case 'Aria (Calm)':
@@ -282,7 +283,7 @@ class TtsService {
         await _setDeviceVoiceByGender('female');
         break;
       case 'Max (Bold)':
-        pitch = 0.85;
+        pitch = isAndroid ? 0.60 : 0.85;
         rate = 0.55;
         await _setDeviceVoiceByGender('male');
         break;
@@ -292,7 +293,7 @@ class TtsService {
         await _setDeviceVoiceByGender('female');
         break;
       case 'Echo (Deep)':
-        pitch = 0.65;
+        pitch = isAndroid ? 0.45 : 0.65;
         rate = 0.45;
         await _setDeviceVoiceByGender('male');
         break;
