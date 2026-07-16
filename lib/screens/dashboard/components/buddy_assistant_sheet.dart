@@ -486,100 +486,111 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
           
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 24, vertical: isKeyboardOpen ? 6 : 16),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!isKeyboardOpen) ...[
-                  Image.asset(
-                    _getMascotAsset(),
-                    width: 72,
-                    height: 72,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 72,
-                      height: 72,
-                      color: AppColors.primaryButton,
-                      child: Icon(Icons.pets, color: AppColors.primaryButtonText),
+                Row(
+                  children: [
+                    if (!isKeyboardOpen) ...[
+                      Image.asset(
+                        _getMascotAsset(),
+                        width: 72,
+                        height: 72,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 72,
+                          height: 72,
+                          color: AppColors.primaryButton,
+                          child: Icon(Icons.pets, color: AppColors.primaryButtonText),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                    ],
+                    Expanded(
+                      child: Builder(builder: (context) {
+                        final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+                            SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                        final thinkingText = isFilipino ? 'Nag-iisip si Buddy…' : 'Buddy is thinking…';
+                        final listeningText = isFilipino ? 'Nakikinig si Buddy…' : 'Buddy is listening…';
+                        final readyText = isFilipino ? 'Handa si Buddy na tumulong' : 'Buddy is ready to help';
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              SettingsService().useLocalAI 
+                                  ? (isFilipino ? 'Buddy Lokal AI' : 'Buddy Local AI')
+                                  : (isFilipino ? 'Buddy Gemini AI' : 'Buddy Gemini AI'),
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                                fontSize: isKeyboardOpen ? 16 : 20,
+                                color: AppColors.primaryText,
+                              ),
+                            ),
+                            if (!isKeyboardOpen) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _isThinking
+                                    ? thinkingText
+                                    : _isListening
+                                        ? listeningText
+                                        : readyText,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: _isListening ? Colors.red : AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      }),
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                ],
-                Expanded(
-                  child: Builder(builder: (context) {
-                    final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
-                        SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-                    final thinkingText = isFilipino ? 'Nag-iisip si Buddy…' : 'Buddy is thinking…';
-                    final listeningText = isFilipino ? 'Nakikinig si Buddy…' : 'Buddy is listening…';
-                    final readyText = isFilipino ? 'Handa si Buddy na tumulong' : 'Buddy is ready to help';
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          SettingsService().useLocalAI 
-                              ? (isFilipino ? 'Buddy Lokal AI' : 'Buddy Local AI')
-                              : (isFilipino ? 'Buddy Gemini AI' : 'Buddy Gemini AI'),
+                    IconButton(
+                      icon: Icon(Icons.close, color: AppColors.primaryText),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+                if (!isKeyboardOpen) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      ActionChip(
+                        backgroundColor: AppColors.lightBackground,
+                        side: BorderSide(color: AppColors.cardBorder.withOpacity(0.3)),
+                        avatar: Icon(
+                          SettingsService().useLocalAI ? Icons.offline_bolt_rounded : Icons.cloud_done_rounded,
+                          size: 16,
+                          color: SettingsService().useLocalAI ? Colors.orange : Colors.green,
+                        ),
+                        label: Text(
+                          SettingsService().useLocalAI ? 'Local' : 'Gemini',
                           style: GoogleFonts.inter(
+                            fontSize: 12, 
                             fontWeight: FontWeight.bold,
-                            fontSize: isKeyboardOpen ? 16 : 20,
                             color: AppColors.primaryText,
                           ),
                         ),
-                        if (!isKeyboardOpen) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            _isThinking
-                                ? thinkingText
-                                : _isListening
-                                    ? listeningText
-                                    : readyText,
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: _isListening ? Colors.red : AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ],
-                    );
-                  }),
-                ),
-                const SizedBox(width: 8),
-                ActionChip(
-                  backgroundColor: AppColors.lightBackground,
-                  side: BorderSide(color: AppColors.cardBorder.withOpacity(0.3)),
-                  avatar: Icon(
-                    SettingsService().useLocalAI ? Icons.offline_bolt_rounded : Icons.cloud_done_rounded,
-                    size: 16,
-                    color: SettingsService().useLocalAI ? Colors.orange : Colors.green,
+                        onPressed: () {
+                          final newVal = !SettingsService().useLocalAI;
+                          SettingsService().updateSettings(useLocalAI: newVal);
+                          setState(() {});
+                          final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+                              SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                          final msg = newVal
+                              ? (isTagalog ? "Aktibo ang Local AI." : "Local offline AI active.")
+                              : (isTagalog ? "Aktibo ang Gemini AI." : "Gemini online AI active.");
+                          TtsService().speak(msg);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(Icons.history, color: AppColors.primaryText),
+                        onPressed: () => ChatHistoryViewer.showHistorySheet(context),
+                      ),
+                    ],
                   ),
-                  label: Text(
-                    SettingsService().useLocalAI ? 'Local' : 'Gemini',
-                    style: GoogleFonts.inter(
-                      fontSize: 12, 
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryText,
-                    ),
-                  ),
-                  onPressed: () {
-                    final newVal = !SettingsService().useLocalAI;
-                    SettingsService().updateSettings(useLocalAI: newVal);
-                    setState(() {});
-                    final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
-                        SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-                    final msg = newVal
-                        ? (isTagalog ? "Aktibo ang Local AI." : "Local offline AI active.")
-                        : (isTagalog ? "Aktibo ang Gemini AI." : "Gemini online AI active.");
-                    TtsService().speak(msg);
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.history, color: AppColors.primaryText),
-                  onPressed: () => ChatHistoryViewer.showHistorySheet(context),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(Icons.close, color: AppColors.primaryText),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+                ],
               ],
             ),
           ),
