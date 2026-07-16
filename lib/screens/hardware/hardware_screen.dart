@@ -325,7 +325,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
             Future.microtask(() async {
               try {
-                final nv21Bytes = _yuvToNv21(image);
+                final nv21Bytes = await _yuvToNv21Async(image);
                 final yBytes = Uint8List.fromList(image.planes[0].bytes);
                 final width = image.width;
                 final height = image.height;
@@ -348,6 +348,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
               } catch (e) {
                 print("ML Kit frame processing error: $e");
               } finally {
+                await Future.delayed(const Duration(milliseconds: 300));
                 _isProcessingFrame = false;
               }
             });
@@ -771,7 +772,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
           Future.microtask(() async {
             try {
-              final nv21Bytes = _yuvToNv21(image);
+              final nv21Bytes = await _yuvToNv21Async(image);
               final yBytes = Uint8List.fromList(image.planes[0].bytes);
               final width = image.width;
               final height = image.height;
@@ -794,6 +795,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
             } catch (e) {
               print("ML Kit frame processing error: $e");
             } finally {
+              await Future.delayed(const Duration(milliseconds: 300));
               _isProcessingFrame = false;
             }
           });
@@ -1174,40 +1176,25 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
-  Uint8List _yuvToNv21(CameraImage image) {
-    final width = image.width;
-    final height = image.height;
+  Future<Uint8List> _yuvToNv21Async(CameraImage image) async {
     final yPlane = image.planes[0];
     final uPlane = image.planes[1];
     final vPlane = image.planes[2];
-    final yBuffer = yPlane.bytes;
-    final uBuffer = uPlane.bytes;
-    final vBuffer = vPlane.bytes;
 
-    final numPixels = width * height;
-    final nv21 = Uint8List(numPixels + (width * height ~/ 2));
+    final data = YuvData(
+      yBytes: yPlane.bytes,
+      uBytes: uPlane.bytes,
+      vBytes: vPlane.bytes,
+      width: image.width,
+      height: image.height,
+      yRowStride: yPlane.bytesPerRow,
+      uRowStride: uPlane.bytesPerRow,
+      vRowStride: vPlane.bytesPerRow,
+      uPixelStride: uPlane.bytesPerPixel ?? 1,
+      vPixelStride: vPlane.bytesPerPixel ?? 1,
+    );
 
-    int idY = 0;
-    for (int row = 0; row < height; row++) {
-      nv21.setRange(idY, idY + width, yBuffer, row * yPlane.bytesPerRow);
-      idY += width;
-    }
-
-    final int uvWidth = width ~/ 2;
-    final int uvHeight = height ~/ 2;
-    final int uPixelStride = uPlane.bytesPerPixel ?? 1;
-    final int vPixelStride = vPlane.bytesPerPixel ?? 1;
-    final int uRowStride = uPlane.bytesPerRow;
-    final int vRowStride = vPlane.bytesPerRow;
-
-    int idUV = numPixels;
-    for (int row = 0; row < uvHeight; row++) {
-      for (int col = 0; col < uvWidth; col++) {
-        nv21[idUV++] = vBuffer[row * vRowStride + col * vPixelStride];
-        nv21[idUV++] = uBuffer[row * uRowStride + col * uPixelStride];
-      }
-    }
-    return nv21;
+    return await compute(convertYuvToNv21, data);
   }
 
   Future<void> _navigateTo(Widget screen) async {
@@ -3627,4 +3614,61 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
       ],
     );
   }
+}
+
+class YuvData {
+  final Uint8List yBytes;
+  final Uint8List uBytes;
+  final Uint8List vBytes;
+  final int width;
+  final int height;
+  final int yRowStride;
+  final int uRowStride;
+  final int vRowStride;
+  final int uPixelStride;
+  final int vPixelStride;
+
+  YuvData({
+    required this.yBytes,
+    required this.uBytes,
+    required this.vBytes,
+    required this.width,
+    required this.height,
+    required this.yRowStride,
+    required this.uRowStride,
+    required this.vRowStride,
+    required this.uPixelStride,
+    required this.vPixelStride,
+  });
+}
+
+Uint8List convertYuvToNv21(YuvData data) {
+  final width = data.width;
+  final height = data.height;
+  final yBuffer = data.yBytes;
+
+  final numPixels = width * height;
+  final nv21 = Uint8List(numPixels + (width * height ~/ 2));
+
+  int idY = 0;
+  for (int row = 0; row < height; row++) {
+    nv21.setRange(idY, idY + width, yBuffer, row * data.yRowStride);
+    idY += width;
+  }
+
+  final int uvWidth = width ~/ 2;
+  final int uvHeight = height ~/ 2;
+  final int uPixelStride = data.uPixelStride;
+  final int vPixelStride = data.vPixelStride;
+  final int uRowStride = data.uRowStride;
+  final int vRowStride = data.vRowStride;
+
+  int idUV = numPixels;
+  for (int row = 0; row < uvHeight; row++) {
+    for (int col = 0; col < uvWidth; col++) {
+      nv21[idUV++] = data.vBytes[row * vRowStride + col * vPixelStride];
+      nv21[idUV++] = data.uBytes[row * uRowStride + col * uPixelStride];
+    }
+  }
+  return nv21;
 }

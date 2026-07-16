@@ -22,6 +22,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    
+    Future.microtask(() {
+      if (mounted) {
+        precacheImage(const AssetImage('assets/Mascots/01 Happy.gif'), context);
+        precacheImage(const AssetImage('assets/Mascots/02 Error.gif'), context);
+        precacheImage(const AssetImage('assets/Mascots/03 Loading.gif'), context);
+        precacheImage(const AssetImage('assets/Mascots/05 Welcome.gif'), context);
+        precacheImage(const AssetImage('assets/Mascots/06 Thinking.gif'), context);
+      }
+    });
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
