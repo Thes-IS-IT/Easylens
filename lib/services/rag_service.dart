@@ -859,6 +859,14 @@ class RagService {
 
   String _getOffTopicRejectionMessage(String lang) {
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    final useLocal = SettingsService().useLocalAI;
+    if (useLocal) {
+      if (isFilipino) {
+        return "Disenyo po ako para tumulong sa pag-navigate at visual assistance sa Local AI mode. Para sa mga kumplikadong tanong, math, o pangkalahatang kaalaman, mangyaring i-toggle ang Advanced Gemini AI sa itaas!";
+      }
+      return "I'm designed to assist with visual impairment and navigation. For complex math, coding, or general questions, I highly recommend switching to Advanced Gemini AI using the toggle at the top!";
+    }
+
     if (isFilipino) {
       return "Disenyo po ako para tumulong sa may mga kapansanan sa paningin at pag-navigate. Hindi ko po kayo matutulungan sa mga pangkalahatang tanong, math, o trivia.";
     }
@@ -1261,8 +1269,8 @@ class RagService {
     }
 
     return isUserFilipino
-        ? "Kasalukuyan akong tumatakbo sa offline Local AI mode, kaya limitado ang aking kakayahang sagutin ang pangkalahatang tanong na ito. Mangyaring suriin ang iyong internet o lumipat sa Gemini mode para sa advanced na mga tanong."
-        : "I am currently running in offline Local AI mode, which has limited capability to answer this general query. Please check your internet connection or switch to Gemini mode for advanced questions.";
+        ? "Kasalukuyan akong tumatakbo sa offline Local AI mode na may limitadong kakayahan para sa mga kumplikadong tanong. Inirerekomenda kong lumipat sa Advanced Gemini AI gamit ang switch sa itaas para sa mas malalim na sagot!"
+        : "I am currently running in offline Local AI mode, which has limited capability to answer complex queries. I highly recommend switching to Advanced Gemini AI using the toggle at the top for a detailed response!";
   }
 
   /// Builds a Tagalog-language Gemma prompt.

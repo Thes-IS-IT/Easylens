@@ -23,12 +23,12 @@ void main() {
   group('RagService Guardrails & Fallbacks Test', () {
     test('Test Off-Topic Math Filter Rejection', () async {
       final response = await RagService().askBuddyLocalOnly("what is 1+1?");
-      expect(response, contains("designed specifically to assist with visual impairment"));
+      expect(response, contains("designed to assist with visual impairment"));
     });
 
     test('Test Off-Topic Trivia Filter Rejection', () async {
       final response = await RagService().askBuddyLocalOnly("who is the president of the United States?");
-      expect(response, contains("cannot help with general queries, math, or trivia"));
+      expect(response, contains("highly recommend switching to Advanced Gemini AI"));
     });
 
     test('Test Whitelisted Visual Assistant Query Pass', () async {
