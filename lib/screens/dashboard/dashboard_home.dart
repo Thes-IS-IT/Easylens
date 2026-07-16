@@ -22,6 +22,8 @@ class DashboardHome extends StatefulWidget {
   final VoidCallback onBuddyAssistantTap;
   final VoidCallback onFaceRegistrationSelected;
 
+  final bool showStickyHeader;
+
   const DashboardHome({
     super.key,
     required this.displayName,
@@ -32,6 +34,7 @@ class DashboardHome extends StatefulWidget {
     required this.onContactsSelected,
     required this.onBuddyAssistantTap,
     required this.onFaceRegistrationSelected,
+    this.showStickyHeader = true,
   });
 
   @override
@@ -279,15 +282,16 @@ class _DashboardHomeState extends State<DashboardHome> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Top Header Row - padded S01
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: HeaderBar(
-                onSOSSelected: widget.onSOSSelected,
-                onSettingsSelected: widget.onSettingsSelected,
-                onNotificationsSelected: widget.onNotificationsSelected,
-                onContactsSelected: widget.onContactsSelected,
+            if (widget.showStickyHeader)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: HeaderBar(
+                  onSOSSelected: widget.onSOSSelected,
+                  onSettingsSelected: widget.onSettingsSelected,
+                  onNotificationsSelected: widget.onNotificationsSelected,
+                  onContactsSelected: widget.onContactsSelected,
+                ),
               ),
-            ),
 
             const SizedBox(height: 32),
 

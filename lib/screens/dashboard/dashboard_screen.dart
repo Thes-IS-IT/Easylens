@@ -15,6 +15,7 @@ import '../notifications/notifications_screen.dart';
 import '../contacts/contacts_screen.dart';
 import 'components/custom_navbar.dart';
 import 'components/buddy_assistant_sheet.dart';
+import 'components/header_bar.dart';
 import '../../widgets/interactive_tutorial_overlay.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -287,10 +288,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final appearance = settings.appearanceTheme;
         final bg = (appearance == 'Black') ? Colors.black : AppColors.lightBackground;
 
-        // Define bottom tabs
         final List<Widget> tabs = [
           DashboardHome(
             displayName: _displayName,
+            showStickyHeader: false,
             onTabSelected: (index) {
               _onTabChanged(index);
             },
@@ -326,12 +327,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   index: _currentIndex,
                   children: tabs.map((tab) {
                     if (tab is DashboardHome) {
-                      return SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(0.0, 16.0, 0.0, 120.0),
-                          child: tab,
-                        ),
+                      return Column(
+                        children: [
+                          Container(
+                            color: bg,
+                            padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 8.0),
+                            child: HeaderBar(
+                              onSOSSelected: () {
+                                _navigateTo(const EmergencyScreen(), "Emergency SOS");
+                              },
+                              onSettingsSelected: () {
+                                _navigateTo(const SettingsScreen(), "Settings");
+                              },
+                              onNotificationsSelected: () {
+                                _navigateTo(const NotificationsScreen(), "Notifications");
+                              },
+                              onContactsSelected: () {
+                                _navigateTo(const ContactsScreen(), "Contacts");
+                              },
+                            ),
+                          ),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 120.0),
+                                child: tab,
+                              ),
+                            ),
+                          ),
+                        ],
                       );
                     }
                     if (tab is NavigationScreen) {
