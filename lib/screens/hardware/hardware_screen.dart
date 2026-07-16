@@ -427,9 +427,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _loadObjectDetectionModel() async {
     try {
       await _loadCocoLabels();
-      final modelPath = await _getOrExtractTfliteModel();
-      final options = LocalObjectDetectorOptions(
-        modelPath: modelPath,
+      final options = ObjectDetectorOptions(
         mode: DetectionMode.stream,
         classifyObjects: true,
         multipleObjects: true,
@@ -438,9 +436,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
       setState(() {
         _isModelLoaded = true;
       });
-      print("Google ML Kit Local Object Detector (SSD MobileNet V2) initialized successfully");
+      print("Google ML Kit Base Object Detector initialized successfully");
     } catch (e) {
-      print("Error loading Google ML Kit Local Object Detector: $e");
+      print("Error loading Google ML Kit Base Object Detector: $e");
     }
 
     try {
@@ -987,135 +985,126 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final isTagalog = lang.toLowerCase().contains('tagalog') ||
           lang.toLowerCase().contains('filipino');
 
-      DetectedObject? blockingObject;
-      double largestBlockingArea = 0.0;
-      String blockingLabel = '';
-      double maxBlockingThreatScore = -1.0;
+      DetectedObject? targetObject;
+      double largestArea = 0.0;
+      String targetLabel = 'object';
 
       for (final obj in objects) {
-        final label = _getLabelForObject(obj);
         final normW = obj.boundingBox.width / width;
         final normH = obj.boundingBox.height / height;
         final area = normW * normH;
-        
-        // Calculate center X normalized to screen width (considering 90-degree sensor rotation in portrait mode)
-        final normCenterX = 1.0 - (((obj.boundingBox.top + obj.boundingBox.bottom) / 2.0) / height);
-        final isCentered = normCenterX >= 0.38 && normCenterX <= 0.62; // Center channel
-
-        final baseRisk = _getRiskScore(label);
-        final activationThreshold = baseRisk == 1.0 ? 0.05 : 0.08;
-
-        if (isCentered && area > activationThreshold) {
-          if (area > largestBlockingArea) {
-            largestBlockingArea = area;
-            blockingObject = obj;
-            blockingLabel = label;
-
-            final proximityScore = area.clamp(0.0, 1.0);
-            final lastArea = _objectLastAreas[label] ?? 0.0;
-            double velocity = 0.0;
-            if (area > lastArea) {
-              velocity = (area - lastArea).clamp(0.0, 1.0);
-            }
-            maxBlockingThreatScore = (baseRisk * 0.4) + (proximityScore * 0.4) + (velocity * 0.2);
-          }
+        if (area > largestArea) {
+          largestArea = area;
+          targetObject = obj;
+          targetLabel = _getLabelForObject(obj);
         }
       }
 
-      if (blockingObject != null) {
-        final refinedLabelText = blockingLabel[0].toUpperCase() + blockingLabel.substring(1);
-        final isCritical = maxBlockingThreatScore > 0.75 || largestBlockingArea > 0.20;
-
-        // Check if side paths are blocked
-        bool leftBlocked = false;
-        bool rightBlocked = false;
-        for (final r in objects) {
-          if (r == blockingObject) continue;
-          final cX = 1.0 - (((r.boundingBox.top + r.boundingBox.bottom) / 2.0) / height);
-          if (cX < 0.42) leftBlocked = true;
-          if (cX > 0.58) rightBlocked = true;
-        }
-
-        String guidance;
-        if (isCritical) {
-          String escapeDir = 'right';
-          if (leftBlocked && !rightBlocked) escapeDir = 'right';
-          else if (rightBlocked && !leftBlocked) escapeDir = 'left';
-          
-          final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
-          guidance = isTagalog
-              ? 'Babala: Mabilis kang lumalapit sa $refinedLabelText! Lumipat agad sa $escapeTagalog upang maiwasan ito.'
-              : 'Alert: Approaching $refinedLabelText rapidly! Move $escapeDir immediately to avoid it.';
-          _triggerHapticAlert(isCritical: true);
-        } else {
-          String escapeDir = 'right';
-          if (leftBlocked && !rightBlocked) escapeDir = 'right';
-          else if (rightBlocked && !leftBlocked) escapeDir = 'left';
-          
-          final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
-          guidance = isTagalog
-              ? 'May harang sa harap: ang $refinedLabelText ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang sa $escapeTagalog.'
-              : 'Obstacle ahead: $refinedLabelText is directly in your path. Avoid it by stepping to your $escapeDir.';
-          _triggerHapticAlert(isCritical: false);
-        }
-
-        final isDifferentMessage = guidance != _lastGuidanceText;
-        final timeSinceLastGuidance = _lastGuidanceTime == null 
-            ? const Duration(seconds: 99) 
-            : now.difference(_lastGuidanceTime!);
-            
-        bool shouldSpeak = false;
-        if (isCritical) {
-          shouldSpeak = true;
-        } else if (maxBlockingThreatScore > 0.45) {
-          shouldSpeak = isDifferentMessage 
-              ? timeSinceLastGuidance.inSeconds >= 3 
-              : timeSinceLastGuidance.inSeconds >= 6;
-        } else {
-          shouldSpeak = timeSinceLastGuidance.inSeconds >= 10;
-        }
-
-        if (shouldSpeak) {
-          _lastGuidanceText = guidance;
-          _lastGuidanceTime = now;
-          _objectLastAreas[blockingLabel] = largestBlockingArea;
-          
-          if (!_isContinuousVoiceEnabled) {
-            TtsService().speak(guidance);
-          }
-          NotificationService().pushObstacleAlert('center', blockingLabel);
-        }
-
-        _wasPathBlocked = true;
-
-        setState(() {
-          _activeTitle = isCritical 
-              ? (isTagalog ? 'Huminto agad' : 'Stop immediately')
-              : (isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle');
-          _activeDescription = guidance;
-          _statusCardBg = isCritical ? const Color(0xFFFFEBEE) : const Color(0xFFFFF3E0);
-          _statusIcon = isCritical ? Icons.report_problem : Icons.warning_amber_rounded;
-          _statusIconColor = isCritical ? Colors.red : Colors.orange;
-        });
-      } else {
-        // Path is Clear
-        _lastGuidanceText = "";
+      if (targetObject != null && largestArea > 0.05) {
+        final normCenterX = 1.0 - (((targetObject.boundingBox.top + targetObject.boundingBox.bottom) / 2.0) / height);
+        final isCentered = normCenterX >= 0.38 && normCenterX <= 0.62;
+        final direction = normCenterX < 0.38 ? 'left' : (normCenterX > 0.62 ? 'right' : 'center');
         
-        if (_wasPathBlocked) {
-          _wasPathBlocked = false;
-          final clearText = isTagalog ? "Malinis ang daan." : "The pathway ahead is clear.";
-          if (!_isContinuousVoiceEnabled) {
-            TtsService().speak(clearText);
+        final refinedLabel = targetLabel[0].toUpperCase() + targetLabel.substring(1);
+
+        if (isCentered) {
+          if (largestArea > 0.20) {
+            // Stop immediately
+            final guidance = isTagalog
+                ? 'Huminto agad. May $refinedLabel sa iyong tapat.'
+                : 'Stop immediately. $refinedLabel is directly in front of you.';
+                
+            _triggerHapticAlert(isCritical: true);
+            _wasPathBlocked = true;
+
+            final isDifferent = guidance != _lastGuidanceText;
+            final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+            if (isDifferent || elapsed.inSeconds >= 3) {
+              _lastGuidanceText = guidance;
+              _lastGuidanceTime = now;
+              if (!_isContinuousVoiceEnabled) {
+                TtsService().speak(guidance);
+              }
+              NotificationService().pushObstacleAlert('center', targetLabel);
+            }
+
+            setState(() {
+              _activeTitle = isTagalog ? 'Huminto agad' : 'Stop immediately';
+              _activeDescription = guidance;
+              _statusCardBg = const Color(0xFFFFEBEE);
+              _statusIcon = Icons.report_problem;
+              _statusIconColor = Colors.red;
+            });
+          } else {
+            // Avoid Obstacle
+            bool leftBlocked = false;
+            bool rightBlocked = false;
+            for (final r in objects) {
+              if (r == targetObject) continue;
+              final cX = 1.0 - (((r.boundingBox.top + r.boundingBox.bottom) / 2.0) / height);
+              if (cX < 0.42) leftBlocked = true;
+              if (cX > 0.58) rightBlocked = true;
+            }
+            final escapeDir = (leftBlocked && !rightBlocked) ? 'right' : 'left';
+            final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
+
+            final guidance = isTagalog
+                ? 'May harang sa harap: ang $refinedLabel ay nasa tapat mo. Iwasan ito sa pamamagitan ng paghakbang sa $escapeTagalog.'
+                : 'Obstacle ahead: $refinedLabel is directly in your path. Avoid it by stepping to your $escapeDir.';
+
+            _triggerHapticAlert(isCritical: false);
+            _wasPathBlocked = true;
+
+            final isDifferent = guidance != _lastGuidanceText;
+            final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+            if (isDifferent || elapsed.inSeconds >= 5) {
+              _lastGuidanceText = guidance;
+              _lastGuidanceTime = now;
+              if (!_isContinuousVoiceEnabled) {
+                TtsService().speak(guidance);
+              }
+              NotificationService().pushObstacleAlert('center', targetLabel);
+            }
+
+            setState(() {
+              _activeTitle = isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle';
+              _activeDescription = guidance;
+              _statusCardBg = const Color(0xFFFFF3E0);
+              _statusIcon = Icons.warning_amber_rounded;
+              _statusIconColor = Colors.orange;
+            });
+          }
+        } else {
+          // On the side: Slow Down
+          if (largestArea > 0.08) {
+            final sideDir = direction == 'left' ? (isTagalog ? 'kaliwa' : 'left') : (isTagalog ? 'kanan' : 'right');
+            final guidance = isTagalog
+                ? 'Magdahan-dahan. May $refinedLabel sa iyong $sideDir.'
+                : 'Slow down. $refinedLabel detected on your $sideDir.';
+
+            final isDifferent = guidance != _lastGuidanceText;
+            final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+            if (isDifferent || elapsed.inSeconds >= 6) {
+              _lastGuidanceText = guidance;
+              _lastGuidanceTime = now;
+              if (!_isContinuousVoiceEnabled) {
+                TtsService().speak(guidance);
+              }
+            }
+
+            setState(() {
+              _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+              _activeDescription = guidance;
+              _statusCardBg = const Color(0xFFFFFDE7);
+              _statusIcon = Icons.speed;
+              _statusIconColor = Colors.yellow[800]!;
+            });
+          } else {
+            _clearPath(isTagalog);
           }
         }
-
-        setState(() {
-          _activeTitle = isTagalog ? "Malinis ang Daan" : "Path Clear";
-          _activeDescription = isTagalog ? "Walang nakaharang sa daanan." : "The pathway ahead is clear.";
-          _statusCardBg = const Color(0xFFE8F5E9);
-          _statusIcon = Icons.check_circle_outline;
-          _statusIconColor = Colors.green;
-        });
+      } else {
+        _clearPath(isTagalog);
       }
     } else if (_selectedHudMode == HudMode.objectDetection) {
       if (objects.isNotEmpty) {
@@ -1163,6 +1152,24 @@ class _HardwareScreenState extends State<HardwareScreen> {
         });
       }
     }
+  }
+
+  void _clearPath(bool isTagalog) {
+    _lastGuidanceText = "";
+    if (_wasPathBlocked) {
+      _wasPathBlocked = false;
+      final clearText = isTagalog ? "Malinis ang daan." : "The pathway ahead is clear.";
+      if (!_isContinuousVoiceEnabled) {
+        TtsService().speak(clearText);
+      }
+    }
+    setState(() {
+      _activeTitle = isTagalog ? "Malinis ang Daan" : "Path Clear";
+      _activeDescription = isTagalog ? "Walang nakaharang sa daanan." : "The pathway ahead is clear.";
+      _statusCardBg = const Color(0xFFE8F5E9);
+      _statusIcon = Icons.check_circle_outline;
+      _statusIconColor = Colors.green;
+    });
   }
 
   Future<Uint8List> _yuvToNv21Async(CameraImage image) async {
