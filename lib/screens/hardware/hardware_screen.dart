@@ -427,7 +427,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _loadObjectDetectionModel() async {
     try {
       await _loadCocoLabels();
-      final options = ObjectDetectorOptions(
+      final modelPath = await _getOrExtractTfliteModel();
+      final options = LocalObjectDetectorOptions(
+        modelPath: modelPath,
         mode: DetectionMode.stream,
         classifyObjects: true,
         multipleObjects: true,
@@ -436,9 +438,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
       setState(() {
         _isModelLoaded = true;
       });
-      print("Google ML Kit Base Object Detector initialized successfully");
+      print("Google ML Kit Local Object Detector (SSD MobileNet V2) initialized successfully");
     } catch (e) {
-      print("Error loading Google ML Kit Base Object Detector: $e");
+      print("Error loading Google ML Kit Local Object Detector: $e");
     }
 
     try {
@@ -996,8 +998,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
         final normH = obj.boundingBox.height / height;
         final area = normW * normH;
         
-        // Calculate center X normalized to screen width
-        final normCenterX = (obj.boundingBox.left + obj.boundingBox.right) / 2.0 / width;
+        // Calculate center X normalized to screen width (considering 90-degree sensor rotation in portrait mode)
+        final normCenterX = 1.0 - (((obj.boundingBox.top + obj.boundingBox.bottom) / 2.0) / height);
         final isCentered = normCenterX >= 0.38 && normCenterX <= 0.62; // Center channel
 
         final baseRisk = _getRiskScore(label);
@@ -1029,7 +1031,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         bool rightBlocked = false;
         for (final r in objects) {
           if (r == blockingObject) continue;
-          final cX = (r.boundingBox.left + r.boundingBox.right) / 2.0 / width;
+          final cX = 1.0 - (((r.boundingBox.top + r.boundingBox.bottom) / 2.0) / height);
           if (cX < 0.42) leftBlocked = true;
           if (cX > 0.58) rightBlocked = true;
         }
