@@ -1138,6 +1138,25 @@ class RagService {
     final lang = SettingsService().selectedLanguage;
     final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
 
+    final cleanQ = lowerQ.replaceAll(RegExp(r'[^\w\s]'), '').trim();
+
+    // Handle common conversational/polite expressions first to avoid awkward RAG context matching S01
+    if (cleanQ == "thank you" || cleanQ == "thanks" || cleanQ == "thank you buddy" || cleanQ == "thanks buddy" || cleanQ == "salamat" || cleanQ == "maraming salamat" || cleanQ == "salamat buddy") {
+      return isUserFilipino
+          ? "Walang anuman! Aw! Sabihin mo lang kung may kailangan ka pa."
+          : "You're welcome! Woof! Let me know if you need anything else.";
+    }
+    if (cleanQ == "bye" || cleanQ == "goodbye" || cleanQ == "paalam" || cleanQ == "sige paalam") {
+      return isUserFilipino
+          ? "Paalam! Aw! Mag-ingat sa iyong biyahe!"
+          : "Goodbye! Woof! Have a safe and wonderful trip!";
+    }
+    if (cleanQ == "ok" || cleanQ == "okay" || cleanQ == "got it" || cleanQ == "noted" || cleanQ == "cool" || cleanQ == "naintindihan") {
+      return isUserFilipino
+          ? "Naintindihan ko! Aw! Sabihin mo lang kung kailangan mo ng tulong."
+          : "Understood! Woof! Just let me know if you need help.";
+    }
+
     // 1. Identity & Name questions
     if (lowerQ.contains("name") || lowerQ.contains("who am i") || lowerQ.contains("know me")) {
       return isUserFilipino
