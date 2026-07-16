@@ -349,6 +349,20 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Papunta sa mapa" : "Navigating to map";
     }
 
+    // 2b. Use Camera / Add Device local action commands
+    if (cleanText.contains("use camera") || cleanText.contains("gumamit ng camera")) {
+      SpeechNavigationNotifier.changeTab(2);
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      SpeechNavigationNotifier.triggerHardwareControl("use_camera");
+      return isFilipino ? "Binubuksan at ginagamit ang camera" : "Navigating to and starting camera";
+    }
+    if (cleanText.contains("add device") || cleanText.contains("dagdag ng aparato")) {
+      SpeechNavigationNotifier.changeTab(2);
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      SpeechNavigationNotifier.triggerHardwareControl("add_device");
+      return isFilipino ? "Binubuksan ang pagdaragdag ng aparato" : "Navigating to add device";
+    }
+
     // 3. EasyLens camera tab navigation
     if (cleanText.contains("go to camera") || cleanText.contains("open camera") || cleanText.contains("go to easylens") || cleanText.contains("easylens") || cleanText.contains("go to easy lens") || cleanText.contains("easy lens") || cleanText.contains("camera") || cleanText.contains("pumunta sa camera")) {
       SpeechNavigationNotifier.changeTab(2);

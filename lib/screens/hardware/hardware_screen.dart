@@ -332,6 +332,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
     final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
 
+    if (control == 'use_camera') {
+      _initializeCamera();
+      return;
+    } else if (control == 'add_device') {
+      _onAddDevice();
+      return;
+    }
+
     if (control == 'scenery') {
       setState(() {
         _selectedHudMode = HudMode.scenery;
