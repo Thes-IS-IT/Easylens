@@ -156,10 +156,10 @@ class TtsService {
 
     final langCode = _getLangCode().toLowerCase();
     // e.g. "en-US" → match "en-us" or "en_us"
-    final langBase = langCode.replaceAll('-', '_'); // "en_us"
+    var langBase = langCode.replaceAll('-', '_'); // "en_us"
 
     // Filter by language
-    final localeVoices = _deviceVoices.where((v) {
+    var localeVoices = _deviceVoices.where((v) {
       final locale = (v['locale'] ?? v['language'] ?? '').toLowerCase();
       if (langCode == 'fil-ph' || langCode == 'tl-ph') {
         return locale.contains('fil') || locale.contains('tl');
@@ -170,21 +170,33 @@ class TtsService {
     }).toList();
 
     if (localeVoices.isEmpty) {
-      print('[TTS] No voices found for locale $langCode – keeping default');
+      print('[TTS] No voices found for locale $langCode – falling back to en-US');
+      langBase = 'en_us';
+      localeVoices = _deviceVoices.where((v) {
+        final locale = (v['locale'] ?? v['language'] ?? '').toLowerCase();
+        return locale == 'en_us' ||
+            locale == 'en-us' ||
+            locale.startsWith('en');
+      }).toList();
+    }
+
+    if (localeVoices.isEmpty) {
+      print('[TTS] No backup voices found – keeping default');
       return;
     }
 
     // Debug: print all available voices for this locale
-    print('[TTS] Voices for $langCode: ${localeVoices.map((v) => v['name']).toList()}');
+    print('[TTS] Voices for $langCode (fallback to en-US if empty): ${localeVoices.map((v) => v['name']).toList()}');
 
     Map<String, String>? selectedVoice;
 
     if (gender == 'male') {
-      // iOS voice names
+      // iOS / macOS voice names
       const maleNames = [
         'daniel', 'arthur', 'gordon', 'aaron', 'rishi', 'jorge',
         'thomas', 'david', 'james', 'robert', 'john', 'william',
         'richard', 'charles', 'steven', 'paul', 'mark',
+        'alex', 'fred', 'sam', 'george', 'harry', 'jack', 'charlie',
       ];
       // Android Google TTS male variant codes (network & local)
       const androidMaleCodes = [
@@ -195,7 +207,8 @@ class TtsService {
 
       for (final v in localeVoices) {
         final name = (v['name'] ?? '').toLowerCase();
-        if (maleNames.any((k) => name.contains(k))) {
+        final isExplicitMale = name.contains('male') && !name.contains('female');
+        if (isExplicitMale || maleNames.any((k) => name.contains(k))) {
           selectedVoice = v;
           break;
         }
@@ -226,7 +239,8 @@ class TtsService {
 
       for (final v in localeVoices) {
         final name = (v['name'] ?? '').toLowerCase();
-        if (femaleNames.any((k) => name.contains(k))) {
+        final isExplicitFemale = name.contains('female');
+        if (isExplicitFemale || femaleNames.any((k) => name.contains(k))) {
           selectedVoice = v;
           break;
         }
