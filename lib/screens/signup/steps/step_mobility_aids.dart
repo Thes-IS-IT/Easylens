@@ -16,7 +16,8 @@ class StepMobilityAids extends StatelessWidget {
   final List<String> aids = [
     'White Cane',
     'Guide Dog',
-    'Smart Classes',
+    'Smart Glasses',
+    'Eyeglasses',
     'Wheelchair',
     'Walker',
     'Sighted Guide',
