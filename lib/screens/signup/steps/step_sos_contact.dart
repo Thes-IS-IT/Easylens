@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../../constants/colors.dart';
 import 'step_helpers.dart';
 
@@ -73,7 +74,41 @@ class _StepSosContactState extends State<StepSosContact> {
                 borderRadius: BorderRadius.circular(30),
               ),
             ),
-            onPressed: () {},
+            onPressed: () async {
+              try {
+                final contact = await FlutterContacts.native.showPicker();
+                if (contact != null) {
+                  final contactId = contact.id;
+                  if (contactId != null) {
+                    final fullContact = await FlutterContacts.get(contactId);
+                  if (fullContact != null) {
+                    final name = fullContact.displayName ?? '';
+                    String phone = '';
+                    if (fullContact.phones.isNotEmpty) {
+                      phone = fullContact.phones.first.number;
+                    }
+                    
+                    setState(() {
+                      _nameController.text = name;
+                      _phoneController.text = phone;
+                    });
+                    widget.onNameChanged(name);
+                    widget.onPhoneChanged(phone);
+                  }
+                }
+              }
+            } catch (e) {
+                print("Error picking contact: $e");
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to import contact: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
             icon: const Icon(Icons.phone_callback_outlined, size: 20),
             label: Text(
               'Import from Contacts',
