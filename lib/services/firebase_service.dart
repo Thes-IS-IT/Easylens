@@ -351,10 +351,43 @@ class FirebaseService {
   Future<void> syncPreferencesToCloud(String userId, Map<String, dynamic> prefsJson) async {
     if (_firebaseInitialized) {
       try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .set({'preferences': prefsJson}, SetOptions(merge: true));
+        final currentUser = FirebaseAuth.instance.currentUser;
+        final Map<String, dynamic> updateData = {
+          'uid': userId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+
+        if (currentUser?.email != null) {
+          updateData['email'] = currentUser!.email;
+        }
+
+        if (prefsJson.containsKey('name')) {
+          updateData['displayName'] = prefsJson['name'];
+        } else if (currentUser?.displayName != null) {
+          updateData['displayName'] = currentUser!.displayName;
+        }
+
+        if (prefsJson.containsKey('isForMyself')) {
+          updateData['isForMyself'] = prefsJson['isForMyself'];
+        }
+
+        if (prefsJson.containsKey('selectedConditions')) {
+          updateData['selectedConditions'] = prefsJson['selectedConditions'];
+        }
+
+        if (prefsJson.containsKey('photoUrl')) {
+          updateData['photoUrl'] = prefsJson['photoUrl'];
+        }
+
+        final docRef = FirebaseFirestore.instance.collection('users').doc(userId);
+        final doc = await docRef.get();
+        if (!doc.exists) {
+          updateData['createdAt'] = FieldValue.serverTimestamp();
+        }
+
+        updateData['preferences'] = prefsJson;
+
+        await docRef.set(updateData, SetOptions(merge: true));
         print('Firestore: Preferences saved for $userId.');
       } catch (e) {
         print('Firestore preferences sync error: $e');
