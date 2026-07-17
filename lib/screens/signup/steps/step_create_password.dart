@@ -22,6 +22,8 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
   late TextEditingController _passwordController;
   late TextEditingController _confirmController;
   bool _rememberMe = true;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   @override
   void initState() {
@@ -49,7 +51,7 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
         const SizedBox(height: 32),
         TextField(
           controller: _passwordController,
-          obscureText: true,
+          obscureText: _obscurePassword,
           onChanged: widget.onPasswordChanged,
           decoration: InputDecoration(
             labelText: 'Password',
@@ -62,13 +64,22 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
               borderSide: BorderSide(color: AppColors.cardBorder, width: 2.0),
               borderRadius: BorderRadius.circular(12.0),
             ),
-            suffixIcon: const Icon(Icons.visibility_off_outlined),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            ),
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _confirmController,
-          obscureText: true,
+          obscureText: _obscureConfirm,
           decoration: InputDecoration(
             labelText: 'Confirm Password',
             labelStyle: GoogleFonts.inter(color: AppColors.primaryText),
@@ -80,7 +91,16 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
               borderSide: BorderSide(color: AppColors.cardBorder, width: 2.0),
               borderRadius: BorderRadius.circular(12.0),
             ),
-            suffixIcon: const Icon(Icons.visibility_off_outlined),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscureConfirm = !_obscureConfirm;
+                });
+              },
+            ),
           ),
         ),
         const SizedBox(height: 24),
