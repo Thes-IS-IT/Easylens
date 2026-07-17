@@ -80,19 +80,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _nextStep() {
     setState(() {
-      if (_currentStep == 9) {
+      if (_currentStep == 8) {
         if (_authMethod == 'Email') {
-          _currentStep = 10;
+          _currentStep = 9;
         } else if (_authMethod == 'Phone') {
-          _currentStep = 11;
+          _currentStep = 10;
         } else {
-          _currentStep = 13;
+          _currentStep = 12;
         }
-      } else if (_currentStep == 10) {
+      } else if (_currentStep == 9) {
         // Email entered — go straight to password
         if (_email.isEmpty || !_email.contains('@')) return;
-        _currentStep = 12;
-      } else if (_currentStep < 19) {
+        _currentStep = 11;
+      } else if (_currentStep < 18) {
         _currentStep++;
       }
     });
@@ -107,19 +107,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _isVerifyingCode = false);
     } else if (_currentStep > 1) {
       setState(() {
-        if (_currentStep == 12) {
+        if (_currentStep == 11) {
           if (_authMethod == 'Email') {
-            _currentStep = 10;
+            _currentStep = 9;
           } else if (_authMethod == 'Phone') {
-            _currentStep = 11;
+            _currentStep = 10;
           } else {
-            _currentStep = 9;
+            _currentStep = 8;
           }
-        } else if (_currentStep == 13) {
+        } else if (_currentStep == 12) {
           if (_authMethod == 'Google' || _authMethod == 'Apple') {
-            _currentStep = 9;
+            _currentStep = 8;
           } else {
-            _currentStep = 12;
+            _currentStep = 11;
           }
         } else {
           _currentStep--;
@@ -168,7 +168,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() {
         _isVerifyingCode = false;
         _smsErrorMessage = null;
-        _currentStep = 12; // Proceed to Create Password
+        _currentStep = 11; // Proceed to Create Password
       });
     } else {
       setState(() {
@@ -272,7 +272,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() {
         _errorMessage = e.toString().replaceAll("Exception:", "").trim();
         _isLoading = false;
-        _currentStep = 9; // Fall back to account creation page
+        _currentStep = 8; // Fall back to account creation page
       });
     }
   }
@@ -288,13 +288,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return false;
     }
     final stepsWithCustomActions = [
-      9,  // Create Account (inline list buttons)
-      10, // Email input (inline buttons)
-      11, // Phone input (inline buttons)
-      14, // Terms & Privacy (inline buttons)
-      15, // Upload Photo (inline buttons)
-      16, // Photo Confirmation (inline buttons)
-      19, // SOS Contact (inline Finish setup button)
+      8,  // Create Account (inline list buttons)
+      9,  // Email input (inline buttons)
+      10, // Phone input (inline buttons)
+      13, // Terms & Privacy (inline buttons)
+      14, // Upload Photo (inline buttons)
+      15, // Photo Confirmation (inline buttons)
+      18, // SOS Contact (inline Finish setup button)
     ];
     return !stepsWithCustomActions.contains(_currentStep);
   }
@@ -374,16 +374,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           },
         );
       case 7:
-        return StepUnits(
-          selectedUnit: _selectedUnit,
-          onChanged: (val) => setState(() => _selectedUnit = val),
-        );
-      case 8:
         return StepMobilityAids(
           selectedAid: _selectedMobilityAid,
           onChanged: (val) => setState(() => _selectedMobilityAid = val),
         );
-      case 9:
+      case 8:
         return StepCreateAccount(
           onSelectedMethod: (method) async {
             if (method == 'Google') {
@@ -398,7 +393,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     _authMethod = 'Google';
                     _email = user.email;
                     _name = user.displayName;
-                    _currentStep = 13; // Social methods skip fields and password setup
+                    _currentStep = 12; // Social methods skip fields and password setup
                     _isLoading = false;
                   });
                 } else {
@@ -415,12 +410,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
             } else if (method == 'Email') {
               setState(() {
                 _authMethod = 'Email';
-                _currentStep = 10;
+                _currentStep = 9;
               });
             }
           },
         );
-      case 10:
+      case 9:
         return StepEmailInput(
           email: _email,
           onEmailChanged: (val) => setState(() => _email = val),
@@ -434,58 +429,58 @@ class _SignUpScreenState extends State<SignUpScreen> {
               );
               return;
             }
-            setState(() => _currentStep = 12);
+            setState(() => _currentStep = 11);
           },
-          onChangeMethod: () => setState(() => _currentStep = 9),
+          onChangeMethod: () => setState(() => _currentStep = 8),
         );
-      case 11:
+      case 10:
         return StepPhoneInput(
           phone: _phone,
           onPhoneChanged: (val) => setState(() => _phone = val),
           onSendCode: _sendVerificationSmsPhone,
-          onChangeMethod: () => setState(() => _currentStep = 9),
+          onChangeMethod: () => setState(() => _currentStep = 8),
         );
-      case 12:
+      case 11:
         return StepCreatePassword(
           password: _password,
           onPasswordChanged: (val) => setState(() => _password = val),
         );
-      case 13:
+      case 12:
         return StepPermissions(
-          onContinue: () => setState(() => _currentStep = 14),
+          onContinue: () => setState(() => _currentStep = 13),
         );
-      case 14:
+      case 13:
         return StepTermsPrivacy(
-          onAgree: () => setState(() => _currentStep = 15),
+          onAgree: () => setState(() => _currentStep = 14),
           onReadDocument: () => setState(() => _showTermsDocument = true),
         );
-      case 15:
+      case 14:
         return StepUploadPhoto(
           onPhotoPicked: (file) {
             setState(() {
               _pickedImage = file;
-              _currentStep = 16; // Proceed to confirmation step
+              _currentStep = 15; // Proceed to confirmation step
             });
           },
-          onCancel: () => setState(() => _currentStep = 17),
+          onCancel: () => setState(() => _currentStep = 16),
         );
-      case 16:
+      case 15:
         return StepPhotoConfirmation(
           pickedImage: _pickedImage!,
-          onReupload: () => setState(() => _currentStep = 15),
-          onContinue: () => setState(() => _currentStep = 17),
+          onReupload: () => setState(() => _currentStep = 14),
+          onContinue: () => setState(() => _currentStep = 16),
         );
-      case 17:
+      case 16:
         return StepNameInput(
           name: _name,
           onNameChanged: (val) => setState(() => _name = val),
         );
-      case 18:
+      case 17:
         return StepBirthdayInput(
           birthday: _birthday,
           onBirthdayChanged: (val) => setState(() => _birthday = val),
         );
-      case 19:
+      case 18:
         return StepSosContact(
           name: _sosName,
           phone: _sosPhone,
@@ -528,12 +523,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           const SizedBox(height: 12),
                         ],
                         
-                        // Dynamic Step Indicator (Step X of 19)
+                        // Dynamic Step Indicator (Step X of 18)
                         if (_shouldShowStepIndicator())
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12.0),
                             child: Text(
-                              'Step $_currentStep of 19',
+                              'Step $_currentStep of 18',
                               style: GoogleFonts.inter(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
