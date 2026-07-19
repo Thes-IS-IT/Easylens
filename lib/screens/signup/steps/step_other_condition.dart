@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import 'step_helpers.dart';
+import 'voice_input_widget.dart';
 
 // STEP 2 SUB: Other Condition (Speech / Custom input)
 class StepOtherCondition extends StatefulWidget {
@@ -38,33 +39,10 @@ class _StepOtherConditionState extends State<StepOtherCondition> {
         ),
         const SizedBox(height: 32),
         
-        // Microphone visualizer
-        Center(
-          child: Column(
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primaryText, width: 2.0),
-                ),
-                child: Icon(Icons.mic_none,
-                  size: 48,
-                  color: AppColors.primaryText,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Tap to Speak Condition',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ],
-          ),
+        // Microphone visualizer with auto-off timer
+        VoiceMicBigButton(
+          controller: _controller,
+          label: 'Tap to Speak Condition',
         ),
         
         const SizedBox(height: 32),
@@ -82,6 +60,9 @@ class _StepOtherConditionState extends State<StepOtherCondition> {
           decoration: InputDecoration(
             hintText: 'e.g., Astigmatism',
             hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
+            suffixIcon: VoiceMicIconButton(
+              controller: _controller,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
               borderSide: BorderSide(color: AppColors.unselectedBorder),
@@ -96,7 +77,7 @@ class _StepOtherConditionState extends State<StepOtherCondition> {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryButton,
-                          foregroundColor: AppColors.primaryButtonText,
+              foregroundColor: AppColors.primaryButtonText,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28.0),

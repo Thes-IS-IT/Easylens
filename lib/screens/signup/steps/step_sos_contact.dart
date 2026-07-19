@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../../constants/colors.dart';
 import 'step_helpers.dart';
+import 'voice_input_widget.dart';
 
 // STEP 19: Your SOS Contact
 class StepSosContact extends StatefulWidget {
@@ -50,6 +52,12 @@ class _StepSosContactState extends State<StepSosContact> {
     super.dispose();
   }
 
+  /// Strips all non-digit characters and trims to 11 digits.
+  String _sanitizePhone(String raw) {
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    return digits.length > 11 ? digits.substring(0, 11) : digits;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -75,38 +83,39 @@ class _StepSosContactState extends State<StepSosContact> {
               ),
             ),
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 final contact = await FlutterContacts.native.showPicker();
                 if (contact != null) {
                   final contactId = contact.id;
                   if (contactId != null) {
                     final fullContact = await FlutterContacts.get(contactId);
-                  if (fullContact != null) {
-                    final name = fullContact.displayName ?? '';
-                    String phone = '';
-                    if (fullContact.phones.isNotEmpty) {
-                      phone = fullContact.phones.first.number;
+                    if (fullContact != null) {
+                      final name = fullContact.displayName ?? '';
+                      String phone = '';
+                      if (fullContact.phones.isNotEmpty) {
+                        // Sanitize: digits only, max 11 characters
+                        phone = _sanitizePhone(fullContact.phones.first.number);
+                      }
+
+                      setState(() {
+                        _nameController.text = name;
+                        _phoneController.text = phone;
+                      });
+                      widget.onNameChanged(name);
+                      widget.onPhoneChanged(phone);
                     }
-                    
-                    setState(() {
-                      _nameController.text = name;
-                      _phoneController.text = phone;
-                    });
-                    widget.onNameChanged(name);
-                    widget.onPhoneChanged(phone);
                   }
                 }
-              }
-            } catch (e) {
-                print("Error picking contact: $e");
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to import contact: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: const Text('Failed to import contact. Please enter manually.'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
               }
             },
             icon: const Icon(Icons.phone_callback_outlined, size: 20),
@@ -145,7 +154,7 @@ class _StepSosContactState extends State<StepSosContact> {
 
         const SizedBox(height: 14),
 
-        // PHONE NUMBER field
+        // PHONE NUMBER field — digits only, max 11 characters
         _InputLabel(label: 'PHONE NUMBER'),
         const SizedBox(height: 6),
         _SosTextField(
@@ -153,6 +162,11 @@ class _StepSosContactState extends State<StepSosContact> {
           onChanged: widget.onPhoneChanged,
           icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
+          isPhone: true,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,       // no letters or symbols
+            LengthLimitingTextInputFormatter(11),         // max 11 digits
+          ],
         ),
 
         const SizedBox(height: 14),
@@ -182,7 +196,22 @@ class _StepSosContactState extends State<StepSosContact> {
                 borderRadius: BorderRadius.circular(30),
               ),
             ),
-            onPressed: widget.onFinish,
+            onPressed: () {
+              try {
+                widget.onFinish();
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Something went wrong. Please try again.'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                }
+              }
+            },
             child: Text(
               'Finish Setup',
               style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.bold),
@@ -213,18 +242,22 @@ class _InputLabel extends StatelessWidget {
   }
 }
 
-/// Pill-shaped filled text field with prefix icon
+/// Pill-shaped filled text field with prefix icon and mic button
 class _SosTextField extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final IconData icon;
   final TextInputType keyboardType;
+  final bool isPhone;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _SosTextField({
     required this.controller,
     required this.onChanged,
     required this.icon,
     required this.keyboardType,
+    this.isPhone = false,
+    this.inputFormatters,
   });
 
   @override
@@ -233,9 +266,16 @@ class _SosTextField extends StatelessWidget {
       controller: controller,
       onChanged: onChanged,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: GoogleFonts.inter(fontSize: 15, color: AppColors.primaryText),
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: AppColors.textMuted, size: 18),
+        suffixIcon: VoiceMicIconButton(
+          controller: controller,
+          onChanged: onChanged,
+          keyboardType: keyboardType,
+          isPhone: isPhone,
+        ),
         filled: true,
         fillColor: AppColors.lightBackground,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),

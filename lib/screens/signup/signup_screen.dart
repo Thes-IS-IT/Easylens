@@ -31,7 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _showTermsDocument = false;
   bool _isVerifyingCode = false;
 
-  // Registration States (19 Steps)
+  // Registration States (18 Steps)
   bool _isForMyself = true; // Step 1
   List<String> _selectedConditions = []; // Step 2
   String _selectedContrastTheme = 'Default'; // Step 3
@@ -42,15 +42,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _selectedUnit = 'Metric'; // Step 7
   String _selectedMobilityAid = 'None'; // Step 8
   
-  String _authMethod = ''; // Step 9: 'Google', 'Apple', 'Email', 'Phone'
-  String _email = ''; // Step 10
-  String _phone = ''; // Step 11
-  String _password = ''; // Step 12
-  File? _pickedImage; // Step 15
-  String _name = ''; // Step 17 ("What should I call you?")
-  String _birthday = ''; // Step 18
+  String _authMethod = ''; // Step 8: 'Google', 'Apple', 'Email', 'Phone'
+  String _email = ''; // Step 9
+  String _phone = ''; // Step 10
+  String _password = ''; // Step 11
+  File? _pickedImage; // Step 14
+  String _name = ''; // Step 16 ("What should I call you?")
+  String _birthday = ''; // Step 17
   
-  // Step 19
+  // Step 18 (SOS Contact)
   String _sosName = '';
   String _sosPhone = '';
   String _sosRelationship = '';
@@ -79,6 +79,73 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _nextStep() {
+    // Input validation & exception handling per step
+    if (_currentStep == 9) {
+      // Email Step
+      final emailClean = _email.trim();
+      if (emailClean.isEmpty || !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(emailClean)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Please enter a valid email address (e.g. name@example.com)'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+    } else if (_currentStep == 10) {
+      // Phone Step
+      if (_phone.trim().length < 10) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Please enter a valid 11-digit phone number'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+    } else if (_currentStep == 11) {
+      // Password Step
+      if (_password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Please create a password for your account'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+      if (_password.length < 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Password must be at least 6 characters long'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+    } else if (_currentStep == 16) {
+      // Name Step
+      if (_name.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Please enter your name or nickname'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() {
       if (_currentStep == 8) {
         if (_authMethod == 'Email') {
@@ -89,8 +156,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _currentStep = 12;
         }
       } else if (_currentStep == 9) {
-        // Email entered — go straight to password
-        if (_email.isEmpty || !_email.contains('@')) return;
         _currentStep = 11;
       } else if (_currentStep < 18) {
         _currentStep++;
@@ -139,8 +204,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _smsErrorMessage = null;
     });
 
-    if (_phone.isEmpty) {
-      setState(() => _smsErrorMessage = 'Please enter a valid phone number');
+    if (_phone.isEmpty || _phone.trim().length < 10) {
+      setState(() => _smsErrorMessage = 'Please enter a valid 11-digit phone number');
       return;
     }
 
@@ -151,19 +216,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
           : '+63$formattedPhone';
     }
 
-    final success = await _smsService.sendSMS(
-      to: formattedPhone,
-      message: 'Your EasyLens verification code is: $code',
-    );
+    try {
+      final success = await _smsService.sendSMS(
+        to: formattedPhone,
+        message: 'Your EasyLens verification code is: $code',
+      );
 
-    if (success) {
-      setState(() => _isVerifyingCode = true);
-    } else {
-      setState(() => _smsErrorMessage = 'Failed to send verification SMS. Please try again.');
+      if (success) {
+        setState(() => _isVerifyingCode = true);
+      } else {
+        setState(() => _smsErrorMessage = 'Failed to send verification SMS. Please try again.');
+      }
+    } catch (e) {
+      setState(() => _smsErrorMessage = 'SMS error: ${e.toString()}');
     }
   }
 
   void _verifyCode(String enteredCode) {
+    if (enteredCode.length < 4) {
+      setState(() {
+        _smsErrorMessage = 'Please enter all 4 digits of the code.';
+      });
+      return;
+    }
+
     if (enteredCode == _generatedCode) {
       setState(() {
         _isVerifyingCode = false;
@@ -177,16 +253,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  String _getFriendlyErrorMessage(dynamic error) {
+    final msg = error.toString();
+    if (msg.contains('email-already-in-use')) {
+      return 'That email address is already registered. Please sign in instead.';
+    } else if (msg.contains('weak-password')) {
+      return 'The password is too weak. Please choose a stronger password.';
+    } else if (msg.contains('invalid-email')) {
+      return 'The email address is not valid.';
+    } else if (msg.contains('network-request-failed')) {
+      return 'Network error. Please check your internet connection and try again.';
+    }
+    return msg.replaceAll("Exception:", "").replaceAll("FirebaseAuthException:", "").trim();
+  }
+
   Future<void> _handleRegister() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    final regEmail = _email.isNotEmpty ? _email : "buddy_user@easylens.com";
+    final regEmail = _email.isNotEmpty ? _email.trim() : "buddy_user@easylens.com";
     final regPassword = _password.isNotEmpty ? _password : "mockPassword123";
-    final regName = _name.isNotEmpty ? _name : "Buddy User";
-    print("Registering user. Picked photo path: ${_pickedImage?.path}");
+    final regName = _name.isNotEmpty ? _name.trim() : "Buddy User";
 
     try {
       // 1. Sign up user via Firebase Auth
@@ -195,7 +284,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         user = _firebaseService.currentUser;
         if (user != null && regName.isNotEmpty) {
           await _firebaseService.updateDisplayName(regName);
-          user = _firebaseService.currentUser; // Refresh user display name
+          user = _firebaseService.currentUser;
         }
       } else {
         user = await _firebaseService.signUp(regEmail, regPassword, regName, _isForMyself);
@@ -207,9 +296,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         // 2. Upload avatar image to Cloudflare R2 if picked
         if (_pickedImage != null) {
           try {
-            print("Uploading profile photo for user: ${user.uid} to Cloudflare R2...");
             profilePhotoUrl = await CloudflareR2Service().uploadAvatar(_pickedImage!, user.uid);
-            print("Profile photo uploaded successfully. Public URL: $profilePhotoUrl");
           } catch (r2Error) {
             print("Warning: Cloudflare R2 photo upload failed: $r2Error. Continuing without photo.");
           }
@@ -267,23 +354,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
             (route) => false,
           );
         }
+      } else {
+        setState(() {
+          _errorMessage = "Registration failed. Please try again.";
+          _isLoading = false;
+        });
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceAll("Exception:", "").trim();
-        _isLoading = false;
-        _currentStep = 8; // Fall back to account creation page
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = _getFriendlyErrorMessage(e);
+          _isLoading = false;
+          _currentStep = 8; // Fall back to account creation step
+        });
+      }
     }
   }
-
 
   bool _shouldShowStepIndicator() {
     if (_showOtherConditionInput || _showTermsDocument || _isVerifyingCode) {
       return false;
     }
     return true;
-  }  bool _shouldShowContinueButton() {
+  }
+
+  bool _shouldShowContinueButton() {
     if (_showOtherConditionInput || _showTermsDocument || _isVerifyingCode) {
       return false;
     }
@@ -393,7 +488,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     _authMethod = 'Google';
                     _email = user.email;
                     _name = user.displayName;
-                    _currentStep = 12; // Social methods skip fields and password setup
+                    _currentStep = 12; // Social methods skip password setup
                     _isLoading = false;
                   });
                 } else {
@@ -403,7 +498,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 }
               } catch (e) {
                 setState(() {
-                  _errorMessage = e.toString().replaceAll("Exception:", "").trim();
+                  _errorMessage = _getFriendlyErrorMessage(e);
                   _isLoading = false;
                 });
               }
@@ -412,6 +507,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 _authMethod = 'Email';
                 _currentStep = 9;
               });
+            } else if (method == 'Phone') {
+              setState(() {
+                _authMethod = 'Phone';
+                _currentStep = 10;
+              });
             }
           },
         );
@@ -419,18 +519,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return StepEmailInput(
           email: _email,
           onEmailChanged: (val) => setState(() => _email = val),
-          onContinue: () {
-            if (_email.isEmpty || !_email.contains('@')) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Please enter a valid email address'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-            setState(() => _currentStep = 11);
-          },
+          onContinue: _nextStep,
           onChangeMethod: () => setState(() => _currentStep = 8),
         );
       case 10:
@@ -459,7 +548,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           onPhotoPicked: (file) {
             setState(() {
               _pickedImage = file;
-              _currentStep = 15; // Proceed to confirmation step
+              _currentStep = 15;
             });
           },
           onCancel: () => setState(() => _currentStep = 16),
@@ -495,7 +584,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -507,120 +595,134 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: _isLoading
-                  ? Center(child: CircularProgressIndicator(color: AppColors.primaryButton),
-                    )
+                  ? Center(child: CircularProgressIndicator(color: AppColors.primaryButton))
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Pushes content below the floating back button
                         const SizedBox(height: 135),
                         
                         if (_errorMessage != null) ...[
-                          Text(
-                            _errorMessage!,
-                            style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        
-                        // Dynamic Step Indicator (Step X of 18)
-                        if (_shouldShowStepIndicator())
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0),
-                            child: Text(
-                              'Step $_currentStep of 18',
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primaryText,
-                              ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _errorMessage!,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.red.shade900,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        
+                          const SizedBox(height: 16),
+                        ],
+
                         Expanded(
                           child: SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(
-                              parent: BouncingScrollPhysics(),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 32.0),
-                              child: _buildStepContent(),
-                            ),
+                            child: _buildStepContent(),
                           ),
                         ),
                         
-                        // Bottom Continue Button (if step does not use custom action buttons)
-                        if (_shouldShowContinueButton())
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 24.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryButton,
-                          foregroundColor: AppColors.primaryButtonText,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(28.0),
-                                  ),
+                        if (_shouldShowContinueButton()) ...[
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryButton,
+                                foregroundColor: AppColors.primaryButtonText,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(28.0),
                                 ),
-                                onPressed: _nextStep,
-                                child: Text(
-                                  'Continue',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              ),
+                              onPressed: _nextStep,
+                              child: Text(
+                                _currentStep == 18 ? 'Finish Setup' : 'Continue',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
                           ),
+                          const SizedBox(height: 24),
+                        ],
                       ],
                     ),
             ),
           ),
-          
-          // Absolute Positioned Floating Back Button
+
+          // Floating Back & Step Indicator Header
           Positioned(
-            top: 75.0,
-            left: 24.0,
-            child: SizedBox(
-              width: 95.0,
-              height: 44.0,
-              child: GestureDetector(
-                onTap: _prevStep,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.lightBackground,
-                    border: Border.all(color: AppColors.cardBorder, width: 1.5),
-                    borderRadius: BorderRadius.circular(30.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadowColor,
-                        blurRadius: 10.0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.chevron_left,
-                        size: 20,
-                        color: AppColors.primaryText,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Back',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primaryText,
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                color: AppColors.primaryBackground,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Pill-shaped back button
+                    GestureDetector(
+                      onTap: _prevStep,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightBackground,
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(color: AppColors.cardBorder.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.arrow_back_ios_new, size: 14, color: AppColors.primaryText),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Back',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryText,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+
+                    // Step Indicator Pill (1/18)
+                    if (_shouldShowStepIndicator())
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightBackground,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '$_currentStep of 18',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryText,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

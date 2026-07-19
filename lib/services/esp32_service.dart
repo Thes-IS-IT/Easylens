@@ -51,6 +51,8 @@ class Esp32Service extends ChangeNotifier {
   StreamSubscription? _streamSub;
   final List<int> _buffer = [];
   http.Client? _httpClient;
+  Timer? _stalenessTimer;
+  DateTime? _lastChunkTime;
 
   // ── Initialization ───────────────────────────────────────────────────────
   Future<void> initialize() async {
@@ -95,6 +97,7 @@ class Esp32Service extends ChangeNotifier {
         _isConnected = true;
         _isConnecting = false;
         _statusMessage = 'Connected ✓';
+        _lastChunkTime = DateTime.now();
         await saveStreamUrl(target);
         await NotificationService().pushConnectionAlert(true);
         notifyListeners();
@@ -102,18 +105,32 @@ class Esp32Service extends ChangeNotifier {
         _buffer.clear();
         _streamSub = response.stream.listen(
           (chunk) {
+            _lastChunkTime = DateTime.now();
             _buffer.addAll(chunk);
             _extractFrames();
           },
           onError: (e) {
             debugPrint('[Esp32Service] Stream error: $e');
-            _handleDisconnect('Stream error. Retrying...');
+            _handleDisconnect('Stream error. Falling back to mobile camera...');
           },
           onDone: () {
             debugPrint('[Esp32Service] Stream ended.');
-            _handleDisconnect('Stream disconnected. Retrying...');
+            _handleDisconnect('Glasses disconnected. Falling back to mobile camera...');
           },
         );
+
+        // Periodically monitor for connection drops/cutoff when no frames are received
+        _stalenessTimer?.cancel();
+        _stalenessTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (_isConnected && _lastChunkTime != null) {
+            if (DateTime.now().difference(_lastChunkTime!).inMilliseconds > 3500) {
+              debugPrint('[Esp32Service] Stream cutoff detected (no data for 3.5s).');
+              timer.cancel();
+              _handleDisconnect('Glasses lost connection or powered down.');
+            }
+          }
+        });
+
         return true;
       } else {
         _handleDisconnect('HTTP ${response.statusCode}. Check URL.');
@@ -131,6 +148,9 @@ class Esp32Service extends ChangeNotifier {
   /// Disconnect cleanly.
   Future<void> disconnect({bool silent = false}) async {
     final wasConnected = _isConnected;
+    _stalenessTimer?.cancel();
+    _stalenessTimer = null;
+    _lastChunkTime = null;
     await _streamSub?.cancel();
     _streamSub = null;
     _httpClient?.close();
@@ -226,9 +246,6 @@ class Esp32Service extends ChangeNotifier {
   // ── Quick ping to test reachability ──────────────────────────────────────
   Future<bool> ping(String url) async {
     try {
-      final baseUrl = url.contains('/stream')
-          ? url.replaceAll('/stream', '')
-          : url.replaceAll(':81', ':81');
       // Try hitting the stream endpoint with a HEAD-like request (short timeout)
       final client = http.Client();
       final req = http.Request('GET', Uri.parse(url));

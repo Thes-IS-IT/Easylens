@@ -23,3 +23,4 @@ export 'step_photo_confirmation.dart';
 export 'step_name_input.dart';
 export 'step_birthday_input.dart';
 export 'step_sos_contact.dart';
+export 'voice_input_widget.dart';

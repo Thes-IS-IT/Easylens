@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import 'step_helpers.dart';
+import 'voice_input_widget.dart';
 
 // STEP 12: Enter 4-Digit Code
 class StepVerificationCode extends StatefulWidget {
@@ -23,10 +24,20 @@ class StepVerificationCode extends StatefulWidget {
 class _StepVerificationCodeState extends State<StepVerificationCode> {
   final List<TextEditingController> _controllers = List.generate(4, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  final TextEditingController _hiddenSpeechController = TextEditingController();
   bool _isResending = false;
+  String? _localError;
+
+  @override
+  void initState() {
+    super.initState();
+    _hiddenSpeechController.addListener(_onSpeechInputUpdated);
+  }
 
   @override
   void dispose() {
+    _hiddenSpeechController.removeListener(_onSpeechInputUpdated);
+    _hiddenSpeechController.dispose();
     for (var c in _controllers) {
       c.dispose();
     }
@@ -36,12 +47,44 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
     super.dispose();
   }
 
+  void _onSpeechInputUpdated() {
+    final code = _hiddenSpeechController.text.trim();
+    if (code.isNotEmpty) {
+      for (int i = 0; i < 4; i++) {
+        if (i < code.length) {
+          _controllers[i].text = code[i];
+        } else {
+          _controllers[i].clear();
+        }
+      }
+      if (code.length >= 4) {
+        _handleVerify();
+      }
+    }
+  }
+
   String _getEnteredCode() {
     return _controllers.map((c) => c.text).join();
   }
 
+  void _handleVerify() {
+    final code = _getEnteredCode();
+    if (code.length < 4) {
+      setState(() => _localError = 'Please enter the complete 4-digit code.');
+      return;
+    }
+    setState(() => _localError = null);
+    try {
+      widget.onVerify(code);
+    } catch (e) {
+      setState(() => _localError = 'Verification failed: ${e.toString()}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final activeError = _localError ?? widget.errorMessage;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -50,7 +93,30 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
           subtitle: 'Enter the 4-digit verification code sent to your device.',
         ),
         const SizedBox(height: 24),
-        if (widget.errorMessage != null) ...[
+
+        // Speech Recognition Mic Button for Code Entry
+        Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              VoiceMicIconButton(
+                controller: _hiddenSpeechController,
+                isCode: true,
+              ),
+              Text(
+                'Tap mic to speak code',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        if (activeError != null) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -64,7 +130,7 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    widget.errorMessage!,
+                    activeError,
                     style: TextStyle(
                       color: Colors.red.shade900,
                       fontWeight: FontWeight.w600,
@@ -102,6 +168,9 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
                   ),
                 ),
                 onChanged: (val) {
+                  if (_localError != null) {
+                    setState(() => _localError = null);
+                  }
                   if (val.isNotEmpty && index < 3) {
                     _focusNodes[index + 1].requestFocus();
                   } else if (val.isEmpty && index > 0) {
@@ -123,7 +192,8 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
               ),
               const SizedBox(height: 8),
               _isResending
-                  ? SizedBox(width: 20,
+                  ? SizedBox(
+                      width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
@@ -135,6 +205,10 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
                         setState(() => _isResending = true);
                         try {
                           await widget.onResendCode();
+                        } catch (e) {
+                          if (mounted) {
+                            setState(() => _localError = 'Failed to resend code. Please try again.');
+                          }
                         } finally {
                           if (mounted) {
                             setState(() => _isResending = false);
@@ -157,12 +231,12 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryButton,
-                          foregroundColor: AppColors.primaryButtonText,
+              foregroundColor: AppColors.primaryButtonText,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28.0),
               ),
             ),
-            onPressed: () => widget.onVerify(_getEnteredCode()),
+            onPressed: _handleVerify,
             child: Text(
               'Verify',
               style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),

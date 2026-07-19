@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -88,11 +89,57 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       }
+    } on FirebaseAuthException catch (e) {
+      String msg;
+      switch (e.code) {
+        case 'user-not-found':
+        case 'wrong-password':
+        case 'invalid-credential':
+          msg = 'Incorrect email or password. Please try again.';
+          break;
+        case 'invalid-email':
+          msg = 'The email address format is invalid.';
+          break;
+        case 'user-disabled':
+          msg = 'This account has been disabled. Please contact support.';
+          break;
+        case 'too-many-requests':
+          msg = 'Too many failed login attempts. Please try again later.';
+          break;
+        case 'network-request-failed':
+          msg = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          msg = 'Incorrect email or password. Please try again.';
+      }
+      if (mounted) {
+        setState(() {
+          _errorMessage = msg;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceAll("Exception:", "").trim();
-        _isLoading = false;
-      });
+      String errStr = e.toString().toLowerCase();
+      String msg;
+      if (errStr.contains('user-not-found') ||
+          errStr.contains('wrong-password') ||
+          errStr.contains('invalid-credential') ||
+          errStr.contains('credential') ||
+          errStr.contains('password')) {
+        msg = 'Incorrect email or password. Please try again.';
+      } else if (errStr.contains('invalid-email') || errStr.contains('email')) {
+        msg = 'The email address format is invalid.';
+      } else if (errStr.contains('network') || errStr.contains('socketexception')) {
+        msg = 'Network connection issue. Please check your connection.';
+      } else {
+        msg = 'Incorrect email or password. Please try again.';
+      }
+      if (mounted) {
+        setState(() {
+          _errorMessage = msg;
+          _isLoading = false;
+        });
+      }
     }
   }
 

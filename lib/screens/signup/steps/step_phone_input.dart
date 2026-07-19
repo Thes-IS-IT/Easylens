@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import 'step_helpers.dart';
+import 'voice_input_widget.dart';
 
 // STEP 11: Phone Input
 class StepPhoneInput extends StatefulWidget {
@@ -25,6 +27,7 @@ class StepPhoneInput extends StatefulWidget {
 class _StepPhoneInputState extends State<StepPhoneInput> {
   late TextEditingController _controller;
   bool _isLoading = false;
+  String? _errorText;
 
   @override
   void initState() {
@@ -38,6 +41,36 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
     super.dispose();
   }
 
+  Future<void> _handleSendCode() async {
+    final phone = _controller.text.trim();
+    if (phone.isEmpty) {
+      setState(() => _errorText = 'Please enter your phone number');
+      return;
+    }
+
+    if (phone.length < 10) {
+      setState(() => _errorText = 'Please enter a valid 11-digit phone number');
+      return;
+    }
+
+    setState(() {
+      _errorText = null;
+      _isLoading = true;
+    });
+
+    try {
+      await widget.onSendCode();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _errorText = 'Failed to send code: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -48,6 +81,35 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
           subtitle: 'Enter your phone number.',
         ),
         const SizedBox(height: 32),
+
+        if (_errorText != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _errorText!,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
         Row(
           children: [
             Container(
@@ -69,16 +131,40 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
               child: TextField(
                 controller: _controller,
                 keyboardType: TextInputType.phone,
-                onChanged: widget.onPhoneChanged,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
+                onChanged: (val) {
+                  if (_errorText != null) {
+                    setState(() => _errorText = null);
+                  }
+                  widget.onPhoneChanged(val);
+                },
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
                   labelStyle: GoogleFonts.inter(color: AppColors.primaryText),
+                  suffixIcon: VoiceMicIconButton(
+                    controller: _controller,
+                    onChanged: (val) {
+                      if (_errorText != null) {
+                        setState(() => _errorText = null);
+                      }
+                      widget.onPhoneChanged(val);
+                    },
+                    isPhone: true,
+                  ),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.unselectedBorder),
+                    borderSide: BorderSide(
+                      color: _errorText != null ? Colors.red.shade300 : AppColors.unselectedBorder,
+                    ),
                     borderRadius: BorderRadius.circular(12.0),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.cardBorder, width: 2.0),
+                    borderSide: BorderSide(
+                      color: _errorText != null ? Colors.red : AppColors.cardBorder,
+                      width: 2.0,
+                    ),
                     borderRadius: BorderRadius.circular(12.0),
                   ),
                 ),
@@ -93,23 +179,12 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryButton,
-                          foregroundColor: AppColors.primaryButtonText,
+              foregroundColor: AppColors.primaryButtonText,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28.0),
               ),
             ),
-            onPressed: _isLoading
-                ? null
-                : () async {
-                    setState(() => _isLoading = true);
-                    try {
-                      await widget.onSendCode();
-                    } finally {
-                      if (mounted) {
-                        setState(() => _isLoading = false);
-                      }
-                    }
-                  },
+            onPressed: _isLoading ? null : _handleSendCode,
             child: _isLoading
                 ? const SizedBox(
                     width: 24,

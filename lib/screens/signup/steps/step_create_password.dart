@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import 'step_helpers.dart';
+import 'voice_input_widget.dart';
 
 // STEP 13: Create Password
 class StepCreatePassword extends StatefulWidget {
@@ -24,6 +25,7 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
   bool _rememberMe = true;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  String? _errorText;
 
   @override
   void initState() {
@@ -39,6 +41,29 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
     super.dispose();
   }
 
+  void _validateAndUpdate() {
+    final pass = _passwordController.text;
+    final confirm = _confirmController.text;
+
+    setState(() {
+      if (pass.isEmpty) {
+        _errorText = 'Please enter a password';
+        widget.onPasswordChanged('');
+      } else if (pass.length < 6) {
+        _errorText = 'Password must be at least 6 characters long';
+        widget.onPasswordChanged('');
+      } else if (confirm.isNotEmpty && pass != confirm) {
+        _errorText = 'Passwords do not match';
+        widget.onPasswordChanged('');
+      } else if (pass == confirm) {
+        _errorText = null; // Valid!
+        widget.onPasswordChanged(pass);
+      } else {
+        _errorText = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -49,30 +74,73 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
           subtitle: 'Create a secure password for your account.',
         ),
         const SizedBox(height: 32),
+
+        if (_errorText != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _errorText!,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
         TextField(
           controller: _passwordController,
           obscureText: _obscurePassword,
-          onChanged: widget.onPasswordChanged,
+          onChanged: (_) => _validateAndUpdate(),
           decoration: InputDecoration(
             labelText: 'Password',
             labelStyle: GoogleFonts.inter(color: AppColors.primaryText),
             enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: AppColors.unselectedBorder),
+              borderSide: BorderSide(
+                color: _errorText != null ? Colors.red.shade300 : AppColors.unselectedBorder,
+              ),
               borderRadius: BorderRadius.circular(12.0),
             ),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: AppColors.cardBorder, width: 2.0),
+              borderSide: BorderSide(
+                color: _errorText != null ? Colors.red : AppColors.cardBorder,
+                width: 2.0,
+              ),
               borderRadius: BorderRadius.circular(12.0),
             ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
-              },
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                VoiceMicIconButton(
+                  controller: _passwordController,
+                  onChanged: (_) => _validateAndUpdate(),
+                ),
+                IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -80,26 +148,41 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
         TextField(
           controller: _confirmController,
           obscureText: _obscureConfirm,
+          onChanged: (_) => _validateAndUpdate(),
           decoration: InputDecoration(
             labelText: 'Confirm Password',
             labelStyle: GoogleFonts.inter(color: AppColors.primaryText),
             enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: AppColors.unselectedBorder),
+              borderSide: BorderSide(
+                color: _errorText != null ? Colors.red.shade300 : AppColors.unselectedBorder,
+              ),
               borderRadius: BorderRadius.circular(12.0),
             ),
             focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: AppColors.cardBorder, width: 2.0),
+              borderSide: BorderSide(
+                color: _errorText != null ? Colors.red : AppColors.cardBorder,
+                width: 2.0,
+              ),
               borderRadius: BorderRadius.circular(12.0),
             ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscureConfirm = !_obscureConfirm;
-                });
-              },
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                VoiceMicIconButton(
+                  controller: _confirmController,
+                  onChanged: (_) => _validateAndUpdate(),
+                ),
+                IconButton(
+                  icon: Icon(
+                    _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureConfirm = !_obscureConfirm;
+                    });
+                  },
+                ),
+              ],
             ),
           ),
         ),

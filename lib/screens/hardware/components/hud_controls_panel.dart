@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class HudControlsPanel extends StatelessWidget {
-  final int batteryPercent;
+  final int? batteryPercent;
   final bool isBluetoothConnected;
   final bool isGeminiEnabled;
   final bool isWifiOn;
@@ -11,6 +11,9 @@ class HudControlsPanel extends StatelessWidget {
   final bool isScreenLocked;
   final bool useLocalAI;
   final bool isContinuousVoiceEnabled;
+  final bool isFlashOn;
+  final bool useMobileCamera;
+  final bool isDetectionPaused;
 
   final VoidCallback onBluetoothToggled;
   final VoidCallback onGeminiToggled;
@@ -18,13 +21,16 @@ class HudControlsPanel extends StatelessWidget {
   final VoidCallback onAudioToggled;
   final VoidCallback onLockToggled;
   final VoidCallback onLocalAiToggled;
+  final VoidCallback? onFlashToggled;
+  final VoidCallback? onCameraSourceToggled;
+  final VoidCallback? onDetectionToggled;
 
   final Widget modeSelector;
   final Widget disconnectButton;
 
   const HudControlsPanel({
     super.key,
-    required this.batteryPercent,
+    this.batteryPercent,
     required this.isBluetoothConnected,
     required this.isGeminiEnabled,
     required this.isWifiOn,
@@ -32,12 +38,18 @@ class HudControlsPanel extends StatelessWidget {
     required this.isScreenLocked,
     required this.useLocalAI,
     required this.isContinuousVoiceEnabled,
+    this.isFlashOn = false,
+    this.useMobileCamera = false,
+    this.isDetectionPaused = false,
     required this.onBluetoothToggled,
     required this.onGeminiToggled,
     required this.onWifiToggled,
     required this.onAudioToggled,
     required this.onLockToggled,
     required this.onLocalAiToggled,
+    this.onFlashToggled,
+    this.onCameraSourceToggled,
+    this.onDetectionToggled,
     required this.modeSelector,
     required this.disconnectButton,
   });
@@ -45,16 +57,20 @@ class HudControlsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 230, // Fixed height for visual consistency S01
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -4))
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          )
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Pull indicator line
           Center(
@@ -62,7 +78,7 @@ class HudControlsPanel extends StatelessWidget {
               width: 50,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -70,188 +86,144 @@ class HudControlsPanel extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Scrollable content area
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                // 3x3 Command Control Grid (9 items, 3 columns)
+                SizedBox(
+                  height: 280, // Height for 3x3 grid items
+                  child: GridView.count(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 1.1,
+                    physics: const NeverScrollableScrollPhysics(),
                     children: [
-                      // Custom Vertical Battery cylinder on the left S01
-                      Container(
-                        width: 105,
-                        height: 215,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
-                          children: [
-                            FractionallySizedBox(
-                              heightFactor: batteryPercent / 100.0,
-                              widthFactor: 1.0,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981),
-                                  borderRadius: BorderRadius.only(
-                                    bottomLeft: const Radius.circular(30),
-                                    bottomRight: const Radius.circular(30),
-                                    topLeft: batteryPercent >= 95 ? const Radius.circular(30) : Radius.zero,
-                                    topRight: batteryPercent >= 95 ? const Radius.circular(30) : Radius.zero,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned.fill(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '$batteryPercent%',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        shadows: [
-                                          const Shadow(
-                                            offset: Offset(0, 1.5),
-                                            blurRadius: 3,
-                                            color: Colors.black38,
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Battery',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w900,
-                                        color: Colors.white,
-                                        shadows: [
-                                          const Shadow(
-                                            offset: Offset(0, 1.5),
-                                            blurRadius: 3,
-                                            color: Colors.black38,
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      // 1. EasyLens Connected (Bluetooth)
+                      _buildControlBox(
+                        title: 'EasyLens',
+                        subtitle: isBluetoothConnected ? 'Connected' : 'Disconnected',
+                        icon: Icons.bluetooth,
+                        activeBgColor: const Color(0xFF2B6CB0),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: isBluetoothConnected,
+                        onTap: onBluetoothToggled,
                       ),
-                      const SizedBox(width: 8),
 
-                      // Scrollable 2x2 grid panel on the right S01
-                      Expanded(
-                        child: SizedBox(
-                          height: 215,
-                          child: GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 8,
-                            childAspectRatio: 1.0,
-                            physics: const BouncingScrollPhysics(),
-                            children: [
-                              // EasyLens Connected (Bluetooth)
-                              _buildControlBox(
-                                title: 'EasyLens',
-                                subtitle: isBluetoothConnected ? 'Connected' : 'Disconnected',
-                                icon: Icons.bluetooth,
-                                activeBgColor: const Color(0xFF2B6CB0),
-                                inactiveBgColor: const Color(0xFFEDF2F7),
-                                activeTextColor: Colors.white,
-                                inactiveTextColor: const Color(0xFF2D3748),
-                                isActive: isBluetoothConnected,
-                                onTap: onBluetoothToggled,
-                              ),
+                      // 2. Gemini AI Toggle
+                      _buildControlBox(
+                        title: 'Gemini',
+                        subtitle: (isContinuousVoiceEnabled && !useLocalAI) ? 'Active' : 'Disabled',
+                        icon: Icons.auto_awesome,
+                        activeBgColor: const Color(0xFFD69E2E),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: isContinuousVoiceEnabled && !useLocalAI,
+                        onTap: onGeminiToggled,
+                      ),
 
-                              // Gemini AI Toggle
-                              _buildControlBox(
-                                title: 'Gemini',
-                                subtitle: (isContinuousVoiceEnabled && !useLocalAI) ? 'Active' : 'Disable',
-                                icon: Icons.auto_awesome,
-                                activeBgColor: const Color(0xFFD69E2E),
-                                inactiveBgColor: const Color(0xFFEDF2F7),
-                                activeTextColor: Colors.white,
-                                inactiveTextColor: const Color(0xFF2D3748),
-                                isActive: isContinuousVoiceEnabled && !useLocalAI,
-                                onTap: onGeminiToggled,
-                              ),
+                      // 3. Local AI Toggle
+                      _buildControlBox(
+                        title: 'Local AI',
+                        subtitle: (isContinuousVoiceEnabled && useLocalAI) ? 'Active' : 'Disabled',
+                        icon: Icons.offline_bolt_outlined,
+                        activeBgColor: const Color(0xFF8B5CF6),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: isContinuousVoiceEnabled && useLocalAI,
+                        onTap: onLocalAiToggled,
+                      ),
 
-                              // Local AI Toggle
-                              _buildControlBox(
-                                title: 'Local AI',
-                                subtitle: (isContinuousVoiceEnabled && useLocalAI) ? 'Active' : 'Disable',
-                                icon: Icons.offline_bolt_outlined,
-                                activeBgColor: const Color(0xFF8B5CF6),
-                                inactiveBgColor: const Color(0xFFEDF2F7),
-                                activeTextColor: Colors.white,
-                                inactiveTextColor: const Color(0xFF2D3748),
-                                isActive: isContinuousVoiceEnabled && useLocalAI,
-                                onTap: onLocalAiToggled,
-                              ),
+                      // 4. Audio Route Toggle
+                      _buildControlBox(
+                        title: 'Audio',
+                        subtitle: isAudioSpeaker ? 'Speaker' : 'Glasses',
+                        icon: isAudioSpeaker ? Icons.volume_up : Icons.headset,
+                        activeBgColor: const Color(0xFF3182CE),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: isAudioSpeaker,
+                        onTap: onAudioToggled,
+                      ),
 
-                              // Audio Route Toggle
-                              _buildControlBox(
-                                title: 'Audio',
-                                subtitle: isAudioSpeaker ? 'Speaker' : 'Glasses',
-                                icon: Icons.volume_up,
-                                activeBgColor: const Color(0xFF3182CE),
-                                inactiveBgColor: const Color(0xFFEDF2F7),
-                                activeTextColor: Colors.white,
-                                inactiveTextColor: const Color(0xFF2D3748),
-                                isActive: isAudioSpeaker,
-                                onTap: onAudioToggled,
-                              ),
+                      // 5. Network / Wifi Toggle
+                      _buildControlBox(
+                        title: 'Network',
+                        subtitle: isWifiOn ? 'On' : 'Off',
+                        icon: Icons.wifi,
+                        activeBgColor: const Color(0xFF3182CE),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: isWifiOn,
+                        onTap: onWifiToggled,
+                      ),
 
-                              // Network / Wifi Toggle
-                              _buildControlBox(
-                                title: 'Network',
-                                subtitle: isWifiOn ? 'On' : 'Off',
-                                icon: Icons.wifi,
-                                activeBgColor: const Color(0xFF3182CE),
-                                inactiveBgColor: const Color(0xFFEDF2F7),
-                                activeTextColor: Colors.white,
-                                inactiveTextColor: const Color(0xFF2D3748),
-                                isActive: isWifiOn,
-                                onTap: onWifiToggled,
-                              ),
+                      // 6. Lock Mode Toggle
+                      _buildControlBox(
+                        title: 'Lock Mode',
+                        subtitle: isScreenLocked ? 'Locked' : 'Unlocked',
+                        icon: isScreenLocked ? Icons.lock : Icons.lock_open,
+                        activeBgColor: const Color(0xFFEF4444),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: isScreenLocked,
+                        onTap: onLockToggled,
+                      ),
 
-                              // Lock Mode Toggle S01
-                              _buildControlBox(
-                                title: 'Lock Mode',
-                                subtitle: isScreenLocked ? 'Locked' : 'Unlocked',
-                                icon: isScreenLocked ? Icons.lock : Icons.lock_open,
-                                activeBgColor: const Color(0xFFEF4444),
-                                inactiveBgColor: const Color(0xFFEDF2F7),
-                                activeTextColor: Colors.white,
-                                inactiveTextColor: const Color(0xFF2D3748),
-                                isActive: isScreenLocked,
-                                onTap: onLockToggled,
-                              ),
-                            ],
-                          ),
-                        ),
+                      // 7. Flashlight / Torch LED
+                      _buildControlBox(
+                        title: 'Flashlight',
+                        subtitle: isFlashOn ? 'On' : 'Off',
+                        icon: isFlashOn ? Icons.flash_on : Icons.flash_off,
+                        activeBgColor: const Color(0xFFEAB308),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: isFlashOn,
+                        onTap: onFlashToggled ?? () {},
+                      ),
+
+                      // 8. Camera Source Toggle (Mobile / Glasses)
+                      _buildControlBox(
+                        title: 'Cam Mode',
+                        subtitle: useMobileCamera ? 'Mobile' : 'Glasses',
+                        icon: useMobileCamera ? Icons.smartphone : Icons.remove_red_eye,
+                        activeBgColor: const Color(0xFF0D9488),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: useMobileCamera,
+                        onTap: onCameraSourceToggled ?? () {},
+                      ),
+
+                      // 9. Scanner Active / Pause Toggle
+                      _buildControlBox(
+                        title: 'Scanner',
+                        subtitle: !isDetectionPaused ? 'Active' : 'Paused',
+                        icon: !isDetectionPaused ? Icons.center_focus_strong : Icons.pause_circle_outline,
+                        activeBgColor: const Color(0xFF10B981),
+                        inactiveBgColor: const Color(0xFFEDF2F7),
+                        activeTextColor: Colors.white,
+                        inactiveTextColor: const Color(0xFF2D3748),
+                        isActive: !isDetectionPaused,
+                        onTap: onDetectionToggled ?? () {},
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  modeSelector,
-                  const SizedBox(height: 12),
-                  disconnectButton,
-                ],
-              ),
+                ),
+                const SizedBox(height: 12),
+                modeSelector,
+                const SizedBox(height: 12),
+                disconnectButton,
+              ],
             ),
           ),
         ],
@@ -271,11 +243,14 @@ class HudControlsPanel extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
       child: Container(
         decoration: BoxDecoration(
           color: isActive ? activeBgColor : inactiveBgColor,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive ? Colors.transparent : Colors.black.withOpacity(0.04),
             width: 1.5,
@@ -283,38 +258,38 @@ class HudControlsPanel extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 26,
+              size: 22,
               color: isActive ? activeTextColor : const Color(0xFF475569),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               title,
               style: GoogleFonts.inter(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
                 color: isActive ? activeTextColor : const Color(0xFF1E293B),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               subtitle,
               style: GoogleFonts.inter(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
                 color: isActive ? activeTextColor.withOpacity(0.9) : const Color(0xFF64748B),
               ),
               maxLines: 1,

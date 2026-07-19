@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import 'step_helpers.dart';
+import 'voice_input_widget.dart';
 
 // STEP 18: Your Birthday
 class StepBirthdayInput extends StatefulWidget {
@@ -85,43 +86,17 @@ class _StepBirthdayInputState extends State<StepBirthdayInput> {
         ),
         const SizedBox(height: 36),
 
-        // Circular mic button
-        Center(
-          child: Column(
-            children: [
-              GestureDetector(
-                onTap: () {}, // Mic action placeholder
-                child: Container(
-                  width: 130,
-                  height: 130,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primaryButton, width: 2.5),
-                    color: Colors.transparent,
-                  ),
-                  child: Icon(
-                    Icons.mic_none,
-                    size: 52,
-                    color: AppColors.primaryButton,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Tap to Speak Birthday',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ],
-          ),
+        // Circular mic button with auto-off timer
+        VoiceMicBigButton(
+          controller: _controller,
+          onChanged: widget.onBirthdayChanged,
+          label: 'Tap to Speak Birthday',
         ),
 
         const SizedBox(height: 32),
 
         Text(
-          'Or type it below:',
+          'Or select/type below:',
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -130,19 +105,26 @@ class _StepBirthdayInputState extends State<StepBirthdayInput> {
         ),
         const SizedBox(height: 10),
 
-        // Input field — pill shaped, filled, calendar suffix icon
+        // Input field — pill shaped, filled, calendar & mic suffix icons
         TextField(
           controller: _controller,
           onChanged: widget.onBirthdayChanged,
-          readOnly: true,
-          onTap: _openDatePicker,
           style: GoogleFonts.inter(fontSize: 15, color: AppColors.primaryText),
           decoration: InputDecoration(
             hintText: 'MM / DD / YYYY',
             hintStyle: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 14),
-            suffixIcon: GestureDetector(
-              onTap: _openDatePicker,
-              child: Icon(Icons.calendar_month_outlined, color: AppColors.textMuted, size: 20),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                VoiceMicIconButton(
+                  controller: _controller,
+                  onChanged: widget.onBirthdayChanged,
+                ),
+                IconButton(
+                  icon: Icon(Icons.calendar_month_outlined, color: AppColors.textMuted, size: 20),
+                  onPressed: _openDatePicker,
+                ),
+              ],
             ),
             filled: true,
             fillColor: AppColors.lightBackground,

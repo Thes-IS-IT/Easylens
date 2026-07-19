@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../constants/colors.dart';
 import '../../services/tts_service.dart';
 import '../../services/firebase_service.dart';
+
 import '../emergency/emergency_screen.dart';
 import '../settings/settings_screen.dart';
 import '../notifications/notifications_screen.dart';
@@ -29,9 +30,6 @@ class NavigationScreen extends StatefulWidget {
 }
 
 class _NavigationScreenState extends State<NavigationScreen> {
-  final _firebaseService = FirebaseService();
-  late String _displayName;
-  int _currentIndex = 0;
 
   String _formatDistance(String distanceStr, String unit) {
     if (unit == 'Imperial') {

@@ -237,45 +237,15 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       HapticFeedback.mediumImpact();
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) {
-          Navigator.of(context).pop();
+          // Do NOT pop here — the DashboardScreen's onNavigate callback already
+          // closes the sheet with the correct modal context. A double-pop here
+          // would pop DashboardScreen off the stack and cause a black screen.
           widget.onNavigate(matchedKey);
         }
       });
     }
   }
 
-  void _animateResponse(String response) {
-    if (!mounted) return;
-    
-    setState(() {
-      _isThinking = false;
-      _messages.add({'text': '', 'isUser': false});
-    });
-
-    final int targetIndex = _messages.length - 1;
-    int index = 0;
-    
-    const int step = 3;
-    Timer.periodic(const Duration(milliseconds: 15), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      index += step;
-      if (index >= response.length) {
-        setState(() {
-          _messages[targetIndex]['text'] = response;
-        });
-        timer.cancel();
-        _scrollToBottom();
-      } else {
-        setState(() {
-          _messages[targetIndex]['text'] = response.substring(0, index);
-        });
-        _scrollToBottom();
-      }
-    });
-  }
 
   String? _detectNavigationTarget(String userQuery, String llmResponse) {
     // 1. First check if LLM response has explicit NAVIGATE tag

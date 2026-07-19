@@ -89,7 +89,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
   StreamSubscription<BatteryState>? _batterySubscription;
   final Battery _battery = Battery();
   Timer? _objectDetectionTimer;
-  int _lastMobileNetRun = 0;
 
   // Track bounding boxes for detected objects
   List<Rect> _detectedObjectRects = [];
@@ -108,6 +107,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isGeminiEnabled = false;
   bool _isWifiOn = false;
   bool _isAudioSpeaker = true; // true = Phone Speaker, false = Glasses
+  bool _useMobileCamera = false;
+  bool _isFlashOn = false;
 
   // Cooldown trackers for TTS announcements S01
   final Map<String, DateTime> _lastSpokenMap = {};
@@ -287,11 +288,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
     Esp32Service().addListener(_onEsp32FrameAvailable);
     BuddyAssistantSheet.isVisible.addListener(_onBuddyVisibilityChanged);
     SpeechNavigationNotifier.hardwareControlNotifier.addListener(_onSpeechHardwareControl);
-
-    // Auto-connect to ESP32 camera if not connected
-    if (!Esp32Service().isConnected && !Esp32Service().isConnecting) {
-      Esp32Service().connect();
-    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScreenTutorialCard.showIfNeeded(
@@ -711,50 +707,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
-  Widget _buildModeButton(HudMode mode, String label, IconData icon, Color activeColor) {
-    final isSelected = _selectedHudMode == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedHudMode = mode;
-            _applyModeChange(mode);
-          });
-        },
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: isSelected ? activeColor : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? Colors.transparent : Colors.grey.shade200,
-              width: 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: isSelected ? Colors.white : Colors.black54,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _initializeMLKitLabeler() {
     final options = ImageLabelerOptions(confidenceThreshold: 0.35);
     _imageLabeler = ImageLabeler(options: options);
@@ -903,24 +855,41 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
-  Future<void> _initializeCamera() async {
-    if (!Esp32Service().isConnected && !Esp32Service().isConnecting) {
+  Future<void> _initializeCamera({bool forceMobile = false}) async {
+    if (!forceMobile && !_useMobileCamera && !Esp32Service().isConnected && !Esp32Service().isConnecting) {
       await Esp32Service().connect().timeout(
-        const Duration(seconds: 3),
+        const Duration(seconds: 2),
         onTimeout: () => false,
       );
     }
-    if (Esp32Service().isConnected) {
-      setState(() {
-        _isCameraInitialized = true;
-        _pairStep = 4;
-      });
+    if (!forceMobile && !_useMobileCamera && Esp32Service().isConnected) {
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+          _pairStep = 4;
+        });
+      }
+      return;
+    }
+    
+    // Instant Fallback to Phone/Mobile Camera without hanging
+    await _initializeMobileCameraOnly();
+  }
+
+  Future<void> _initializeMobileCameraOnly() async {
+    if (_cameraController != null && _cameraController!.value.isInitialized) {
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+          _pairStep = 4;
+        });
+      }
       return;
     }
     try {
       _cameras = await availableCameras();
       if (_cameras != null && _cameras!.isNotEmpty) {
-        _cameraController = CameraController(
+        final controller = CameraController(
           _cameras![0],
           ResolutionPreset.medium,
           enableAudio: false,
@@ -928,17 +897,18 @@ class _HardwareScreenState extends State<HardwareScreen> {
               ? ImageFormatGroup.yuv420
               : ImageFormatGroup.bgra8888,
         );
-        await _cameraController!.initialize();
-        
-        // Start streaming frames continuously for ML Kit labeling and SSD MobileNet V2
-        _cameraController!.startImageStream(_onCameraFrameReceived);
-
-        if (mounted) {
-          setState(() {
-            _isCameraInitialized = true;
-            _pairStep = 4; // Open Object Detection UI directly
-          });
+        await controller.initialize();
+        if (!mounted) {
+          controller.dispose();
+          return;
         }
+        controller.startImageStream(_onCameraFrameReceived);
+        setState(() {
+          _cameraController = controller;
+          _isCameraInitialized = true;
+          _useMobileCamera = true;
+          _pairStep = 4;
+        });
       } else {
         _showNoCameraMessage();
       }
@@ -1012,72 +982,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
     });
   }
 
-  Widget _buildControlBox({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color activeBgColor,
-    required Color inactiveBgColor,
-    required Color activeTextColor,
-    required Color inactiveTextColor,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isActive ? activeBgColor : inactiveBgColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isActive ? Colors.transparent : Colors.black.withOpacity(0.04),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 26,
-              color: isActive ? activeTextColor : const Color(0xFF475569),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isActive ? activeTextColor : const Color(0xFF1E293B),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: GoogleFonts.inter(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: isActive ? activeTextColor.withOpacity(0.9) : const Color(0xFF64748B),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _detectObjectsOnFrame(Uint8List bytes, int width, int height) async {
     if (_objectDetector == null) return;
@@ -2141,19 +2045,24 @@ class _HardwareScreenState extends State<HardwareScreen> {
       _wasEsp32Connected = connected;
       if (connected) {
         // Pause/dispose native camera when glasses connect to save battery
+        _cameraController?.stopImageStream();
         _cameraController?.dispose();
         _cameraController = null;
         setState(() {
+          _useMobileCamera = false;
           _isCameraInitialized = true;
           _pairStep = 4; // Go directly to live preview screen S01
         });
       } else {
-        // Re-initialize native camera if glasses disconnect
-        _initializeCamera();
+        // Glasses cut off, lost connection, or battery died out!
+        // Immediately fall back to mobile camera by default without hanging!
+        _initializeCamera(forceMobile: true);
+        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+        TtsService().speak(isTagalog ? "Nawala ang koneksyon ng salamin. Lumipat sa camera ng telepono." : "Glasses disconnected. Switched to phone camera.");
       }
     }
 
-    if (_isPaused || !connected) return;
+    if (_isPaused || !connected || _useMobileCamera) return;
     await _processEsp32Frame();
   }
 
@@ -2216,12 +2125,52 @@ class _HardwareScreenState extends State<HardwareScreen> {
     });
   }
 
-  void _onStartPairing() {
-    setState(() {
-      _pairStep = 3;
-    });
-    if (!Esp32Service().isConnected && !Esp32Service().isConnecting) {
-      Esp32Service().connect();
+  Future<void> _onStartPairing() async {
+    if (!mounted) return;
+    setState(() => _pairStep = 3);
+
+    // If already connected, skip straight to HUD live view
+    if (Esp32Service().isConnected) {
+      setState(() {
+        _isCameraInitialized = true;
+        _pairStep = 4;
+      });
+      return;
+    }
+
+    // Attempt connection with a 10-second timeout so the
+    // scanning screen never hangs indefinitely.
+    bool ok = false;
+    try {
+      ok = await Esp32Service().connect().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => false,
+      );
+    } catch (_) {
+      ok = false;
+    }
+
+    if (!mounted) return;
+
+    if (ok) {
+      setState(() {
+        _isCameraInitialized = true;
+        _pairStep = 4;
+      });
+    } else {
+      // Return to step 2 so the user can try again
+      setState(() => _pairStep = 2);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Could not connect. Make sure you joined "EasyLens-Camera" WiFi and the glasses are on.',
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
   }
 
@@ -2235,9 +2184,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   // STT, Gemini & TTS Voice Assistant Integration
-  void _queryGeminiSurroundings() {
-    _showGeminiVoiceAssistantBottomSheet(context);
-  }
 
   Future<void> _runContinuousVoiceLoop() async {
     if (!_isContinuousVoiceEnabled || !mounted) return;
@@ -3203,10 +3149,19 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
               isScreenLocked: _isScreenLocked,
               useLocalAI: _useLocalAI,
               isContinuousVoiceEnabled: _isContinuousVoiceEnabled,
-              onBluetoothToggled: () {
+              isFlashOn: _isFlashOn,
+              useMobileCamera: _useMobileCamera || !Esp32Service().isConnected,
+              isDetectionPaused: _isPaused,
+              onBluetoothToggled: () async {
                 setState(() {
                   _isBluetoothConnected = !_isBluetoothConnected;
                 });
+                if (!_isBluetoothConnected) {
+                  await Esp32Service().disconnect();
+                  _initializeCamera(forceMobile: true);
+                } else {
+                  Esp32Service().connect();
+                }
               },
               onGeminiToggled: () {
                 setState(() {
@@ -3272,6 +3227,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 setState(() {
                   _isAudioSpeaker = !_isAudioSpeaker;
                 });
+                TtsService().speak(_isAudioSpeaker ? "Phone speaker active." : "Glasses audio route active.");
               },
               onWifiToggled: () {
                 setState(() {
@@ -3284,6 +3240,45 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 setState(() {
                   _isScreenLocked = true;
                 });
+              },
+              onFlashToggled: () async {
+                setState(() {
+                  _isFlashOn = !_isFlashOn;
+                });
+                if (Esp32Service().isConnected) {
+                  await Esp32Service().setFlash(_isFlashOn);
+                } else if (_cameraController != null && _cameraController!.value.isInitialized) {
+                  try {
+                    await _cameraController!.setFlashMode(_isFlashOn ? FlashMode.torch : FlashMode.off);
+                  } catch (_) {}
+                }
+              },
+              onCameraSourceToggled: () async {
+                setState(() {
+                  _useMobileCamera = !_useMobileCamera;
+                });
+                if (_useMobileCamera) {
+                  await Esp32Service().disconnect(silent: true);
+                  _initializeCamera(forceMobile: true);
+                  TtsService().speak("Switched to phone camera.");
+                } else {
+                  _cameraController?.stopImageStream();
+                  _cameraController?.dispose();
+                  _cameraController = null;
+                  final success = await Esp32Service().connect();
+                  if (!success) {
+                    _initializeCamera(forceMobile: true);
+                    TtsService().speak("Could not reach glasses. Using phone camera.");
+                  } else {
+                    TtsService().speak("Connected to glasses stream.");
+                  }
+                }
+              },
+              onDetectionToggled: () {
+                setState(() {
+                  _isPaused = !_isPaused;
+                });
+                TtsService().speak(_isPaused ? "Scanner paused." : "Scanner resumed.");
               },
               modeSelector: HudModeSelector(
                 selectedHudMode: _selectedHudMode,
