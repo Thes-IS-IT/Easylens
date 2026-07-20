@@ -143,6 +143,34 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleLogin() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final user = await _firebaseService.signInWithGoogle();
+      if (user != null && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          AppRoute.to(const DashboardScreen()),
+          (route) => false,
+        );
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = "Google Sign In failed. Please try again.";
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -235,160 +263,225 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildGoogleButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF002663),
+          elevation: 0,
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28.0),
+          ),
+        ),
+        onPressed: _handleGoogleLogin,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFFF1F5F9),
+              ),
+              child: const Icon(
+                Icons.g_mobiledata_rounded,
+                color: Color(0xFF4285F4),
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Continue with Google',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF002663),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
-      body: Stack(
-        children: [
-          // Scrollable login form content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: _isLoading
-                  ? Center(child: CircularProgressIndicator(color: AppColors.primaryButton),
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Space to clear the floating Back button
-                        const SizedBox(height: 135),
-                        
-                        Expanded(
-                          child: SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(
-                              parent: BouncingScrollPhysics(),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator(color: AppColors.primaryButton))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+
+                    // Pill-shaped back button
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightBackground,
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(color: AppColors.cardBorder.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.arrow_back_ios_new, size: 14, color: AppColors.primaryText),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Back',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryText,
+                              ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Welcome back!',
+                              style: GoogleFonts.inter(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFF002663),
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Sign in with your email or social account below.',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                color: AppColors.textMuted,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+
+                            if (_errorMessage != null) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.red.shade200),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        _errorMessage!,
+                                        style: GoogleFonts.inter(
+                                          color: Colors.red.shade900,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+
+                            _buildTextField(
+                              controller: _emailController,
+                              hintText: 'Enter email address',
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _passwordController,
+                              hintText: 'Enter password',
+                              obscureText: _obscurePassword,
+                              isPassword: true,
+                            ),
+                            const SizedBox(height: 20),
+                            _buildRememberMeToggle(),
+                            const SizedBox(height: 24),
+
+                            // Sign In Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF002663),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(28.0),
+                                  ),
+                                ),
+                                onPressed: _handleLogin,
+                                child: Text(
+                                  'Sign in',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // Divider OR
+                            Row(
                               children: [
-                                Text(
-                                  'Welcome back!',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF002663),
-                                    height: 1.2,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Sign in with your email and password below.',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 15,
-                                    color: AppColors.textMuted,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
-                                
-                                if (_errorMessage != null) ...[
-                                  Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(
-                                      color: Colors.red,
+                                const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1.5)),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Text(
+                                    'OR',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF94A3B8),
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
-                                ],
-                                
-                                _buildTextField(
-                                  controller: _emailController,
-                                  hintText: 'Enter email address',
-                                  keyboardType: TextInputType.emailAddress,
                                 ),
-                                const SizedBox(height: 16),
-                                _buildTextField(
-                                  controller: _passwordController,
-                                  hintText: 'Enter password',
-                                  obscureText: _obscurePassword,
-                                  isPassword: true,
-                                ),
-                                const SizedBox(height: 24),
-                                _buildRememberMeToggle(),
-                                const SizedBox(height: 32),
+                                const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1.5)),
                               ],
                             ),
-                          ),
+
+                            const SizedBox(height: 20),
+
+                            // Continue with Google Button
+                            _buildGoogleButton(),
+
+                            const SizedBox(height: 24),
+                          ],
                         ),
-                        
-                        // Action Sign In Button
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 24.0),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF002663),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(28.0),
-                                ),
-                              ),
-                              onPressed: _handleLogin,
-                              child: Text(
-                                'Sign in',
-                                style: GoogleFonts.inter(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-            ),
-          ),
-          
-          // Absolute Positioned Floating Back Button
-          Positioned(
-            top: 75.0,
-            left: 24.0,
-            child: SizedBox(
-              width: 95.0,
-              height: 44.0,
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.lightBackground,
-                    border: Border.all(color: AppColors.cardBorder, width: 1.5),
-                    borderRadius: BorderRadius.circular(30.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadowColor,
-                        blurRadius: 10.0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.chevron_left,
-                        size: 20,
-                        color: AppColors.primaryText,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Back',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primaryText,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
