@@ -91,16 +91,26 @@ class _StepSosContactState extends State<StepSosContact> {
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
               try {
-                // 1. Open native platform contact picker
+                // 1. Request permission so FlutterContacts can fetch contact properties
+                try {
+                  await FlutterContacts.permissions.request(PermissionType.read);
+                } catch (_) {}
+
+                // 2. Open native platform contact picker
                 final picked = await FlutterContacts.native.showPicker();
                 if (picked != null) {
-                  // 2. Fetch full contact details with properties (phone numbers, etc.)
+                  // 3. Fetch full contact details with phone properties
                   Contact? fullContact;
                   final contactId = picked.id;
                   if (contactId != null && contactId.isNotEmpty) {
                     try {
-                      fullContact = await FlutterContacts.get(contactId);
-                    } catch (_) {}
+                      fullContact = await FlutterContacts.get(
+                        contactId,
+                        properties: {ContactProperty.phone, ContactProperty.name},
+                      );
+                    } catch (e) {
+                      print('Error fetching contact details: $e');
+                    }
                   }
                   fullContact ??= picked;
 
@@ -114,7 +124,28 @@ class _StepSosContactState extends State<StepSosContact> {
 
                   String phone = '';
                   if (fullContact.phones.isNotEmpty) {
-                    phone = _sanitizePhone(fullContact.phones.first.number);
+                    final numStr = fullContact.phones.firstWhere(
+                      (p) => p.number.trim().isNotEmpty,
+                      orElse: () => fullContact!.phones.first,
+                    ).number;
+                    phone = _sanitizePhone(numStr);
+                  }
+
+                  // 4. Fallback search if phone is still empty
+                  if (phone.isEmpty && name.isNotEmpty) {
+                    try {
+                      final allContacts = await FlutterContacts.getAll(
+                        properties: {ContactProperty.phone, ContactProperty.name},
+                      );
+                      for (final c in allContacts) {
+                        if (c.id == picked.id || (c.displayName ?? '').toLowerCase() == name.toLowerCase()) {
+                          if (c.phones.isNotEmpty) {
+                            phone = _sanitizePhone(c.phones.first.number);
+                            break;
+                          }
+                        }
+                      }
+                    } catch (_) {}
                   }
 
                   setState(() {
