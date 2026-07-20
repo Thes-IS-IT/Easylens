@@ -62,8 +62,11 @@ class HudCameraView extends StatelessWidget {
     if (label.contains('wall') || label.contains('partition') || label.contains('divider')) {
       return 'wall';
     }
-    if (label.contains('door') || label.contains('doorway') || label.contains('entrance')) {
+    if (label.contains('door') || label.contains('doorway') || label.contains('entrance') || label.contains('exit')) {
       return 'door';
+    }
+    if (label.contains('window') || label.contains('glass window') || label.contains('pane')) {
+      return 'window';
     }
     if (label.contains('chair') || label.contains('stool') || label.contains('sofa') || label.contains('couch') || label.contains('armchair')) {
       return 'chair';

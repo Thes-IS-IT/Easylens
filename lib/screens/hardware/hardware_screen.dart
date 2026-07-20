@@ -1846,6 +1846,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
             final essentialKeywords = [
               'stair', 'step', 'escalator', 'elevator', 'lift',
               'door', 'gate', 'entrance', 'doorway', 'exit',
+              'window', 'glass window', 'pane', 'glass',
               'wall', 'partition', 'fence', 'barrier', 'post', 'pole', 'column', 'pillar',
               'pothole', 'hole', 'crack', 'depression',
               'car', 'bus', 'truck', 'vehicle', 'jeepney', 'tricycle', 'motorcycle', 'bicycle',
@@ -1894,14 +1895,25 @@ class _HardwareScreenState extends State<HardwareScreen> {
             selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
           } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
             selectedSim = _hazardSimulations[12]; // Person Detected
-          } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway')) {
+          } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway') || topLabel.contains('exit')) {
+            final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
             selectedSim = {
-              'title': 'Door Detected',
-              'desc': 'Slow down. Door or entrance located in front of you.',
-              'bg': const Color(0xFFE0F7FA),
-              'icon': Icons.meeting_room,
+              'title': isTagalog ? 'May Pintuan sa Harap' : 'Door Ahead',
+              'desc': isTagalog ? 'Papalapit ka sa pintuan o pasukan.' : 'You are approaching a door or entrance ahead.',
+              'bg': const Color(0xFFE0F7FA), // Soft cyan non-critical notice
+              'icon': Icons.door_front_door_outlined,
               'iconColor': Colors.teal,
-              'speech': 'Slow down. Door or entrance detected ahead.'
+              'speech': isTagalog ? 'Papalapit ka sa pintuan.' : 'You are approaching a door.'
+            };
+          } else if (topLabel.contains('window') || topLabel.contains('glass window') || topLabel.contains('pane')) {
+            final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+            selectedSim = {
+              'title': isTagalog ? 'May Bintana sa Malapit' : 'Window Nearby',
+              'desc': isTagalog ? 'Papalapit ka sa bintana o salamin.' : 'You are approaching a window or glass pane.',
+              'bg': const Color(0xFFE3F2FD), // Soft blue non-critical notice
+              'icon': Icons.window_outlined,
+              'iconColor': Colors.blue,
+              'speech': isTagalog ? 'Papalapit ka sa bintana.' : 'You are approaching a window.'
             };
           } else if (topLabel.contains('wall')) {
             selectedSim = {
