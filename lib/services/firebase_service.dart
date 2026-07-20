@@ -177,99 +177,109 @@ class FirebaseService {
 
   // Google Sign In
   Future<EasyLensUser?> signInWithGoogle() async {
+    if (!_firebaseInitialized) {
+      throw Exception("Firebase is not initialized.");
+    }
+
+    GoogleSignInAccount? googleUser;
+    dynamic nativeError;
+
     try {
-      if (_firebaseInitialized) {
-        GoogleSignInAccount? googleUser;
-        try {
-          final GoogleSignIn googleSignIn = GoogleSignIn();
-          googleUser = await googleSignIn.signInSilently() ?? await googleSignIn.signIn();
-        } catch (signInErr) {
-          print("GoogleSignIn native picker error: $signInErr");
-        }
+      final webClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID'];
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+        serverClientId: (webClientId != null && webClientId.isNotEmpty) ? webClientId : null,
+      );
+      googleUser = await googleSignIn.signIn();
+    } catch (signInErr) {
+      print("GoogleSignIn native picker error: $signInErr");
+      nativeError = signInErr;
+    }
 
-        if (googleUser == null) return null; // User cancelled sign-in
+    if (googleUser == null) {
+      if (nativeError != null) {
+        throw Exception("Google Sign-In unavailable on device: $nativeError. Please sign in with Email.");
+      }
+      return null; // User cancelled
+    }
 
-        final String userEmail = googleUser.email.trim();
-        final String userDisplayName = googleUser.displayName?.trim().isNotEmpty == true
-            ? googleUser.displayName!.trim()
-            : userEmail.split('@')[0];
+    final String userEmail = googleUser.email.trim();
+    final String userDisplayName = googleUser.displayName?.trim().isNotEmpty == true
+        ? googleUser.displayName!.trim()
+        : userEmail.split('@')[0];
 
-        // Attempt 1: Authenticate via Google Auth Credential with Firebase
-        try {
-          final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-          final AuthCredential credential = GoogleAuthProvider.credential(
-            accessToken: googleAuth.accessToken,
-            idToken: googleAuth.idToken,
+    // Attempt 1: Authenticate via Google Auth Credential with Firebase
+    try {
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        return EasyLensUser(
+          uid: user.uid,
+          email: user.email ?? userEmail,
+          displayName: user.displayName ?? userDisplayName,
+          isForMyself: true,
+        );
+      }
+    } catch (firebaseCredentialErr) {
+      print("Firebase Google Credential Error ($firebaseCredentialErr). Linking real Gmail ($userEmail)...");
+      
+      // Attempt 2: Register/Sign-in the user's REAL Gmail address with Firebase Auth
+      final String customPass = "EasyLens_Google_${userEmail.hashCode}";
+      try {
+        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: userEmail,
+          password: customPass,
+        );
+        if (cred.user != null) {
+          await cred.user!.updateDisplayName(userDisplayName);
+          return EasyLensUser(
+            uid: cred.user!.uid,
+            email: userEmail,
+            displayName: userDisplayName,
+            isForMyself: true,
           );
-
-          final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-          final User? user = userCredential.user;
-
-          if (user != null) {
-            return EasyLensUser(
-              uid: user.uid,
-              email: user.email ?? userEmail,
-              displayName: user.displayName ?? userDisplayName,
-              isForMyself: true,
-            );
-          }
-        } catch (firebaseCredentialErr) {
-          print("Firebase Google Credential Error ($firebaseCredentialErr). Linking real Gmail ($userEmail) with Firebase Auth...");
-          
-          // Attempt 2: Register/Sign-in the user's REAL Gmail address with Firebase Auth
-          final String customPass = "EasyLens_Google_${userEmail.hashCode}";
+        }
+      } catch (signUpErr) {
+        if (signUpErr.toString().contains("email-already-in-use")) {
           try {
-            final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
               email: userEmail,
               password: customPass,
             );
             if (cred.user != null) {
-              await cred.user!.updateDisplayName(userDisplayName);
               return EasyLensUser(
                 uid: cred.user!.uid,
                 email: userEmail,
-                displayName: userDisplayName,
+                displayName: cred.user!.displayName ?? userDisplayName,
                 isForMyself: true,
               );
             }
-          } catch (signUpErr) {
-            if (signUpErr.toString().contains("email-already-in-use")) {
-              try {
-                final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                  email: userEmail,
-                  password: customPass,
-                );
-                if (cred.user != null) {
-                  return EasyLensUser(
-                    uid: cred.user!.uid,
-                    email: userEmail,
-                    displayName: cred.user!.displayName ?? userDisplayName,
-                    isForMyself: true,
-                  );
-                }
-              } catch (_) {
-                final currentUser = FirebaseAuth.instance.currentUser;
-                if (currentUser != null && currentUser.email == userEmail) {
-                  return EasyLensUser(
-                    uid: currentUser.uid,
-                    email: userEmail,
-                    displayName: currentUser.displayName ?? userDisplayName,
-                    isForMyself: true,
-                  );
-                }
-                return EasyLensUser(
-                  uid: "google_${userEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}",
-                  email: userEmail,
-                  displayName: userDisplayName,
-                  isForMyself: true,
-                );
-              }
+          } catch (_) {
+            final currentUser = FirebaseAuth.instance.currentUser;
+            if (currentUser != null && currentUser.email == userEmail) {
+              return EasyLensUser(
+                uid: currentUser.uid,
+                email: userEmail,
+                displayName: currentUser.displayName ?? userDisplayName,
+                isForMyself: true,
+              );
             }
+            return EasyLensUser(
+              uid: "google_${userEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}",
+              email: userEmail,
+              displayName: userDisplayName,
+              isForMyself: true,
+            );
           }
         }
       }
-    } catch (e) {
-      print("Google Sign In Global Exception: $e");
     }
 
     return null;

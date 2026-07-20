@@ -162,8 +162,11 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final errStr = e.toString().replaceAll(RegExp(r'^(Exception|PlatformException):\s*'), '');
         setState(() {
-          _errorMessage = "Google Sign In failed. Please try again.";
+          _errorMessage = errStr.contains('10') || errStr.contains('sign_in_failed')
+              ? 'Google Sign-In is unavailable on this device build (Developer Code 10). Please sign in using your Email.'
+              : errStr;
           _isLoading = false;
         });
       }
