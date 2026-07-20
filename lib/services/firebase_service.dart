@@ -185,10 +185,10 @@ class FirebaseService {
     dynamic nativeError;
 
     try {
-      final webClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID'];
+      final webClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? "1082778201757-v5b4s0ppmei019gm0tg5727k3706r3if.apps.googleusercontent.com";
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
-        serverClientId: (webClientId != null && webClientId.isNotEmpty) ? webClientId : null,
+        serverClientId: webClientId,
       );
       googleUser = await googleSignIn.signIn();
     } catch (signInErr) {

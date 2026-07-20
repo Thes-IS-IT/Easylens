@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1082778201757-hmhcacpkmi2qemm3rqgqdnqf6kdivbgp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.easylens",
+            "certificate_hash": "449d1dcb363a578b7de1e010286d8c0a90a40e57"
+          }
+        },
+        {
           "client_id": "1082778201757-v5b4s0ppmei019gm0tg5727k3706r3if.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +37,13 @@
             {
               "client_id": "1082778201757-v5b4s0ppmei019gm0tg5727k3706r3if.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "1082778201757-36cud5k4dl5g6ie8ma34apgeun9r4dcn.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.company.easylens"
+              }
             }
           ]
         }
