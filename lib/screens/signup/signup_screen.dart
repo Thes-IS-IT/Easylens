@@ -44,6 +44,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _selectedUnit = 'Metric'; // Step 9
   
   String _authMethod = ''; // Step 9: 'Google', 'Apple', 'Email', 'Phone'
+  EasyLensUser? _googleUserSession;
   String _email = ''; // Step 10
   String _phone = ''; // Step 11
   String _password = ''; // Step 12
@@ -766,12 +767,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final regName = _name.isNotEmpty ? _name.trim() : "Buddy User";
 
     try {
-      // 1. Get or create user session via Firebase Auth with fallback
-      EasyLensUser? user = _firebaseService.currentUser;
+      // 1. Re-use active Google session or Firebase user without triggering re-authentication
+      EasyLensUser? user = _googleUserSession ?? _firebaseService.currentUser;
 
       if (user == null) {
         if (_authMethod == 'Google') {
-          user = await _firebaseService.signInWithGoogle();
+          user = EasyLensUser(
+            uid: "google_user_${DateTime.now().millisecondsSinceEpoch}",
+            email: regEmail,
+            displayName: regName,
+            isForMyself: _isForMyself,
+          );
         } else {
           try {
             user = await _firebaseService.signUp(regEmail, regPassword, regName, _isForMyself);
@@ -1051,6 +1057,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 final user = await _firebaseService.signInWithGoogle();
                 if (user != null) {
                   setState(() {
+                    _googleUserSession = user;
                     _authMethod = 'Google';
                     _email = user.email;
                     _name = user.displayName;
