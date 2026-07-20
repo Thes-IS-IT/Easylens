@@ -16,6 +16,14 @@ class SignupL10n {
       'language_english': 'English',
       'language_filipino': 'Filipino',
 
+      // ── Step 1b: Signup Mode ─────────────────────────────────────────
+      'mode_title': 'Registration Method',
+      'mode_subtitle': 'How would you like to set up your account?',
+      'mode_voice_title': 'Voice Command Fillup',
+      'mode_voice_desc': 'Buddy will read steps out loud and listen for your voice choices and commands.',
+      'mode_manual_title': 'Manual Form Fillup',
+      'mode_manual_desc': 'Fill up the onboarding wizard manually using touch buttons.',
+
       // ── Step 2: Persona ──────────────────────────────────────────────
       'persona_title': 'Who is this for?',
       'persona_subtitle': 'Tell us who will be using the app so we can tailor the experience.',
@@ -182,6 +190,14 @@ class SignupL10n {
       'language_subtitle': 'Anong wika ang gusto mong gamitin ng app?',
       'language_english': 'English',
       'language_filipino': 'Filipino',
+
+      // ── Step 1b: Signup Mode ─────────────────────────────────────────
+      'mode_title': 'Paraan ng Pagpaparehistro',
+      'mode_subtitle': 'Paano mo gustong sagutan ang pag-setup ng iyong account?',
+      'mode_voice_title': 'Voice Command Fillup (Gamit ang Boses)',
+      'mode_voice_desc': 'Babasahin ni Buddy ang mga hakbang at makikinig sa iyong boses para sa mga pili.',
+      'mode_manual_title': 'Manwal na Pagpuno (Gamit ang Pindot)',
+      'mode_manual_desc': 'Sagutan ang onboarding wizard gamit ang karaniwang mga pindutan.',
 
       // ── Step 2: Persona ──────────────────────────────────────────────
       'persona_title': 'Para kanino ito?',

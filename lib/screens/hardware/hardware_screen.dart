@@ -3090,7 +3090,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 cocoLabels: _cocoLabels,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             // Status Card overlay displaying ML Kit Hazard warning matching mockup
             ListenableBuilder(
               listenable: ActiveNavigationService(),
@@ -3114,44 +3114,45 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: bg,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Row(
                     children: [
                       CircleAvatar(
                         backgroundColor: iconColor.withOpacity(0.12),
-                        radius: 20,
-                        child: Icon(icon, color: iconColor, size: 24),
+                        radius: 16,
+                        child: Icon(icon, color: iconColor, size: 20),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               title,
-                              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                              style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black),
                             ),
-                            const SizedBox(height: 2),
                             Text(
                               desc,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                              style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade700),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.green.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         child: Text(
                           'ACTIVE',
-                          style: GoogleFonts.inter(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.inter(color: Colors.green, fontSize: 9, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -3159,7 +3160,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 );
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             HudControlsPanel(
               batteryPercent: _batteryPercent,
               isBluetoothConnected: _isBluetoothConnected,
@@ -3173,14 +3174,31 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
               useMobileCamera: _useMobileCamera || !Esp32Service().isConnected,
               isDetectionPaused: _isPaused,
               onBluetoothToggled: () async {
+                final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
                 setState(() {
                   _isBluetoothConnected = !_isBluetoothConnected;
                 });
                 if (!_isBluetoothConnected) {
                   await Esp32Service().disconnect();
+                  setState(() {
+                    _useMobileCamera = true;
+                  });
                   _initializeCamera(forceMobile: true);
+                  TtsService().speak(isTagalog ? "Naka-disconnect na sa EasyLens. Gagamitin ang mobile camera." : "Disconnected from EasyLens. Using mobile camera.");
                 } else {
-                  Esp32Service().connect();
+                  setState(() {
+                    _useMobileCamera = false;
+                  });
+                  TtsService().speak(isTagalog ? "Kumokonekta sa EasyLens Smart Glasses..." : "Connecting to EasyLens Smart Glasses...");
+                  final connected = await Esp32Service().connect();
+                  if (!connected && mounted) {
+                    // Open Pairing Wizard if glasses AP is not directly reachable
+                    setState(() {
+                      _pairStep = 2;
+                    });
+                  } else if (mounted) {
+                    TtsService().speak(isTagalog ? "Naka-connect na sa EasyLens Smart Glasses!" : "Connected to EasyLens Smart Glasses!");
+                  }
                 }
               },
               onGeminiToggled: () {
@@ -3311,17 +3329,17 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
               ),
               disconnectButton: SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 38,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF002663),
                     side: const BorderSide(color: Color(0xFF002663), width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
                   onPressed: _onCancelOrBack,
                   child: Text(
                     'Disconnect HUD Feed',
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

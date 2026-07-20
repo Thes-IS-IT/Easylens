@@ -364,7 +364,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     }
                     if (tab is HardwareScreen) {
                       return Padding(
-                        padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 90.0),
+                        padding: const EdgeInsets.fromLTRB(12.0, 8.0, 12.0, 100.0),
                         child: tab,
                       );
                     }

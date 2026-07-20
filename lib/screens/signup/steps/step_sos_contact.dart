@@ -7,7 +7,7 @@ import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
-// STEP 18: Your SOS Contact
+// STEP 19: Your SOS Contact
 class StepSosContact extends StatefulWidget {
   final String name;
   final String phone;
@@ -55,9 +55,12 @@ class _StepSosContactState extends State<StepSosContact> {
     super.dispose();
   }
 
-  /// Strips all non-digit characters and trims to 11 digits.
+  /// Strips all non-digit characters, converts +63, and trims to 11 digits.
   String _sanitizePhone(String raw) {
-    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    String digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('63') && digits.length == 12) {
+      digits = '0${digits.substring(2)}';
+    }
     return digits.length > 11 ? digits.substring(0, 11) : digits;
   }
 
@@ -88,29 +91,41 @@ class _StepSosContactState extends State<StepSosContact> {
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
               try {
-                final contact = await FlutterContacts.native.showPicker();
-                if (contact != null) {
-                  final contactId = contact.id;
-                  if (contactId != null) {
-                    final fullContact = await FlutterContacts.get(contactId);
-                    if (fullContact != null) {
-                      final name = fullContact.displayName ?? '';
-                      String phone = '';
-                      if (fullContact.phones.isNotEmpty) {
-                        // Sanitize: digits only, max 11 characters
-                        phone = _sanitizePhone(fullContact.phones.first.number);
-                      }
-
-                      setState(() {
-                        _nameController.text = name;
-                        _phoneController.text = phone;
-                      });
-                      widget.onNameChanged(name);
-                      widget.onPhoneChanged(phone);
-                    }
+                // 1. Open native platform contact picker
+                final picked = await FlutterContacts.native.showPicker();
+                if (picked != null) {
+                  // 2. Fetch full contact details with properties (phone numbers, etc.)
+                  Contact? fullContact;
+                  final contactId = picked.id;
+                  if (contactId != null && contactId.isNotEmpty) {
+                    try {
+                      fullContact = await FlutterContacts.get(contactId);
+                    } catch (_) {}
                   }
+                  fullContact ??= picked;
+
+                  final String displayName = fullContact.displayName ?? '';
+                  final String firstName = fullContact.name?.first ?? '';
+                  final String lastName = fullContact.name?.last ?? '';
+
+                  final String name = displayName.isNotEmpty
+                      ? displayName
+                      : ('$firstName $lastName').trim();
+
+                  String phone = '';
+                  if (fullContact.phones.isNotEmpty) {
+                    phone = _sanitizePhone(fullContact.phones.first.number);
+                  }
+
+                  setState(() {
+                    _nameController.text = name;
+                    _phoneController.text = phone;
+                  });
+                  widget.onNameChanged(name);
+                  widget.onPhoneChanged(phone);
                 }
               } catch (e) {
+                print('Native Contact Picker Error: $e');
                 messenger.showSnackBar(
                   SnackBar(
                     content: const Text('Failed to import contact. Please enter manually.'),

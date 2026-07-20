@@ -17,29 +17,30 @@ class HudModeSelector extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           )
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'BUDDY MODE',
             style: GoogleFonts.inter(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w900,
               color: Colors.grey.shade500,
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Row(
             children: [
               _buildModeButton(HudMode.navigation, 'Nav', Icons.directions_walk, const Color(0xFF1E88E5)),
@@ -62,10 +63,10 @@ class HudModeSelector extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onModeChanged(mode),
         child: Container(
-          height: 48,
+          height: 38,
           decoration: BoxDecoration(
             color: isSelected ? activeColor : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? Colors.transparent : Colors.grey.shade200,
               width: 1,
@@ -76,14 +77,14 @@ class HudModeSelector extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 16,
+                size: 14,
                 color: isSelected ? Colors.white : Colors.black54,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 label,
                 style: GoogleFonts.inter(
-                  fontSize: 9,
+                  fontSize: 8.5,
                   fontWeight: FontWeight.bold,
                   color: isSelected ? Colors.white : Colors.black87,
                 ),
