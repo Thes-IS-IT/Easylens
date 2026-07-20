@@ -6,20 +6,20 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 
 ## 🔴 Critical — Active Workarounds in Code
 
-### 1. Android TTS `setVoice` NullPointerException (Resolved with Lazy Binding)
+### 1. Android TTS `setVoice` NullPointerException & Binder Disconnects (Resolved with Lazy Binding & Pitch Safety)
 | | |
 |---|---|
 | **Severity** | Resolved / Mitigated |
 | **Platform** | Android only |
-| **Symptom** | App crashes with `NullPointerException` at `FlutterTtsPlugin.setVoice` when calling getVoices or setVoice before the TextToSpeech engine is fully bound. |
-| **Root Cause** | The `flutter_tts` plugin's Kotlin implementation calls `Set.iterator()` on a null voice set if accessed before `onServiceConnected` completes. Additionally, setting a pitch below `0.5` causes Android's native TTS service binder connection to fail with a `DeadObjectException` / error -22. |
-| **Workaround** | 1. **Lazy Loading**: Deferred `getVoices()` loading on Android using `setStartHandler`, `setCompletionHandler`, and `setErrorHandler` callback triggers. Voices are only loaded in the background after the first speech has finished, ensuring the engine is fully bound.<br>2. **Pitch Safety Clamping**: Enforced safety boundaries `[0.5, 2.0]` on the final pitch value set on Android. |
+| **Symptom** | App crashes with `NullPointerException` at `FlutterTtsPlugin.setVoice` when calling getVoices or setVoice before the TextToSpeech engine is fully bound, OR service binder fails with `DeadObjectException` / error -22 when pitch is set out of range. |
+| **Root Cause** | The `flutter_tts` plugin's Kotlin implementation calls `Set.iterator()` on a null voice set if accessed before `onServiceConnected` completes. Additionally, setting a pitch below `0.5` causes Android's native TTS service binder connection to crash. |
+| **Workaround** | 1. **Lazy Loading**: Deferred `getVoices()` loading on Android using `setStartHandler`, `setCompletionHandler`, and `setErrorHandler` callback triggers. Voices are only loaded in the background after the first speech has finished, ensuring the engine is fully bound.<br>2. **Pitch Safety Clamping**: Enforced strict safety boundaries `[0.5, 2.0]` on the final pitch value set on Android.<br>3. **Masculine Pitch Overrides & Locale Fallback**: Applied explicit pitch multipliers for Max and Echo personas on Android, while adding dynamic gender resolution fallback to prevent female voice stuck issues when changing personas. |
 | **File** | `lib/services/tts_service.dart` |
 | **Impact** | Voice persona switching (Max/Aria/Nova/Leo) now dynamically selects actual native male, female, or child voiceover files on Android without binder crashes. |
 
 ---
 
-### 1b. Notification Database Disk Write Lag (Resolved)
+### 1b. Notification Database Disk Write Lag (Resolved with Disk Filtering)
 | | |
 |---|---|
 | **Severity** | Resolved / Mitigated |
@@ -29,6 +29,19 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 | **Workaround** | Filtered notifications: transient obstacle alerts are spoken and displayed but not saved to disk. Only critical alerts containing `"STOP"`, `"FIRE"`, `"HAZARD"`, or `"EMERGENCY"` are written to persistent storage. |
 | **File** | `lib/services/notification_service.dart` |
 | **Impact** | Zero jank or main thread lag during continuous object scanning and navigation. |
+
+---
+
+### 1c. Smart Glasses Stream Disconnection (Resolved with Auto Mobile Fallback)
+| | |
+|---|---|
+| **Severity** | Resolved / Mitigated |
+| **Platform** | Android / iOS |
+| **Symptom** | Blank or frozen camera feed when Smart Glasses / ESP32-CAM stream drops or loses Wi-Fi connection. |
+| **Root Cause** | MJPEG HTTP stream sockets fail silently or timeout when the hardware device goes out of range. |
+| **Workaround** | Added connection monitoring in `Esp32Service` and `HardwareScreen` with `CameraLoadingOverlay`. When stream failure is detected, the UI displays a camera transition indicator and seamlessly switches to the mobile device's native camera preview without interrupting ML Kit pipelines. |
+| **File** | `lib/services/esp32_service.dart`, `lib/screens/hardware/hardware_screen.dart` |
+| **Impact** | Uninterrupted vision assistance for users even when wearable hardware loses battery or signal. |
 
 ---
 

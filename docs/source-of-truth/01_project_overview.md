@@ -6,9 +6,11 @@
 
 - Identify objects, read text, and recognize faces through the phone camera
 - Provide walking navigation warnings (Stop, Avoid, Slow Down, Path Clear)
+- Issue non-critical ambient architectural warnings (Door and Window detection)
 - Answer questions through an offline-capable AI assistant called **Buddy**
-- Send emergency SOS alerts with location data
-- Connect to an ESP32-CAM for an external camera feed
+- Send emergency SOS alerts with location data and native contact selection
+- Connect to an ESP32-CAM or Smart Glasses for an external camera feed with automatic mobile camera fallback
+- Maintain display wakefulness (`wakelock_plus`) during continuous navigation and active onboarding
 
 ---
 
@@ -21,6 +23,9 @@
 | State Management | Singleton Services + `ChangeNotifier` + `ListenableBuilder` | — |
 | Navigation | Custom `AppRoute` wrapper (`lib/utils/app_route.dart`) | — |
 | Build System | GitHub Actions CI/CD | `ci_cd.yml` |
+| Screen Power | `wakelock_plus: ^1.2.8` | Screen wake lock during camera, navigation, and signup |
+| Device Contacts | `flutter_contacts: ^1.1.9` | Native device contact picker for emergency SOS contact selection |
+| Permissions | `permission_handler: ^11.3.1` | Runtime permission management (Contacts, Camera, Location, Audio) |
 
 ### AI & Machine Learning
 | Component | Package | Purpose |
@@ -45,7 +50,7 @@
 ### Audio & Accessibility
 | Component | Package | Purpose |
 |---|---|---|
-| Text-to-Speech | `flutter_tts: ^4.2.5` | Voice feedback with personas |
+| Text-to-Speech | `flutter_tts: ^4.2.5` | Voice feedback with personas (Max, Aria, Nova, Leo) & pitch safety [0.5, 2.0] |
 | Speech-to-Text | `speech_to_text: ^7.4.0` | Voice command input |
 | Sound Effects | `audioplayers: ^6.1.0` | Bark sounds, alert chimes |
 | Haptics | `sensors_plus: ^5.0.1` | Vibration for obstacle alerts |
@@ -53,7 +58,7 @@
 ### Hardware
 | Component | Package | Purpose |
 |---|---|---|
-| ESP32-CAM | Custom `Esp32Service` | MJPEG video stream, LED flash control |
+| ESP32-CAM / Glasses | Custom `Esp32Service` | MJPEG video stream, LED flash control, mobile camera auto-fallback |
 | Battery | `battery_plus: ^6.0.2` | Battery level monitoring |
 | Location | `geolocator: ^11.0.0` | GPS for SOS and weather |
 | Maps | `google_maps_flutter: ^2.5.3` | Map display on navigation |
@@ -66,7 +71,7 @@
 easylens/
 ├── .github/workflows/       # CI/CD pipeline (ci_cd.yml)
 ├── assets/
-│   ├── Mascots/              # Buddy mascot GIFs and images
+├── Mascots/              # Buddy mascot GIFs and images
 │   ├── models/               # TFLite model files, COCO labels
 │   ├── images/               # UI images
 │   └── sounds/               # Audio files (bark, alerts)
@@ -79,15 +84,19 @@ easylens/
 │   ├── main.dart              # App entry point
 │   ├── constants/
 │   │   └── colors.dart        # AppColors with contrast theme switching
+│   ├── l10n/
+│   │   └── signup_strings.dart# Multilingual strings for 18-step onboarding signup wizard
 │   ├── models/
 │   │   ├── app_notification.dart
 │   │   ├── emergency_contact.dart
 │   │   └── user_preferences.dart
 │   ├── screens/               # 16 screen modules (see 03_screens)
+│   │   └── hardware/
+│   │       └── components/    # Modular UI sub-components (pairing_wizard, hud_camera_view, etc.)
 │   ├── services/              # 19 singleton services (see 04_services)
 │   ├── utils/
 │   │   └── app_route.dart     # Custom page route transitions
-│   └── widgets/               # 5 shared widgets
+│   └── widgets/               # Shared UI widgets (CameraLoadingOverlay, screen tutorials, etc.)
 ├── test/                      # Unit & widget tests
 ├── android/                   # Android platform layer
 ├── ios/                       # iOS platform layer
@@ -124,4 +133,5 @@ The app loads `.env` at startup via `flutter_dotenv`. Required keys:
 5. Initialize Gemma offline LLM in background (non-blocking)
 6. Initialize `NotificationService` (loads persisted + schedules daily Buddy follow-up)
 7. Initialize `Esp32Service` (restores last stream URL from prefs)
-8. `runApp(EasyLensApp())` → `WelcomeScreen`
+8. Initialize `WakelockPlus` to keep screen active when specified by active HUD modes or signup flows
+9. `runApp(EasyLensApp())` → `WelcomeScreen`

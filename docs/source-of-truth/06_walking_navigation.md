@@ -2,7 +2,7 @@
 
 ## Overview
 
-The walking navigation system provides real-time obstacle warnings and turn-by-turn guidance for visually impaired users. It uses Google ML Kit's object detector to track objects in the camera feed and maps their positions to **4 distinct guidance states** alongside GPS-based directional waypoint cues.
+The walking navigation system provides real-time obstacle warnings, non-critical architectural cues, and turn-by-turn guidance for visually impaired users. It uses Google ML Kit's object detector to track objects in the camera feed and maps their positions to **4 distinct guidance states** alongside GPS-based directional waypoint cues.
 
 ---
 
@@ -28,8 +28,6 @@ EasyLens integrates global map routing with localized safety metrics to construc
 
 ---
 
----
-
 ## State Machine
 
 ```mermaid
@@ -38,6 +36,7 @@ stateDiagram-v2
     PathClear --> Stop: Centered + area > 0.20
     PathClear --> Avoid: Centered + 0.05 < area ≤ 0.20
     PathClear --> SlowDown: Side + area > 0.08
+    PathClear --> DoorWindowCue: Door or Window detected (Non-critical)
 
     Stop --> PathClear: Object cleared
     Avoid --> PathClear: Object cleared
@@ -45,11 +44,12 @@ stateDiagram-v2
     SlowDown --> PathClear: Object cleared
     SlowDown --> Avoid: Object moves to center
     SlowDown --> Stop: Object moves to center + very close
+    DoorWindowCue --> PathClear: Feature passed
 ```
 
 ---
 
-## 4 Guidance States
+## 4 Guidance States & Non-Critical Cues
 
 ### 1. 🔴 Stop Immediately (`area > 0.20` + centered)
 | Property | English | Tagalog |
@@ -87,6 +87,16 @@ stateDiagram-v2
 | UI Color | `#E8F5E9` (green tint) |
 | Icon | `Icons.check_circle_outline` (green) |
 | Haptic | None |
+
+---
+
+### 🚪 Non-Critical Architectural Cues (Door & Window Detection)
+| Property | English | Tagalog |
+|---|---|---|
+| Trigger | Detection of doors or windows in frame | Detection of doors or windows in frame |
+| Speech | "Door detected" / "Window detected" | "May pintuan sa malapit" / "May bintana sa malapit" |
+| Behavior | Non-interrupting spoken advice; does NOT trigger high-priority warning card state or haptic alarms |
+| UI Overlay | Rendered smoothly above the bottom 3x3 control card panel |
 
 ---
 
@@ -143,6 +153,7 @@ final escapeDir = (leftBlocked && !rightBlocked) ? 'right' : 'left';
 | Avoid | Every 5 seconds | Immediately |
 | Slow Down | Every 6 seconds | Immediately |
 | Path Clear | Once per transition | — |
+| Door / Window Cue | Every 8 seconds | Immediately upon detection |
 
 The `_wasPathBlocked` flag ensures "Path Clear" is only spoken once when transitioning from a blocked state.
 
@@ -159,7 +170,8 @@ The `_wasPathBlocked` flag ensures "Path Clear" is only spoken once when transit
 
 ---
 
-## Key File
+## Key Files
 
-All navigation logic lives in:
+All navigation logic and UI components live in:
 - `lib/screens/hardware/hardware_screen.dart` → `_processObjectResults()` and `_clearPath()`
+- `lib/screens/hardware/components/hud_controls_panel.dart` → Controls grid & Warning Status Card overlay positioning

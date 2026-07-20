@@ -5,7 +5,7 @@
 EasyLens runs a **multi-tier AI pipeline** that blends on-device ML inference with local and cloud LLMs:
 
 ```
-Camera Frame → ML Kit (on-device) → Labels / Objects / Faces / Text
+Camera Frame → ML Kit (on-device) → Labels / Objects / Faces / Text / Door & Window Warnings
 User Query  → RAG Pipeline → Gemma (offline) | Gemini (cloud) | Ollama (local)
 ```
 
@@ -18,6 +18,7 @@ EasyLens utilizes specialized, high-performance algorithms to perform real-time 
 ### 1. Object Detection: SSD MobileNet V2
 * **Algorithm**: **Single Shot MultiBox Detector (SSD) with a MobileNet V2 backbone**.
 * **Details**: SSD performs localization (bounding box coordinates) and classification (class label scores) in a single unified feedforward convolutional network. MobileNet V2 serves as the feature extractor, utilizing depthwise separable convolutions and linear bottlenecks to minimize CPU and RAM cycles on mobile hardware.
+* **Non-Critical Architectural Cues**: Detects structural elements like doors and windows, rendering subtle ambient guidance ("Door detected", "Window detected") without interrupting primary navigation warnings.
 
 ### 2. Face Detection & Recognition: Convolutional Landmarks + L2 Euclidean Distance
 * **Detection Algorithm**: A **Multi-task Cascade Convolutional Network (MTCNN)** / Google Face Detector that outputs bounding boxes, rotation angles, and landmark locations.
@@ -27,7 +28,7 @@ EasyLens utilizes specialized, high-performance algorithms to perform real-time 
 
 ### 3. Image Labeling: MobileNet V3 / CNN Classifier
 * **Algorithm**: **MobileNet V3 Large / Small Convolutional Neural Network**.
-* **Details**: Performs real-time multi-label classification on the raw video stream, returning semantic labels mapped to COCO or Google Knowledge Graph taxonomies.
+* **Details**: Performs real-time multi-label classification on the raw video stream, returning semantic labels mapped to COCO or Google Knowledge Graph taxonomies. Enhanced with creative indoor and outdoor dialogue generators for natural voice feedback.
 
 ---
 
@@ -37,13 +38,14 @@ EasyLens utilizes specialized, high-performance algorithms to perform real-time 
 - **Purpose:** Classifies the scene visible in the camera (e.g., "furniture", "person", "outdoor")
 - **Usage:** Default HUD mode and Object Detection mode
 - **Throttle:** Processed every frame (~400ms cooldown)
-- **Label Refinement:** Raw labels are refined via `_refineLabel()` to user-friendly names:
+- **Label Refinement & Scenery Dialogues:** Raw labels are refined via `_refineLabel()` to user-friendly names:
   - `"musical instrument"` → `"laptop or keyboard"`
   - `"partition"` → `"wall"`
   - `"stool"` → `"chair"`
+  - Creative indoor/outdoor dialogues synthesize these labels into spoken environment descriptions.
 
 ### Object Detection (`google_mlkit_object_detection`)
-- **Purpose:** Draws bounding boxes around detected objects with tracking IDs
+- **Purpose:** Draws bounding boxes around detected objects with tracking IDs and triggers obstacle/architectural warnings
 - **Usage:** Object Detection mode and Navigation mode
 - **Configuration:** Uses the base `ObjectDetectorOptions` (NOT custom TFLite models — see Known Issues)
 - **Options:**
@@ -80,7 +82,7 @@ EasyLens utilizes specialized, high-performance algorithms to perform real-time 
 | Service | `TfliteProcessor` (`lib/services/tflite_processor.dart`) |
 
 ### Processing Pipeline
-1. Camera frame (YUV420) → `compute()` isolate → NV21 bytes
+1. Camera frame (YUV420 or Smart Glasses stream) → `compute()` isolate → NV21 bytes
 2. NV21 → crop/resize to 300×300 → normalize to `[0, 1]` float32
 3. Run TFLite interpreter
 4. Post-process: apply confidence threshold, NMS, map class IDs to COCO labels
@@ -156,9 +158,9 @@ EasyLens supports continuous, follow-up voice assistant conversations:
 | HUD Mode | Object Detector | Image Labeler | Rationale |
 |---|---|---|---|
 | `navigation` | ✅ | ✅ | Runs both, but **staggered on alternate 800ms frames** (staggered by 400ms) to avoid CPU/memory contention. |
-| `objectDetection` | ✅ | ✅ | SSD MobileNet/COCO label bounding boxes. |
+| `objectDetection` | ✅ | ✅ | SSD MobileNet/COCO label bounding boxes + Non-critical Door and Window warnings. |
 | `faceRecognition` | ❌ | ❌ | Only face detection runs (separate pipeline). |
-| Default | ❌ | ✅ | Standard image labeling for scene classification. |
+| Default | ❌ | ✅ | Standard image labeling for scene classification & indoor/outdoor creative dialogues. |
 
 ### Memory Management Rules
 1. **Single-frame lock** — `_isProcessingFrame` boolean prevents concurrent processing
@@ -167,6 +169,7 @@ EasyLens supports continuous, follow-up voice assistant conversations:
 4. **`mounted` guards** — All async callbacks check `mounted` before `setState`
 5. **`stopImageStream()` in `dispose()`** — Prevents native memory leak on screen exit
 6. **YUV conversion in isolate** — `compute()` runs byte conversion off the main thread
+7. **Smart Glasses Fallback** — System handles stream interruptions by reverting to native mobile camera frames without crashing ML pipelines
 
 ### Coordinate System (Portrait Mode)
 Due to 90° sensor rotation, the screen's horizontal X axis maps to the raw image's vertical Y axis:

@@ -25,7 +25,7 @@ class MyService {
 
 ---
 
-### 3. Navigation
+### 3. Navigation & Screen Modularization
 Always use the custom route wrapper:
 
 ```dart
@@ -38,23 +38,26 @@ When navigating away from `HardwareScreen`, always use `_navigateTo()` which:
 3. Pushes route
 4. Sets `_isPaused = false` on return
 
+For large screens like `HardwareScreen`, split UI modules into separate components inside a `components/` subfolder (e.g., `hud_controls_panel.dart`, `hud_mode_selector.dart`, `hud_camera_view.dart`, `pairing_wizard.dart`).
+
 ---
 
-### 4. Camera Frame Processing
-**Critical rules** — violating these causes OOM crashes:
+### 4. Camera Frame Processing & Power Management
+**Critical rules** — violating these causes OOM crashes or frame drops:
 
 - ✅ Always check `if (_isProcessingFrame) return;` before processing
 - ✅ Always check `if (!mounted) return;` in async callbacks
 - ✅ Always call `stopImageStream()` before `dispose()`
-- ✅ Navigation mode: only run object detection, skip image labeling
+- ✅ Navigation mode: alternate object detection and labeling on separate frames (staggered 400ms cycles)
 - ✅ Use 400ms cooldown between frames
-- ❌ Never run two ML Kit detectors on the same frame in navigation mode
+- ✅ Enable `WakelockPlus` during continuous camera monitoring and multi-step onboarding
+- ❌ Never run two ML Kit detectors concurrently on the exact same frame in navigation mode
 - ❌ Never remove the `_isProcessingFrame` lock
 - ❌ Never reduce the 400ms cooldown below 300ms
 
 ---
 
-### 5. TTS Speech
+### 5. TTS Speech & Pitch Safety
 Always use `TtsService().speak()` — never directly call `FlutterTts`:
 
 ```dart
@@ -65,17 +68,18 @@ if (!_isContinuousVoiceEnabled) {
 
 - Always gate TTS on `!_isContinuousVoiceEnabled` to respect the user's voice output toggle
 - Use speech cooldowns to prevent spamming (see Walking Navigation doc)
+- On Android, enforce pitch range limits between `0.5` and `2.0` to avoid native binder connection crashes (`DeadObjectException`)
 
 ---
 
-### 6. Localization
-Use `TranslationService.translate()` for all user-facing strings:
+### 6. Localization & Signup Strings
+Use `TranslationService.translate()` for general app strings and `SignupStrings` for onboarding wizard steps:
 
 ```dart
 final label = TranslationService.translate('key_name', SettingsService().selectedLanguage);
 ```
 
-For navigation warnings, use the `isTagalog` boolean pattern:
+For navigation warnings and signup steps, use the `isTagalog` boolean pattern or static lookup map:
 
 ```dart
 final lang = SettingsService().selectedLanguage;
@@ -85,7 +89,15 @@ final message = isTagalog ? 'Tagalog text' : 'English text';
 
 ---
 
-### 7. SharedPreferences Keys
+### 7. Notification Persistence Rules
+To maintain zero-lag main thread performance:
+- ✅ Transient obstacle warnings and ambient scenery descriptions are memory/UI only
+- ✅ Write **only** critical safety alerts containing `"STOP"`, `"FIRE"`, `"HAZARD"`, or `"EMERGENCY"` to `SharedPreferences`
+- ❌ Do not write frame-by-frame walking guidance or obstacle state changes to persistent disk storage
+
+---
+
+### 8. SharedPreferences Keys
 Tutorial dismissal flags follow this pattern:
 
 ```
@@ -96,7 +108,7 @@ Examples: `tutorial_dismissed_dashboard`, `tutorial_dismissed_camera`, `tutorial
 
 ---
 
-### 8. Error Handling
+### 9. Error Handling
 - Wrap ML Kit calls in `try/catch` — they can throw on malformed images
 - Wrap Firebase calls in `try/catch` — network failures are expected
 - Use `print()` for debug logging (acceptable since this is a mobile app, not production server code)
@@ -109,11 +121,12 @@ Examples: `tutorial_dismissed_dashboard`, `tutorial_dismissed_camera`, `tutorial
 | ❌ Anti-Pattern | ✅ Correct Approach |
 |---|---|
 | Calling `_cameraController?.dispose()` without stopping the stream first | Call `stopImageStream()` → then `dispose()` |
-| Running image labeling + object detection per frame in navigation mode | Only run object detection in navigation mode |
-| Using `setVoice()` on Android | Skip `setVoice()` on Android, use `setLanguage()` only |
+| Running image labeling + object detection concurrently on same frame | Stagger processing on alternating 400ms frames |
+| Setting TTS pitch below 0.5 or above 2.0 on Android | Clamp pitch safely to `[0.5, 2.0]` |
+| Persisting every transient obstacle warning to SharedPreferences | Persist only critical safety alerts (`STOP`, `FIRE`, `HAZARD`, `EMERGENCY`) |
 | Creating `ObjectDetector` with `CustomObjectDetectorOptions(localModel: ...)` | Use base `ObjectDetectorOptions` |
 | Calling `setState` without checking `mounted` | Always `if (mounted) setState(...)` |
-| Hardcoding English strings in TTS | Use `isTagalog` conditional or `TranslationService.translate()` |
+| Hardcoding English strings in TTS | Use `isTagalog` conditional, `TranslationService.translate()`, or `SignupStrings` |
 
 ---
 

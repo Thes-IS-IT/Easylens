@@ -20,6 +20,14 @@ To verify code formatting, guidelines, and compilation correctness:
 flutter analyze --no-fatal-warnings --no-fatal-infos
 ```
 
+### Manual Pre-Release Quality Checklist
+Before committing to `main` or building release packages, verify:
+- [x] Static code analysis passes with zero severe errors (`flutter analyze`)
+- [x] Audio TTS persona switching executes cleanly on Android without binder disconnects
+- [x] Camera stream stops cleanly on screen pop (`stopImageStream()`)
+- [x] Wakelock stays active during camera and onboarding wizard flows
+- [x] Multi-step signup wizard (18 steps) saves profile data (`isForMyself`, `selectedConditions`) to Firestore
+
 ---
 
 ## 2. CI/CD GitHub Actions Pipeline
@@ -32,10 +40,10 @@ The pipeline is defined in [.github/workflows/ci_cd.yml](file:///Users/arronkian
 
 ### Jobs & Steps
 The CI pipeline is lightweight, focusing on static code analysis to ensure changes build successfully:
-1. **Environment Setup**: Initializes standard JDK 17 (Zulu distribution) and the Flutter SDK.
+1. **Environment Setup**: Initializes standard JDK 17 (Zulu distribution) and the Flutter SDK (`^3.11.5`).
 2. **Install Dependencies**: Fetches package dependencies via `flutter pub get`.
 3. **Environment Prep**: Creates a mock `.env` file to satisfy dependency imports.
-4. **Code Analysis**: Executes `flutter analyze` to check formatting, syntax, and type safety constraints.
+4. **Code Analysis**: Executes `flutter analyze --no-fatal-warnings --no-fatal-infos` to verify formatting, syntax, and type safety constraints.
 
 *Note: Unit tests and automated APK builds have been removed from the CI workflow to optimize runner resources and prevent unnecessary build jank.*
 

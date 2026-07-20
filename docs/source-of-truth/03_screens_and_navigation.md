@@ -11,7 +11,7 @@ EasyLens has **16 screen modules** organized under `lib/screens/`. The app uses 
 ```mermaid
 graph LR
     Welcome[WelcomeScreen] --> Login[LoginScreen]
-    Welcome --> Signup[SignupScreen]
+    Welcome --> Signup[SignupScreen - 18 Steps]
     Login --> Home[HomeTab]
     Signup --> Home
 
@@ -50,16 +50,18 @@ graph LR
 | | |
 |---|---|
 | **Path** | `lib/screens/login/login_screen.dart` |
-| **Purpose** | Email/password and Google Sign-In authentication |
+| **Purpose** | Email/password and Google Sign-In authentication with user-friendly error handling for common Firebase Auth codes. |
 | **Auth** | `FirebaseService` → Firebase Auth |
 | **Navigates to** | `HomeTab` (on success) |
 
-### 3. Signup Screen
+### 3. Signup Screen & Onboarding Wizard
 | | |
 |---|---|
 | **Path** | `lib/screens/signup/signup_screen.dart` |
-| **Purpose** | Multi-step onboarding registration (name, language, voice persona, preferences) |
-| **Steps** | 7 steps with animated step indicators |
+| **Localization File** | `lib/l10n/signup_strings.dart` |
+| **Purpose** | Multi-step onboarding registration wizard to customize the user's profile and accessibility options. |
+| **Steps Count** | 18 onboarding steps total (Units step removed to simplify configuration) |
+| **Key Features** | - **Multilingual UI**: Fully localized via `SignupStrings` with English and Tagalog (Filipino) support.<br>- **Interactive Password Toggle**: Password visibility toggle on the Create Password step.<br>- **Native Contact Picker**: Integrates `flutter_contacts` & `permission_handler` to auto-fill the emergency contact name and phone number.<br>- **Mobility Aids**: Options updated to include Eyeglasses and correct Smart Glasses spelling.<br>- **Firestore Profile Sync**: Guarantees `isForMyself` and `selectedConditions` data fields are persisted to the Firestore user profile document. |
 | **Navigates to** | `HomeTab` (on completion) |
 
 ### 4. Home Tab (Shell)
@@ -74,18 +76,18 @@ graph LR
 |---|---|
 | **Path** | `lib/screens/dashboard/dashboard_home.dart` |
 | **Purpose** | Central hub with greeting, mascot banner, and configurable action cards |
-| **Components** | `mascot_banner.dart`, `dashboard_button.dart`, `header_bar.dart`, `custom_navbar.dart` |
+| **Components** | `mascot_banner.dart`, `dashboard_button.dart`, `header_bar.dart`, `custom_navbar.dart`, `buddy_assistant_sheet.dart` |
 | **Features** | Personalized greeting, bark sound on return, shake-to-undo, notification badge |
 
-### 6. Hardware Screen (Camera)
+### 6. Hardware Screen (Camera & HUD)
 | | |
 |---|---|
 | **Path** | `lib/screens/hardware/hardware_screen.dart` |
-| **Size** | ~3,100 lines — **refactored for modularity** |
-| **Purpose** | Real-time camera feed with 4 Buddy/HUD modes. |
+| **Size** | ~3,100 lines — **refactored into modular sub-components** |
+| **Purpose** | Real-time camera feed with 4 Buddy/HUD modes and Smart Glasses support. |
 | **HUD Modes** | `HudMode.navigation`, `HudMode.objectDetection`, `HudMode.faceRecognition`, default (image labeling) |
-| **Modular Sub-Components** | Located under `lib/screens/hardware/components/`:<br>- [pairing_wizard.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/pairing_wizard.dart) (Onboarding connection steps)<br>- [hud_camera_view.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_camera_view.dart) (Camera previews & label drawings)<br>- [hud_controls_panel.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_controls_panel.dart) (Status indicators grid)<br>- [hud_mode_selector.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_mode_selector.dart) (Horizontal mode switch tab row) |
-| **Key Concerns** | Memory management (alternating ML Kit pipelines), dynamic TTS voice persona selection |
+| **Modular Sub-Components** | Located under `lib/screens/hardware/components/`:<br>- [pairing_wizard.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/pairing_wizard.dart) (Onboarding connection steps)<br>- [hud_camera_view.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_camera_view.dart) (Camera previews & label drawings)<br>- [hud_controls_panel.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_controls_panel.dart) (3x3 accessible control panel layout)<br>- [hud_mode_selector.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/components/hud_mode_selector.dart) (Horizontal mode switch tab row) |
+| **UI Enhancements** | - **3x3 Control Panel Grid**: Organizes indicators and controls into a clean 3x3 layout.<br>- **Warning Status Card Overlay**: Positioned directly above the bottom control card panel for clear visibility.<br>- **Camera Loading Overlay**: `CameraLoadingOverlay` widget displays loading feedback during camera initialization or feed switching.<br>- **Smart Glasses Mobile Camera Fallback**: Automatically switches to the device's native camera preview if the Smart Glasses MJPEG stream loses connection.<br>- **Non-Critical Door & Window Warnings**: Announces doors and windows as subtle ambient cues without triggering high-priority obstacle alerts.<br>- **Creative Scenery Dialogues**: Spoken indoor/outdoor descriptive dialogue for richer environment context. |
 
 ### 7. RAG Assistant Screen (Buddy Chat)
 | | |
@@ -125,7 +127,7 @@ graph LR
 |---|---|
 | **Path** | `lib/screens/navigation/navigation_screen.dart` |
 | **Purpose** | Google Maps-based audio navigation |
-| **Persistence** | Resumes the active navigation state (destination, route, current step index, tapped map pins) automatically. Protected by a `PopScope` to prevent accidental exits, offering options to continue tracking in the background. |
+| **Persistence** | Resumes active navigation state (destination, route, current step index, tapped map pins) automatically. Protected by a `PopScope` to prevent accidental exits, offering options to continue tracking in the background. |
 
 ### 13. Notifications Screen
 | | |
@@ -137,7 +139,7 @@ graph LR
 | | |
 |---|---|
 | **Path** | `lib/screens/devices/devices_screen.dart` |
-| **Purpose** | ESP32-CAM pairing and connection management |
+| **Purpose** | ESP32-CAM and Smart Glasses pairing and connection management |
 
 ### 15. Image Labeling Screen
 | | |

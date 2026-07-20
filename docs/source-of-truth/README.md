@@ -1,6 +1,6 @@
 # 📘 EasyLens — Source of Truth
 
-> **Last Updated:** July 16, 2026  
+> **Last Updated:** July 20, 2026  
 > **Flutter SDK:** `^3.11.5` · **Dart 3**  
 > **Platforms:** Android, iOS
 
@@ -32,5 +32,7 @@ This folder is the single source of truth for the EasyLens project. Every archit
 - **State Management:** Singleton services + `ChangeNotifier` / `ListenableBuilder`
 - **Storage:** Firebase Auth + Firestore, Cloudflare D1 (SQL), Cloudflare R2 (Object Store)
 - **AI Stack:** Google ML Kit (on-device) → TFLite SSD MobileNetV2 → Gemma 2B (offline LLM) → Gemini Flash (cloud LLM)
-- **Languages:** English, Tagalog (Filipino)
-- **CI/CD:** GitHub Actions → `flutter analyze` + `flutter test` on every push to `main`
+- **Languages:** English, Tagalog (Filipino) with dynamic fallback and `signup_strings.dart`
+- **Hardware Integrations:** Smart Glasses / ESP32-CAM MJPEG Video Stream with Mobile Camera Fallback
+- **Safety & Power:** Wakelock integration (`wakelock_plus`) + Non-critical Door & Window warnings + Safe Android Pitch range [0.5, 2.0]
+- **CI/CD:** GitHub Actions → `flutter analyze` static verification on every push and PR to `main`

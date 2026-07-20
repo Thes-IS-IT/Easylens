@@ -34,7 +34,7 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Pattern** | Singleton |
 | **Purpose** | Text-to-Speech wrapper with voice persona support (Max, Aria, Nova, Leo). Manages pitch, rate, and language switching. |
 | **Key Methods** | `speak(String text)`, `stop()`, `setVoicePersona(String id)` |
-| **⚠️ Android Workaround** | Uses **lazy event-triggered loading** on Android to call `getVoices()` and `setVoice()` safely only after the engine is fully bound. Clips pitch to `[0.5, 2.0]` on Android to prevent service binder crashes. |
+| **⚠️ Android & Persona Enhancements** | - **Lazy Engine Binding**: Defers `getVoices()` loading on Android using `setStartHandler`, `setCompletionHandler`, and `setErrorHandler` callback triggers. Voices are loaded in background after the first speech finishes, preventing engine binding `NullPointerException` crashes.<br>- **Pitch Safety Clamping**: Enforces strict pitch safety boundaries `[0.5, 2.0]` on Android to prevent service binder crashes (`DeadObjectException` / error -22).<br>- **Masculine Voice Emulation**: Overrides pitch values for Max and Echo personas on Android for optimal masculine tone.<br>- **Leo Child Voice Selection**: Features native child voice selection hooks for the Leo persona.<br>- **Locale Fallback**: Implements dynamic gender resolution and locale fallback mechanisms to prevent female voice stuck issues when changing personas. |
 
 ---
 
@@ -66,7 +66,7 @@ No dependency injection is used. Services are accessed globally via their factor
 |---|---|
 | **File** | `lib/services/firebase_service.dart` |
 | **Pattern** | Singleton |
-| **Purpose** | Firebase Auth + Firestore CRUD. Gracefully falls back to mock mode if Firebase config is missing. |
+| **Purpose** | Firebase Auth + Firestore CRUD. Gracefully falls back to mock mode if Firebase config is missing. Restores and preserves custom profile attributes including `isForMyself` and `selectedConditions` during user registration. |
 | **Key Methods** | `initialize()`, `signIn()`, `signUp()`, `getUserProfile()`, `updateUserProfile()` |
 
 ---
@@ -86,7 +86,7 @@ No dependency injection is used. Services are accessed globally via their factor
 |---|---|
 | **File** | `lib/services/translation_service.dart` |
 | **Pattern** | Static methods |
-| **Purpose** | Provides translated strings for English and Tagalog (Filipino). Uses a static `Map<String, Map<String, String>>` lookup. |
+| **Purpose** | Provides translated strings for English and Tagalog (Filipino). Uses a static `Map<String, Map<String, String>>` lookup. Works alongside `SignupStrings` for full app localization. |
 | **Key Method** | `TranslationService.translate(String key, String language)` |
 
 ---
@@ -106,7 +106,7 @@ No dependency injection is used. Services are accessed globally via their factor
 |---|---|
 | **File** | `lib/services/esp32_service.dart` |
 | **Pattern** | Singleton + `ChangeNotifier` |
-| **Purpose** | Manages ESP32-CAM connection. Streams MJPEG frames, controls flash LED. |
+| **Purpose** | Manages ESP32-CAM and Smart Glasses frame streams. Streams MJPEG video frames and controls flash LED. Supports automatic fallback to mobile camera preview when the external stream disconnects. |
 | **Default URL** | `http://192.168.4.1:81/stream` |
 | **Key Methods** | `initialize()`, `connect(String url)`, `setFlash(bool on)` |
 
@@ -126,7 +126,7 @@ No dependency injection is used. Services are accessed globally via their factor
 |---|---|
 | **File** | `lib/services/emergency_contact_service.dart` |
 | **Pattern** | Singleton |
-| **Purpose** | CRUD for emergency contacts. Used by SOS screen to send SMS alerts. |
+| **Purpose** | CRUD for emergency contacts. Integrates with native contact pickers during signup and SOS management. |
 
 ---
 

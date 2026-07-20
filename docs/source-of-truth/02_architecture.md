@@ -6,6 +6,8 @@
 2. **Singleton Services** — All services use the `factory` singleton pattern for global access without dependency injection.
 3. **Reactive UI** — `SettingsService` extends `ChangeNotifier`. The root `MaterialApp` is wrapped in `AnimatedBuilder(animation: settingsService)` so theme/language changes propagate instantly.
 4. **Accessibility by Default** — Every interaction has a TTS announcement. Contrast themes, large tap targets, and haptic feedback are first-class citizens.
+5. **Power & Screen Persistence** — Continuous camera stream HUD modes and multi-step onboarding wizard utilize `wakelock_plus` to maintain active display power without unexpected OS dimming or screen lock.
+6. **Zero-Lag Disk Filtering** — High-frequency transient notifications (such as rapid obstacle warnings) are announced via speech and rendered in UI but filtered out of `SharedPreferences` write queues; only critical alerts are persisted to disk to eliminate main-thread I/O jank.
 
 ---
 
@@ -16,11 +18,18 @@ graph TD
     subgraph UI["Flutter UI Layer"]
         Welcome[WelcomeScreen]
         Login[LoginScreen]
-        Signup[SignupScreen]
+        Signup[SignupScreen - 18 Steps]
         Home[HomeTab / DashboardHome]
-        Camera[HardwareScreen]
+        Camera[HardwareScreen - Modular Component Tree]
         RAG[RagAssistantScreen]
         Settings[SettingsScreen]
+    end
+
+    subgraph HardwareSub["Hardware Sub-Components"]
+        PairingWiz[pairing_wizard.dart]
+        HudCamera[hud_camera_view.dart]
+        HudControls[hud_controls_panel.dart - 3x3 Grid]
+        HudModeSel[hud_mode_selector.dart]
     end
 
     subgraph Services["Service Layer (Singletons)"]
@@ -56,6 +65,7 @@ graph TD
     end
 
     Home --> Camera
+    Camera --> HardwareSub
     Home --> RAG
     Home --> Settings
 
@@ -90,7 +100,8 @@ SettingsService (root — no service dependencies)
 
 TtsService
   ├── depends on: SettingsService (voice persona, rate, pitch)
-  └── platform: flutter_tts
+  ├── platform: flutter_tts (with lazy Android binding & safe pitch [0.5, 2.0])
+  └── fallback: dynamic voice persona resolution & locale fallback
 
 RagService
   ├── depends on: SettingsService (language), WeatherService, TranslationService
@@ -99,15 +110,15 @@ RagService
 
 FirebaseService
   ├── depends on: firebase_core, firebase_auth, cloud_firestore
-  └── provides: user profile CRUD, auth state
+  └── provides: user profile CRUD (including isForMyself & selectedConditions), auth state
 
 NotificationService
   ├── depends on: SharedPreferences
-  └── provides: in-app alerts (obstacle, battery, buddy follow-up)
+  └── provides: filtered in-app alerts (obstacle, battery, buddy follow-up; only critical write to disk)
 
 Esp32Service
   ├── depends on: SharedPreferences
-  └── provides: MJPEG frame stream, LED control
+  └── provides: MJPEG frame stream, LED control, Smart Glasses mobile camera fallback
 ```
 
 ---
@@ -118,22 +129,22 @@ This is the most performance-critical pipeline in the app.
 
 ```mermaid
 sequenceDiagram
-    participant Camera as CameraController
-    participant Stream as startImageStream
+    participant Camera as CameraController / ESP32 Feed
+    participant Stream as startImageStream / MJPEG Stream
     participant Lock as _isProcessingFrame
     participant YUV as _yuvToNv21Async (Isolate)
     participant MLKit as Google ML Kit
-    participant UI as setState / TTS
+    participant UI as setState / TTS / 3x3 Overlay Grid
 
-    Camera->>Stream: CameraImage (30fps)
+    Camera->>Stream: CameraImage / MJPEG Frames (30fps)
     Stream->>Lock: Check lock
     alt Lock is free
         Lock->>YUV: Convert YUV420 → NV21 (compute isolate)
         YUV->>MLKit: InputImage.fromBytes
         alt Navigation Mode
-            MLKit->>UI: Object Detection only
+            MLKit->>UI: Object Detection (Staggered alternate frame)
         else Object Detection Mode
-            MLKit->>UI: Object Detection + Image Labeling
+            MLKit->>UI: Object Detection + Image Labeling + Non-critical Door/Window Detections
         else Default
             MLKit->>UI: Image Labeling only
         end
@@ -149,6 +160,8 @@ sequenceDiagram
 - **Navigation mode skips image labeling**: In `HudMode.navigation`, only `_detectObjectsOnFrame` runs — NOT `_processCameraImage`. This halves per-frame memory and CPU load.
 - **YUV→NV21 in isolate**: The byte conversion runs in a `compute()` isolate to avoid blocking the main thread.
 - **`stopImageStream()` in `dispose()`**: Critical — the camera stream MUST be stopped before the controller is disposed to prevent native memory leaks.
+- **Smart Glasses Fallback**: If the external ESP32 stream drops, the system seamlessly falls back to the device's native camera preview, keeping HUD features active.
+- **Disk I/O Optimization**: Transient obstacle warnings write only to memory and UI state. Storage persistence is reserved for critical safety alerts (`"STOP"`, `"FIRE"`, `"HAZARD"`, `"EMERGENCY"`) to ensure zero main-thread jank.
 
 ---
 
@@ -159,10 +172,10 @@ MaterialApp
   └── AnimatedBuilder (listens to SettingsService)
       └── ConfettiOverlay
           └── SpeechNavigationOverlay
-              └── WelcomeScreen → LoginScreen → HomeTab
+              └── WelcomeScreen → LoginScreen / SignupScreen (18 Steps) → HomeTab
                   └── Scaffold + BottomNavigationBar
                       ├── Tab 0: DashboardHome
-                      ├── Tab 1: HardwareScreen (Camera)
+                      ├── Tab 1: HardwareScreen (Camera Feed + 3x3 Controls + Mode Selector)
                       ├── Tab 2: RagAssistantScreen (Buddy Chat)
                       └── Tab 3: SettingsScreen
 ```
