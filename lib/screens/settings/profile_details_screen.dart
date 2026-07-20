@@ -17,15 +17,30 @@ class ProfileDetailsScreen extends StatefulWidget {
 
 class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   final _firebaseService = FirebaseService();
+
+  // Controllers for account and profile details
   late TextEditingController _nameController;
+  late TextEditingController _emailController;
+  late TextEditingController _birthdayController;
+  late TextEditingController _sosNameController;
+  late TextEditingController _sosPhoneController;
+  late TextEditingController _sosRelController;
+
   String? _avatarUrl;
   bool _isUploading = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     final user = _firebaseService.currentUser;
     _nameController = TextEditingController(text: user?.displayName ?? "");
+    _emailController = TextEditingController(text: user?.email ?? "");
+    _birthdayController = TextEditingController();
+    _sosNameController = TextEditingController();
+    _sosPhoneController = TextEditingController();
+    _sosRelController = TextEditingController();
+
     _loadProfileDetails();
 
     // Initialize deterministic avatar URL from Cloudflare R2
@@ -48,29 +63,50 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   Future<void> _loadProfileDetails() async {
     final user = _firebaseService.currentUser;
     if (user != null) {
-      // Fetch dynamic displayName from Firestore
       try {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
+
+          // Load name, birthday, photo from preferences
           if (data.containsKey('preferences')) {
             final prefs = data['preferences'] as Map<String, dynamic>;
             if (prefs.containsKey('name') && (prefs['name'] as String).trim().isNotEmpty) {
-              setState(() {
-                _nameController.text = prefs['name'];
-              });
+              _nameController.text = prefs['name'];
             }
+            if (prefs.containsKey('birthday')) {
+              _birthdayController.text = prefs['birthday'] ?? '';
+            }
+            if (prefs.containsKey('photoUrl') && (prefs['photoUrl'] as String).isNotEmpty) {
+              _avatarUrl = prefs['photoUrl'];
+            }
+          }
+
+          // Load emergency contact
+          if (data.containsKey('emergencyContact')) {
+            final contact = data['emergencyContact'] as Map<String, dynamic>;
+            _sosNameController.text = contact['name'] ?? '';
+            _sosPhoneController.text = contact['phone'] ?? '';
+            _sosRelController.text = contact['relationship'] ?? '';
           }
         }
       } catch (e) {
-        print("Error fetching profile name: $e");
+        print("Error fetching profile details: $e");
       }
+    }
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
+    _birthdayController.dispose();
+    _sosNameController.dispose();
+    _sosPhoneController.dispose();
+    _sosRelController.dispose();
     super.dispose();
   }
 
@@ -90,11 +126,9 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
         });
 
         final file = File(pickedFile.path);
-        // This will attempt upload to Cloudflare R2, falling back to Firebase Storage if credentials missing S01
         final uploadedUrl = await _firebaseService.uploadImageFile(file, "users");
 
         setState(() {
-          // Append cache buster to force Image.network to update the image
           _avatarUrl = "$uploadedUrl?t=${DateTime.now().millisecondsSinceEpoch}";
           _isUploading = false;
         });
@@ -120,20 +154,91 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
   Future<void> _handleSave() async {
     final name = _nameController.text.trim();
-    if (name.isNotEmpty) {
-      final user = _firebaseService.currentUser;
-      if (user != null) {
-        // Sync name preference to Firestore
-        await _firebaseService.syncPreferencesToCloud(user.uid, {'name': name});
+    final birthday = _birthdayController.text.trim();
+    final sosName = _sosNameController.text.trim();
+    final sosPhone = _sosPhoneController.text.trim();
+    final sosRel = _sosRelController.text.trim();
+
+    final user = _firebaseService.currentUser;
+    if (user != null) {
+      // 1. Update Display Name in Firebase Auth
+      if (name.isNotEmpty) {
+        await _firebaseService.updateDisplayName(name);
       }
-      await _firebaseService.updateDisplayName(name);
+
+      // 2. Sync Preferences (Name & Birthday) to Cloud Firestore
+      final prefsJson = {
+        'name': name,
+        'birthday': birthday,
+        if (_avatarUrl != null) 'photoUrl': _avatarUrl,
+      };
+      await _firebaseService.syncPreferencesToCloud(user.uid, prefsJson);
+
+      // 3. Sync Emergency SOS Contact to Cloud Firestore
+      if (sosName.isNotEmpty || sosPhone.isNotEmpty) {
+        final sosJson = {
+          'name': sosName,
+          'phone': sosPhone,
+          'relationship': sosRel,
+        };
+        await _firebaseService.syncContactToCloud(user.uid, sosJson);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile details updated successfully.')),
+          const SnackBar(
+            content: Text('Profile & Emergency Contact updated successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         Navigator.of(context).pop();
       }
     }
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required String hintText,
+    required TextEditingController controller,
+    required Color tileTextColor,
+    required Color inputFill,
+    IconData? icon,
+    bool readOnly = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: tileTextColor,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          readOnly: readOnly,
+          keyboardType: keyboardType,
+          style: GoogleFonts.inter(fontSize: 15, color: tileTextColor),
+          decoration: InputDecoration(
+            prefixIcon: icon != null ? Icon(icon, size: 18, color: const Color(0xFF94A3B8)) : null,
+            hintText: hintText,
+            hintStyle: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 14),
+            filled: true,
+            fillColor: inputFill,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -150,206 +255,290 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
         return Scaffold(
           backgroundColor: AppColors.lightBackground,
           body: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Floating Pill Back Button
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      height: 44,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: isDefault ? Colors.white : AppColors.primaryBackground,
-                        borderRadius: BorderRadius.circular(22),
-                        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
-                        boxShadow: isDefault ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          )
-                        ] : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chevron_left, color: headerColor, size: 24),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Back',
-                            style: GoogleFonts.inter(
-                              color: headerColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // 2. Title Header
-                  Text(
-                    'Profile Details',
-                    style: GoogleFonts.inter(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: headerColor,
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // 3. Circle Avatar with Floating Camera Action Badge
-                  Center(
-                    child: GestureDetector(
-                      onTap: _isUploading ? null : _pickAndUploadImage,
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFE2E8F0),
-                              shape: BoxShape.circle,
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: _isUploading
-                                ? const Center(
-                                    child: SizedBox(
-                                      width: 40,
-                                      height: 40,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
-                                      ),
-                                    ),
-                                  )
-                                : (_avatarUrl != null && !_avatarUrl!.startsWith("https://mock-cloudflare-storage.easylens.internal"))
-                                    ? Image.network(
-                                        _avatarUrl!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Center(
-                                            child: Icon(
-                                              Icons.person_outline,
-                                              size: 64,
-                                              color: Color(0xFF94A3B8),
-                                            ),
-                                          );
-                                        },
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null) return child;
-                                          return const Center(
-                                            child: SizedBox(
-                                              width: 30,
-                                              height: 30,
-                                              child: CircularProgressIndicator(strokeWidth: 2),
-                                            ),
-                                          );
-                                        },
-                                      )
-                                    : const Center(
-                                        child: Icon(
-                                          Icons.person_outline,
-                                          size: 64,
-                                          color: Color(0xFF94A3B8),
-                                        ),
-                                      ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryButton,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.15),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // 4. Input Form Container Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20.0),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(24.0),
-                      border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
-                      boxShadow: isDefault ? [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        )
-                      ] : null,
-                    ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'What should I call you?',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: tileTextColor,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Choose how Buddy refers to you in the app.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _nameController,
-                          style: TextStyle(color: tileTextColor),
-                          decoration: InputDecoration(
-                            hintText: 'Enter name',
-                            hintStyle: TextStyle(color: AppColors.textMuted),
-                            filled: true,
-                            fillColor: inputFill,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
+                        // 1. Floating Pill Back Button
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            height: 44,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: isDefault ? Colors.white : AppColors.primaryBackground,
+                              borderRadius: BorderRadius.circular(22),
+                              border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                              boxShadow: isDefault
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.06),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      )
+                                    ]
+                                  : null,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.chevron_left, color: headerColor, size: 24),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Back',
+                                  style: GoogleFonts.inter(
+                                    color: headerColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
+
                         const SizedBox(height: 24),
+
+                        // 2. Title Header
+                        Text(
+                          'Profile Details',
+                          style: GoogleFonts.inter(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                            color: headerColor,
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // 3. Circle Avatar with Floating Camera Badge
+                        Center(
+                          child: GestureDetector(
+                            onTap: _isUploading ? null : _pickAndUploadImage,
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: 110,
+                                  height: 110,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFE2E8F0),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: _isUploading
+                                      ? const Center(
+                                          child: SizedBox(
+                                            width: 36,
+                                            height: 36,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 3,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+                                            ),
+                                          ),
+                                        )
+                                      : (_avatarUrl != null && !_avatarUrl!.startsWith("https://mock-cloudflare-storage.easylens.internal"))
+                                          ? Image.network(
+                                              _avatarUrl!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return const Center(
+                                                  child: Icon(
+                                                    Icons.person_outline,
+                                                    size: 56,
+                                                    color: Color(0xFF94A3B8),
+                                                  ),
+                                                );
+                                              },
+                                            )
+                                          : const Center(
+                                              child: Icon(
+                                                Icons.person_outline,
+                                                size: 56,
+                                                color: Color(0xFF94A3B8),
+                                              ),
+                                            ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryButton,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.15),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        )
+                                      ],
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        // 4. Personal Information Card
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20.0),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(24.0),
+                            border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                            boxShadow: isDefault
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Personal Information',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 18,
+                                  color: headerColor,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              _buildInputField(
+                                label: 'Full Name',
+                                hintText: 'Enter name',
+                                controller: _nameController,
+                                tileTextColor: tileTextColor,
+                                inputFill: inputFill,
+                                icon: Icons.person_outline,
+                              ),
+                              const SizedBox(height: 14),
+
+                              _buildInputField(
+                                label: 'Email Address',
+                                hintText: 'Your registered email',
+                                controller: _emailController,
+                                tileTextColor: tileTextColor,
+                                inputFill: inputFill,
+                                icon: Icons.email_outlined,
+                                readOnly: true,
+                              ),
+                              const SizedBox(height: 14),
+
+                              _buildInputField(
+                                label: 'Birthday',
+                                hintText: 'DD/MM/YYYY',
+                                controller: _birthdayController,
+                                tileTextColor: tileTextColor,
+                                inputFill: inputFill,
+                                icon: Icons.cake_outlined,
+                                keyboardType: TextInputType.datetime,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // 5. Emergency Contact Card
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20.0),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(24.0),
+                            border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                            boxShadow: isDefault
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Emergency SOS Contact',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 18,
+                                  color: headerColor,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Contact alerted in case of an emergency.',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              _buildInputField(
+                                label: 'Contact Name',
+                                hintText: 'Emergency contact name',
+                                controller: _sosNameController,
+                                tileTextColor: tileTextColor,
+                                inputFill: inputFill,
+                                icon: Icons.person_pin_outlined,
+                              ),
+                              const SizedBox(height: 14),
+
+                              _buildInputField(
+                                label: 'Phone Number',
+                                hintText: 'Emergency contact phone',
+                                controller: _sosPhoneController,
+                                tileTextColor: tileTextColor,
+                                inputFill: inputFill,
+                                icon: Icons.phone_outlined,
+                                keyboardType: TextInputType.phone,
+                              ),
+                              const SizedBox(height: 14),
+
+                              _buildInputField(
+                                label: 'Relationship',
+                                hintText: 'e.g. Sister, Friend',
+                                controller: _sosRelController,
+                                tileTextColor: tileTextColor,
+                                inputFill: inputFill,
+                                icon: Icons.favorite_border,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        // 6. Save Button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
@@ -364,7 +553,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                             ),
                             onPressed: _handleSave,
                             child: Text(
-                              'Save Profile',
+                              'Save Changes',
                               style: GoogleFonts.inter(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -372,12 +561,11 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                             ),
                           ),
                         ),
+
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
           ),
         );
       },
