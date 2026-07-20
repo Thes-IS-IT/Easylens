@@ -142,35 +142,6 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
-
-  Future<void> _handleGoogleLogin() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final user = await _firebaseService.signInWithGoogle();
-      if (user != null && mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          AppRoute.to(const DashboardScreen()),
-          (route) => false,
-        );
-      } else if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = "Google Sign In failed. Please try again.";
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -259,51 +230,6 @@ class _LoginScreenState extends State<LoginScreen> {
             },
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGoogleButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF002663),
-          elevation: 0,
-          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28.0),
-          ),
-        ),
-        onPressed: _handleGoogleLogin,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFF1F5F9),
-              ),
-              child: const Icon(
-                Icons.g_mobiledata_rounded,
-                color: Color(0xFF4285F4),
-                size: 26,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Continue with Google',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF002663),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -447,33 +373,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                             ),
-
-                            const SizedBox(height: 20),
-
-                            // Divider OR
-                            Row(
-                              children: [
-                                const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1.5)),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text(
-                                    'OR',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF94A3B8),
-                                    ),
-                                  ),
-                                ),
-                                const Expanded(child: Divider(color: Color(0xFFE2E8F0), thickness: 1.5)),
-                              ],
-                            ),
-
-                            const SizedBox(height: 20),
-
-                            // Continue with Google Button
-                            _buildGoogleButton(),
-
                             const SizedBox(height: 24),
                           ],
                         ),

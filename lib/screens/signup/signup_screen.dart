@@ -1048,47 +1048,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return StepCreateAccount(
           language: _selectedLanguage,
           onSelectedMethod: (method) async {
-            if (method == 'Google') {
-              setState(() {
-                _isLoading = true;
-                _errorMessage = null;
-              });
-              try {
-                final user = await _firebaseService.signInWithGoogle();
-                if (user != null) {
-                  setState(() {
-                    _googleUserSession = user;
-                    _authMethod = 'Google';
-                    _email = user.email;
-                    _name = user.displayName;
-                    _currentStep = 13; // Social methods skip password setup
-                    _isLoading = false;
-                  });
-                  _speakStepPromptAndListen();
-                } else {
-                  setState(() {
-                    _isLoading = false;
-                  });
-                }
-              } catch (e) {
-                setState(() {
-                  _errorMessage = _getFriendlyErrorMessage(e);
-                  _isLoading = false;
-                });
-              }
-            } else if (method == 'Email') {
-              setState(() {
-                _authMethod = 'Email';
-                _currentStep = 10;
-              });
-              _speakStepPromptAndListen();
-            } else if (method == 'Phone') {
-              setState(() {
-                _authMethod = 'Phone';
-                _currentStep = 11;
-              });
-              _speakStepPromptAndListen();
-            }
+            setState(() {
+              _authMethod = 'Email';
+              _currentStep = 10;
+            });
+            _speakStepPromptAndListen();
           },
         );
       case 10:

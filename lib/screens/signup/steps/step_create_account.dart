@@ -4,7 +4,7 @@ import '../../../constants/colors.dart';
 import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 8: Create Account
+// STEP 9: Create Account
 class StepCreateAccount extends StatelessWidget {
   final String language;
   final ValueChanged<String> onSelectedMethod;
@@ -26,7 +26,7 @@ class StepCreateAccount extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         
-        // Google button
+        // Email Button (Primary Sign In Method)
         SizedBox(
           width: double.infinity,
           height: 72,
@@ -34,34 +34,7 @@ class StepCreateAccount extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryButton,
               foregroundColor: AppColors.primaryButtonText,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-            ),
-            onPressed: () => onSelectedMethod('Google'),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.g_mobiledata, size: 44),
-                const SizedBox(width: 8),
-                Text(
-                  SignupL10n.t('create_account_google', language),
-                  style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Email button
-        SizedBox(
-          width: double.infinity,
-          height: 72,
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryText,
-              side: BorderSide(color: AppColors.cardBorder, width: 1.5),
+              elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20.0),
               ),
@@ -71,7 +44,7 @@ class StepCreateAccount extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(Icons.mail_outline, size: 26),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Text(
                   SignupL10n.t('create_account_email', language),
                   style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
