@@ -34,6 +34,7 @@ import 'components/pairing_wizard.dart';
 import 'components/hud_mode_selector.dart';
 import 'components/hud_controls_panel.dart';
 import 'components/hud_camera_view.dart';
+import 'components/camera_loading_overlay.dart';
 
 enum HudMode {
   navigation,
@@ -288,6 +289,10 @@ class _HardwareScreenState extends State<HardwareScreen> {
     Esp32Service().addListener(_onEsp32FrameAvailable);
     BuddyAssistantSheet.isVisible.addListener(_onBuddyVisibilityChanged);
     SpeechNavigationNotifier.hardwareControlNotifier.addListener(_onSpeechHardwareControl);
+
+    if (_pairStep == 4 && !_isCameraInitialized) {
+      _initializeCamera();
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScreenTutorialCard.showIfNeeded(
@@ -2984,7 +2989,10 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
 
   Widget _buildObjectDetectionScreen() {
     if (!_isCameraInitialized || (_cameraController == null && !Esp32Service().isConnected)) {
-      return const Center(child: CircularProgressIndicator());
+      if (!_isCameraInitialized && (_cameraController == null || !_cameraController!.value.isInitialized)) {
+        _initializeCamera();
+      }
+      return const CameraLoadingOverlay();
     }
 
     final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');

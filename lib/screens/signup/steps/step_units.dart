@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 7: Units
+// STEP 8: Units
 class StepUnits extends StatelessWidget {
   final String selectedUnit;
+  final String language;
   final ValueChanged<String> onChanged;
 
   const StepUnits({
     super.key,
     required this.selectedUnit,
+    required this.language,
     required this.onChanged,
   });
 
-  Widget _buildUnitButton(String unit) {
-    final isSelected = selectedUnit == unit;
+  Widget _buildUnitButton(String value, String label) {
+    final isSelected = selectedUnit == value;
     return GestureDetector(
-      onTap: () => onChanged(unit),
+      onTap: () => onChanged(value),
       child: Container(
         height: 56,
         decoration: BoxDecoration(
@@ -29,7 +32,7 @@ class StepUnits extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            unit,
+            label,
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -47,13 +50,13 @@ class StepUnits extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Units',
-          subtitle: 'Select measurement unit preference for distance announcements.',
+          title: SignupL10n.t('units_title', language),
+          subtitle: SignupL10n.t('units_subtitle', language),
         ),
         const SizedBox(height: 32),
-        _buildUnitButton('Metric'),
+        _buildUnitButton('Metric', SignupL10n.t('units_metric', language)),
         const SizedBox(height: 16),
-        _buildUnitButton('Imperial'),
+        _buildUnitButton('Imperial', SignupL10n.t('units_imperial', language)),
       ],
     );
   }

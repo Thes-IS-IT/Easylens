@@ -3,14 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
-// STEP 19: Your SOS Contact
+// STEP 18: Your SOS Contact
 class StepSosContact extends StatefulWidget {
   final String name;
   final String phone;
   final String relationship;
+  final String language;
   final ValueChanged<String> onNameChanged;
   final ValueChanged<String> onPhoneChanged;
   final ValueChanged<String> onRelationshipChanged;
@@ -21,6 +23,7 @@ class StepSosContact extends StatefulWidget {
     required this.name,
     required this.phone,
     required this.relationship,
+    required this.language,
     required this.onNameChanged,
     required this.onPhoneChanged,
     required this.onRelationshipChanged,
@@ -64,8 +67,8 @@ class _StepSosContactState extends State<StepSosContact> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Your SOS Contact',
-          subtitle: 'Set an emergency contact recipient for immediate SOS alerts.',
+          title: SignupL10n.t('sos_title', widget.language),
+          subtitle: SignupL10n.t('sos_subtitle', widget.language),
         ),
         const SizedBox(height: 24),
 
@@ -120,7 +123,7 @@ class _StepSosContactState extends State<StepSosContact> {
             },
             icon: const Icon(Icons.phone_callback_outlined, size: 20),
             label: Text(
-              'Import from Contacts',
+              SignupL10n.t('sos_import', widget.language),
               style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
@@ -131,7 +134,7 @@ class _StepSosContactState extends State<StepSosContact> {
         // Divider row
         Center(
           child: Text(
-            'or enter manually',
+            SignupL10n.t('sos_or_manual', widget.language),
             style: GoogleFonts.inter(
               fontSize: 13,
               color: AppColors.textMuted,
@@ -142,8 +145,8 @@ class _StepSosContactState extends State<StepSosContact> {
 
         const SizedBox(height: 20),
 
-        // FULL NAME field
-        _InputLabel(label: 'FULL NAME'),
+        // Their full name field
+        _InputLabel(label: SignupL10n.t('sos_their_name', widget.language)),
         const SizedBox(height: 6),
         _SosTextField(
           controller: _nameController,
@@ -154,8 +157,8 @@ class _StepSosContactState extends State<StepSosContact> {
 
         const SizedBox(height: 14),
 
-        // PHONE NUMBER field — digits only, max 11 characters
-        _InputLabel(label: 'PHONE NUMBER'),
+        // Their phone number field — digits only, max 11 characters
+        _InputLabel(label: SignupL10n.t('sos_their_phone', widget.language)),
         const SizedBox(height: 6),
         _SosTextField(
           controller: _phoneController,
@@ -171,8 +174,8 @@ class _StepSosContactState extends State<StepSosContact> {
 
         const SizedBox(height: 14),
 
-        // RELATIONSHIP field
-        _InputLabel(label: 'RELATIONSHIP (E.G. FAMILY)'),
+        // Relationship field
+        _InputLabel(label: SignupL10n.t('sos_relationship', widget.language)),
         const SizedBox(height: 6),
         _SosTextField(
           controller: _relController,
@@ -213,7 +216,7 @@ class _StepSosContactState extends State<StepSosContact> {
               }
             },
             child: Text(
-              'Finish Setup',
+              SignupL10n.t('sos_finish', widget.language),
               style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.bold),
             ),
           ),

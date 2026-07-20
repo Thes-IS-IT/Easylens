@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
-// STEP 13: Create Password
+// STEP 11: Create Password
 class StepCreatePassword extends StatefulWidget {
   final String password;
+  final String language;
   final ValueChanged<String> onPasswordChanged;
 
   const StepCreatePassword({
     super.key,
     required this.password,
+    required this.language,
     required this.onPasswordChanged,
   });
 
@@ -70,8 +73,8 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Create Password',
-          subtitle: 'Create a secure password for your account.',
+          title: SignupL10n.t('password_title', widget.language),
+          subtitle: SignupL10n.t('password_subtitle', widget.language),
         ),
         const SizedBox(height: 32),
 
@@ -108,7 +111,7 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
           obscureText: _obscurePassword,
           onChanged: (_) => _validateAndUpdate(),
           decoration: InputDecoration(
-            labelText: 'Password',
+            labelText: SignupL10n.t('password_enter', widget.language),
             labelStyle: GoogleFonts.inter(color: AppColors.primaryText),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(
@@ -150,7 +153,7 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
           obscureText: _obscureConfirm,
           onChanged: (_) => _validateAndUpdate(),
           decoration: InputDecoration(
-            labelText: 'Confirm Password',
+            labelText: SignupL10n.t('password_confirm_field', widget.language),
             labelStyle: GoogleFonts.inter(color: AppColors.primaryText),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(
@@ -189,7 +192,7 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
         const SizedBox(height: 24),
         SwitchListTile(
           title: Text(
-            'Remember Me',
+            SignupL10n.t('password_keep_signed_in', widget.language),
             style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColors.primaryText),
           ),
           value: _rememberMe,

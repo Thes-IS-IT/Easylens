@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 15: Upload Photo
+// STEP 14: Upload Photo
 class StepUploadPhoto extends StatelessWidget {
+  final String language;
   final ValueChanged<File> onPhotoPicked;
   final VoidCallback onCancel;
 
   const StepUploadPhoto({
     super.key,
+    required this.language,
     required this.onPhotoPicked,
     required this.onCancel,
   });
@@ -52,7 +55,7 @@ class StepUploadPhoto extends StatelessWidget {
             children: <Widget>[
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Photo Gallery'),
+                title: Text(SignupL10n.t('photo_gallery', language)),
                 onTap: () {
                   Navigator.of(context).pop();
                   _pickImage(context, ImageSource.gallery);
@@ -60,7 +63,7 @@ class StepUploadPhoto extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_camera),
-                title: const Text('Camera'),
+                title: Text(SignupL10n.t('photo_camera', language)),
                 onTap: () {
                   Navigator.of(context).pop();
                   _pickImage(context, ImageSource.camera);
@@ -79,8 +82,8 @@ class StepUploadPhoto extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Your Photo',
-          subtitle: 'Upload a photo for your profile avatar.',
+          title: SignupL10n.t('photo_title', language),
+          subtitle: SignupL10n.t('photo_subtitle', language),
         ),
         const SizedBox(height: 48),
         Center(
@@ -116,7 +119,7 @@ class StepUploadPhoto extends StatelessWidget {
                 const Icon(Icons.camera_alt_outlined),
                 const SizedBox(width: 8),
                 Text(
-                  'Upload Photo',
+                  SignupL10n.t('photo_choose', language),
                   style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -137,7 +140,7 @@ class StepUploadPhoto extends StatelessWidget {
             ),
             onPressed: onCancel,
             child: Text(
-              'Cancel',
+              SignupL10n.t('photo_skip', language),
               style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
-// STEP 10: Email Input
+// STEP 9: Email Input
 class StepEmailInput extends StatefulWidget {
   final String email;
+  final String language;
   final ValueChanged<String> onEmailChanged;
   final VoidCallback onContinue;
   final VoidCallback onChangeMethod;
@@ -14,6 +16,7 @@ class StepEmailInput extends StatefulWidget {
   const StepEmailInput({
     super.key,
     required this.email,
+    required this.language,
     required this.onEmailChanged,
     required this.onContinue,
     required this.onChangeMethod,
@@ -66,8 +69,8 @@ class _StepEmailInputState extends State<StepEmailInput> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Enter your email',
-          subtitle: 'This will be used to sign in to your account.',
+          title: SignupL10n.t('email_title', widget.language),
+          subtitle: SignupL10n.t('email_subtitle', widget.language),
         ),
         const SizedBox(height: 32),
 
@@ -110,7 +113,7 @@ class _StepEmailInputState extends State<StepEmailInput> {
           },
           style: GoogleFonts.inter(fontSize: 16, color: AppColors.primaryText),
           decoration: InputDecoration(
-            hintText: 'example@email.com',
+            hintText: SignupL10n.t('email_hint', widget.language),
             hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
             prefixIcon: Icon(Icons.email_outlined, color: AppColors.textMuted, size: 20),
             suffixIcon: VoiceMicIconButton(
@@ -152,7 +155,7 @@ class _StepEmailInputState extends State<StepEmailInput> {
             ),
             onPressed: _handleContinue,
             child: Text(
-              'Continue',
+              SignupL10n.t('email_continue', widget.language),
               style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
@@ -171,7 +174,7 @@ class _StepEmailInputState extends State<StepEmailInput> {
             ),
             onPressed: widget.onChangeMethod,
             child: Text(
-              'Change Method',
+              SignupL10n.t('email_change_method', widget.language),
               style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 2: Your Conditions
+// STEP 3: Conditions
 class StepConditions extends StatelessWidget {
   final List<String> selectedConditions;
+  final String language;
   final ValueChanged<List<String>> onChanged;
   final VoidCallback onAddCustomCondition;
 
   const StepConditions({
     super.key,
     required this.selectedConditions,
+    required this.language,
     required this.onChanged,
     required this.onAddCustomCondition,
   });
@@ -34,8 +37,8 @@ class StepConditions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Your Conditions',
-          subtitle: 'Select your known conditions to calibrate your sensors.',
+          title: SignupL10n.t('conditions_title', language),
+          subtitle: SignupL10n.t('conditions_subtitle', language),
         ),
         const SizedBox(height: 24),
         Column(
@@ -92,7 +95,7 @@ class StepConditions extends StatelessWidget {
             ),
             onPressed: onAddCustomCondition,
             child: Text(
-              'Condition not listed...',
+              SignupL10n.t('conditions_not_listed', language),
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

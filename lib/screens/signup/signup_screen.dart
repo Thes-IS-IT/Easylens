@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
+import '../../l10n/signup_strings.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/tts_service.dart';
@@ -32,15 +33,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isVerifyingCode = false;
 
   // Registration States (18 Steps)
-  bool _isForMyself = true; // Step 1
-  List<String> _selectedConditions = []; // Step 2
-  String _selectedContrastTheme = 'Default'; // Step 3
-  bool _voiceFeedback = true; // Step 4
-  bool _hapticFeedback = true; // Step 4
-  String _selectedLanguage = 'English'; // Step 5
+  String _selectedLanguage = 'English'; // Step 1 — FIRST so all subsequent steps are localized
+  bool _isForMyself = true; // Step 2
+  List<String> _selectedConditions = []; // Step 3
+  String _selectedContrastTheme = 'Default'; // Step 4
+  bool _voiceFeedback = true; // Step 5
+  bool _hapticFeedback = true; // Step 5
   String _selectedVoicePersona = 'Aria (Calm)'; // Step 6
-  String _selectedUnit = 'Metric'; // Step 7
-  String _selectedMobilityAid = 'None'; // Step 8
+  String _selectedMobilityAid = 'None'; // Step 7
+  String _selectedUnit = 'Metric'; // Step 8
   
   String _authMethod = ''; // Step 8: 'Google', 'Apple', 'Email', 'Phone'
   String _email = ''; // Step 9
@@ -80,26 +81,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _nextStep() {
     // Input validation & exception handling per step
-    if (_currentStep == 9) {
+    if (_currentStep == 10) {
       // Email Step
       final emailClean = _email.trim();
       if (emailClean.isEmpty || !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(emailClean)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Please enter a valid email address (e.g. name@example.com)'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        return;
-      }
-    } else if (_currentStep == 10) {
-      // Phone Step
-      if (_phone.trim().length < 10) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Please enter a valid 11-digit phone number'),
+            content: Text(SignupL10n.t('error_email', _selectedLanguage)),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -108,11 +96,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return;
       }
     } else if (_currentStep == 11) {
+      // Phone Step
+      if (_phone.trim().length < 10) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(SignupL10n.t('error_phone', _selectedLanguage)),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+    } else if (_currentStep == 12) {
       // Password Step
       if (_password.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Please create a password for your account'),
+            content: Text(SignupL10n.t('error_password_empty', _selectedLanguage)),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -123,7 +124,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (_password.length < 6) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Password must be at least 6 characters long'),
+            content: Text(SignupL10n.t('error_password_short', _selectedLanguage)),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -131,12 +132,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
         return;
       }
-    } else if (_currentStep == 16) {
+    } else if (_currentStep == 17) {
       // Name Step
       if (_name.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Please enter your name or nickname'),
+            content: Text(SignupL10n.t('error_name', _selectedLanguage)),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -225,17 +226,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (success) {
         setState(() => _isVerifyingCode = true);
       } else {
-        setState(() => _smsErrorMessage = 'Failed to send verification SMS. Please try again.');
+        setState(() => _smsErrorMessage = 'We couldn\'t send the code. Please try again.');
       }
     } catch (e) {
-      setState(() => _smsErrorMessage = 'SMS error: ${e.toString()}');
+      setState(() => _smsErrorMessage = 'Something went wrong. Please check your network and try again.');
     }
   }
 
   void _verifyCode(String enteredCode) {
     if (enteredCode.length < 4) {
       setState(() {
-        _smsErrorMessage = 'Please enter all 4 digits of the code.';
+        _smsErrorMessage = 'Please enter all 4 numbers.';
       });
       return;
     }
@@ -248,7 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       });
     } else {
       setState(() {
-        _smsErrorMessage = 'Incorrect code. Please check and try again.';
+        _smsErrorMessage = 'That code doesn\'t seem right. Please try again.';
       });
     }
   }
@@ -258,11 +259,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (msg.contains('email-already-in-use')) {
       return 'That email address is already registered. Please sign in instead.';
     } else if (msg.contains('weak-password')) {
-      return 'The password is too weak. Please choose a stronger password.';
+      return 'That password is too weak. Try adding more letters or numbers.';
     } else if (msg.contains('invalid-email')) {
       return 'The email address is not valid.';
     } else if (msg.contains('network-request-failed')) {
-      return 'Network error. Please check your internet connection and try again.';
+      return 'Connection error. Please check your internet and try again.';
     }
     return msg.replaceAll("Exception:", "").replaceAll("FirebaseAuthException:", "").trim();
   }
@@ -356,7 +357,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       } else {
         setState(() {
-          _errorMessage = "Registration failed. Please try again.";
+          _errorMessage = "We couldn't set up your account. Please try again.";
           _isLoading = false;
         });
       }
@@ -397,6 +398,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget _buildStepContent() {
     if (_showOtherConditionInput) {
       return StepOtherCondition(
+        language: _selectedLanguage,
         onConditionAdded: (cond) {
           setState(() {
             if (!_selectedConditions.contains(cond)) {
@@ -417,6 +419,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     if (_isVerifyingCode) {
       return StepVerificationCode(
+        language: _selectedLanguage,
         onVerify: _verifyCode,
         onResendCode: _sendVerificationSmsPhone,
         errorMessage: _smsErrorMessage,
@@ -425,19 +428,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     switch (_currentStep) {
       case 1:
-        return StepPersona(
-          isForMyself: _isForMyself,
-          onChanged: (val) => setState(() => _isForMyself = val),
+        // LANGUAGE — first step; write to SettingsService immediately so app is reactive
+        return StepLanguage(
+          selectedLanguage: _selectedLanguage,
+          language: _selectedLanguage,
+          onChanged: (val) {
+            setState(() => _selectedLanguage = val);
+            SettingsService().updateSettings(selectedLanguage: val);
+          },
         );
       case 2:
+        return StepPersona(
+          isForMyself: _isForMyself,
+          language: _selectedLanguage,
+          onChanged: (val) => setState(() => _isForMyself = val),
+        );
+      case 3:
         return StepConditions(
           selectedConditions: _selectedConditions,
+          language: _selectedLanguage,
           onChanged: (val) => setState(() => _selectedConditions = val),
           onAddCustomCondition: () => setState(() => _showOtherConditionInput = true),
         );
-      case 3:
+      case 4:
         return StepContrastTheme(
           selectedTheme: _selectedContrastTheme,
+          language: _selectedLanguage,
           onChanged: (val) {
             setState(() {
               _selectedContrastTheme = val;
@@ -445,21 +461,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
             SettingsService().updateSettings(selectedContrastTheme: val);
           },
         );
-      case 4:
+      case 5:
         return StepAccessibility(
           voiceFeedback: _voiceFeedback,
           hapticFeedback: _hapticFeedback,
+          language: _selectedLanguage,
           onVoiceChanged: (val) => setState(() => _voiceFeedback = val),
           onHapticChanged: (val) => setState(() => _hapticFeedback = val),
-        );
-      case 5:
-        return StepLanguage(
-          selectedLanguage: _selectedLanguage,
-          onChanged: (val) => setState(() => _selectedLanguage = val),
         );
       case 6:
         return StepVoicePersona(
           selectedPersona: _selectedVoicePersona,
+          language: _selectedLanguage,
           onChanged: (val) {
             setState(() {
               _selectedVoicePersona = val;
@@ -471,10 +484,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 7:
         return StepMobilityAids(
           selectedAid: _selectedMobilityAid,
+          language: _selectedLanguage,
           onChanged: (val) => setState(() => _selectedMobilityAid = val),
         );
       case 8:
         return StepCreateAccount(
+          language: _selectedLanguage,
           onSelectedMethod: (method) async {
             if (method == 'Google') {
               setState(() {
@@ -518,6 +533,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 9:
         return StepEmailInput(
           email: _email,
+          language: _selectedLanguage,
           onEmailChanged: (val) => setState(() => _email = val),
           onContinue: _nextStep,
           onChangeMethod: () => setState(() => _currentStep = 8),
@@ -525,6 +541,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 10:
         return StepPhoneInput(
           phone: _phone,
+          language: _selectedLanguage,
           onPhoneChanged: (val) => setState(() => _phone = val),
           onSendCode: _sendVerificationSmsPhone,
           onChangeMethod: () => setState(() => _currentStep = 8),
@@ -532,19 +549,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 11:
         return StepCreatePassword(
           password: _password,
+          language: _selectedLanguage,
           onPasswordChanged: (val) => setState(() => _password = val),
         );
       case 12:
         return StepPermissions(
+          language: _selectedLanguage,
           onContinue: () => setState(() => _currentStep = 13),
         );
       case 13:
         return StepTermsPrivacy(
+          language: _selectedLanguage,
           onAgree: () => setState(() => _currentStep = 14),
           onReadDocument: () => setState(() => _showTermsDocument = true),
         );
       case 14:
         return StepUploadPhoto(
+          language: _selectedLanguage,
           onPhotoPicked: (file) {
             setState(() {
               _pickedImage = file;
@@ -556,17 +577,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 15:
         return StepPhotoConfirmation(
           pickedImage: _pickedImage!,
+          language: _selectedLanguage,
           onReupload: () => setState(() => _currentStep = 14),
           onContinue: () => setState(() => _currentStep = 16),
         );
       case 16:
         return StepNameInput(
           name: _name,
+          language: _selectedLanguage,
           onNameChanged: (val) => setState(() => _name = val),
         );
       case 17:
         return StepBirthdayInput(
           birthday: _birthday,
+          language: _selectedLanguage,
           onBirthdayChanged: (val) => setState(() => _birthday = val),
         );
       case 18:
@@ -574,6 +598,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           name: _sosName,
           phone: _sosPhone,
           relationship: _sosRelationship,
+          language: _selectedLanguage,
           onNameChanged: (val) => setState(() => _sosName = val),
           onPhoneChanged: (val) => setState(() => _sosPhone = val),
           onRelationshipChanged: (val) => setState(() => _sosRelationship = val),
@@ -650,7 +675,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                               onPressed: _nextStep,
                               child: Text(
-                                _currentStep == 18 ? 'Finish Setup' : 'Continue',
+                                SignupL10n.t('continue', _selectedLanguage),
                                 style: GoogleFonts.inter(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -693,7 +718,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             Icon(Icons.arrow_back_ios_new, size: 14, color: AppColors.primaryText),
                             const SizedBox(width: 6),
                             Text(
-                              'Back',
+                              SignupL10n.t('back', _selectedLanguage),
                               style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,

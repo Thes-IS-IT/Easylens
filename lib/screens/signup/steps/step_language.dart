@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 5: Language Selection
+// STEP 1: Language Selection
 class StepLanguage extends StatelessWidget {
   final String selectedLanguage;
+  final String language;
   final ValueChanged<String> onChanged;
 
   const StepLanguage({
     super.key,
     required this.selectedLanguage,
+    required this.language,
     required this.onChanged,
   });
 
@@ -47,8 +50,8 @@ class StepLanguage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Language',
-          subtitle: 'Select your primary voice synthesis and voice control language.',
+          title: SignupL10n.t('language_title', language),
+          subtitle: SignupL10n.t('language_subtitle', language),
         ),
         const SizedBox(height: 32),
         _buildLanguageButton('English'),

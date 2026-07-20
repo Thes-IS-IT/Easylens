@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
 // STEP 2 SUB: Other Condition (Speech / Custom input)
 class StepOtherCondition extends StatefulWidget {
+  final String language;
   final ValueChanged<String> onConditionAdded;
   final VoidCallback onCancel;
 
   const StepOtherCondition({
     super.key,
+    required this.language,
     required this.onConditionAdded,
     required this.onCancel,
   });
@@ -34,20 +37,20 @@ class _StepOtherConditionState extends State<StepOtherCondition> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Other Condition',
-          subtitle: 'Tell us your visual condition so we can calibrate Buddy for you.',
+          title: SignupL10n.t('other_condition_title', widget.language),
+          subtitle: SignupL10n.t('other_condition_subtitle', widget.language),
         ),
         const SizedBox(height: 32),
         
         // Microphone visualizer with auto-off timer
         VoiceMicBigButton(
           controller: _controller,
-          label: 'Tap to Speak Condition',
+          label: SignupL10n.t('other_condition_mic_label', widget.language),
         ),
         
         const SizedBox(height: 32),
         Text(
-          'Or type it below:',
+          'Or type below:',
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -58,7 +61,7 @@ class _StepOtherConditionState extends State<StepOtherCondition> {
         TextField(
           controller: _controller,
           decoration: InputDecoration(
-            hintText: 'e.g., Astigmatism',
+            hintText: SignupL10n.t('other_condition_hint', widget.language),
             hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
             suffixIcon: VoiceMicIconButton(
               controller: _controller,
@@ -94,7 +97,7 @@ class _StepOtherConditionState extends State<StepOtherCondition> {
                 const Icon(Icons.add),
                 const SizedBox(width: 8),
                 Text(
-                  'Add Condition',
+                  SignupL10n.t('other_condition_add', widget.language),
                   style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -115,7 +118,7 @@ class _StepOtherConditionState extends State<StepOtherCondition> {
             ),
             onPressed: widget.onCancel,
             child: Text(
-              'Cancel',
+              SignupL10n.t('other_condition_cancel', widget.language),
               style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),

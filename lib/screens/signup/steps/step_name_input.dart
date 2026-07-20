@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
-// STEP 17: What should I call you?
+// STEP 16: What should I call you?
 class StepNameInput extends StatefulWidget {
   final String name;
+  final String language;
   final ValueChanged<String> onNameChanged;
 
   const StepNameInput({
     super.key,
     required this.name,
+    required this.language,
     required this.onNameChanged,
   });
 
@@ -52,8 +55,8 @@ class _StepNameInputState extends State<StepNameInput> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'What should I call you?',
-          subtitle: 'Speak your first name or nickname, or type it below.',
+          title: SignupL10n.t('name_title', widget.language),
+          subtitle: SignupL10n.t('name_subtitle', widget.language),
         ),
         const SizedBox(height: 36),
 
@@ -61,7 +64,7 @@ class _StepNameInputState extends State<StepNameInput> {
         VoiceMicBigButton(
           controller: _controller,
           onChanged: _handleNameChanged,
-          label: 'Tap to Speak Name',
+          label: SignupL10n.t('name_mic_label', widget.language),
         ),
 
         const SizedBox(height: 32),
@@ -93,7 +96,7 @@ class _StepNameInputState extends State<StepNameInput> {
         ],
 
         Text(
-          'Or type it below:',
+          SignupL10n.t('name_write_here', widget.language),
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -108,7 +111,7 @@ class _StepNameInputState extends State<StepNameInput> {
           onChanged: _handleNameChanged,
           style: GoogleFonts.inter(fontSize: 15, color: AppColors.primaryText),
           decoration: InputDecoration(
-            hintText: 'Nickname or Preferred Name',
+            hintText: SignupL10n.t('name_hint', widget.language),
             hintStyle: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 14),
             prefixIcon: Icon(Icons.person_outline, color: AppColors.textMuted, size: 20),
             suffixIcon: VoiceMicIconButton(

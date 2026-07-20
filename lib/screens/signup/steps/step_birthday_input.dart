@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
-// STEP 18: Your Birthday
+// STEP 17: Your Birthday
 class StepBirthdayInput extends StatefulWidget {
   final String birthday;
+  final String language;
   final ValueChanged<String> onBirthdayChanged;
 
   const StepBirthdayInput({
     super.key,
     required this.birthday,
+    required this.language,
     required this.onBirthdayChanged,
   });
 
@@ -81,8 +84,8 @@ class _StepBirthdayInputState extends State<StepBirthdayInput> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Your Birthday',
-          subtitle: 'Tap the microphone to speak your birthday.',
+          title: SignupL10n.t('birthday_title', widget.language),
+          subtitle: SignupL10n.t('birthday_subtitle', widget.language),
         ),
         const SizedBox(height: 36),
 
@@ -90,13 +93,13 @@ class _StepBirthdayInputState extends State<StepBirthdayInput> {
         VoiceMicBigButton(
           controller: _controller,
           onChanged: widget.onBirthdayChanged,
-          label: 'Tap to Speak Birthday',
+          label: SignupL10n.t('birthday_mic_label', widget.language),
         ),
 
         const SizedBox(height: 32),
 
         Text(
-          'Or select/type below:',
+          SignupL10n.t('birthday_calendar', widget.language),
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.bold,

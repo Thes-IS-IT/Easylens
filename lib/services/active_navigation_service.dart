@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class ActiveNavigationService extends ChangeNotifier {
   static final ActiveNavigationService _instance = ActiveNavigationService._internal();
@@ -36,6 +37,11 @@ class ActiveNavigationService extends ChangeNotifier {
 
   void triggerArrival() {
     _hasArrived = true;
+    try {
+      WakelockPlus.disable();
+    } catch (e) {
+      debugPrint("Wakelock disable error on arrival: $e");
+    }
     notifyListeners();
   }
 
@@ -54,6 +60,11 @@ class ActiveNavigationService extends ChangeNotifier {
     _activePlace = activePlace;
     _stepLocations = stepLocations;
     _currentStepIndex = 0;
+    try {
+      WakelockPlus.enable();
+    } catch (e) {
+      debugPrint("Wakelock enable error: $e");
+    }
     notifyListeners();
   }
 
@@ -87,6 +98,11 @@ class ActiveNavigationService extends ChangeNotifier {
     _activePlace = null;
     _stepLocations = [];
     _currentStepIndex = 0;
+    try {
+      WakelockPlus.disable();
+    } catch (e) {
+      debugPrint("Wakelock disable error: $e");
+    }
     notifyListeners();
   }
 }

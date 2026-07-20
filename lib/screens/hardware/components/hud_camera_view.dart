@@ -14,8 +14,9 @@ import '../../notifications/notifications_screen.dart';
 import '../../contacts/contacts_screen.dart';
 import '../../settings/settings_screen.dart';
 import '../../emergency/emergency_screen.dart';
-import '../hardware_screen.dart'; // import HudMode
+import '../hardware_screen.dart';
 import '../../../utils/app_route.dart';
+import 'camera_loading_overlay.dart';
 
 class HudCameraView extends StatelessWidget {
   final HudMode selectedHudMode;
@@ -85,7 +86,7 @@ class HudCameraView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isCameraInitialized || (cameraController == null && !Esp32Service().isConnected)) {
-      return const Center(child: CircularProgressIndicator());
+      return const CameraLoadingOverlay();
     }
 
     return Column(
@@ -189,14 +190,7 @@ class HudCameraView extends StatelessWidget {
                     else if (cameraController != null && cameraController!.value.isInitialized)
                       CameraPreview(cameraController!)
                     else
-                      Container(
-                        color: Colors.black,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                      ),
+                      const CameraLoadingOverlay(),
                     if (selectedHudMode == HudMode.objectDetection) ...[
                       if (tfliteDetections.isNotEmpty)
                         ...tfliteDetections.map((r) {

@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 3: Contrast Theme
+// STEP 4: Contrast Theme
 class StepContrastTheme extends StatelessWidget {
   final String selectedTheme;
+  final String language;
   final ValueChanged<String> onChanged;
 
   StepContrastTheme({
     super.key,
     required this.selectedTheme,
+    required this.language,
     required this.onChanged,
   });
 
@@ -124,8 +127,8 @@ class StepContrastTheme extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Contrast Theme',
-          subtitle: 'Select the color interface to maximize text legibility.',
+          title: SignupL10n.t('theme_title', language),
+          subtitle: SignupL10n.t('theme_subtitle', language),
         ),
         const SizedBox(height: 32),
         GridView.builder(

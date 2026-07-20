@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 4: Accessibility
+// STEP 5: Accessibility
 class StepAccessibility extends StatelessWidget {
   final bool voiceFeedback;
   final bool hapticFeedback;
+  final String language;
   final ValueChanged<bool> onVoiceChanged;
   final ValueChanged<bool> onHapticChanged;
 
@@ -13,6 +15,7 @@ class StepAccessibility extends StatelessWidget {
     super.key,
     required this.voiceFeedback,
     required this.hapticFeedback,
+    required this.language,
     required this.onVoiceChanged,
     required this.onHapticChanged,
   });
@@ -63,18 +66,18 @@ class StepAccessibility extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Accessibility',
-          subtitle: 'Configure cognitive feedback mechanisms below.',
+          title: SignupL10n.t('accessibility_title', language),
+          subtitle: SignupL10n.t('accessibility_subtitle', language),
         ),
         const SizedBox(height: 32),
         _buildAccessibilityCard(
-          title: 'Voice Feedback',
+          title: SignupL10n.t('accessibility_voice', language),
           value: voiceFeedback,
           onChanged: onVoiceChanged,
         ),
         const SizedBox(height: 16),
         _buildAccessibilityCard(
-          title: 'Haptic Feedback',
+          title: SignupL10n.t('accessibility_haptic', language),
           value: hapticFeedback,
           onChanged: onHapticChanged,
         ),

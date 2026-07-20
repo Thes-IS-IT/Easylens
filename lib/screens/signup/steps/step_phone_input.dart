@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
-// STEP 11: Phone Input
+// STEP 10: Phone Input
 class StepPhoneInput extends StatefulWidget {
   final String phone;
+  final String language;
   final ValueChanged<String> onPhoneChanged;
   final Future<void> Function() onSendCode;
   final VoidCallback onChangeMethod;
@@ -15,6 +17,7 @@ class StepPhoneInput extends StatefulWidget {
   const StepPhoneInput({
     super.key,
     required this.phone,
+    required this.language,
     required this.onPhoneChanged,
     required this.onSendCode,
     required this.onChangeMethod,
@@ -77,8 +80,8 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Phone Input',
-          subtitle: 'Enter your phone number.',
+          title: SignupL10n.t('phone_title', widget.language),
+          subtitle: SignupL10n.t('phone_subtitle', widget.language),
         ),
         const SizedBox(height: 32),
 
@@ -142,7 +145,7 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
                   widget.onPhoneChanged(val);
                 },
                 decoration: InputDecoration(
-                  labelText: 'Phone Number',
+                  labelText: SignupL10n.t('phone_hint', widget.language),
                   labelStyle: GoogleFonts.inter(color: AppColors.primaryText),
                   suffixIcon: VoiceMicIconButton(
                     controller: _controller,
@@ -195,7 +198,7 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
                     ),
                   )
                 : Text(
-                    'Send Code',
+                    SignupL10n.t('phone_send_code', widget.language),
                     style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
           ),
@@ -214,7 +217,7 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
             ),
             onPressed: _isLoading ? null : widget.onChangeMethod,
             child: Text(
-              'Change Method',
+              SignupL10n.t('phone_change_method', widget.language),
               style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),

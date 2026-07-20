@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 14: Terms & Privacy
+// STEP 13: Terms & Privacy
 class StepTermsPrivacy extends StatelessWidget {
+  final String language;
   final VoidCallback onAgree;
   final VoidCallback onReadDocument;
 
   const StepTermsPrivacy({
     super.key,
+    required this.language,
     required this.onAgree,
     required this.onReadDocument,
   });
@@ -20,7 +23,7 @@ class StepTermsPrivacy extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Terms & Privacy',
+          title: SignupL10n.t('terms_title', language),
           subtitle: '',
         ),
         const SizedBox(height: 24),
@@ -53,7 +56,7 @@ class StepTermsPrivacy extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'By continuing, you agree to our Terms and Privacy Policy.',
+                SignupL10n.t('terms_body', language),
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   color: AppColors.textMuted,
@@ -63,16 +66,14 @@ class StepTermsPrivacy extends StatelessWidget {
               const SizedBox(height: 20),
               _PrivacyItem(
                 icon: Icons.smartphone_outlined,
-                label: 'Local Processing',
-                body:
-                    'EasyLens processes your camera and location data directly on this device for real-time navigation.',
+                label: SignupL10n.t('terms_local_label', language),
+                body: SignupL10n.t('terms_local_body', language),
               ),
               const SizedBox(height: 16),
               _PrivacyItem(
                 icon: Icons.shield_outlined,
-                label: 'Total Privacy',
-                body:
-                    'We never record your surroundings, and your personal data is strictly encrypted and never sold.',
+                label: SignupL10n.t('terms_privacy_label', language),
+                body: SignupL10n.t('terms_privacy_body', language),
               ),
             ],
           ),
@@ -95,7 +96,7 @@ class StepTermsPrivacy extends StatelessWidget {
             ),
             onPressed: onAgree,
             child: Text(
-              'I Agree',
+              SignupL10n.t('terms_agree', language),
               style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.bold),
             ),
           ),
@@ -116,7 +117,7 @@ class StepTermsPrivacy extends StatelessWidget {
             ),
             onPressed: onReadDocument,
             child: Text(
-              'Read Full Document',
+              SignupL10n.t('terms_read', language),
               style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),

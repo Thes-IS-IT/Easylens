@@ -211,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Remember Me',
+            'Keep me signed in',
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -263,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Log In',
+                                  'Welcome back!',
                                   style: GoogleFonts.inter(
                                     fontSize: 28,
                                     fontWeight: FontWeight.w900,
@@ -273,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Enter your email and password to sign in.',
+                                  'Sign in with your email and password below.',
                                   style: GoogleFonts.inter(
                                     fontSize: 15,
                                     color: AppColors.textMuted,
@@ -295,13 +295,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 
                                 _buildTextField(
                                   controller: _emailController,
-                                  hintText: 'Email',
+                                  hintText: 'Enter email address',
                                   keyboardType: TextInputType.emailAddress,
                                 ),
                                 const SizedBox(height: 16),
                                 _buildTextField(
                                   controller: _passwordController,
-                                  hintText: 'Password',
+                                  hintText: 'Enter password',
                                   obscureText: _obscurePassword,
                                   isPassword: true,
                                 ),
@@ -330,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               onPressed: _handleLogin,
                               child: Text(
-                                'Sign In',
+                                'Sign in',
                                 style: GoogleFonts.inter(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,

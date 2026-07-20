@@ -211,7 +211,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                             const SizedBox(width: 10),
                                             Expanded(
                                               child: Text(
-                                                'Offline AI Installer',
+                                                'Help without internet',
                                                 style: GoogleFonts.inter(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
@@ -225,7 +225,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          'Install the offline AI database (1.3 GB) to enable safety assistance without cellular data or internet.',
+                                          'Download our guide database to use Buddy even when you don\'t have internet or cell service.',
                                           style: GoogleFonts.inter(
                                             fontSize: 13,
                                             color: AppColors.textMuted,
@@ -279,7 +279,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                               onPressed: _startDownload,
                                               icon: const Icon(Icons.download_for_offline_outlined, size: 20),
                                               label: Text(
-                                                'Download Local AI',
+                                                'Set up offline helper',
                                                 style: GoogleFonts.inter(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
@@ -341,7 +341,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                         );
                                       },
                                 child: Text(
-                                  'Sign Up',
+                                  'Create an account',
                                   style: GoogleFonts.inter(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -372,7 +372,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                         );
                                       },
                                 child: Text(
-                                  'Log In',
+                                  'Sign in',
                                   style: GoogleFonts.inter(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 import 'voice_input_widget.dart';
 
 // STEP 12: Enter 4-Digit Code
 class StepVerificationCode extends StatefulWidget {
+  final String language;
   final ValueChanged<String> onVerify;
   final Future<void> Function() onResendCode;
   final String? errorMessage;
 
   const StepVerificationCode({
     super.key,
+    required this.language,
     required this.onVerify,
     required this.onResendCode,
     this.errorMessage,
@@ -89,8 +92,8 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Enter 4-Digit Code',
-          subtitle: 'Enter the 4-digit verification code sent to your device.',
+          title: SignupL10n.t('verify_title', widget.language),
+          subtitle: SignupL10n.t('verify_subtitle', widget.language),
         ),
         const SizedBox(height: 24),
 
@@ -187,7 +190,7 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
           child: Column(
             children: [
               Text(
-                'DON\'T RECEIVE A CODE?',
+                SignupL10n.t('verify_no_code', widget.language),
                 style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textMuted),
               ),
               const SizedBox(height: 8),
@@ -207,7 +210,7 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
                           await widget.onResendCode();
                         } catch (e) {
                           if (mounted) {
-                            setState(() => _localError = 'Failed to resend code. Please try again.');
+                            setState(() => _localError = SignupL10n.t('verify_error_resend', widget.language));
                           }
                         } finally {
                           if (mounted) {
@@ -216,7 +219,7 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
                         }
                       },
                       child: Text(
-                        'RESEND CODE',
+                        SignupL10n.t('verify_resend', widget.language),
                         style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryText),
                       ),
                     ),
@@ -238,7 +241,7 @@ class _StepVerificationCodeState extends State<StepVerificationCode> {
             ),
             onPressed: _handleVerify,
             child: Text(
-              'Verify',
+              'Confirm',
               style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),

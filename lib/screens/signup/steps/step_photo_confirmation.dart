@@ -2,17 +2,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 16: Re-Upload / Photo Confirmation
+// STEP 15: Re-Upload / Photo Confirmation
 class StepPhotoConfirmation extends StatelessWidget {
   final File pickedImage;
+  final String language;
   final VoidCallback onReupload;
   final VoidCallback onContinue;
 
   const StepPhotoConfirmation({
     super.key,
     required this.pickedImage,
+    required this.language,
     required this.onReupload,
     required this.onContinue,
   });
@@ -23,8 +26,8 @@ class StepPhotoConfirmation extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Your Photo',
-          subtitle: 'Upload a photo for your profile avatar.',
+          title: SignupL10n.t('photo_confirm_title', language),
+          subtitle: SignupL10n.t('photo_confirm_subtitle', language),
         ),
         const SizedBox(height: 48),
         Center(
@@ -60,7 +63,7 @@ class StepPhotoConfirmation extends StatelessWidget {
                 const Icon(Icons.refresh),
                 const SizedBox(width: 8),
                 Text(
-                  'Re-Upload Photo',
+                  SignupL10n.t('photo_confirm_reupload', language),
                   style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -81,7 +84,7 @@ class StepPhotoConfirmation extends StatelessWidget {
             ),
             onPressed: onContinue,
             child: Text(
-              'Continue',
+              SignupL10n.t('photo_confirm_continue', language),
               style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),

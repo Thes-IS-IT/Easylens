@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
 // STEP 6: Voice Persona
 class StepVoicePersona extends StatelessWidget {
   final String selectedPersona;
+  final String language;
   final ValueChanged<String> onChanged;
 
   StepVoicePersona({
     super.key,
     required this.selectedPersona,
+    required this.language,
     required this.onChanged,
   });
 
-  final List<Map<String, String>> personas = [
-    {'name': 'Aria (Calm)', 'desc': 'Soft, reassuring voice assistant tone.'},
-    {'name': 'Max (Bold)', 'desc': 'Clear, loud, and confident command style.'},
-    {'name': 'Nova (Bright)', 'desc': 'Energetic, friendly, and enthusiastic.'},
-    {'name': 'Echo (Deep)', 'desc': 'Low baritone voice with strong echoes.'},
-    {'name': 'Bella (Gentle)', 'desc': 'Quiet, slow-paced directions for focus.'},
-    {'name': 'Leo (Child)', 'desc': 'Cheerful and youthful child voice.'},
+  List<Map<String, String>> _buildPersonas(String lang) => [
+    {'name': 'Aria (Calm)', 'desc': SignupL10n.t('voice_aria_desc', lang)},
+    {'name': 'Max (Bold)', 'desc': SignupL10n.t('voice_max_desc', lang)},
+    {'name': 'Nova (Bright)', 'desc': SignupL10n.t('voice_nova_desc', lang)},
+    {'name': 'Echo (Deep)', 'desc': SignupL10n.t('voice_echo_desc', lang)},
+    {'name': 'Bella (Gentle)', 'desc': SignupL10n.t('voice_bella_desc', lang)},
+    {'name': 'Leo (Child)', 'desc': SignupL10n.t('voice_leo_desc', lang)},
   ];
 
   @override
@@ -29,12 +32,12 @@ class StepVoicePersona extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Voice Persona',
-          subtitle: 'Choose the AI synthesizer voice tone preference.',
+          title: SignupL10n.t('voice_persona_title', language),
+          subtitle: SignupL10n.t('voice_persona_subtitle', language),
         ),
         const SizedBox(height: 24),
         Column(
-          children: personas.map((p) {
+          children: _buildPersonas(language).map((p) {
             final name = p['name']!;
             final desc = p['desc']!;
             final isSelected = selectedPersona == name;

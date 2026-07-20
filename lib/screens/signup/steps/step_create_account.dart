@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
+import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
-// STEP 9: Create Account
+// STEP 8: Create Account
 class StepCreateAccount extends StatelessWidget {
+  final String language;
   final ValueChanged<String> onSelectedMethod;
 
   const StepCreateAccount({
     super.key,
+    required this.language,
     required this.onSelectedMethod,
   });
 
@@ -18,8 +21,8 @@ class StepCreateAccount extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StepHeader(
-          title: 'Create Account',
-          subtitle: 'Choose how to sign up.',
+          title: SignupL10n.t('create_account_title', language),
+          subtitle: SignupL10n.t('create_account_subtitle', language),
         ),
         const SizedBox(height: 32),
         
@@ -42,7 +45,7 @@ class StepCreateAccount extends StatelessWidget {
                 const Icon(Icons.g_mobiledata, size: 44),
                 const SizedBox(width: 8),
                 Text(
-                  'Google',
+                  SignupL10n.t('create_account_google', language),
                   style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -70,7 +73,7 @@ class StepCreateAccount extends StatelessWidget {
                 const Icon(Icons.mail_outline, size: 26),
                 const SizedBox(width: 8),
                 Text(
-                  'Email',
+                  SignupL10n.t('create_account_email', language),
                   style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
