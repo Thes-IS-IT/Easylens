@@ -173,7 +173,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     _silenceTimer?.cancel();
     if (!mounted || !_isLoopActive) return;
 
-    // Stop listening so TTS can speak S01
+    // Stop listening so TTS can speak
     await SttService().stopListening((_) {});
     setState(() {
       _isListening = false;
@@ -181,19 +181,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
     final text = _lastRecognized.trim();
     if (text.isEmpty) {
-      // Prompt again if they didn't speak anything S01
-      final lang = SettingsService().selectedLanguage;
-      final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-      final prompt = isFilipino 
-          ? "Saan mo gustong pumunta o pindutin susunod?" 
-          : "Where would you like to navigate next or click?";
-      
-      setState(() {
-        _lastRecognized = prompt;
-      });
-      await TtsService().speakAwait(prompt);
-      
-      await Future.delayed(const Duration(milliseconds: 1500));
+      // Quietly restart microphone listening on silence without repeating audio prompts
       if (mounted && _isLoopActive) {
         _runSpeechNavigationLoop();
       }
@@ -212,25 +200,19 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return;
     }
 
-    // Process the command and get response text S01
+    // Process the command and get response text
     final response = await _processCommand(text);
 
-    if (mounted && _isLoopActive) {
-      final lang = SettingsService().selectedLanguage;
-      final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-      
-      final fullResponse = isFilipino 
-          ? "$response. Saan mo gustong pumunta o pindutin susunod?" 
-          : "$response. Where would you like to navigate next or click?";
-
+    if (mounted && _isLoopActive && response.isNotEmpty) {
       setState(() {
-        _lastRecognized = fullResponse;
+        _lastRecognized = response;
       });
 
-      await TtsService().speakAwait(fullResponse);
+      // Speak direct concise confirmation without appending repetitive prompt questions
+      await TtsService().speakAwait(response);
     }
 
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 1000));
     if (mounted && _isLoopActive) {
       _runSpeechNavigationLoop();
     }
@@ -242,6 +224,12 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
     final lang = SettingsService().selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+    // Voice Pause / Stop Command
+    if (cleanText.contains("stop listening") || cleanText.contains("stop speech") || cleanText.contains("turn off voice") || cleanText.contains("tumahimik") || cleanText.contains("hinto") || cleanText.contains("pause voice")) {
+      _stopLoop();
+      return isFilipino ? "Naka-pause ang Speech Navigation." : "Speech Navigation paused.";
+    }
 
     // ── SEARCH RESULTS SELECTION FLOW S01 ──
     if (_pendingSearchFlow == 1) {
@@ -556,7 +544,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       "devices", "glasses", "salamin", "device",
       "scenery", "tanawin", "faces", "face recognition", "pagkilala sa mukha",
       "bluetooth", "koneksyon", "gemini", "online ai", "local ai", "offline ai",
-      "audio", "speaker", "network", "wifi", "lock mode", "screen lock", "i-lock"
+      "audio", "speaker", "network", "wifi", "lock mode", "screen lock", "i-lock",
+      "stop listening", "stop speech", "tumahimik", "hinto", "pause voice"
     ];
     
     final clean = text.toLowerCase();

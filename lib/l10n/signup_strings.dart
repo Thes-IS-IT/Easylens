@@ -44,8 +44,8 @@ class SignupL10n {
       'other_condition_cancel': 'Cancel',
 
       // ── Step 4: Contrast Theme ───────────────────────────────────────
-      'theme_title': 'Choose colors that work for you',
-      'theme_subtitle': 'Choose a color style that makes reading comfortable.',
+      'theme_title': 'Contrast Theme',
+      'theme_subtitle': 'Select the color interface to maximize text legibility.',
 
       // ── Step 5: Accessibility ────────────────────────────────────────
       'accessibility_title': 'Helpful cues',
@@ -219,8 +219,8 @@ class SignupL10n {
       'other_condition_cancel': 'Kanselahin',
 
       // ── Step 4: Contrast Theme ───────────────────────────────────────
-      'theme_title': 'Pumili ng kulay para sa iyo',
-      'theme_subtitle': 'Pumili ng estilo ng kulay na komportable sa pagbabasa.',
+      'theme_title': 'Tema ng Kontras',
+      'theme_subtitle': 'Pumili ng kulay ng interface para sa mas malinaw na pagbasa.',
 
       // ── Step 5: Accessibility ────────────────────────────────────────
       'accessibility_title': 'Mga tulong na pahiwatig',

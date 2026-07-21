@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'danger_warning_service.dart';
+
 
 class ActiveNavigationService extends ChangeNotifier {
   static final ActiveNavigationService _instance = ActiveNavigationService._internal();
@@ -21,6 +23,13 @@ class ActiveNavigationService extends ChangeNotifier {
   List<LatLng> _stepLocations = [];
   int _currentStepIndex = 0;
 
+  // Hazard / Warning State
+  bool _isHazardActive = false;
+  HazardSeverity _hazardSeverity = HazardSeverity.safe;
+  String _activeHazardName = "";
+  String _activeHazardMessage = "";
+  DateTime? _hazardTimestamp;
+
   bool get isNavigating => _isNavigating;
   String get destinationName => _destinationName;
   String get currentStepText => _currentStepText;
@@ -34,6 +43,35 @@ class ActiveNavigationService extends ChangeNotifier {
   Map<String, dynamic>? get activePlace => _activePlace;
   List<LatLng> get stepLocations => _stepLocations;
   int get currentStepIndex => _currentStepIndex;
+
+  // Hazard getters
+  bool get isHazardActive => _isHazardActive;
+  HazardSeverity get hazardSeverity => _hazardSeverity;
+  String get activeHazardName => _activeHazardName;
+  String get activeHazardMessage => _activeHazardMessage;
+  DateTime? get hazardTimestamp => _hazardTimestamp;
+
+  void triggerHazardAlert({
+    required String hazardName,
+    required HazardSeverity severity,
+    required String message,
+  }) {
+    _isHazardActive = true;
+    _hazardSeverity = severity;
+    _activeHazardName = hazardName;
+    _activeHazardMessage = message;
+    _hazardTimestamp = DateTime.now();
+    notifyListeners();
+  }
+
+  void clearHazardAlert() {
+    _isHazardActive = false;
+    _hazardSeverity = HazardSeverity.safe;
+    _activeHazardName = "";
+    _activeHazardMessage = "";
+    _hazardTimestamp = null;
+    notifyListeners();
+  }
 
   void triggerArrival() {
     _hasArrived = true;
@@ -54,6 +92,7 @@ class ActiveNavigationService extends ChangeNotifier {
   }) {
     _isNavigating = true;
     _hasArrived = false;
+    _isHazardActive = false;
     _destinationName = destinationName;
     _destinationLocation = destinationLocation;
     _routePoints = routePoints;
@@ -87,12 +126,13 @@ class ActiveNavigationService extends ChangeNotifier {
 
   void stopNavigation() {
     _isNavigating = false;
+    _isHazardActive = false;
     _destinationName = "";
     _currentStepText = "";
     _distanceRemaining = "";
     _timeRemaining = "";
     _hasArrived = false;
-    _currentLocation = null;
+    // Keep last known _currentLocation intact to avoid null errors in listening map UI
     _destinationLocation = null;
     _routePoints = [];
     _activePlace = null;
@@ -106,3 +146,4 @@ class ActiveNavigationService extends ChangeNotifier {
     notifyListeners();
   }
 }
+

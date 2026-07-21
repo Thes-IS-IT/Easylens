@@ -14,6 +14,7 @@ import '../../services/sms_service.dart';
 import '../../services/storage/cloudflare_r2_service.dart';
 import 'celebration_screen.dart';
 import 'steps/signup_steps.dart';
+import 'steps/voice_input_widget.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -69,6 +70,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _pendingVoiceSelection = '';
   String _voiceFeedbackText = '';
   Timer? _sttTimeoutTimer;
+  int? _lastSpokenStep;
+  bool _isSpeakingPrompt = false;
+  bool _isProcessingCommand = false;
 
   @override
   void initState() {
@@ -95,6 +99,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _speakStepPromptAndListen() async {
     if (!_isVoiceActivated || !mounted) return;
+    if (_isSpeakingPrompt) return;
+
+    // Speak prompt ONCE per step to avoid repetitive voice loops
+    if (_lastSpokenStep == _currentStep && !_isAwaitingConfirmation) {
+      _startListeningForStep();
+      return;
+    }
+
+    _isSpeakingPrompt = true;
+    _lastSpokenStep = _currentStep;
+
+    // Reset confirmation state when arriving on a new step
+    _isAwaitingConfirmation = false;
+    _pendingVoiceSelection = '';
+
+    // Ensure STT mic is stopped while assistant speaks
+    SttService().stopListening((_) {});
+    _sttTimeoutTimer?.cancel();
 
     final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
         _selectedLanguage.toLowerCase().contains('tagalog');
@@ -108,93 +130,93 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
       case 2:
         prompt = isTagalog
-            ? "Hakbang 2 sa 19. Paraan ng Pagpaparehistro. Sabihin ang Boses para sa boses, o Manwal para sa pindot."
+            ? "Hakbang 2 sa 19. Paraan ng Pagpaparehistro. Paano mo gustong mag-set up? Sabihin ang Boses para sa boses, o Manwal para sa pindot."
             : "Step 2 of 19. Registration Method. How would you like to set up your account? Say Voice for voice commands, or Manual for touch controls.";
         break;
       case 3:
         prompt = isTagalog
-            ? "Hakbang 3. Para kanino ito? Sabihin ang Para sa akin o Para sa iba."
-            : "Step 3. Who is this for? Say Myself or Someone else.";
+            ? "Hakbang 3 sa 19. Para kanino ito? Sabihin ang Para sa akin o Para sa iba."
+            : "Step 3 of 19. Who is this for? Say Myself or Someone else.";
         break;
       case 4:
         prompt = isTagalog
-            ? "Hakbang 4. Piliin ang iyong mga kondisyon sa paningin. Sabihin ang Low Vision, Blindness, Color Blindness, Elderly, o Tapos na."
-            : "Step 4. Select your vision conditions. Say Low Vision, Blindness, Color Blindness, Elderly, or Done.";
+            ? "Hakbang 4 sa 19. Piliin ang iyong mga kondisyon sa paningin. Sabihin ang Low Vision, Blindness, Color Blindness, Elderly, o Tapos na."
+            : "Step 4 of 19. Select your vision conditions. Say Low Vision, Blindness, Color Blindness, Elderly, or Done.";
         break;
       case 5:
         prompt = isTagalog
-            ? "Hakbang 5. Pumili ng kulay. Sabihin ang Default, High Contrast, Dark Blue, o Soft Pastel."
-            : "Step 5. Choose color style. Say Default, High Contrast, Dark Blue, or Soft Pastel.";
+            ? "Hakbang 5 sa 19. Tema ng Kontras. Pumili ng kulay ng interface. Sabihin ang Default, Black on White, White on Black, Green on Black, Yellow on Black, o Cyan on Black."
+            : "Step 5 of 19. Contrast Theme. Select the color interface. Say Default, Black on White, White on Black, Green on Black, Yellow on Black, or Cyan on Black.";
         break;
       case 6:
         prompt = isTagalog
-            ? "Hakbang 6. Gabay. Sabihin ang Boses on, Boses off, Vibrate on, o Vibrate off."
-            : "Step 6. Helpful cues. Say Voice guide on, Voice guide off, Vibration on, or Vibration off.";
+            ? "Hakbang 6 sa 19. Gabay sa Aksesibilidad. Sabihin ang Boses on, Boses off, Vibrate on, o Vibrate off."
+            : "Step 6 of 19. Helpful Cues. Say Voice guide on, Voice guide off, Vibration on, or Vibration off.";
         break;
       case 7:
         prompt = isTagalog
-            ? "Hakbang 7. Pumili ng boses. Sabihin ang Max, Aria, Nova, Echo, Bella, o Leo."
-            : "Step 7. Choose a voice persona. Say Max, Aria, Nova, Echo, Bella, or Leo.";
+            ? "Hakbang 7 sa 19. Pumili ng boses ng assistant. Sabihin ang Max, Aria, Nova, Echo, Bella, o Leo."
+            : "Step 7 of 19. Choose a Voice Persona. Say Max, Aria, Nova, Echo, Bella, or Leo.";
         break;
       case 8:
         prompt = isTagalog
-            ? "Hakbang 8. Kagamitan sa paglalakad. Sabihin ang Tungkod, Aso, Smart Glasses, Salamin, Wheelchair, Walker, o Wala."
-            : "Step 8. Walking tools. Say White Cane, Guide Dog, Smart Glasses, Eyeglasses, Wheelchair, Walker, or None.";
+            ? "Hakbang 8 sa 19. Kagamitan sa paglalakad. Sabihin ang Tungkod, Aso, Smart Glasses, Salamin, Wheelchair, Walker, o Wala."
+            : "Step 8 of 19. Walking Tools and Mobility Aids. Say White Cane, Guide Dog, Smart Glasses, Eyeglasses, Wheelchair, Walker, or None.";
         break;
       case 9:
         prompt = isTagalog
-            ? "Hakbang 9. Gumawa ng account. Sabihin ang Google, Email, o Phone."
-            : "Step 9. Create account. Say Google, Email, or Phone.";
+            ? "Hakbang 9 sa 19. Gumawa ng Account. Sabihin ang Google, Email, o Phone."
+            : "Step 9 of 19. Create Account. Say Google, Email, or Phone.";
         break;
       case 10:
         prompt = isTagalog
-            ? "Hakbang 10. Sabihin ang iyong email address."
-            : "Step 10. Speak your email address.";
+            ? "Hakbang 10 sa 19. Sabihin o i-type ang iyong email address."
+            : "Step 10 of 19. Speak or enter your email address.";
         break;
       case 11:
         prompt = isTagalog
-            ? "Hakbang 11. Sabihin ang iyong numero ng telepono."
-            : "Step 11. Speak your phone number.";
+            ? "Hakbang 11 sa 19. Sabihin o i-type ang iyong numero ng telepono."
+            : "Step 11 of 19. Speak or enter your phone number.";
         break;
       case 12:
         prompt = isTagalog
-            ? "Hakbang 12. Pumili ng password. Sabihin ang iyong password."
-            : "Step 12. Choose a password. Speak your password.";
+            ? "Hakbang 12 sa 19. Pumili ng password. Sabihin o i-type ang iyong password."
+            : "Step 12 of 19. Choose a password. Speak or enter your password.";
         break;
       case 13:
         prompt = isTagalog
-            ? "Hakbang 13. Pahintulot. Sabihin ang Ituloy o Agree."
-            : "Step 13. Enable permissions. Say Continue or Agree.";
+            ? "Hakbang 13 sa 19. Pahintulot. Payagan ang camera, mikropono, at lokasyon. Sabihin ang Ituloy o Agree."
+            : "Step 13 of 19. Enable Permissions. Allow camera, microphone, and location access. Say Continue or Agree.";
         break;
       case 14:
         prompt = isTagalog
-            ? "Hakbang 14. Mga tuntunin. Sabihin ang Sumasang-ayon ako."
-            : "Step 14. Terms and privacy. Say Agree to accept.";
+            ? "Hakbang 14 sa 19. Mga Tuntunin at Privacy. Sabihin ang Sumasang-ayon ako."
+            : "Step 14 of 19. Terms and Privacy Policy. Say Agree to accept.";
         break;
       case 15:
         prompt = isTagalog
-            ? "Hakbang 15. Larawan ng profile. Sabihin ang Gallery, Camera, o Laktawan."
-            : "Step 15. Profile photo. Say Gallery, Camera, or Skip.";
+            ? "Hakbang 15 sa 19. Larawan ng Profile. Sabihin ang Gallery, Camera, o Laktawan."
+            : "Step 15 of 19. Profile Photo. Say Gallery, Camera, or Skip.";
         break;
       case 16:
         prompt = isTagalog
-            ? "Hakbang 16. Kumpirmahin ang larawan. Sabihin ang Ituloy o Baguhin."
-            : "Step 16. Photo confirmation. Say Continue or Reupload.";
+            ? "Hakbang 16 sa 19. Kumpirmahin ang Larawan. Sabihin ang Ituloy o Baguhin."
+            : "Step 16 of 19. Photo Confirmation. Say Continue or Reupload.";
         break;
       case 17:
         prompt = isTagalog
-            ? "Hakbang 17. Ano ang pangalan mo? Sabihin ang iyong pangalan."
-            : "Step 17. What should I call you? Speak your name.";
+            ? "Hakbang 17 sa 19. Ano ang pangalan mo? Sabihin o i-type ang iyong pangalan."
+            : "Step 17 of 19. What should I call you? Speak or enter your name.";
         break;
       case 18:
         prompt = isTagalog
-            ? "Hakbang 18. Sabihin ang iyong kaarawan."
-            : "Step 18. Speak your birthday or birth year.";
+            ? "Hakbang 18 sa 19. Kaarawan. Sabihin o i-type ang taon ng iyong kaarawan."
+            : "Step 18 of 19. Birthday. Speak or enter your birth year or birthday.";
         break;
       case 19:
         prompt = isTagalog
-            ? "Hakbang 19. Emergency contact. Sabihin ang pangalan at numero o Tapusin."
-            : "Step 19. Emergency contact. Speak contact details or say Finish setting up.";
+            ? "Hakbang 19 sa 19. Emergency SOS Contact. Sabihin o i-type ang pangalan at numero, o sabihin ang Tapusin."
+            : "Step 19 of 19. Emergency SOS Contact. Speak or enter contact details, or say Finish setting up.";
         break;
       default:
         prompt = "Step $_currentStep of 19.";
@@ -204,42 +226,112 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _voiceFeedbackText = prompt;
     });
 
-    // Ensure STT mic is stopped while assistant speaks
+    // 1. Mute STT completely while assistant reads instruction
+    _isSpeakingPrompt = true;
     SttService().stopListening((_) {});
     _sttTimeoutTimer?.cancel();
 
-    // Await complete TTS speech output before opening microphone listener
+    // 2. Await complete TTS speech output
     await TtsService().speakAwait(prompt);
 
+    // 3. Pause 400ms after TTS finishes to allow speaker echo to decay completely
+    await Future.delayed(const Duration(milliseconds: 400));
+    _isSpeakingPrompt = false;
+
+    // 4. NOW enable microphone for user's turn
     if (mounted && _isVoiceActivated) {
       _startListeningForStep();
     }
   }
 
+  bool _hasRecognizedKeyword(String input) {
+    final text = input.toLowerCase().trim();
+    final commonCmds = [
+      'back', 'go back', 'previous', 'bumalik', 'pabalik', 'balik', 'nakaraan', 'u-turn', 'kanselain', 'cancel',
+      'next', 'continue', 'proceed', 'ituloy', 'sunod', 'sumunod', 'ipagpatuloy', 'sige',
+      'repeat', 'read', 're-read', 'ulit', 'paki-ulit', 'ulitin', 'sabihin ulit',
+      'yes', 'yeah', 'yep', 'confirm', 'oo', 'opopo', 'opo', 'correct', 'tama',
+      'no', 'nope', 'change', 'different', 'hindi', 'baguhin', 'mali', 'palitan'
+    ];
+    if (commonCmds.any((cmd) => text.contains(cmd))) return true;
+
+    switch (_currentStep) {
+      case 1:
+        return text.contains('english') || text.contains('inggles') || text.contains('filipino') || text.contains('tagalog') || text.contains('pinoy');
+      case 2:
+        return text.contains('voice') || text.contains('boses') || text.contains('salita') || text.contains('isa') || text.contains('manual') || text.contains('pindot') || text.contains('kamay') || text.contains('dalawa');
+      case 3:
+        return text.contains('myself') || text.contains('me') || text.contains('akin') || text.contains('sarili') || text.contains('ako') || text.contains('someone') || text.contains('else') || text.contains('iba');
+      case 4:
+        return text.contains('low vision') || text.contains('malabo') || text.contains('blind') || text.contains('bulag') || text.contains('color') || text.contains('elderly') || text.contains('matanda') || text.contains('done') || text.contains('tapos');
+      case 5:
+        return text.contains('default') || text.contains('black') || text.contains('white') || text.contains('green') || text.contains('berde') || text.contains('yellow') || text.contains('dilaw') || text.contains('cyan');
+      case 6:
+        return text.contains('voice') || text.contains('boses') || text.contains('vibration') || text.contains('haptic') || text.contains('vibrate');
+      case 7:
+        return text.contains('max') || text.contains('aria') || text.contains('nova') || text.contains('echo') || text.contains('bella') || text.contains('leo');
+      case 8:
+        return text.contains('cane') || text.contains('tungkod') || text.contains('dog') || text.contains('aso') || text.contains('glasses') || text.contains('salamin') || text.contains('wheelchair') || text.contains('walker') || text.contains('none') || text.contains('wala');
+      case 9:
+        return text.contains('google') || text.contains('email') || text.contains('phone') || text.contains('telepono') || text.contains('numero');
+      case 10:
+        return text.trim().length >= 3;
+      case 11:
+        return text.replaceAll(RegExp(r'\D'), '').length >= 10;
+      case 12:
+        return text.length >= 4;
+      case 13:
+        return text.contains('continue') || text.contains('agree') || text.contains('ituloy') || text.contains('sumasang');
+      case 14:
+        return text.contains('agree') || text.contains('sumasang') || text.contains('oo');
+      case 15:
+        return text.contains('skip') || text.contains('camera') || text.contains('gallery') || text.contains('laktawan');
+      case 16:
+        return text.contains('continue') || text.contains('reupload') || text.contains('baguhin') || text.contains('ituloy');
+      case 17:
+      case 18:
+      case 19:
+        return text.length >= 2;
+      default:
+        return false;
+    }
+  }
+
   void _startListeningForStep() {
-    if (!_isVoiceActivated || !mounted) return;
+    if (!_isVoiceActivated || !mounted || _isSpeakingPrompt) return;
 
     SttService().startListening(
       onResult: (speechResult, isFinal) {
-        if (!mounted || speechResult.trim().isEmpty) return;
-        _handleVoiceCommand(speechResult);
+        if (!mounted || speechResult.trim().isEmpty || _isProcessingCommand || _isSpeakingPrompt) return;
+        if (isFinal || _hasRecognizedKeyword(speechResult)) {
+          _isProcessingCommand = true;
+          _handleVoiceCommand(speechResult);
+          Future.delayed(const Duration(milliseconds: 1200), () {
+            _isProcessingCommand = false;
+          });
+        }
       },
       onListeningStateChanged: (listening) {
         if (mounted) {
           setState(() {
             _isListening = listening;
           });
+          // Automatically keep microphone active if STT times out while Voice Mode is enabled
+          if (!listening && _isVoiceActivated && !_isSpeakingPrompt && !_isProcessingCommand) {
+            _sttTimeoutTimer?.cancel();
+            _sttTimeoutTimer = Timer(const Duration(milliseconds: 400), () {
+              if (mounted && _isVoiceActivated && !_isSpeakingPrompt && !_isProcessingCommand) {
+                _startListeningForStep();
+              }
+            });
+          }
         }
       },
     );
   }
 
   Future<void> _triggerVoiceConfirmation(String selectionName) async {
-    if (!_isVoiceActivated || !mounted) return;
-
-    // Ensure STT mic is stopped while assistant speaks confirmation
-    SttService().stopListening((_) {});
-    _sttTimeoutTimer?.cancel();
+    if (!mounted) return;
 
     final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
         _selectedLanguage.toLowerCase().contains('tagalog');
@@ -248,13 +340,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _pendingVoiceSelection = selectionName;
       _isAwaitingConfirmation = true;
       _voiceFeedbackText = isTagalog
-          ? "Pinili mo ang $selectionName. Sabihin ang Oo o Ituloy para kumpirmahin, Baguhin para pumili ulit, o Bumalik para sa nakaraang hakbang."
-          : "You selected $selectionName. Say Yes or Next to confirm, Change to choose again, or Back to go to previous step.";
+          ? "Pinili mo ang $selectionName. Sabihin ang Oo o i-tap ang Continue para kumpirmahin, Baguhin para pumili ulit, o Bumalik."
+          : "Selected: $selectionName. Say 'Yes' or tap 'Continue' to confirm, or 'Change' to pick again.";
     });
 
-    // Await complete TTS speech output before opening microphone listener
+    if (!_isVoiceActivated) return;
+
+    // 1. Mute STT completely while assistant speaks confirmation
+    _isSpeakingPrompt = true;
+    SttService().stopListening((_) {});
+    _sttTimeoutTimer?.cancel();
+
+    // 2. Await complete TTS speech output
     await TtsService().speakAwait(_voiceFeedbackText);
 
+    // 3. Pause 400ms after TTS finishes to allow speaker echo to decay completely
+    await Future.delayed(const Duration(milliseconds: 400));
+    _isSpeakingPrompt = false;
+
+    // 4. NOW enable microphone for user's turn
     if (mounted && _isVoiceActivated) {
       _startListeningForStep();
     }
@@ -269,8 +373,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     // Voice Back Trigger Check
     final backKeywords = [
-      'back', 'go back', 'previous', 'bumalik', 'rara', 'u-turn',
-      'kabilang hakbang', 'kanselain', 'cancel', 'pabalik'
+      'back', 'go back', 'previous', 'bumalik', 'pabalik', 'balik',
+      'nakaraan', 'u-turn', 'kabilang hakbang', 'kanselain', 'cancel'
     ];
 
     if (backKeywords.any((k) => text.contains(k))) {
@@ -285,8 +389,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     // 1. Validation phase (Awaiting Confirmation)
     if (_isAwaitingConfirmation) {
-      final confirmCmds = ['yes', 'yeah', 'yep', 'next', 'confirm', 'proceed', 'sige', 'oo', 'continue', 'go', 'okay', 'correct', 'ituloy'];
-      final cancelCmds = ['no', 'nope', 'change', 'different', 'ulit', 'hindi', 'baguhin'];
+      final confirmCmds = ['yes', 'yeah', 'yep', 'next', 'confirm', 'proceed', 'sige', 'oo', 'opopo', 'opo', 'continue', 'go', 'okay', 'correct', 'tama', 'ituloy'];
+      final cancelCmds = ['no', 'nope', 'change', 'different', 'ulit', 'hindi', 'baguhin', 'mali', 'palitan'];
 
       if (confirmCmds.any((cmd) => text.contains(cmd))) {
         setState(() {
@@ -300,21 +404,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _isAwaitingConfirmation = false;
           _pendingVoiceSelection = '';
         });
-        TtsService().speak(isTagalog ? "Kanselado. Paki-sabay ulit ang iyong pili." : "Selection cancelled. Please speak your choice again.");
-        _sttTimeoutTimer?.cancel();
-        _sttTimeoutTimer = Timer(const Duration(milliseconds: 2000), () {
-          _startListeningForStep();
+        _isSpeakingPrompt = true;
+        SttService().stopListening((_) {});
+        final cancelText = isTagalog ? "Kanselado. Paki-sabay ulit ang iyong pili." : "Selection cancelled. Please speak your choice again.";
+        TtsService().speakAwait(cancelText).then((_) async {
+          await Future.delayed(const Duration(milliseconds: 400));
+          _isSpeakingPrompt = false;
+          if (mounted && _isVoiceActivated) {
+            _startListeningForStep();
+          }
         });
         return;
       }
+      return;
     }
 
     // 2. Global Navigation Commands
-    if (text == 'next' || text == 'continue' || text == 'ituloy' || text == 'proceed') {
+    final nextKeywords = ['next', 'continue', 'proceed', 'ituloy', 'sunod', 'sumunod', 'ipagpatuloy', 'sige'];
+    final repeatKeywords = ['repeat', 'read', 're-read', 'ulit', 'paki-ulit', 'ulitin', 'sabihin ulit'];
+
+    if (nextKeywords.any((k) => text.contains(k))) {
       _nextStep();
       return;
     }
-    if (text == 'repeat' || text == 'read' || text == 'ulit') {
+    if (repeatKeywords.any((k) => text.contains(k))) {
+      _lastSpokenStep = null;
       _speakStepPromptAndListen();
       return;
     }
@@ -350,10 +464,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
 
       case 3: // Persona
-        if (text.contains('myself') || text.contains('me') || text.contains('akin') || text.contains('sarili')) {
+        if (text.contains('myself') || text.contains('me') || text.contains('akin') || text.contains('sarili') || text.contains('ako') || text.contains('isa')) {
           setState(() => _isForMyself = true);
           _triggerVoiceConfirmation(isTagalog ? 'Para sa akin' : 'Myself');
-        } else if (text.contains('someone') || text.contains('else') || text.contains('iba')) {
+        } else if (text.contains('someone') || text.contains('else') || text.contains('iba') || text.contains('other') || text.contains('person') || text.contains('dalawa')) {
           setState(() => _isForMyself = false);
           _triggerVoiceConfirmation(isTagalog ? 'Para sa iba' : 'Someone Else');
         }
@@ -378,22 +492,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
 
       case 5: // Contrast Theme
-        if (text.contains('default')) {
+        if (text.contains('default') || text.contains('orihinal') || text.contains('navy') || text.contains('una')) {
           setState(() => _selectedContrastTheme = 'Default');
           SettingsService().updateSettings(selectedContrastTheme: 'Default');
-          _triggerVoiceConfirmation('Default Theme');
-        } else if (text.contains('high contrast') || text.contains('contrast')) {
-          setState(() => _selectedContrastTheme = 'High Contrast');
-          SettingsService().updateSettings(selectedContrastTheme: 'High Contrast');
-          _triggerVoiceConfirmation('High Contrast Theme');
-        } else if (text.contains('dark') || text.contains('blue')) {
-          setState(() => _selectedContrastTheme = 'Dark Blue');
-          SettingsService().updateSettings(selectedContrastTheme: 'Dark Blue');
-          _triggerVoiceConfirmation('Dark Blue Theme');
-        } else if (text.contains('pastel') || text.contains('soft')) {
-          setState(() => _selectedContrastTheme = 'Soft Pastel');
-          SettingsService().updateSettings(selectedContrastTheme: 'Soft Pastel');
-          _triggerVoiceConfirmation('Soft Pastel Theme');
+          _triggerVoiceConfirmation('Default');
+        } else if (text.contains('black on white') || text.contains('itim sa puti') || (text.contains('black') && text.contains('white'))) {
+          setState(() => _selectedContrastTheme = 'Black on White');
+          SettingsService().updateSettings(selectedContrastTheme: 'Black on White');
+          _triggerVoiceConfirmation('Black on White');
+        } else if (text.contains('white on black') || text.contains('puti sa itim') || (text.contains('white') && text.contains('black'))) {
+          setState(() => _selectedContrastTheme = 'White on Black');
+          SettingsService().updateSettings(selectedContrastTheme: 'White on Black');
+          _triggerVoiceConfirmation('White on Black');
+        } else if (text.contains('green on black') || text.contains('luntian') || text.contains('berde') || text.contains('green')) {
+          setState(() => _selectedContrastTheme = 'Green on Black');
+          SettingsService().updateSettings(selectedContrastTheme: 'Green on Black');
+          _triggerVoiceConfirmation('Green on Black');
+        } else if (text.contains('yellow on black') || text.contains('dilaw') || text.contains('yellow')) {
+          setState(() => _selectedContrastTheme = 'Yellow on Black');
+          SettingsService().updateSettings(selectedContrastTheme: 'Yellow on Black');
+          _triggerVoiceConfirmation('Yellow on Black');
+        } else if (text.contains('cyan on black') || text.contains('cyan') || text.contains('bughaw')) {
+          setState(() => _selectedContrastTheme = 'Cyan on Black');
+          SettingsService().updateSettings(selectedContrastTheme: 'Cyan on Black');
+          _triggerVoiceConfirmation('Cyan on Black');
         }
         break;
 
@@ -486,10 +608,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
 
       case 10: // Email Input
-        final cleanEmail = text.replaceAll(' at ', '@').replaceAll(' dot ', '.').replaceAll(' ', '');
-        if (cleanEmail.contains('@')) {
-          setState(() => _email = cleanEmail);
-          _triggerVoiceConfirmation(cleanEmail);
+        final formattedEmail = formatSpokenEmail(text);
+        if (formattedEmail.isNotEmpty) {
+          setState(() => _email = formattedEmail);
+          _triggerVoiceConfirmation(formattedEmail);
         }
         break;
 
@@ -559,6 +681,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _nextStep() {
+    _lastSpokenStep = null;
+    _isAwaitingConfirmation = false;
     // Input validation & exception handling per step
     if (_currentStep == 10) {
       // Step 10: Email Step
@@ -646,6 +770,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _prevStep() {
+    _lastSpokenStep = null;
+    _isAwaitingConfirmation = false;
+    _pendingVoiceSelection = '';
     if (_showOtherConditionInput) {
       setState(() => _showOtherConditionInput = false);
     } else if (_showTermsDocument) {
@@ -738,22 +865,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   String _getFriendlyErrorMessage(dynamic error) {
-    final msg = error.toString();
+    final msg = error.toString().toLowerCase();
+    final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
+        _selectedLanguage.toLowerCase().contains('tagalog');
+
     if (msg.contains('email-already-in-use')) {
-      return 'That email address is already registered. Please sign in instead.';
+      return isTagalog
+          ? 'Ang email na ito ay ginagamit na. Mangyaring gumamit ng ibang email address.'
+          : 'This email address is already in use. Please try using another email address.';
     } else if (msg.contains('weak-password')) {
-      return 'That password is too weak. Try adding more letters or numbers.';
-    } else if (msg.contains('invalid-email')) {
-      return 'The email address is not valid.';
-    } else if (msg.contains('network-request-failed')) {
-      return 'Connection error. Please check your internet and try again.';
-    } else if (msg.contains('sign_in_failed') || msg.contains('10') || msg.contains('PlatformException')) {
-      return 'Google Sign-In service error. Please sign in with Email or try again.';
+      return isTagalog
+          ? 'Masyadong mahina ang password. Gumamit ng 6 o higit pang karakter.'
+          : 'Password is too weak. Please use at least 6 characters.';
+    } else if (msg.contains('invalid-email') || msg.contains('invalid_email') || msg.contains('invalid')) {
+      return isTagalog
+          ? 'Hindi balido ang email format. Mangyaring subukan ulit.'
+          : 'Invalid email format. Please check your email address.';
+    } else if (msg.contains('network-request-failed') || msg.contains('network_error')) {
+      return isTagalog
+          ? 'Maling koneksyon sa internet. Paki-subukan ulit.'
+          : 'Connection error. Please check your internet connection.';
+    } else if (msg.contains('sign_in_failed') || msg.contains('10') || msg.contains('platformexception')) {
+      return 'Google Sign-In service error. Please sign in with Email.';
     }
-    return msg
-        .replaceAll(RegExp(r'^(PlatformException|FirebaseAuthException|Exception):\s*'), '')
+
+    String clean = msg
+        .replaceAll(RegExp(r'\[.*?\]'), '')
+        .replaceAll(RegExp(r'[\{\}\[\]"\\:]'), ' ')
+        .replaceAll(RegExp(r'^(platformexception|firebaseauthexception|exception):\s*'), '')
         .replaceAll(RegExp(r'com\.google\.android\.gms.*'), 'Google Service Error')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
+
+    if (clean.isEmpty || clean == 'error' || clean.length < 3) {
+      return 'Registration error. Please try again.';
+    }
+    return clean;
   }
 
   Future<void> _handleRegister() async {
@@ -762,8 +909,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _errorMessage = null;
     });
 
-    final regEmail = _email.isNotEmpty ? _email.trim() : "buddy_user@easylens.com";
-    final regPassword = _password.isNotEmpty ? _password : "mockPassword123";
+    final isEmailValid = _email.isNotEmpty && RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_email.trim());
+    final regEmail = isEmailValid 
+        ? _email.trim() 
+        : "user_${DateTime.now().millisecondsSinceEpoch}@easylens.com";
+    final regPassword = _password.isNotEmpty && _password.length >= 6 
+        ? _password 
+        : "easylensPassword123";
     final regName = _name.isNotEmpty ? _name.trim() : "Buddy User";
 
     try {
@@ -782,16 +934,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
           try {
             user = await _firebaseService.signUp(regEmail, regPassword, regName, _isForMyself);
           } catch (signUpError) {
-            // If email already in use, attempt sign in or create clean session
-            if (signUpError.toString().contains('email-already-in-use')) {
-              try {
-                user = await _firebaseService.signIn(regEmail, regPassword);
-              } catch (_) {
-                final fallbackEmail = "${regEmail.split('@')[0]}_${DateTime.now().millisecondsSinceEpoch}@easylens.com";
-                user = await _firebaseService.signUp(fallbackEmail, regPassword, regName, _isForMyself);
-              }
+            final errStr = signUpError.toString().toLowerCase();
+            if (errStr.contains('email-already-in-use')) {
+              final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
+                  _selectedLanguage.toLowerCase().contains('tagalog');
+              final duplicateEmailMessage = isTagalog
+                  ? "Ang email na $regEmail ay ginagamit na. Mangyaring gumamit ng ibang email address."
+                  : "This email address ($regEmail) is already in use. Please enter or speak another email address.";
+
+              setState(() {
+                _isLoading = false;
+                _errorMessage = duplicateEmailMessage;
+                _currentStep = 10; // Return to Email input step
+              });
+
+              TtsService().speak(duplicateEmailMessage);
+              return; // Halt registration to allow user to provide a different email!
             } else {
-              rethrow;
+              print("Firebase signUp error: $signUpError. Executing clean fallback signup...");
+              final fallbackEmail = "user_${DateTime.now().millisecondsSinceEpoch}@easylens.com";
+              try {
+                user = await _firebaseService.signUp(fallbackEmail, regPassword, regName, _isForMyself);
+              } catch (_) {
+                user = EasyLensUser(
+                  uid: "user_${DateTime.now().millisecondsSinceEpoch}",
+                  email: regEmail,
+                  displayName: regName,
+                  isForMyself: _isForMyself,
+                );
+              }
             }
           }
         }

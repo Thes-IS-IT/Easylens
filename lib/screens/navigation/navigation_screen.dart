@@ -21,6 +21,12 @@ import '../../services/active_navigation_service.dart';
 import '../../services/translation_service.dart';
 import '../../widgets/speech_navigation_overlay.dart';
 import '../../widgets/screen_tutorial_card.dart';
+import 'package:flutter/services.dart';
+import '../../services/danger_warning_service.dart';
+import '../../services/notification_service.dart';
+import '../../models/app_notification.dart';
+import '../../widgets/critical_danger_overlay.dart';
+
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -186,6 +192,48 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _startGuidance(place);
     }
   }
+
+  void _triggerHazardAlert(String label) {
+    final lang = SettingsService().selectedLanguage;
+    final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    
+    final info = DangerWarningService().getHazardInfo(label);
+    final message = isTagalog ? info.messageTl : info.messageEn;
+
+    // 1. Update ActiveNavigationService state
+    ActiveNavigationService().triggerHazardAlert(
+      hazardName: info.label,
+      severity: info.severity,
+      message: message,
+    );
+
+    // 2. Trigger Haptic Vibration
+    if (info.severity == HazardSeverity.critical) {
+      HapticFeedback.vibrate();
+      Future.delayed(const Duration(milliseconds: 300), () => HapticFeedback.vibrate());
+      Future.delayed(const Duration(milliseconds: 600), () => HapticFeedback.vibrate());
+    } else {
+      HapticFeedback.mediumImpact();
+    }
+
+    // 3. Spoken TTS Voice Alert
+    TtsService().speak(message);
+
+    // 4. Local Push Notification
+    NotificationService().push(
+      type: info.severity == HazardSeverity.critical ? NotificationType.warning : NotificationType.obstacle,
+      title: info.title,
+      body: message,
+    );
+
+    if (mounted) setState(() {});
+  }
+
+  void _clearHazardAlert() {
+    ActiveNavigationService().clearHazardAlert();
+    if (mounted) setState(() {});
+  }
+
 
   @override
   void initState() {
@@ -917,14 +965,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
     });
 
     if (_mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: _currentLocation,
-            zoom: 15.0,
+      try {
+        _mapController!.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: _currentLocation,
+              zoom: 15.0,
+            ),
           ),
-        ),
-      );
+        );
+      } catch (e) {
+        debugPrint("Map animateCamera error on cancel: $e");
+      }
     }
   }
 
@@ -1049,11 +1101,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         
         if (!context.mounted) return;
         
-        if (action == 'keep') {
-          Navigator.of(context).pop();
-        } else if (action == 'stop') {
+        if (action == 'stop') {
           _cancelNavigation();
-          Navigator.of(context).pop();
         }
       },
       child: Scaffold(
@@ -1174,10 +1223,34 @@ class _NavigationScreenState extends State<NavigationScreen> {
             ),
           ),
 
+          // ── CRITICAL DANGER / HAZARD OVERLAY ──
+          if (ActiveNavigationService().isHazardActive)
+            Positioned(
+              top: 80,
+              left: 12,
+              right: 12,
+              child: SafeArea(
+                child: CriticalDangerOverlay(
+                  severity: ActiveNavigationService().hazardSeverity,
+                  title: ActiveNavigationService().activeHazardName,
+                  message: ActiveNavigationService().activeHazardMessage,
+                  hazardName: ActiveNavigationService().activeHazardName,
+                  onDismiss: _clearHazardAlert,
+                  onReannounce: () {
+                    TtsService().speak(ActiveNavigationService().activeHazardMessage);
+                  },
+                  onEmergencyCall: () {
+                    Navigator.push(context, AppRoute.to(const EmergencyScreen()));
+                  },
+                ),
+              ),
+            ),
+
           // ── FIGMA SLIDING CARD OVERLAYS ──
           Positioned.fill(
             child: _buildDraggableCardOverlay(),
           ),
+
         ],
       ),
     ),
@@ -1519,6 +1592,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
         ),
         const SizedBox(height: 24),
 
+        // ── HAZARD WARNING SYSTEM PANEL ──
+        _buildHazardTestPanel(),
+
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1579,6 +1655,123 @@ class _NavigationScreenState extends State<NavigationScreen> {
       ],
     );
   }
+
+  Widget _buildHazardTestPanel() {
+    final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.shield_outlined, size: 18, color: Color(0xFF002663)),
+              const SizedBox(width: 8),
+              Text(
+                isTagalog ? "SISTEMA NG BABALA SA PANGANIB" : "HAZARD WARNING SYSTEM",
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF002663),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.green.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "ACTIVE",
+                      style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            isTagalog ? "Subukan ang babala kapag may natukoy na peligro:" : "Simulate live hazard detection during navigation:",
+            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => _triggerHazardAlert('knife'),
+                icon: const Icon(Icons.content_cut_rounded, size: 16),
+                label: const Text("🔪 Knife"),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEA580C),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => _triggerHazardAlert('fire'),
+                icon: const Icon(Icons.local_fire_department_rounded, size: 16),
+                label: const Text("🔥 Fire"),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD97706),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => _triggerHazardAlert('dog'),
+                icon: const Icon(Icons.pets_rounded, size: 16),
+                label: const Text("🐕 Animal"),
+              ),
+              if (ActiveNavigationService().isHazardActive)
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    side: BorderSide(color: Colors.grey.shade400),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: _clearHazardAlert,
+                  icon: const Icon(Icons.check_circle_outline, size: 16),
+                  label: const Text("Clear"),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
 
   // ── OVERLAY CONTENT 3: Final Map view ──────────────────────────────
   Widget _buildFullMapDirectionContent() {

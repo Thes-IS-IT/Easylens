@@ -4,21 +4,39 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import '../../../services/stt_service.dart';
 
+String formatSpokenEmail(String input) {
+  String text = input.trim().toLowerCase();
+  if (text.isEmpty) return text;
+
+  // Convert common spoken words/Tagalog terms to email symbols
+  text = text
+      .replaceAll(RegExp(r'\b(at|ako|et|atsign|at sign)\b', caseSensitive: false), '@')
+      .replaceAll(RegExp(r'\b(dot|punto|tuldok)\b', caseSensitive: false), '.')
+      .replaceAll(RegExp(r'\s+'), '');
+
+  // Fix common domain misspellings from speech-to-text
+  text = text
+      .replaceAll('gmailcom', 'gmail.com')
+      .replaceAll('yahoocom', 'yahoo.com')
+      .replaceAll('hotmailcom', 'hotmail.com')
+      .replaceAll('outlookcom', 'outlook.com')
+      .replaceAll('icloudcom', 'icloud.com');
+
+  // If user spoke a username without @ (e.g. "parehas" or "arronparejas"), append @gmail.com
+  if (!text.contains('@')) {
+    text = '$text@gmail.com';
+  }
+
+  return text;
+}
+
 /// Helper to sanitize spoken input based on expected input type
 String formatSpokenText(String input, {TextInputType? keyboardType, bool isEmail = false, bool isPhone = false, bool isCode = false}) {
   String text = input.trim();
   if (text.isEmpty) return text;
 
   if (isEmail || keyboardType == TextInputType.emailAddress) {
-    text = text.toLowerCase()
-        .replaceAll(' at ', '@')
-        .replaceAll(' at', '@')
-        .replaceAll('at ', '@')
-        .replaceAll(' dot ', '.')
-        .replaceAll(' dot', '.')
-        .replaceAll('dot ', '.')
-        .replaceAll(' ', '');
-    return text;
+    return formatSpokenEmail(text);
   }
 
   if (isPhone || isCode || keyboardType == TextInputType.phone || keyboardType == TextInputType.number) {

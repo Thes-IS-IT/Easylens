@@ -163,6 +163,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         final headerColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
         final tileTextColor = isDefault ? Colors.black : AppColors.primaryText;
         final cardColor = AppColors.primaryBackground;
+        final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+            SettingsService().selectedLanguage.toLowerCase().contains('filipino');
 
         return Scaffold(
           backgroundColor: AppColors.lightBackground,
@@ -262,6 +264,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         _buildSwitchRow(
                           title: 'Haptic Feedback',
+                          subtitle: isFilipino
+                              ? 'Vibration ng device para sa babala (2x pulse sa dilaw na babala, 5x pulse sa kritikal na pula).'
+                              : 'Vibrates device for hazard alerts (2x pulses for caution/yellow hazards, 5x pulses for critical/red hazards).',
                           value: _hapticFeedback,
                           onChanged: (val) {
                             setState(() => _hapticFeedback = val);

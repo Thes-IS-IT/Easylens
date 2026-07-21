@@ -87,6 +87,10 @@ class TtsService {
     await _settingsService.loadSettingsFromLocal();
     if (!_settingsService.voiceFeedback) return;
 
+    try {
+      await _flutterTts.stop();
+    } catch (_) {}
+
     // Lazily load voices if not yet cached
     if (!_voicesLoaded && (Platform.isIOS || Platform.isMacOS)) {
       await _loadDeviceVoices();
@@ -100,6 +104,10 @@ class TtsService {
   Future<void> speakAwait(String text) async {
     await _settingsService.loadSettingsFromLocal();
     if (!_settingsService.voiceFeedback) return;
+
+    try {
+      await _flutterTts.stop();
+    } catch (_) {}
 
     if (!_voicesLoaded && (Platform.isIOS || Platform.isMacOS)) {
       await _loadDeviceVoices();
@@ -137,6 +145,10 @@ class TtsService {
   /// voice personas (Aria, Max, Nova, etc.) always resolve to clear English
   /// voices. The UI language is independent from the TTS voice locale.
   String _getLangCode() {
+    final selected = _settingsService.selectedLanguage.toLowerCase();
+    if (selected.contains('tagalog') || selected.contains('filipino')) {
+      return 'fil-PH';
+    }
     switch (_settingsService.selectedLanguage) {
       case 'English (US)':
         return 'en-US';
@@ -152,8 +164,6 @@ class TtsService {
         return 'ja-JP';
       case 'Mandarin':
         return 'zh-CN';
-      case 'Tagalog':
-        return 'fil-PH';
       default:
         return 'en-US';
     }
@@ -179,11 +189,26 @@ class TtsService {
     // e.g. "en-US" → match "en-us" or "en_us"
     var langBase = langCode.replaceAll('-', '_'); // "en_us"
 
+    // Tagalog / Filipino specific Maya voice resolution
+    if (langCode == 'fil-ph' || langCode == 'tl-ph') {
+      for (final v in _deviceVoices) {
+        final name = (v['name'] ?? '').toLowerCase();
+        final locale = (v['locale'] ?? v['language'] ?? '').toLowerCase();
+        if (name.contains('maya') || ((locale.contains('fil') || locale.contains('tl')) && (name.contains('female') || name.contains('f')))) {
+          print('[TTS] Applying Tagalog Maya voice: ${v['name']}');
+          try {
+            await _flutterTts.setVoice(v);
+            return;
+          } catch (_) {}
+        }
+      }
+    }
+
     // Filter by language
     var localeVoices = _deviceVoices.where((v) {
       final locale = (v['locale'] ?? v['language'] ?? '').toLowerCase();
       if (langCode == 'fil-ph' || langCode == 'tl-ph') {
-        return locale.contains('fil') || locale.contains('tl');
+        return locale.contains('fil') || locale.contains('tl') || locale.contains('ph');
       }
       return locale == langBase ||
           locale == langCode ||

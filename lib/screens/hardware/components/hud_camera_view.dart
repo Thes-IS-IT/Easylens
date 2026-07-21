@@ -50,14 +50,14 @@ class HudCameraView extends StatelessWidget {
 
   String _refineLabel(String rawLabel) {
     final label = rawLabel.toLowerCase();
+    if (label.contains('hair drier') || label.contains('hairdryer')) {
+      return 'hair drier';
+    }
     if (label.contains('musical instrument') || 
         label.contains('piano') || 
         label.contains('musical keyboard') ||
         label.contains('electronic keyboard')) {
       return 'laptop or keyboard';
-    }
-    if (label.contains('hand') || label.contains('finger') || label.contains('nail')) {
-      return 'hand';
     }
     if (label.contains('wall') || label.contains('partition') || label.contains('divider')) {
       return 'wall';
@@ -80,7 +80,17 @@ class HudCameraView extends StatelessWidget {
     if (label.contains('bottle') || label.contains('cup') || label.contains('mug') || label.contains('glass') || label.contains('tableware')) {
       return 'cup or tableware';
     }
-    if (label.contains('person') || label.contains('human') || label.contains('man') || label.contains('woman') || label.contains('child') || label.contains('pedestrian')) {
+    if (label.contains('person') || label.contains('human') || label.contains('man') || label.contains('woman') || 
+        label.contains('child') || label.contains('boy') || label.contains('girl') || label.contains('pedestrian') || 
+        label.contains('bystander') || label.contains('people') || label.contains('cyclist') || label.contains('rider') || 
+        label.contains('skin') || label.contains('hand') || label.contains('finger') || label.contains('nail') || 
+        label.contains('eyelash') || label.contains('eyebrow') || label.contains('eye') || label.contains('face') || 
+        label.contains('head') || label.contains('hair') || label.contains('arm') || label.contains('leg') || 
+        label.contains('foot') || label.contains('feet') || label.contains('forehead') || label.contains('chin') || 
+        label.contains('lip') || label.contains('mouth') || label.contains('nose') || label.contains('cheek') || 
+        label.contains('thumb') || label.contains('wrist') || label.contains('elbow') || label.contains('knee') || 
+        label.contains('shoulder') || label.contains('torso') || label.contains('body') || label.contains('selfie') || 
+        label.contains('portrait')) {
       return 'person';
     }
     return rawLabel;
@@ -388,8 +398,6 @@ class HudCameraView extends StatelessWidget {
                         String name = "Face";
                         if (trackingId != null && faceIdToNameMap.containsKey(trackingId)) {
                           name = faceIdToNameMap[trackingId]!;
-                        } else if (registeredFaces.isNotEmpty) {
-                          name = registeredFaces.first.name;
                         }
                         final trackingStr = trackingId != null ? " #:$trackingId" : "";
                         

@@ -9,6 +9,7 @@ import 'package:camera/camera.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image/image.dart' as img;
 import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
@@ -128,6 +129,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
   HudMode _selectedHudMode = HudMode.objectDetection;
   bool _isPaused = false;
   bool _isStreamingPausedForBuddy = false;
+  Uint8List? _latestNv21Bytes;
+  int _latestWidth = 0;
+  int _latestHeight = 0;
   String _voiceState = "idle"; // S01: Tracks speech state ('idle', 'listening', 'thinking', 'speaking')
 
   // Face recognition
@@ -139,6 +143,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   List<Face> _detectedFacesList = [];
   Size _faceImageSize = Size.zero;
   final Map<int, String> _faceIdToNameMap = {};
+  Map<int, Offset> _lastFaceCentroids = {};
 
   String _lastGuidanceText = "";
   DateTime? _lastGuidanceTime;
@@ -243,12 +248,12 @@ class _HardwareScreenState extends State<HardwareScreen> {
       'speech': 'STOP! Immediate hazard in your path.'
     },
     {
-      'title': 'Person Detected',
-      'desc': 'A person is nearby. Please slow down.',
+      'title': 'Person Ahead',
+      'desc': 'A person is in front of you. Be careful!',
       'bg': Color(0xFFE8EAF6),
       'icon': Icons.person_rounded,
       'iconColor': Colors.indigo,
-      'speech': 'Person detected. A person is nearby. Please slow down.'
+      'speech': 'Person detected. A person is in front of you, be careful.'
     },
     {
       'title': 'GO Signal Detected',
@@ -273,6 +278,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
       'icon': Icons.elevator_rounded,
       'iconColor': Colors.teal,
       'speech': 'Slow down. Elevator detected ahead.'
+    },
+    {
+      'title': 'CRITICAL: VEHICLE TOO CLOSE!',
+      'desc': 'Vehicle is dangerously close! Stop or avoid immediately!',
+      'bg': Color(0xFFFFEBEE),
+      'icon': Icons.directions_car_rounded,
+      'iconColor': Colors.red,
+      'speech': 'Warning! Vehicle is too close! Stop or avoid immediately!'
     }
   ];
 
@@ -460,6 +473,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
         final yBytes = Uint8List.fromList(image.planes[0].bytes);
         final width = image.width;
         final height = image.height;
+        _latestNv21Bytes = nv21Bytes;
+        _latestWidth = width;
+        _latestHeight = height;
         final nowMs = DateTime.now().millisecondsSinceEpoch;
 
         if (_selectedHudMode == HudMode.faceRecognition) {
@@ -788,46 +804,117 @@ class _HardwareScreenState extends State<HardwareScreen> {
     });
 
     if (faces.isNotEmpty) {
-      // Map tracking IDs to registered names dynamically
-      for (final face in faces) {
+      final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || 
+          SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+          
+      // Clean stale tracking IDs from _faceIdToNameMap
+      final currentIds = faces.map((f) => f.trackingId).whereType<int>().toSet();
+      _faceIdToNameMap.removeWhere((id, _) => !currentIds.contains(id));
+
+      // Sort faces spatially from left to right across the camera frame
+      final sortedFaces = List<Face>.from(faces)
+        ..sort((a, b) => a.boundingBox.center.dx.compareTo(b.boundingBox.center.dx));
+
+      final activeAssignedNames = _faceIdToNameMap.values
+          .where((name) => name != 'Face' && name != 'Unregistered')
+          .toSet();
+
+      for (int i = 0; i < sortedFaces.length; i++) {
+        final face = sortedFaces[i];
         final id = face.trackingId;
-        if (id != null && !_faceIdToNameMap.containsKey(id)) {
-          final activeNames = _faceIdToNameMap.values.toSet();
-          String? unassignedName;
-          for (final prof in _registeredFaces) {
-            if (!activeNames.contains(prof.name)) {
-              unassignedName = prof.name;
-              break;
+        final center = face.boundingBox.center;
+
+        if (id != null) {
+          // Check spatial proximity to inherit name if tracking ID shifted
+          if (!_faceIdToNameMap.containsKey(id)) {
+            int? matchedPrevId;
+            double minDistance = 100.0; // max pixel distance threshold
+            _lastFaceCentroids.forEach((prevId, prevCenter) {
+              final d = (center - prevCenter).distance;
+              if (d < minDistance && _faceIdToNameMap.containsKey(prevId)) {
+                minDistance = d;
+                matchedPrevId = prevId;
+              }
+            });
+
+            if (matchedPrevId != null) {
+              _faceIdToNameMap[id] = _faceIdToNameMap[matchedPrevId]!;
+            } else {
+              // Assign next unassigned registered profile name if available
+              String? unassignedName;
+              for (final prof in _registeredFaces) {
+                if (!activeAssignedNames.contains(prof.name)) {
+                  unassignedName = prof.name;
+                  activeAssignedNames.add(prof.name);
+                  break;
+                }
+              }
+              _faceIdToNameMap[id] = unassignedName ?? 'Face';
             }
           }
-          unassignedName ??= _registeredFaces[_faceIdToNameMap.length % _registeredFaces.length].name;
-          _faceIdToNameMap[id] = unassignedName;
         }
       }
 
-      // Get the list of all currently recognized names in this frame
-      final namesSeen = faces
-          .map((f) => f.trackingId)
-          .whereType<int>()
-          .map((id) => _faceIdToNameMap[id])
-          .whereType<String>()
-          .toSet();
+      // Update centroid tracker for next frame
+      _lastFaceCentroids = {
+        for (final f in faces)
+          if (f.trackingId != null) f.trackingId!: f.boundingBox.center
+      };
 
-      final registeredName = namesSeen.isNotEmpty ? namesSeen.join(' and ') : _registeredFaces.first.name;
+      // Collect recognized vs unrecognized face names
+      final recognizedNames = <String>[];
+      int unrecognizedCount = 0;
+
+      for (final face in faces) {
+        final id = face.trackingId;
+        final name = (id != null) ? _faceIdToNameMap[id] : null;
+        if (name != null && name != 'Face' && name != 'Unregistered') {
+          if (!recognizedNames.contains(name)) {
+            recognizedNames.add(name);
+          }
+        } else {
+          unrecognizedCount++;
+        }
+      }
+
+      String faceAnnouncement = '';
+      String faceDescription = '';
+
+      if (recognizedNames.isNotEmpty) {
+        if (recognizedNames.length == 1 && unrecognizedCount == 0) {
+          faceAnnouncement = isTagalog ? "Nakakita ako kay ${recognizedNames.first}" : "I see ${recognizedNames.first}";
+          faceDescription = "Buddy recognized ${recognizedNames.first}.";
+        } else if (recognizedNames.length > 1 && unrecognizedCount == 0) {
+          final namesStr = recognizedNames.join(isTagalog ? ' at ' : ' and ');
+          faceAnnouncement = isTagalog ? "Nakakita ako kina $namesStr" : "I see $namesStr";
+          faceDescription = "Buddy recognized $namesStr.";
+        } else {
+          final first = recognizedNames.first;
+          faceAnnouncement = isTagalog 
+              ? "Nakakita ako kay $first at $unrecognizedCount pang tao"
+              : "I see $first and $unrecognizedCount other ${unrecognizedCount == 1 ? 'person' : 'people'}";
+          faceDescription = "Buddy recognized $first and detected $unrecognizedCount other ${unrecognizedCount == 1 ? 'person' : 'people'}.";
+        }
+      } else {
+        final count = faces.length;
+        faceAnnouncement = isTagalog 
+            ? "Nakakita ako ng $count tao"
+            : "I see $count ${count == 1 ? 'person' : 'people'}";
+        faceDescription = "Buddy detected $count ${count == 1 ? 'person' : 'people'} nearby.";
+      }
+
       final now = DateTime.now();
       final cooldownElapsed = _lastFaceAnnouncedAt == null ||
-          now.difference(_lastFaceAnnouncedAt!).inSeconds >= 20;
+          now.difference(_lastFaceAnnouncedAt!).inSeconds >= 15;
 
       if (cooldownElapsed) {
         _lastFaceAnnouncedAt = now;
-        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-        final msg = isTagalog ? "Nakakita ako kay $registeredName" : "I see $registeredName";
         if (!_isContinuousVoiceEnabled) {
-          TtsService().speak(msg);
+          TtsService().speak(faceAnnouncement);
         }
         if (mounted) {
           setState(() {
-            _detectedFaceName = registeredName;
+            _detectedFaceName = recognizedNames.isNotEmpty ? recognizedNames.join(' & ') : '';
           });
           Future.delayed(const Duration(seconds: 4), () {
             if (mounted) setState(() => _detectedFaceName = '');
@@ -837,14 +924,16 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
       if (_selectedHudMode == HudMode.faceRecognition && mounted) {
         setState(() {
-          _activeTitle = "Face Detected";
-          _activeDescription = "Buddy recognized $registeredName.";
+          _activeTitle = faces.length > 1 ? "Multiple Faces Detected" : "Face Detected";
+          _activeDescription = faceDescription;
           _statusCardBg = const Color(0xFFF3E8FF);
           _statusIcon = Icons.face_retouching_natural;
           _statusIconColor = const Color(0xFF7C3AED);
         });
       }
     } else {
+      _lastFaceCentroids.clear();
+      _faceIdToNameMap.clear();
       if (_detectedFaceName.isNotEmpty && mounted) {
         setState(() => _detectedFaceName = '');
       }
@@ -968,21 +1057,49 @@ class _HardwareScreenState extends State<HardwareScreen> {
     return 0.3;
   }
 
+  bool _isHapticVibrating = false;
+  DateTime? _lastHapticAlertTime;
+
   void _triggerHapticAlert({required bool isCritical}) {
     final hapticEnabled = SettingsService().hapticFeedback;
     if (!hapticEnabled) return;
 
+    final now = DateTime.now();
+    // Anti-spam cooldown: prevent spamming haptics on rapid frame updates.
+    // Allow at most 1 haptic alert sequence per hazard event cycle (at least 3.5s cooldown).
+    if (_isHapticVibrating) return;
+    if (_lastHapticAlertTime != null && now.difference(_lastHapticAlertTime!).inMilliseconds < 3500) {
+      return;
+    }
+
+    _isHapticVibrating = true;
+    _lastHapticAlertTime = now;
+
     Future.microtask(() async {
       try {
         if (isCritical) {
-          await HapticFeedback.vibrate();
-          await Future.delayed(const Duration(milliseconds: 150));
-          await HapticFeedback.vibrate();
+          // Critical Red Hazard: Strong physical motor vibration 5x
+          for (int i = 0; i < 5; i++) {
+            await HapticFeedback.vibrate();
+            await HapticFeedback.heavyImpact();
+            if (i < 4) {
+              await Future.delayed(const Duration(milliseconds: 180));
+            }
+          }
         } else {
-          await HapticFeedback.mediumImpact();
+          // Moderate Yellow Hazard: Strong physical motor vibration 2x
+          for (int i = 0; i < 2; i++) {
+            await HapticFeedback.vibrate();
+            await HapticFeedback.heavyImpact();
+            if (i < 1) {
+              await Future.delayed(const Duration(milliseconds: 220));
+            }
+          }
         }
       } catch (e) {
         print('[Haptic] Feedback failed: $e');
+      } finally {
+        _isHapticVibrating = false;
       }
     });
   }
@@ -1128,9 +1245,59 @@ class _HardwareScreenState extends State<HardwareScreen> {
       'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
       'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush'
     ];
-    final isHazard = hazardKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
+    final vehicleKeywords = [
+      'car', 'bus', 'truck', 'vehicle', 'jeepney', 'tricycle', 'motorcycle', 'van', 'automobile'
+    ];
 
-    if (isCentered && largestArea > 0.45) {
+    final isHazard = hazardKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
+    final isVehicle = vehicleKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
+    final isPerson = refinedLabel.toLowerCase() == 'person';
+
+    if (isVehicle && (largestArea > 0.10 || (isCentered && largestArea > 0.07))) {
+      // CRITICAL RED WARNING: Vehicle is dangerously close!
+      final guidance = isTagalog
+          ? 'Babala! Napakalapit ng sasakyan! Huminto o umiwas agad!'
+          : 'Warning! Vehicle is too close! Stop or avoid immediately!';
+
+      _triggerHapticAlert(isCritical: true);
+      _wasPathBlocked = true;
+
+      final isDifferent = guidance != _lastGuidanceText;
+      final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+      
+      bool shouldSpeak = false;
+      if (isDifferent) {
+        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 3) {
+          shouldSpeak = true;
+        }
+      } else {
+        if (elapsed.inSeconds >= 6) {
+          shouldSpeak = true;
+        }
+      }
+
+      if (shouldSpeak) {
+        _lastGuidanceText = guidance;
+        _lastGuidanceTime = now;
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(guidance);
+        }
+        NotificationService().pushWarning(
+          isTagalog ? 'BABALA: MALAPIT ANG SASAKYAN!' : 'CRITICAL: VEHICLE TOO CLOSE!',
+          guidance,
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _activeTitle = isTagalog ? 'BABALA: MALAPIT ANG SASAKYAN!' : 'CRITICAL: VEHICLE TOO CLOSE!';
+          _activeDescription = guidance;
+          _statusCardBg = const Color(0xFFFFEBEE); // Crimson Red background card
+          _statusIcon = Icons.directions_car_rounded;
+          _statusIconColor = Colors.red;
+        });
+      }
+    } else if (isCentered && largestArea > 0.45) {
       // STOP immediately — extremely close centered obstacle covering the camera
       final guidance = isTagalog
           ? 'Huminto agad. May $displayLabel sa iyong tapat. Mangyaring tumabi upang maiwasan ito.'
@@ -1173,7 +1340,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
       }
     } else if (isCentered && largestArea > 0.18) {
       // AVOID — centered obstacle at medium-close distance
-      // Check which side is clearer using correct raw Y to screen X mapping
       bool leftBlocked = false;
       bool rightBlocked = false;
       for (final r in validResults) {
@@ -1185,9 +1351,13 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final escapeDir = (leftBlocked && !rightBlocked) ? 'right' : 'left';
       final escapeTagalog = escapeDir == 'left' ? 'kaliwa' : 'kanan';
 
-      final guidance = isTagalog
-          ? 'May harang sa harap: ang $displayLabel ay nasa tapat mo. Tumabi sa iyong $escapeTagalog upang maiwasan ito.'
-          : 'Obstacle ahead: $displayLabel is directly in your path. Step aside to your $escapeDir to avoid it.';
+      final guidance = isPerson
+          ? (isTagalog
+              ? 'May tao sa iyong harapan, mag-iingat ka. Tumabi sa iyong $escapeTagalog upang maiwasan ito.'
+              : 'A person is in front of you, be careful. Step aside to your $escapeDir to avoid them.')
+          : (isTagalog
+              ? 'May harang sa harap: ang $displayLabel ay nasa tapat mo. Tumabi sa iyong $escapeTagalog upang maiwasan ito.'
+              : 'Obstacle ahead: $displayLabel is directly in your path. Step aside to your $escapeDir to avoid it.');
 
       _triggerHapticAlert(isCritical: false);
       _wasPathBlocked = true;
@@ -1217,11 +1387,52 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
       if (mounted) {
         setState(() {
-          _activeTitle = isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle';
+          _activeTitle = isPerson 
+              ? (isTagalog ? 'May Tao sa Harap' : 'Person Ahead')
+              : (isTagalog ? 'Iwasan ang Harang' : 'Avoid Obstacle');
           _activeDescription = guidance;
-          _statusCardBg = const Color(0xFFFFF3E0);
-          _statusIcon = Icons.warning_amber_rounded;
-          _statusIconColor = Colors.orange;
+          _statusCardBg = isPerson ? const Color(0xFFE8EAF6) : const Color(0xFFFFF3E0);
+          _statusIcon = isPerson ? Icons.person_rounded : Icons.warning_amber_rounded;
+          _statusIconColor = isPerson ? Colors.indigo : Colors.orange;
+        });
+      }
+    } else if (isPerson && (largestArea > 0.02 || isCentered)) {
+      // Explicit Person Ahead Warning ("A person is in front of you, be careful")
+      final String guidance = isTagalog
+          ? 'May tao sa iyong harapan, mag-iingat ka.'
+          : 'Person detected. A person is in front of you, be careful.';
+
+      _triggerHapticAlert(isCritical: false);
+
+      final isDifferent = guidance != _lastGuidanceText;
+      final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+      
+      bool shouldSpeak = false;
+      if (isDifferent) {
+        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+          shouldSpeak = true;
+        }
+      } else {
+        if (elapsed.inSeconds >= 10) {
+          shouldSpeak = true;
+        }
+      }
+
+      if (shouldSpeak) {
+        _lastGuidanceText = guidance;
+        _lastGuidanceTime = now;
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(guidance);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _activeTitle = isTagalog ? 'May Tao sa Harap' : 'Person Ahead';
+          _activeDescription = guidance;
+          _statusCardBg = const Color(0xFFE8EAF6);
+          _statusIcon = Icons.person_rounded;
+          _statusIconColor = Colors.indigo;
         });
       }
     } else if (isHazard && largestArea > 0.02) {
@@ -1715,14 +1926,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   String _refineLabel(String rawLabel) {
     final label = rawLabel.toLowerCase();
+    if (label.contains('hair drier') || label.contains('hairdryer')) {
+      return 'hair drier';
+    }
     if (label.contains('musical instrument') || 
         label.contains('piano') || 
         label.contains('musical keyboard') ||
         label.contains('electronic keyboard')) {
       return 'laptop or keyboard';
-    }
-    if (label.contains('hand') || label.contains('finger') || label.contains('nail')) {
-      return 'hand';
     }
     if (label.contains('wall') || label.contains('partition') || label.contains('divider')) {
       return 'wall';
@@ -1742,7 +1953,17 @@ class _HardwareScreenState extends State<HardwareScreen> {
     if (label.contains('bottle') || label.contains('cup') || label.contains('mug') || label.contains('glass') || label.contains('tableware')) {
       return 'cup or tableware';
     }
-    if (label.contains('person') || label.contains('human') || label.contains('man') || label.contains('woman') || label.contains('child') || label.contains('pedestrian')) {
+    if (label.contains('person') || label.contains('human') || label.contains('man') || label.contains('woman') || 
+        label.contains('child') || label.contains('boy') || label.contains('girl') || label.contains('pedestrian') || 
+        label.contains('bystander') || label.contains('people') || label.contains('cyclist') || label.contains('rider') || 
+        label.contains('skin') || label.contains('hand') || label.contains('finger') || label.contains('nail') || 
+        label.contains('eyelash') || label.contains('eyebrow') || label.contains('eye') || label.contains('face') || 
+        label.contains('head') || label.contains('hair') || label.contains('arm') || label.contains('leg') || 
+        label.contains('foot') || label.contains('feet') || label.contains('forehead') || label.contains('chin') || 
+        label.contains('lip') || label.contains('mouth') || label.contains('nose') || label.contains('cheek') || 
+        label.contains('thumb') || label.contains('wrist') || label.contains('elbow') || label.contains('knee') || 
+        label.contains('shoulder') || label.contains('torso') || label.contains('body') || label.contains('selfie') || 
+        label.contains('portrait')) {
       return 'person';
     }
     return rawLabel;
@@ -1988,6 +2209,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
         if (cooldownElapsed) {
           _lastSpokenMap[title] = now;
+          _triggerHapticAlert(isCritical: isImmediate);
           if (!_isContinuousVoiceEnabled) {
             TtsService().speak(speech);
           }
@@ -2282,20 +2504,25 @@ class _HardwareScreenState extends State<HardwareScreen> {
         return frame;
       }
     }
+    // Perform background in-memory frame capture without taking shutter photos or stopping camera stream
+    if (_latestNv21Bytes != null && _latestWidth > 0 && _latestHeight > 0) {
+      try {
+        final jpegBytes = await compute(_nv21ToJpegInIsolate, {
+          'nv21': _latestNv21Bytes,
+          'width': _latestWidth,
+          'height': _latestHeight,
+        });
+        if (jpegBytes != null && jpegBytes.isNotEmpty) {
+          return jpegBytes;
+        }
+      } catch (e) {
+        print("[Camera] Background frame JPEG conversion error: $e");
+      }
+    }
     if (_cameraController != null && _cameraController!.value.isInitialized) {
       try {
-        final wasStreaming = _cameraController!.value.isStreamingImages;
-        if (wasStreaming) {
-          await _cameraController!.stopImageStream();
-        }
         final xfile = await _cameraController!.takePicture();
-        final bytes = await xfile.readAsBytes();
-        if (wasStreaming && mounted && _isContinuousVoiceEnabled) {
-          try {
-            await _cameraController!.startImageStream(_onCameraFrameReceived);
-          } catch (_) {}
-        }
-        return bytes;
+        return await xfile.readAsBytes();
       } catch (e) {
         print("Error capturing native camera image for Gemini: $e");
       }
@@ -3406,4 +3633,24 @@ Uint8List convertYuvToNv21(YuvData data) {
     }
   }
   return nv21;
+}
+
+Uint8List? _nv21ToJpegInIsolate(Map<String, dynamic> params) {
+  try {
+    final Uint8List nv21 = params['nv21'];
+    final int width = params['width'];
+    final int height = params['height'];
+
+    final img.Image image = img.Image(width: width, height: height);
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final int yIndex = y * width + x;
+        final int yValue = nv21[yIndex] & 0xff;
+        image.setPixelRgb(x, y, yValue, yValue, yValue);
+      }
+    }
+    return Uint8List.fromList(img.encodeJpg(image, quality: 75));
+  } catch (_) {
+    return null;
+  }
 }

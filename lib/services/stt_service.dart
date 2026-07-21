@@ -5,6 +5,7 @@ class SttService {
   static final SttService _instance = SttService._internal();
   final SpeechToText _speechToText = SpeechToText();
   bool _isInitialized = false;
+  Function(bool)? _currentListeningStateCallback;
 
   factory SttService() {
     return _instance;
@@ -17,8 +18,18 @@ class SttService {
 
     try {
       _isInitialized = await _speechToText.initialize(
-        onError: (val) => print('STT Error: $val'),
-        onStatus: (val) => print('STT Status: $val'),
+        onError: (val) {
+          print('STT Error: $val');
+          _currentListeningStateCallback?.call(false);
+        },
+        onStatus: (val) {
+          print('STT Status: $val');
+          if (val == 'notListening' || val == 'done') {
+            _currentListeningStateCallback?.call(false);
+          } else if (val == 'listening') {
+            _currentListeningStateCallback?.call(true);
+          }
+        },
       );
     } catch (e) {
       _isInitialized = false;
@@ -34,6 +45,8 @@ class SttService {
     required Function(String, bool) onResult,
     required Function(bool) onListeningStateChanged,
   }) async {
+    _currentListeningStateCallback = onListeningStateChanged;
+
     final hasPermissions = await initializeStt();
     if (!hasPermissions) {
       onListeningStateChanged(false);
@@ -52,9 +65,9 @@ class SttService {
     await _speechToText.listen(
       localeId: localeId,
       listenMode: ListenMode.dictation,
-      pauseFor: const Duration(seconds: 3),
-      listenFor: const Duration(seconds: 30),
-      listenOptions: SpeechListenOptions(cancelOnError: false),
+      pauseFor: const Duration(seconds: 10),
+      listenFor: const Duration(seconds: 60),
+      listenOptions: SpeechListenOptions(cancelOnError: false, partialResults: true),
       onResult: (result) {
         if (result.recognizedWords.trim().isNotEmpty) {
           onResult(result.recognizedWords, result.finalResult);
@@ -64,6 +77,7 @@ class SttService {
   }
 
   Future<void> stopListening(Function(bool) onListeningStateChanged) async {
+    _currentListeningStateCallback = null;
     await _speechToText.stop();
     onListeningStateChanged(false);
   }

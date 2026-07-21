@@ -37,6 +37,17 @@ class _StepEmailInputState extends State<StepEmailInput> {
   }
 
   @override
+  void didUpdateWidget(StepEmailInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.email != oldWidget.email && widget.email != _controller.text) {
+      _controller.text = widget.email;
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: widget.email.length),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();

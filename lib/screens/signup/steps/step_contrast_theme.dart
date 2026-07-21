@@ -27,98 +27,207 @@ class StepContrastTheme extends StatelessWidget {
   ];
 
   Widget _buildThemeCircle(String name, bool isSelected) {
-    Color outerRingColor;
-    Color bgInnerColor;
-    Color centerCircleColor;
+    const double circleSize = 72.0;
 
     switch (name) {
       case 'Default':
-        outerRingColor = const Color(0xFF002663);
-        bgInnerColor = const Color(0xFF002663);
-        centerCircleColor = const Color(0xFF002663);
-        break;
-      case 'Black on White':
-        outerRingColor = const Color(0xFFE2E8F0);
-        bgInnerColor = Colors.white;
-        centerCircleColor = Colors.black;
-        break;
-      case 'White on Black':
-        outerRingColor = Colors.black;
-        bgInnerColor = Colors.black;
-        centerCircleColor = Colors.white;
-        break;
-      case 'Green on Black':
-        outerRingColor = Colors.black;
-        bgInnerColor = Colors.black;
-        centerCircleColor = const Color(0xFF32CD32);
-        break;
-      case 'Yellow on Black':
-        outerRingColor = Colors.black;
-        bgInnerColor = Colors.black;
-        centerCircleColor = const Color(0xFFFFD700);
-        break;
-      case 'Cyan on Black':
-        outerRingColor = Colors.black;
-        bgInnerColor = Colors.black;
-        centerCircleColor = const Color(0xFF00D2C4);
-        break;
-      default:
-        outerRingColor = Colors.grey;
-        bgInnerColor = Colors.white;
-        centerCircleColor = Colors.black;
-    }
-
-    return Container(
-      width: 76,
-      height: 76,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: isSelected && name != 'Default'
-              ? const Color(0xFFE5A63C)
-              : outerRingColor,
-          width: 4.0,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6.0,
-            offset: Offset(0, 3),
-          )
-        ],
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Container(
-        decoration: BoxDecoration(
-          color: bgInnerColor,
-          shape: BoxShape.circle,
-          border: isSelected
-              ? Border.all(
-                  color: const Color(0xFFE5A63C),
-                  width: 3.0,
+        return Container(
+          width: circleSize,
+          height: circleSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF002663),
+            border: Border.all(
+              color: isSelected ? const Color(0xFFE59C1B) : const Color(0xFFD1D5DB),
+              width: isSelected ? 5.0 : 2.0,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 6.0,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: isSelected
+              ? const Center(
+                  child: Icon(
+                    Icons.check_rounded,
+                    color: Color(0xFFE59C1B),
+                    size: 32,
+                  ),
                 )
               : null,
-        ),
-        child: Center(
-          child: isSelected
-              ? const Icon(
-                  Icons.check,
-                  color: Color(0xFFE5A63C),
-                  size: 24,
-                )
-              : (name != 'Default'
-                  ? Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: centerCircleColor,
-                        shape: BoxShape.circle,
-                      ),
-                    )
-                  : null),
-        ),
-      ),
-    );
+        );
+
+      case 'Black on White':
+        return Container(
+          width: circleSize,
+          height: circleSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            border: Border.all(
+              color: isSelected ? const Color(0xFFE59C1B) : const Color(0xFFD1D5DB),
+              width: isSelected ? 4.0 : 2.0,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 6.0,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(8),
+          child: Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black,
+            ),
+            child: isSelected
+                ? const Center(
+                    child: Icon(Icons.check_rounded, color: Colors.white, size: 24),
+                  )
+                : null,
+          ),
+        );
+
+      case 'White on Black':
+        return Container(
+          width: circleSize,
+          height: circleSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black,
+            border: Border.all(
+              color: isSelected ? const Color(0xFFE59C1B) : Colors.black,
+              width: isSelected ? 4.0 : 6.0,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6.0,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(6),
+          child: Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+            ),
+            child: isSelected
+                ? const Center(
+                    child: Icon(Icons.check_rounded, color: Colors.black, size: 24),
+                  )
+                : null,
+          ),
+        );
+
+      case 'Green on Black':
+        return Container(
+          width: circleSize,
+          height: circleSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black,
+            border: Border.all(
+              color: isSelected ? const Color(0xFFE59C1B) : Colors.black,
+              width: isSelected ? 4.0 : 6.0,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6.0,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(6),
+          child: Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF2EC03A),
+            ),
+            child: isSelected
+                ? const Center(
+                    child: Icon(Icons.check_rounded, color: Colors.black, size: 24),
+                  )
+                : null,
+          ),
+        );
+
+      case 'Yellow on Black':
+        return Container(
+          width: circleSize,
+          height: circleSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black,
+            border: Border.all(
+              color: isSelected ? const Color(0xFFE59C1B) : Colors.black,
+              width: isSelected ? 4.0 : 6.0,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6.0,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(6),
+          child: Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFFE2E600),
+            ),
+            child: isSelected
+                ? const Center(
+                    child: Icon(Icons.check_rounded, color: Colors.black, size: 24),
+                  )
+                : null,
+          ),
+        );
+
+      case 'Cyan on Black':
+        return Container(
+          width: circleSize,
+          height: circleSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black,
+            border: Border.all(
+              color: isSelected ? const Color(0xFFE59C1B) : Colors.black,
+              width: isSelected ? 4.0 : 6.0,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6.0,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(6),
+          child: Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF25C5CF),
+            ),
+            child: isSelected
+                ? const Center(
+                    child: Icon(Icons.check_rounded, color: Colors.black, size: 24),
+                  )
+                : null,
+          ),
+        );
+
+      default:
+        return const SizedBox();
+    }
   }
 
   @override
@@ -137,8 +246,8 @@ class StepContrastTheme extends StatelessWidget {
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             crossAxisSpacing: 12,
-            mainAxisSpacing: 24,
-            childAspectRatio: 0.72,
+            mainAxisSpacing: 28,
+            childAspectRatio: 0.70,
           ),
           itemCount: themes.length,
           itemBuilder: (context, index) {
@@ -150,14 +259,15 @@ class StepContrastTheme extends StatelessWidget {
               child: Column(
                 children: [
                   _buildThemeCircle(name, isSelected),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Text(
                     name,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryText,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                      color: isSelected ? const Color(0xFF002663) : const Color(0xFF1E293B),
+                      height: 1.25,
                     ),
                   ),
                 ],

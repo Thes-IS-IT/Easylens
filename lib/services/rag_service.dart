@@ -1143,11 +1143,33 @@ class RagService {
     return null;
   }
 
-  String generateSmartLocalResponse(String question) {
-    final quick = getQuickCuratedAnswer(question);
+  String generateSmartLocalResponse(String question, {String? visionContext}) {
+    // Extract actual user question and environment labels if passed in prompt template
+    String userQuestion = question;
+    String? extractedLabels = visionContext;
+
+    if (question.contains('The user asked: "')) {
+      final match = RegExp(r'The user asked:\s*"([^"]+)"').firstMatch(question);
+      if (match != null) {
+        userQuestion = match.group(1) ?? question;
+      }
+    }
+    if (question.contains('environment labels:')) {
+      final match = RegExp(r'environment labels:\s*([^\n\.]+)', caseSensitive: false).firstMatch(question);
+      if (match != null) {
+        extractedLabels = match.group(1)?.trim();
+      }
+    } else if (question.contains('Describe these environment labels in Tagalog:')) {
+      final match = RegExp(r'Describe these environment labels in Tagalog:\s*([^\n\.]+)', caseSensitive: false).firstMatch(question);
+      if (match != null) {
+        extractedLabels = match.group(1)?.trim();
+      }
+    }
+
+    final quick = getQuickCuratedAnswer(userQuestion);
     if (quick != null) return quick;
 
-    final lowerQ = question.toLowerCase().trim();
+    final lowerQ = userQuestion.toLowerCase().trim();
     final user = FirebaseService().currentUser;
     final name = user?.displayName ?? "friend";
     final aid = SettingsService().selectedMobilityAid.isNotEmpty
@@ -1158,6 +1180,31 @@ class RagService {
     final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
 
     final cleanQ = lowerQ.replaceAll(RegExp(r'[^\w\s]'), '').trim();
+
+    // 0. Object / Vision queries (what is seeing, what is in front of me, etc.)
+    final isVisionQuery = lowerQ.contains("see") ||
+        lowerQ.contains("seeing") ||
+        lowerQ.contains("look") ||
+        lowerQ.contains("object") ||
+        lowerQ.contains("in front") ||
+        lowerQ.contains("around") ||
+        lowerQ.contains("harap") ||
+        lowerQ.contains("nakikita") ||
+        lowerQ.contains("tingin") ||
+        lowerQ.contains("tanawin") ||
+        lowerQ.contains("bagay");
+
+    if (isVisionQuery || (extractedLabels != null && extractedLabels.isNotEmpty && question.startsWith("You are Buddy"))) {
+      if (extractedLabels != null && extractedLabels.trim().isNotEmpty && extractedLabels != "None") {
+        return isUserFilipino
+            ? "Nakikita ko ang $extractedLabels sa iyong harapan. Paano pa kita matutulungan?"
+            : "I see $extractedLabels in front of you. How else can I help?";
+      } else {
+        return isUserFilipino
+            ? "Wala akong makitang malinaw na bagay sa iyong harapan sa ngayon."
+            : "I don't see any clear objects in front of you right now.";
+      }
+    }
 
     // Handle common conversational/polite expressions first to avoid awkward RAG context matching S01
     if (cleanQ == "thank you" || cleanQ == "thanks" || cleanQ == "thank you buddy" || cleanQ == "thanks buddy" || cleanQ == "salamat" || cleanQ == "maraming salamat" || cleanQ == "salamat buddy") {
@@ -1265,13 +1312,13 @@ class RagService {
       final sentences = bestMatch.content.split(RegExp(r'(?<=[.!?])\s+'));
       final summary = sentences.take(2).join(" ");
       return isUserFilipino
-          ? "Ayon sa aking database: $summary"
-          : "According to my database: $summary";
+          ? "Ayon sa aking kaalaman: $summary"
+          : "According to my knowledge: $summary";
     }
 
     return isUserFilipino
-        ? "Kasalukuyan akong tumatakbo sa offline Local AI mode na may limitadong kakayahan para sa mga kumplikadong tanong. Inirerekomenda kong lumipat sa Advanced Gemini AI gamit ang switch sa itaas para sa mas malalim na sagot!"
-        : "I am currently running in offline Local AI mode, which has limited capability to answer complex queries. I highly recommend switching to Advanced Gemini AI using the toggle at the top for a detailed response!";
+        ? "Ako si Buddy! Ako ay iyong gabay sa EasyLens. Maaari mo akong tanungin tungkol sa iyong paligid, pag-navigate, o mga feature ng app!"
+        : "I'm Buddy! I'm your guide for EasyLens. You can ask me about your surroundings, navigation, or app features!";
   }
 
   /// Builds a Tagalog-language Gemma prompt.
@@ -1339,16 +1386,38 @@ Buddy:""";
   }
 
   static List<String> getGeminiApiKeys() {
-    final List<String> keys = [];
-    final k1 = dotenv.env['GEMINI_API_KEY']?.trim() ?? '';
-    final k2 = dotenv.env['GEMINI_API_KEY2']?.trim() ?? '';
-    final k3 = dotenv.env['GEMINI_API_KEY3']?.trim() ?? '';
-    final k4 = dotenv.env['GEMINI_API_KEY4']?.trim() ?? '';
+    final Set<String> keySet = {};
+    
+    // 1. Explicitly check indexed GEMINI_API_KEY variables (GEMINI_API_KEY, GEMINI_API_KEY2, etc.)
+    for (int i = 1; i <= 25; i++) {
+      final varName = i == 1 ? 'GEMINI_API_KEY' : 'GEMINI_API_KEY$i';
+      final val = dotenv.env[varName]?.trim();
+      if (val != null && val.isNotEmpty) {
+        keySet.add(val);
+      }
+    }
 
-    if (k1.isNotEmpty) keys.add(k1);
-    if (k2.isNotEmpty) keys.add(k2);
-    if (k3.isNotEmpty) keys.add(k3);
-    if (k4.isNotEmpty) keys.add(k4);
+    // 2. Dynamically scan all entries in dotenv.env for any keys with GEMINI, GOOGLE_API, or FIREBASE_API
+    dotenv.env.forEach((envKey, val) {
+      final cleanVal = val.trim();
+      if (cleanVal.isNotEmpty) {
+        final upperKey = envKey.toUpperCase();
+        if (upperKey.contains('GEMINI') || upperKey.contains('GOOGLE_API') || upperKey.contains('FIREBASE_API') || upperKey.contains('FIREBASE_WEB_API')) {
+          keySet.add(cleanVal);
+        }
+      }
+    });
+
+    // 3. Sort keys to prioritize official Google AI keys starting with 'AIzaSy'
+    final List<String> keys = keySet.toList();
+    keys.sort((a, b) {
+      final aIsAIza = a.startsWith('AIzaSy');
+      final bIsAIza = b.startsWith('AIzaSy');
+      if (aIsAIza && !bIsAIza) return -1;
+      if (!aIsAIza && bIsAIza) return 1;
+      return 0;
+    });
+
     return keys;
   }
 
@@ -1358,7 +1427,11 @@ Buddy:""";
     if (userKey.isNotEmpty) {
       keys.add(userKey);
     }
-    keys.addAll(getGeminiApiKeys());
+    for (final k in getGeminiApiKeys()) {
+      if (!keys.contains(k)) {
+        keys.add(k);
+      }
+    }
 
     if (keys.isEmpty) {
       throw Exception('No Gemini API keys found. Please set one in Settings or environment variables.');
@@ -1366,12 +1439,25 @@ Buddy:""";
     
     Object? lastError;
     for (var key in keys) {
-      try {
-        return await apiCall(key.trim());
-      } catch (e) {
-        final maskedKey = key.length > 4 ? '...${key.substring(key.length - 4)}' : '...';
-        print('[RagService] API Call failed with key $maskedKey: $e');
-        lastError = e;
+      final cleanKey = key.trim();
+      final maskedKey = cleanKey.length > 4 ? '...${cleanKey.substring(cleanKey.length - 4)}' : '...';
+      
+      // Retry transient 503 / 429 errors up to 2 times for each key before switching key
+      for (int attempt = 0; attempt < 2; attempt++) {
+        try {
+          return await apiCall(cleanKey);
+        } catch (e) {
+          lastError = e;
+          final errStr = e.toString();
+          print('[RagService] API Call failed with key $maskedKey (Attempt ${attempt + 1}): $errStr');
+
+          // If 503 (temporary high demand) or 429 (rate limit / quota), retry once with delay before giving up on key
+          if ((errStr.contains('503') || errStr.contains('429') || errStr.contains('UNAVAILABLE') || errStr.contains('high demand')) && attempt == 0) {
+            await Future.delayed(const Duration(milliseconds: 600));
+            continue;
+          }
+          break; // Switch to next API key in .env for 400/403/depleted credits errors
+        }
       }
     }
     throw lastError ?? Exception('All Gemini API keys failed.');
