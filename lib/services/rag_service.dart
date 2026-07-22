@@ -260,22 +260,27 @@ class RagService {
     }
   }
 
+  final Set<String> _corruptedModelPaths = {};
+
   Future<String?> _getLocalModelPath() async {
     if (!Platform.isAndroid && !Platform.isIOS) {
       return null;
     }
     final dynamicPath = await _getDynamicSavePath();
-    final dynamicFile = File(dynamicPath);
-    if (dynamicFile.existsSync()) {
-      if (dynamicFile.lengthSync() >= 1200000000) {
-        return dynamicPath;
-      } else {
-        print('[RAG] Local model at $dynamicPath is incomplete/corrupted (${dynamicFile.lengthSync()} bytes) - deleting.');
-        try {
-          dynamicFile.deleteSync();
-        } catch (_) {}
+    if (!_corruptedModelPaths.contains(dynamicPath)) {
+      final dynamicFile = File(dynamicPath);
+      if (dynamicFile.existsSync()) {
+        if (dynamicFile.lengthSync() >= 1200000000) {
+          return dynamicPath;
+        } else {
+          print('[RAG] Local model at $dynamicPath is incomplete/corrupted (${dynamicFile.lengthSync()} bytes) - deleting.');
+          try {
+            dynamicFile.deleteSync();
+          } catch (_) {}
+        }
       }
     }
+
     final paths = [
       "/storage/emulated/0/Android/data/com.company.easylens/files/model.bin",
       "/sdcard/Android/data/com.company.easylens/files/model.bin",
@@ -283,6 +288,7 @@ class RagService {
       "/sdcard/Download/model.bin",
     ];
     for (var path in paths) {
+      if (_corruptedModelPaths.contains(path)) continue;
       final file = File(path);
       if (file.existsSync()) {
         if (file.lengthSync() >= 1200000000) {
@@ -312,6 +318,19 @@ class RagService {
         _isGemmaModelInstalled = true;
       } catch (e) {
         _gemmaInitFuture = null; // Allow retry on error
+        _gemmaInitialized = false;
+        _isGemmaModelInstalled = false;
+        _corruptedModelPaths.add(modelPath);
+        print("[Gemma] Error initializing model from $modelPath: $e. Cleaning up invalid model file.");
+        try {
+          final file = File(modelPath);
+          if (file.existsSync()) {
+            file.deleteSync();
+            print("[Gemma] Successfully deleted invalid/corrupted model file at $modelPath.");
+          }
+        } catch (de) {
+          print("[Gemma] Could not delete model file: $de");
+        }
         rethrow;
       }
     }();
@@ -436,6 +455,11 @@ class RagService {
     yield* controller.stream;
   }
 
+  static const List<String> _geminiModelCandidates = [
+    'gemini-3.5-flash',
+    'gemini-2.5-flash',
+  ];
+
   Stream<String> _queryGeminiOnlineStream(
     String prompt, {
     String? systemInstruction,
@@ -453,50 +477,62 @@ class RagService {
       return;
     }
 
+    bool hasQuotaOrRateLimitError = false;
+
     for (var key in keys) {
-      try {
-        final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
-          apiKey: key.trim(),
-          systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
-        );
+      for (var modelName in _geminiModelCandidates) {
+        try {
+          final model = GenerativeModel(
+            model: modelName,
+            apiKey: key.trim(),
+            systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
+          );
 
-        final List<Content> chatHistory = [];
-        if (history != null && history.isNotEmpty) {
-          for (final msg in history) {
-            final isUser = msg['isUser'] == true;
-            final text = (msg['text'] as String? ?? '').trim();
-            if (text.isEmpty) continue;
-            // Clean up navigation tags before sending to chat history
-            final cleanText = isUser ? text : text.replaceAll(RegExp(r'\[NAVIGATE:[^\]]+\]'), '').trim();
-            if (cleanText.isEmpty) continue;
-            
-            chatHistory.add(Content(
-              isUser ? 'user' : 'model',
-              [TextPart(cleanText)],
-            ));
+          final List<Content> chatHistory = [];
+          if (history != null && history.isNotEmpty) {
+            for (final msg in history) {
+              final isUser = msg['isUser'] == true;
+              final text = (msg['text'] as String? ?? '').trim();
+              if (text.isEmpty) continue;
+              // Clean up navigation tags before sending to chat history
+              final cleanText = isUser ? text : text.replaceAll(RegExp(r'\[NAVIGATE:[^\]]+\]'), '').trim();
+              if (cleanText.isEmpty) continue;
+              
+              chatHistory.add(Content(
+                isUser ? 'user' : 'model',
+                [TextPart(cleanText)],
+              ));
+            }
           }
-        }
 
-        final chat = model.startChat(history: chatHistory);
-        final responseStream = chat.sendMessageStream(Content.text(prompt));
-        
-        await for (final chunk in responseStream) {
-          final token = chunk.text;
-          if (token != null) {
-            yield token;
+          final chat = model.startChat(history: chatHistory);
+          final responseStream = chat.sendMessageStream(Content.text(prompt));
+          
+          await for (final chunk in responseStream) {
+            final token = chunk.text;
+            if (token != null) {
+              yield token;
+            }
           }
+          
+          // Successfully streamed response, exit key and model loops
+          return;
+        } catch (e) {
+          final errStr = e.toString().toLowerCase();
+          if (errStr.contains('quota') || errStr.contains('depleted') || errStr.contains('429')) {
+            hasQuotaOrRateLimitError = true;
+          }
+          debugPrint('[Gemini Online Stream] Error with key (...${key.length > 4 ? key.substring(key.length - 4) : ''}) on model $modelName: $e');
+          // Fall through to try next candidate model or key
         }
-        
-        // Successfully streamed response, exit key loop
-        return;
-      } catch (e) {
-        debugPrint('[Gemini Online Stream] Error with key: $e');
-        // Fall through to try the next key
       }
     }
     
-    yield "Connection error with Gemini. Please check your network.";
+    if (hasQuotaOrRateLimitError) {
+      yield "Gemini API rate limit or free-tier quota exceeded. Please wait ~15 seconds or add a fresh key in Settings.";
+    } else {
+      yield "Gemini API Connection error. Please check your network or API keys in Settings.";
+    }
   }
 
   String _getOllamaBaseUrl() {
@@ -1027,7 +1063,11 @@ class RagService {
         response.toLowerCase().contains('error with key');
     
     if (!yieldedAnything || printable.length < 5 || isError) {
-      yield generateSmartLocalResponse(rawQuestion);
+      if (useLocal) {
+        yield generateSmartLocalResponse(rawQuestion);
+      } else {
+        yield "Gemini API Connection error. Please check your network or API keys in Settings.";
+      }
     } else {
       _logToJournal(rawQuestion, response);
     }
@@ -1386,42 +1426,36 @@ Buddy:""";
   }
 
   static List<String> getGeminiApiKeys() {
-    final Set<String> keySet = {};
+    final List<String> keys = [];
     
-    // 1. Explicitly check indexed GEMINI_API_KEY variables (GEMINI_API_KEY, GEMINI_API_KEY2, etc.)
-    for (int i = 1; i <= 25; i++) {
+    // 1. Check indexed GEMINI_API_KEY variables in reverse order so newer keys (e.g. GEMINI_API_KEY5) are tried first
+    for (int i = 25; i >= 1; i--) {
       final varName = i == 1 ? 'GEMINI_API_KEY' : 'GEMINI_API_KEY$i';
       final val = dotenv.env[varName]?.trim();
       if (val != null && val.isNotEmpty) {
-        keySet.add(val);
+        if (!keys.contains(val)) {
+          keys.add(val);
+        }
       }
     }
 
-    // 2. Dynamically scan all entries in dotenv.env for any keys with GEMINI, GOOGLE_API, or FIREBASE_API
+    // 2. Dynamically scan dotenv.env for any keys with GEMINI or GOOGLE_AI (excluding FIREBASE keys)
     dotenv.env.forEach((envKey, val) {
       final cleanVal = val.trim();
-      if (cleanVal.isNotEmpty) {
-        final upperKey = envKey.toUpperCase();
-        if (upperKey.contains('GEMINI') || upperKey.contains('GOOGLE_API') || upperKey.contains('FIREBASE_API') || upperKey.contains('FIREBASE_WEB_API')) {
-          keySet.add(cleanVal);
+      final upperKey = envKey.toUpperCase();
+      if (cleanVal.isNotEmpty && !upperKey.contains('FIREBASE')) {
+        if (upperKey.contains('GEMINI') || upperKey.contains('GOOGLE_AI')) {
+          if (!keys.contains(cleanVal)) {
+            keys.add(cleanVal);
+          }
         }
       }
-    });
-
-    // 3. Sort keys to prioritize official Google AI keys starting with 'AIzaSy'
-    final List<String> keys = keySet.toList();
-    keys.sort((a, b) {
-      final aIsAIza = a.startsWith('AIzaSy');
-      final bIsAIza = b.startsWith('AIzaSy');
-      if (aIsAIza && !bIsAIza) return -1;
-      if (!aIsAIza && bIsAIza) return 1;
-      return 0;
     });
 
     return keys;
   }
 
-  static Future<T> executeWithApiKeyFallback<T>(Future<T> Function(String apiKey) apiCall) async {
+  static Future<T> executeWithApiKeyFallback<T>(Future<T> Function(String apiKey, String modelName) apiCall) async {
     final List<String> keys = [];
     final userKey = SettingsService().geminiApiKey.trim();
     if (userKey.isNotEmpty) {
@@ -1442,25 +1476,25 @@ Buddy:""";
       final cleanKey = key.trim();
       final maskedKey = cleanKey.length > 4 ? '...${cleanKey.substring(cleanKey.length - 4)}' : '...';
       
-      // Retry transient 503 / 429 errors up to 2 times for each key before switching key
-      for (int attempt = 0; attempt < 2; attempt++) {
-        try {
-          return await apiCall(cleanKey);
-        } catch (e) {
-          lastError = e;
-          final errStr = e.toString();
-          print('[RagService] API Call failed with key $maskedKey (Attempt ${attempt + 1}): $errStr');
+      for (var modelName in _geminiModelCandidates) {
+        for (int attempt = 0; attempt < 2; attempt++) {
+          try {
+            return await apiCall(cleanKey, modelName);
+          } catch (e) {
+            lastError = e;
+            final errStr = e.toString();
+            print('[RagService] API Call failed with key $maskedKey (model $modelName, Attempt ${attempt + 1}): $errStr');
 
-          // If 503 (temporary high demand) or 429 (rate limit / quota), retry once with delay before giving up on key
-          if ((errStr.contains('503') || errStr.contains('429') || errStr.contains('UNAVAILABLE') || errStr.contains('high demand')) && attempt == 0) {
-            await Future.delayed(const Duration(milliseconds: 600));
-            continue;
+            if ((errStr.contains('503') || errStr.contains('429') || errStr.contains('UNAVAILABLE') || errStr.contains('high demand')) && attempt == 0) {
+              await Future.delayed(const Duration(milliseconds: 400));
+              continue;
+            }
+            break; // Try next candidate model name or next key
           }
-          break; // Switch to next API key in .env for 400/403/depleted credits errors
         }
       }
     }
-    throw lastError ?? Exception('All Gemini API keys failed.');
+    throw lastError ?? Exception('All Gemini API keys and fallback models failed.');
   }
 
   /// Translates an English Gemma response to Filipino using Gemini API.
@@ -1479,9 +1513,9 @@ Buddy:""";
           'Return ONLY the translated text, nothing else.\n\n'
           'Text: $textOnly';
 
-      final translated = await executeWithApiKeyFallback((apiKey) async {
+      final translated = await executeWithApiKeyFallback((apiKey, modelName) async {
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
+          model: modelName,
           apiKey: apiKey,
         );
         final content = [Content.text(prompt)];
@@ -1538,9 +1572,9 @@ Buddy:""";
             '[NAVIGATE: contacts] — Contacts\n'
             '[NAVIGATE: journal] — Buddy\'s Journal';
 
-      final responseText = await executeWithApiKeyFallback((apiKey) async {
+      final responseText = await executeWithApiKeyFallback((apiKey, modelName) async {
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
+          model: modelName,
           apiKey: apiKey,
           systemInstruction: Content.system(systemInstructionText),
         );
@@ -1563,9 +1597,9 @@ Buddy:""";
 
   Future<String> askBuddyOnlineGemini(String prompt, {Uint8List? imageBytes}) async {
     try {
-      return await executeWithApiKeyFallback((apiKey) async {
+      return await executeWithApiKeyFallback((apiKey, modelName) async {
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
+          model: modelName,
           apiKey: apiKey,
         );
         final content = [

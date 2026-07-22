@@ -217,17 +217,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<bool> _testGeminiApiKey(String key) async {
-    try {
-      final model = GenerativeModel(
-        model: 'gemini-3.5-flash',
-        apiKey: key,
-      );
-      final response = await model.generateContent([Content.text('Hello')]);
-      return response.text != null;
-    } catch (e) {
-      debugPrint('Test API Key failed: $e');
-      return false;
+    const candidates = ['gemini-3.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    for (var modelName in candidates) {
+      try {
+        final model = GenerativeModel(
+          model: modelName,
+          apiKey: key,
+        );
+        final response = await model.generateContent([Content.text('Hello')]);
+        if (response.text != null) return true;
+      } catch (e) {
+        debugPrint('Test API Key failed for model $modelName: $e');
+      }
     }
+    return false;
   }
 
   void _showGeminiApiKeyDialog() {

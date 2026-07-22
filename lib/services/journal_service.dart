@@ -81,9 +81,9 @@ Example: "- I learned that Arron needs help finding sharp objects and prefers ha
 Return ONLY the bullet point and nothing else.
 ''';
 
-      final insight = await RagService.executeWithApiKeyFallback((apiKey) async {
+      final insight = await RagService.executeWithApiKeyFallback((apiKey, modelName) async {
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash',
+          model: modelName,
           apiKey: apiKey,
         );
         final response = await model.generateContent([Content.text(prompt)]);
