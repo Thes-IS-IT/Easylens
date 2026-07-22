@@ -1744,6 +1744,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB91C1C),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => _triggerHazardAlert('car'),
+                icon: const Icon(Icons.directions_car_rounded, size: 16),
+                label: const Text("🚗 Vehicle"),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD97706),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1752,6 +1763,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 onPressed: () => _triggerHazardAlert('dog'),
                 icon: const Icon(Icons.pets_rounded, size: 16),
                 label: const Text("🐕 Animal"),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD97706),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => _triggerHazardAlert('stairs'),
+                icon: const Icon(Icons.stairs_rounded, size: 16),
+                label: const Text("🪜 Stairs"),
               ),
               if (ActiveNavigationService().isHazardActive)
                 OutlinedButton.icon(
@@ -1765,6 +1787,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   icon: const Icon(Icons.check_circle_outline, size: 16),
                   label: const Text("Clear"),
                 ),
+
             ],
           ),
         ],

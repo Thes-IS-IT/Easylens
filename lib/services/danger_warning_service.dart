@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 enum HazardSeverity {
-  critical, // Knife, Fire, Weapon, etc.
-  caution,  // Animal, non-life-threatening obstacle
+  critical, // Knife, Fire, Weapon, Vehicle Traffic
+  caution,  // Animal, Stairs, Overhead, Crowd, non-life-threatening obstacle
   safe,
 }
 
@@ -29,7 +29,7 @@ class DangerWarningService {
   factory DangerWarningService() => _instance;
   DangerWarningService._internal();
 
-  /// Critical danger keywords (Knife, Fire, Weapon)
+  /// Critical danger keywords (Knife, Fire, Weapon, Vehicle)
   static final Set<String> _criticalKnifeKeywords = {
     'knife', 'blade', 'dagger', 'scissors', 'cutter', 'machete', 'sword', 'razor', 'scalpel', 'cleaver'
   };
@@ -42,10 +42,27 @@ class DangerWarningService {
     'gun', 'weapon', 'pistol', 'rifle', 'shotgun', 'handgun', 'firearm', 'bomb'
   };
 
-  /// Non-critical caution keywords (Animals)
+  static final Set<String> _criticalVehicleKeywords = {
+    'car', 'truck', 'bus', 'motorcycle', 'bicycle', 'scooter', 'train', 'vehicle', 'van'
+  };
+
+  /// Non-critical caution keywords (Animals, Stairs/Ground, Overhead, Crowds)
   static final Set<String> _animalKeywords = {
     'dog', 'cat', 'animal', 'pet', 'horse', 'cow', 'sheep', 'goat', 'pig',
     'bear', 'snake', 'bird', 'duck', 'chicken', 'rabbit', 'deer', 'squirrel'
+  };
+
+  static final Set<String> _stairsGroundKeywords = {
+    'stairs', 'staircase', 'step', 'steps', 'hole', 'manhole', 'pit', 'puddle',
+    'wet floor', 'slippery', 'cone', 'construction cone', 'trench', 'uneven ground'
+  };
+
+  static final Set<String> _overheadKeywords = {
+    'branch', 'tree branch', 'low wire', 'wire', 'signboard', 'awning', 'hanging bar'
+  };
+
+  static final Set<String> _crowdKeywords = {
+    'crowd', 'group of people', 'pedestrian blocking', 'people'
   };
 
   /// Evaluates an object label string and returns its hazard severity level
@@ -67,8 +84,28 @@ class DangerWarningService {
       if (cleanLabel.contains(kw)) return HazardSeverity.critical;
     }
 
+    // Check Vehicle
+    for (final kw in _criticalVehicleKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.critical;
+    }
+
     // Check Animal (Caution)
     for (final kw in _animalKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.caution;
+    }
+
+    // Check Stairs / Ground (Caution)
+    for (final kw in _stairsGroundKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.caution;
+    }
+
+    // Check Overhead (Caution)
+    for (final kw in _overheadKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.caution;
+    }
+
+    // Check Crowd (Caution)
+    for (final kw in _crowdKeywords) {
       if (cleanLabel.contains(kw)) return HazardSeverity.caution;
     }
 
@@ -79,26 +116,25 @@ class DangerWarningService {
   DangerHazardInfo getHazardInfo(String label) {
     final cleanLabel = label.toLowerCase().trim();
     final severity = evaluateLabel(cleanLabel);
+    final capitalized = label.isNotEmpty ? label[0].toUpperCase() + label.substring(1) : label;
 
-    // Animal check
-    for (final kw in _animalKeywords) {
+    // 1. Vehicle check (Critical)
+    for (final kw in _criticalVehicleKeywords) {
       if (cleanLabel.contains(kw)) {
-        final capitalized = label.isNotEmpty ? label[0].toUpperCase() + label.substring(1) : label;
         return DangerHazardInfo(
           label: capitalized,
-          severity: HazardSeverity.caution,
-          icon: Icons.pets_rounded,
-          title: 'ANIMAL CAUTION',
-          messageEn: "Be careful, there's an animal ($capitalized) on your way!",
-          messageTl: "Mag-ingat, may hayop ($capitalized) sa iyong daanan!",
+          severity: HazardSeverity.critical,
+          icon: Icons.directions_car_rounded,
+          title: 'CRITICAL TRAFFIC DANGER ALERT',
+          messageEn: "CRITICAL WARNING! Approaching vehicle ($capitalized) detected on your walking path! Stay on the sidewalk!",
+          messageTl: "KRITIKAL NA BABALA! May mabilis na sasakyan ($capitalized) sa iyong daanan! Manatili sa bangketa!",
         );
       }
     }
 
-    // Knife check
+    // 2. Knife check (Critical)
     for (final kw in _criticalKnifeKeywords) {
       if (cleanLabel.contains(kw)) {
-        final capitalized = label.isNotEmpty ? label[0].toUpperCase() + label.substring(1) : label;
         return DangerHazardInfo(
           label: capitalized,
           severity: HazardSeverity.critical,
@@ -110,10 +146,9 @@ class DangerWarningService {
       }
     }
 
-    // Fire check
+    // 3. Fire check (Critical)
     for (final kw in _criticalFireKeywords) {
       if (cleanLabel.contains(kw)) {
-        final capitalized = label.isNotEmpty ? label[0].toUpperCase() + label.substring(1) : label;
         return DangerHazardInfo(
           label: capitalized,
           severity: HazardSeverity.critical,
@@ -125,10 +160,9 @@ class DangerWarningService {
       }
     }
 
-    // Weapon check
+    // 4. Weapon check (Critical)
     for (final kw in _criticalWeaponKeywords) {
       if (cleanLabel.contains(kw)) {
-        final capitalized = label.isNotEmpty ? label[0].toUpperCase() + label.substring(1) : label;
         return DangerHazardInfo(
           label: capitalized,
           severity: HazardSeverity.critical,
@@ -140,8 +174,63 @@ class DangerWarningService {
       }
     }
 
-    // Default Critical if specified explicitly
-    final capitalized = label.isNotEmpty ? label[0].toUpperCase() + label.substring(1) : label;
+    // 5. Animal check (Caution)
+    for (final kw in _animalKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.caution,
+          icon: Icons.pets_rounded,
+          title: 'ANIMAL CAUTION',
+          messageEn: "Be careful, there's an animal ($capitalized) on your way!",
+          messageTl: "Mag-ingat, may hayop ($capitalized) sa iyong daanan!",
+        );
+      }
+    }
+
+    // 6. Stairs / Ground check (Caution)
+    for (final kw in _stairsGroundKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.caution,
+          icon: Icons.stairs_rounded,
+          title: 'GROUND & ELEVATION CAUTION',
+          messageEn: "CAUTION: Elevation hazard ($capitalized) detected on your path. Watch your step!",
+          messageTl: "MAG-INGAT: May hagdan o hukay ($capitalized) sa iyong hahakbangan!",
+        );
+      }
+    }
+
+    // 7. Overhead check (Caution)
+    for (final kw in _overheadKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.caution,
+          icon: Icons.park_rounded,
+          title: 'OVERHEAD OBSTACLE CAUTION',
+          messageEn: "CAUTION: Low-hanging obstacle ($capitalized) ahead at head height!",
+          messageTl: "MAG-INGAT: May nakalawit na sanga o karatula ($capitalized) sa antas ng iyong ulo!",
+        );
+      }
+    }
+
+    // 8. Crowd check (Caution)
+    for (final kw in _crowdKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.caution,
+          icon: Icons.groups_rounded,
+          title: 'DENSE CROWD CAUTION',
+          messageEn: "CAUTION: Dense crowd ahead. Proceed with care.",
+          messageTl: "MAG-INGAT: Maraming tao sa iyong harapan. Maglakad nang may pag-iingat.",
+        );
+      }
+    }
+
+    // Default fallback
     return DangerHazardInfo(
       label: capitalized,
       severity: severity == HazardSeverity.safe ? HazardSeverity.caution : severity,

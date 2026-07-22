@@ -56,11 +56,9 @@ class _CriticalDangerOverlayState extends State<CriticalDangerOverlay>
 
     final primaryColor = isCritical ? const Color(0xFFDC2626) : const Color(0xFFD97706);
     final accentBg = isCritical ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB);
-    final iconData = isCritical
-        ? (widget.hazardName.toLowerCase().contains('fire')
-            ? Icons.local_fire_department_rounded
-            : Icons.warning_amber_rounded)
-        : Icons.pets_rounded;
+    final hazardInfo = DangerWarningService().getHazardInfo(widget.hazardName);
+    final iconData = hazardInfo.icon;
+
 
     return ScaleTransition(
       scale: _pulseAnimation,
