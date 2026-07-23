@@ -75,6 +75,7 @@ class ActiveNavigationService extends ChangeNotifier {
 
   void triggerArrival() {
     _hasArrived = true;
+    _isNavigating = false;
     try {
       WakelockPlus.disable();
     } catch (e) {

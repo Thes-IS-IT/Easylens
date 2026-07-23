@@ -939,7 +939,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
         "You have arrived at your destination, ${_selectedPlace!['name']}. Thank you for using EasyLens.",
       );
       ActiveNavigationService().triggerArrival();
-      ActiveNavigationService().stopNavigation();
     }
   }
 
@@ -1796,51 +1795,112 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
 
-  // ── OVERLAY CONTENT 3: Final Map view ──────────────────────────────
+  // ── OVERLAY CONTENT 3: Final Map view (Destination Arrived) ────────
   Widget _buildFullMapDirectionContent() {
-    if (_selectedPlace == null) return const SizedBox.shrink();
-        final lang = SettingsService().selectedLanguage;
-        return Column(
-          children: [
-            Center(
-              child: Container(
-                width: 50,
-                height: 4,
+    if (_selectedPlace == null) return _buildInitialSearchContent();
+    final lang = SettingsService().selectedLanguage;
+    final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    final placeName = _selectedPlace!['name'] as String? ?? (isTagalog ? 'Patutunguhan' : 'Destination');
+    final placeAddr = _selectedPlace!['address'] as String? ?? '';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Center(
+          child: Container(
+            width: 50,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFF002663).withOpacity(0.8),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Success Icon Badge
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: Colors.green.shade50,
+          child: Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 36),
+        ),
+        const SizedBox(height: 12),
+
+        // Arrived Headline
+        Text(
+          isTagalog ? 'Nakarating Ka Na!' : 'You Have Arrived!',
+          style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        const SizedBox(height: 4),
+
+        // Destination Name
+        Text(
+          placeName,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF002663)),
+        ),
+        if (placeAddr.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            placeAddr,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+          ),
+        ],
+
+        const SizedBox(height: 12),
+
+        // Reached Status Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.green.shade200),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6,
+                height: 6,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF002663).withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(2),
+                  color: Colors.green.shade600,
+                  shape: BoxShape.circle,
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _getDynamicETA('7 min'),
-              style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '500 m • 7 min',
-              style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF002663),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                ),
-                onPressed: _cancelNavigation,
-                child: Text(
-                  TranslationService.translate('Done', lang),
-                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+              const SizedBox(width: 6),
+              Text(
+                isTagalog ? '0 m • Nakarating Na' : '0 m • Destination Reached',
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade800),
               ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Done Action Button
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF002663),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
             ),
-          ],
-        );
+            onPressed: _cancelNavigation,
+            child: Text(
+              TranslationService.translate('Done', lang),
+              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
