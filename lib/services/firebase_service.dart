@@ -105,10 +105,8 @@ class FirebaseService {
     String name,
     bool isForMyself,
   ) async {
-    final cleanEmail = email.trim().contains('@') && RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email.trim())
-        ? email.trim()
-        : "user_${DateTime.now().millisecondsSinceEpoch}@easylens.com";
-    final cleanPassword = password.length >= 6 ? password : "easylensPassword123";
+    final cleanEmail = email.trim();
+    final cleanPassword = password.trim();
 
     if (_firebaseInitialized) {
       try {

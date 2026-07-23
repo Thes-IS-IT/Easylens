@@ -904,77 +904,68 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _handleRegister() async {
+    final regEmail = _email.trim();
+    final regPassword = _password.trim();
+    final regName = _name.isNotEmpty ? _name.trim() : "Buddy User";
+
+    // Validate email format and password if using Email/Phone auth
+    if (_authMethod != 'Google' && _authMethod != 'Apple') {
+      if (regEmail.isEmpty || !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(regEmail)) {
+        final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
+            _selectedLanguage.toLowerCase().contains('tagalog');
+        final invalidMsg = isTagalog
+            ? "Maling email address format. Mangyaring ipasok ang iyong totoong email."
+            : "Invalid email address format. Please enter a valid email address.";
+        setState(() {
+          _isLoading = false;
+          _errorMessage = invalidMsg;
+          _currentStep = 10;
+        });
+        TtsService().speak(invalidMsg);
+        return;
+      }
+
+      if (regPassword.length < 6) {
+        final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
+            _selectedLanguage.toLowerCase().contains('tagalog');
+        final passMsg = isTagalog
+            ? "Masyadong maikli ang password. Dapat ay may 6 o higit pang karakter."
+            : "Password is too short. Please use at least 6 characters.";
+        setState(() {
+          _isLoading = false;
+          _errorMessage = passMsg;
+          _currentStep = 12;
+        });
+        TtsService().speak(passMsg);
+        return;
+      }
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    final isEmailValid = _email.isNotEmpty && RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_email.trim());
-    final regEmail = isEmailValid 
-        ? _email.trim() 
-        : "user_${DateTime.now().millisecondsSinceEpoch}@easylens.com";
-    final regPassword = _password.isNotEmpty && _password.length >= 6 
-        ? _password 
-        : "easylensPassword123";
-    final regName = _name.isNotEmpty ? _name.trim() : "Buddy User";
-
     try {
-      // 1. Re-use active Google session or Firebase user without triggering re-authentication
       EasyLensUser? user = _googleUserSession ?? _firebaseService.currentUser;
 
       if (user == null) {
         if (_authMethod == 'Google') {
           user = EasyLensUser(
             uid: "google_user_${DateTime.now().millisecondsSinceEpoch}",
-            email: regEmail,
+            email: regEmail.isNotEmpty ? regEmail : "user@google.com",
             displayName: regName,
             isForMyself: _isForMyself,
           );
         } else {
-          try {
-            user = await _firebaseService.signUp(regEmail, regPassword, regName, _isForMyself);
-          } catch (signUpError) {
-            final errStr = signUpError.toString().toLowerCase();
-            if (errStr.contains('email-already-in-use')) {
-              final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
-                  _selectedLanguage.toLowerCase().contains('tagalog');
-              final duplicateEmailMessage = isTagalog
-                  ? "Ang email na $regEmail ay ginagamit na. Mangyaring gumamit ng ibang email address."
-                  : "This email address ($regEmail) is already in use. Please enter or speak another email address.";
-
-              setState(() {
-                _isLoading = false;
-                _errorMessage = duplicateEmailMessage;
-                _currentStep = 10; // Return to Email input step
-              });
-
-              TtsService().speak(duplicateEmailMessage);
-              return; // Halt registration to allow user to provide a different email!
-            } else {
-              print("Firebase signUp error: $signUpError. Executing clean fallback signup...");
-              final fallbackEmail = "user_${DateTime.now().millisecondsSinceEpoch}@easylens.com";
-              try {
-                user = await _firebaseService.signUp(fallbackEmail, regPassword, regName, _isForMyself);
-              } catch (_) {
-                user = EasyLensUser(
-                  uid: "user_${DateTime.now().millisecondsSinceEpoch}",
-                  email: regEmail,
-                  displayName: regName,
-                  isForMyself: _isForMyself,
-                );
-              }
-            }
-          }
+          // Direct real Firebase registration
+          user = await _firebaseService.signUp(regEmail, regPassword, regName, _isForMyself);
         }
       }
 
-      // Guarantee non-null user object
-      user ??= EasyLensUser(
-        uid: "user_${DateTime.now().millisecondsSinceEpoch}",
-        email: regEmail,
-        displayName: regName,
-        isForMyself: _isForMyself,
-      );
+      if (user == null) {
+        throw Exception("Registration failed. Please check your account details.");
+      }
 
       if (regName.isNotEmpty && user.displayName != regName) {
         try {
@@ -1055,10 +1046,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final friendlyMsg = _getFriendlyErrorMessage(e);
+        final errStr = e.toString().toLowerCase();
+
         setState(() {
-          _errorMessage = _getFriendlyErrorMessage(e);
           _isLoading = false;
+          _errorMessage = friendlyMsg;
+          if (errStr.contains('email-already-in-use')) {
+            _currentStep = 10; // Jump back to Email input step so user can change email
+          } else if (errStr.contains('weak-password')) {
+            _currentStep = 12; // Jump back to Password step
+          }
         });
+
+        TtsService().speak(friendlyMsg);
       }
     }
   }
