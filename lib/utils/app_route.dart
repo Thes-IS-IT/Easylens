@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 /// Central route builder providing standard and custom epic transitions.
 /// - [AppRoute.to]: Standard slide-up + fade transition
-/// - [AppRoute.splitDoor]: Double-door opening split transition (for SignUp / Account Creation)
+/// - [AppRoute.splitDoor]: Neat double-door opening split transition (for SignUp / Account Creation)
 /// - [AppRoute.rocketLaunch]: Thruster fire rocket launch-off transition (for Login / Dashboard entry)
 class AppRoute {
   AppRoute._();
@@ -64,17 +64,17 @@ class AppRoute {
     );
   }
 
-  /// 🚪 EPIC DOUBLE-DOOR SPLIT TRANSITION
-  /// Used when navigating to Account Creation / SignUp.
-  /// The screen splits down the center like double doors sliding open,
+  /// 🚪 NEAT HIGH-TECH DOUBLE-DOOR SPLIT TRANSITION
+  /// Used when navigating to Account Creation / SignUp or between major wizard phases.
+  /// The screen splits cleanly down the center like double doors sliding open,
   /// revealing the incoming screen with a neon golden beam opening in the middle!
   static PageRouteBuilder<T> splitDoor<T>(Widget screen) {
     return PageRouteBuilder<T>(
-      transitionDuration: const Duration(milliseconds: 750),
-      reverseTransitionDuration: const Duration(milliseconds: 550),
+      transitionDuration: const Duration(milliseconds: 700),
+      reverseTransitionDuration: const Duration(milliseconds: 500),
       pageBuilder: (context, animation, secondaryAnimation) => screen,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Curve for opening doors
+        // Curve for opening doors cleanly
         final doorCurve = CurvedAnimation(
           parent: animation,
           curve: Curves.easeInOutCubic,
@@ -92,9 +92,9 @@ class AppRoute {
           end: const Offset(1.0, 0.0),
         ).animate(doorCurve);
 
-        // Incoming screen zooms in from center
+        // Incoming screen zooms in cleanly from center
         final incomingScale = Tween<double>(
-          begin: 0.85,
+          begin: 0.92,
           end: 1.0,
         ).animate(CurvedAnimation(
           parent: animation,
@@ -106,22 +106,22 @@ class AppRoute {
           end: 1.0,
         ).animate(CurvedAnimation(
           parent: animation,
-          curve: const Interval(0.15, 0.8, curve: Curves.easeIn),
+          curve: const Interval(0.1, 0.7, curve: Curves.easeIn),
         ));
 
-        // Light beam width expands in center
+        // Light beam opacity in center seam
         final beamOpacity = Tween<double>(
           begin: 1.0,
           end: 0.0,
         ).animate(CurvedAnimation(
           parent: animation,
-          curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
+          curve: const Interval(0.5, 0.95, curve: Curves.easeOut),
         ));
 
         return Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Incoming Screen (zooming in behind the opening doors)
+            // 1. Incoming Screen (unveiled behind the parting doors)
             FadeTransition(
               opacity: incomingFade,
               child: ScaleTransition(
@@ -139,12 +139,12 @@ class AppRoute {
                   widthFactor: 0.5,
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: Color(0xFF0F2042),
+                      color: Color(0xFF071426),
                       boxShadow: [
                         BoxShadow(
                           color: Color(0xFFFFD700),
-                          blurRadius: 15,
-                          spreadRadius: 2,
+                          blurRadius: 10,
+                          spreadRadius: 1,
                         )
                       ],
                     ),
@@ -152,11 +152,11 @@ class AppRoute {
                       children: [
                         Positioned.fill(
                           child: Container(
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF001233),
-                                  const Color(0xFF0A2540),
+                                  Color(0xFF000D21),
+                                  Color(0xFF0A2540),
                                 ],
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
@@ -164,11 +164,11 @@ class AppRoute {
                             ),
                           ),
                         ),
-                        // Metallic vertical seam border
+                        // Golden vertical seam border
                         Align(
                           alignment: Alignment.centerRight,
                           child: Container(
-                            width: 3,
+                            width: 2.5,
                             color: const Color(0xFFFFD700),
                           ),
                         ),
@@ -188,12 +188,12 @@ class AppRoute {
                   widthFactor: 0.5,
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: Color(0xFF0F2042),
+                      color: Color(0xFF071426),
                       boxShadow: [
                         BoxShadow(
                           color: Color(0xFFFFD700),
-                          blurRadius: 15,
-                          spreadRadius: 2,
+                          blurRadius: 10,
+                          spreadRadius: 1,
                         )
                       ],
                     ),
@@ -201,11 +201,11 @@ class AppRoute {
                       children: [
                         Positioned.fill(
                           child: Container(
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF0A2540),
-                                  const Color(0xFF001233),
+                                  Color(0xFF0A2540),
+                                  Color(0xFF000D21),
                                 ],
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
@@ -213,11 +213,11 @@ class AppRoute {
                             ),
                           ),
                         ),
-                        // Metallic vertical seam border
+                        // Golden vertical seam border
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Container(
-                            width: 3,
+                            width: 2.5,
                             color: const Color(0xFFFFD700),
                           ),
                         ),
@@ -228,26 +228,26 @@ class AppRoute {
               ),
             ),
 
-            // 4. Center Glowing Seam Laser Flare
+            // 4. Glowing Center Laser Seam
             Positioned.fill(
               child: FadeTransition(
                 opacity: beamOpacity,
                 child: Center(
                   child: Container(
-                    width: 4,
+                    width: 3,
                     height: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
                           color: Color(0xFFFFD700),
-                          blurRadius: 25,
-                          spreadRadius: 10,
+                          blurRadius: 20,
+                          spreadRadius: 6,
                         ),
                         BoxShadow(
                           color: Color(0xFF3B82F6),
-                          blurRadius: 40,
-                          spreadRadius: 20,
+                          blurRadius: 35,
+                          spreadRadius: 12,
                         ),
                       ],
                     ),
@@ -263,27 +263,24 @@ class AppRoute {
 
   /// 🚀 EPIC ROCKET LAUNCH-OFF TRANSITION WITH ANIMATED FIRE
   /// Used upon successful Login or Dashboard entry.
-  /// The outgoing screen shakes, ignites thrusters with real-time animated fire,
-  /// and launches off vertically into space as the incoming dashboard arrives!
+  /// Launches the screen vertically into space with animated thruster flames & sparks!
   static PageRouteBuilder<T> rocketLaunch<T>(Widget screen) {
     return PageRouteBuilder<T>(
-      transitionDuration: const Duration(milliseconds: 950),
-      reverseTransitionDuration: const Duration(milliseconds: 600),
+      transitionDuration: const Duration(milliseconds: 900),
+      reverseTransitionDuration: const Duration(milliseconds: 500),
       pageBuilder: (context, animation, secondaryAnimation) => screen,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Rocket launch acceleration curve
         final launchCurve = CurvedAnimation(
           parent: animation,
-          curve: const Interval(0.15, 1.0, curve: Curves.easeInCubic),
+          curve: const Interval(0.1, 1.0, curve: Curves.easeInCubic),
         );
 
-        // Incoming screen warp scale
         final incomingScale = Tween<double>(
-          begin: 0.70,
+          begin: 0.80,
           end: 1.0,
         ).animate(CurvedAnimation(
           parent: animation,
-          curve: const Interval(0.35, 1.0, curve: Curves.easeOutCubic),
+          curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
         ));
 
         final incomingFade = Tween<double>(
@@ -291,22 +288,20 @@ class AppRoute {
           end: 1.0,
         ).animate(CurvedAnimation(
           parent: animation,
-          curve: const Interval(0.25, 0.75, curve: Curves.easeIn),
+          curve: const Interval(0.2, 0.7, curve: Curves.easeIn),
         ));
 
-        // Screen launch upward movement
         final launchSlide = Tween<Offset>(
           begin: Offset.zero,
-          end: const Offset(0.0, -1.4),
+          end: const Offset(0.0, -1.5),
         ).animate(launchCurve);
 
-        // Fire & Thruster opacity control
         final fireOpacity = Tween<double>(
           begin: 0.0,
           end: 1.0,
         ).animate(CurvedAnimation(
           parent: animation,
-          curve: const Interval(0.05, 0.4, curve: Curves.easeIn),
+          curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
         ));
 
         return Stack(
@@ -321,11 +316,11 @@ class AppRoute {
               ),
             ),
 
-            // 2. Animated Thruster Fire Canvas Overlay
+            // 2. Rocket Launching Exhaust Overlay
             AnimatedBuilder(
               animation: animation,
               builder: (context, _) {
-                final rumbleOffset = math.sin(animation.value * 50) * (1.0 - animation.value) * 6.0;
+                final rumbleOffset = math.sin(animation.value * 40) * (1.0 - animation.value) * 5.0;
                 return Positioned.fill(
                   child: SlideTransition(
                     position: launchSlide,
@@ -334,27 +329,12 @@ class AppRoute {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          // Top/Main launching content card simulation
-                          Positioned.fill(
-                            child: FadeTransition(
-                              opacity: Tween<double>(begin: 1.0, end: 0.0).animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: const Interval(0.7, 1.0, curve: Curves.easeOut),
-                                ),
-                              ),
-                              child: Container(
-                                color: Colors.transparent,
-                              ),
-                            ),
-                          ),
-
                           // Bottom Thruster Flame Exhaust
                           Positioned(
                             left: 0,
                             right: 0,
-                            bottom: -180,
-                            height: 320,
+                            bottom: -200,
+                            height: 350,
                             child: FadeTransition(
                               opacity: fireOpacity,
                               child: CustomPaint(
@@ -392,9 +372,9 @@ class _RocketFirePainter extends CustomPainter {
     final glowPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFFFFD700).withValues(alpha: 0.9),
-          const Color(0xFFFF5722).withValues(alpha: 0.7),
-          const Color(0xFFFF1744).withValues(alpha: 0.4),
+          const Color(0xFFFFD700).withValues(alpha: 0.95),
+          const Color(0xFFFF5722).withValues(alpha: 0.75),
+          const Color(0xFFFF1744).withValues(alpha: 0.45),
           Colors.transparent,
         ],
         stops: const [0.0, 0.35, 0.7, 1.0],
@@ -403,13 +383,13 @@ class _RocketFirePainter extends CustomPainter {
 
     // 2. Thruster Flame Cones
     final rand = math.Random((progress * 100).toInt());
-    final flicker = math.sin(progress * math.pi * 20) * 12.0;
+    final flicker = math.sin(progress * math.pi * 20) * 14.0;
 
     // Central Flame Cone
     final mainFlamePath = Path()
-      ..moveTo(center.dx - 90, 0)
-      ..quadraticBezierTo(center.dx - 45, 120 + flicker, center.dx, 260 + flicker * 1.5)
-      ..quadraticBezierTo(center.dx + 45, 120 + flicker, center.dx + 90, 0)
+      ..moveTo(center.dx - 100, 0)
+      ..quadraticBezierTo(center.dx - 50, 140 + flicker, center.dx, 290 + flicker * 1.5)
+      ..quadraticBezierTo(center.dx + 50, 140 + flicker, center.dx + 100, 0)
       ..close();
 
     final mainFlamePaint = Paint()
@@ -424,15 +404,15 @@ class _RocketFirePainter extends CustomPainter {
         stops: [0.0, 0.2, 0.5, 0.85, 1.0],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-      ).createShader(Rect.fromLTWH(0, 0, width, 280));
+      ).createShader(Rect.fromLTWH(0, 0, width, 300));
     canvas.drawPath(mainFlamePath, mainFlamePaint);
 
     // Side Booster Flames (Left & Right)
     for (int i = -1; i <= 1; i += 2) {
-      final sideX = center.dx + (i * width * 0.28);
+      final sideX = center.dx + (i * width * 0.3);
       final sideFlamePath = Path()
-        ..moveTo(sideX - 40, 0)
-        ..quadraticBezierTo(sideX, 90 + flicker, sideX + 40, 0)
+        ..moveTo(sideX - 45, 0)
+        ..quadraticBezierTo(sideX, 100 + flicker, sideX + 45, 0)
         ..close();
 
       final sideFlamePaint = Paint()
@@ -446,21 +426,21 @@ class _RocketFirePainter extends CustomPainter {
           stops: [0.0, 0.3, 0.7, 1.0],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-        ).createShader(Rect.fromLTWH(sideX - 40, 0, 80, 180));
+        ).createShader(Rect.fromLTWH(sideX - 45, 0, 90, 200));
       canvas.drawPath(sideFlamePath, sideFlamePaint);
     }
 
     // 3. Flying Spark Particles & Embers
     final sparkPaint = Paint()..style = PaintingStyle.fill;
-    for (int i = 0; i < 35; i++) {
-      final sparkX = center.dx + (rand.nextDouble() - 0.5) * width * 0.8;
-      final sparkY = 50 + rand.nextDouble() * 220 + (progress * 100);
-      final sparkRadius = 2.0 + rand.nextDouble() * 4.5;
-      final sparkAlpha = (1.0 - (sparkY / 300)).clamp(0.0, 1.0);
+    for (int i = 0; i < 40; i++) {
+      final sparkX = center.dx + (rand.nextDouble() - 0.5) * width * 0.85;
+      final sparkY = 40 + rand.nextDouble() * 240 + (progress * 100);
+      final sparkRadius = 2.0 + rand.nextDouble() * 5.0;
+      final sparkAlpha = (1.0 - (sparkY / 320)).clamp(0.0, 1.0);
 
       sparkPaint.color = i % 2 == 0
-          ? Color(0xFFFFD700).withValues(alpha: sparkAlpha)
-          : Color(0xFFFF3D00).withValues(alpha: sparkAlpha);
+          ? const Color(0xFFFFD700).withValues(alpha: sparkAlpha)
+          : const Color(0xFFFF3D00).withValues(alpha: sparkAlpha);
 
       canvas.drawCircle(Offset(sparkX, sparkY), sparkRadius, sparkPaint);
     }

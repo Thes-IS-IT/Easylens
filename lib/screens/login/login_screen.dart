@@ -347,14 +347,10 @@ class _LoginScreenState extends State<LoginScreen>
             _loginSuccess = true;
             _isLoading = false;
           });
-          // Brief success moment before navigating
-          await Future.delayed(const Duration(milliseconds: 600));
-          if (mounted) {
-            Navigator.of(context).pushAndRemoveUntil(
-              AppRoute.rocketLaunch(const DashboardScreen()),
-              (route) => false,
-            );
-          }
+          Navigator.of(context).pushAndRemoveUntil(
+            AppRoute.rocketLaunch(const DashboardScreen()),
+            (route) => false,
+          );
         }
       }
     } on FirebaseAuthException catch (e) {
@@ -414,13 +410,10 @@ class _LoginScreenState extends State<LoginScreen>
           _loginSuccess = true;
           _isLoading = false;
         });
-        await Future.delayed(const Duration(milliseconds: 600));
-        if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            AppRoute.rocketLaunch(const DashboardScreen()),
-            (route) => false,
-          );
-        }
+        Navigator.of(context).pushAndRemoveUntil(
+          AppRoute.rocketLaunch(const DashboardScreen()),
+          (route) => false,
+        );
       } else if (mounted) {
         setState(() {
           _isLoading = false;

@@ -1537,9 +1537,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ],
 
                     Expanded(
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: _buildStepContent(),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          final slideAnimation = Tween<Offset>(
+                            begin: const Offset(0.08, 0.0),
+                            end: Offset.zero,
+                          ).animate(animation);
+                          final fadeAnimation = Tween<double>(
+                            begin: 0.0,
+                            end: 1.0,
+                          ).animate(animation);
+
+                          return FadeTransition(
+                            opacity: fadeAnimation,
+                            child: SlideTransition(
+                              position: slideAnimation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: SingleChildScrollView(
+                          key: ValueKey<int>(_currentStep),
+                          physics: const BouncingScrollPhysics(),
+                          child: _buildStepContent(),
+                        ),
                       ),
                     ),
                     
