@@ -40,10 +40,6 @@ class _LoginScreenState extends State<LoginScreen>
   // Staggered entrance animations
   late Animation<double> _heroScale;
   late Animation<double> _heroFade;
-  late Animation<Offset> _titleSlide;
-  late Animation<double> _titleFade;
-  late Animation<Offset> _subtitleSlide;
-  late Animation<double> _subtitleFade;
   late Animation<Offset> _emailSlide;
   late Animation<double> _emailFade;
   late Animation<Offset> _passwordSlide;
@@ -111,34 +107,6 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(
         parent: _entranceController,
         curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
-      ),
-    );
-
-    // Title "BUDDY": 100ms–600ms
-    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.08, 0.5, curve: Curves.easeOutCubic),
-      ),
-    );
-    _titleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.08, 0.45, curve: Curves.easeOut),
-      ),
-    );
-
-    // Subtitle "Welcome back!": 200ms–700ms
-    _subtitleSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.17, 0.58, curve: Curves.easeOutCubic),
-      ),
-    );
-    _subtitleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: const Interval(0.17, 0.5, curve: Curves.easeOut),
       ),
     );
 
@@ -448,55 +416,81 @@ class _LoginScreenState extends State<LoginScreen>
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 36),
+          padding: const EdgeInsets.only(top: 8, bottom: 0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Back button row
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.arrow_back_ios_new, size: 13, color: Colors.white),
-                          const SizedBox(width: 5),
-                          Text(
-                            'Back',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Horizontal Asymmetric Mascot & Speech Bubble Banner Row (Matches Dashboard MascotBanner Style)
+              // Top Bar: Back button + Title & Tagline
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Left Side: Unframed Mascot GIF standing directly on the banner
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.arrow_back_ios_new, size: 13, color: Colors.white),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Back',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'BUDDY',
+                          style: GoogleFonts.inter(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                        Text(
+                          _loginSuccess
+                              ? 'Welcome back! Logging you in...'
+                              : 'Sign in to continue',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Mascot & Speech Bubble Row (Bigger mascot sitting on top of white card)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Left Side: Bigger Mascot GIF sitting on top of white card
                     ScaleTransition(
                       scale: _heroScale,
                       child: FadeTransition(
@@ -507,24 +501,24 @@ class _LoginScreenState extends State<LoginScreen>
                             _activeMascotAsset,
                             key: ValueKey(_activeMascotAsset),
                             fit: BoxFit.contain,
-                            height: 105,
+                            height: 145,
                             errorBuilder: (_, __, ___) => Image.asset(
                               'assets/Mascots/App Logo.png',
                               fit: BoxFit.contain,
-                              height: 105,
+                              height: 145,
                             ),
                           ),
                         ),
                       ),
                     ),
 
-                    // Middle: Solid white speech bubble pointer triangle pointing at Buddy
+                    // Middle: Solid white speech bubble pointer triangle
                     ScaleTransition(
                       scale: _bubbleScale,
                       child: FadeTransition(
                         opacity: _bubbleFade,
                         child: Transform.translate(
-                          offset: const Offset(4, 0),
+                          offset: const Offset(4, -32),
                           child: Transform.rotate(
                             angle: 3.14159 / 4, // 45 degrees
                             child: Container(
@@ -541,55 +535,18 @@ class _LoginScreenState extends State<LoginScreen>
 
                     // Right Side: Clean White Speech Bubble Card
                     Expanded(
-                      child: ScaleTransition(
-                        scale: _bubbleScale,
-                        child: FadeTransition(
-                          opacity: _bubbleFade,
-                          child: _buildSpeechBubble(),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 22),
+                        child: ScaleTransition(
+                          scale: _bubbleScale,
+                          child: FadeTransition(
+                            opacity: _bubbleFade,
+                            child: _buildSpeechBubble(),
+                          ),
                         ),
                       ),
                     ),
                   ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // App name
-              SlideTransition(
-                position: _titleSlide,
-                child: FadeTransition(
-                  opacity: _titleFade,
-                  child: Text(
-                    'BUDDY',
-                    style: GoogleFonts.inter(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 2.5,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              // Tagline
-              SlideTransition(
-                position: _subtitleSlide,
-                child: FadeTransition(
-                  opacity: _subtitleFade,
-                  child: Text(
-                    _loginSuccess
-                        ? 'Welcome back! Logging you in...'
-                        : 'Sign in to continue',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.7),
-                      letterSpacing: 0.3,
-                    ),
-                  ),
                 ),
               ),
             ],
