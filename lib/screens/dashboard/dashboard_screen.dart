@@ -36,11 +36,16 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with SingleTickerProviderStateMixin {
   final _firebaseService = FirebaseService();
   late String _displayName;
   int _currentIndex = 0;
   final _barkPlayer = AudioPlayer();
+
+  // Fade-in animation for smooth dashboard entry
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   StreamSubscription? _accelerometerSubscription;
   int _lastShakeTime = 0;
@@ -50,6 +55,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    // Fade-in animation: 0 → 1 over 600ms with easeOut curve
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
+    _fadeController.forward();
+
     _displayName = "User";
     _loadUserDisplayName();
     _checkTutorialStatus();
@@ -71,6 +87,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    _fadeController.dispose();
     SpeechNavigationNotifier.tabChangeNotifier.removeListener(_onSpeechTabChange);
     SpeechNavigationNotifier.openBuddyNotifier.removeListener(_onSpeechOpenBuddy);
     _stopShakeListening();
@@ -272,12 +289,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: SettingsService(),
-      builder: (context, _) {
-        final settings = SettingsService();
-        final appearance = settings.appearanceTheme;
-        final bg = (appearance == 'Black') ? Colors.black : AppColors.lightBackground;
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: ListenableBuilder(
+        listenable: SettingsService(),
+        builder: (context, _) {
+          final settings = SettingsService();
+          final appearance = settings.appearanceTheme;
+          final bg = (appearance == 'Black') ? Colors.black : AppColors.lightBackground;
 
         final List<Widget> tabs = [
           DashboardHome(
@@ -455,7 +474,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         );
-      },
+        },
+      ),
     );
   }
 }
