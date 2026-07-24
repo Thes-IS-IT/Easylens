@@ -5,29 +5,33 @@ import '../../../constants/colors.dart';
 import '../../../services/stt_service.dart';
 
 String formatSpokenEmail(String input) {
-  String text = input.trim().toLowerCase();
-  if (text.isEmpty) return text;
+  try {
+    String text = input.trim().toLowerCase();
+    if (text.isEmpty) return text;
 
-  // Convert common spoken words/Tagalog terms to email symbols
-  text = text
-      .replaceAll(RegExp(r'\b(at|ako|et|atsign|at sign)\b', caseSensitive: false), '@')
-      .replaceAll(RegExp(r'\b(dot|punto|tuldok)\b', caseSensitive: false), '.')
-      .replaceAll(RegExp(r'\s+'), '');
+    // Convert common spoken words/Tagalog terms to email symbols
+    text = text
+        .replaceAll(RegExp(r'\b(at|ako|et|atsign|at sign)\b', caseSensitive: false), '@')
+        .replaceAll(RegExp(r'\b(dot|punto|tuldok)\b', caseSensitive: false), '.')
+        .replaceAll(RegExp(r'\s+'), '');
 
-  // Fix common domain misspellings from speech-to-text
-  text = text
-      .replaceAll('gmailcom', 'gmail.com')
-      .replaceAll('yahoocom', 'yahoo.com')
-      .replaceAll('hotmailcom', 'hotmail.com')
-      .replaceAll('outlookcom', 'outlook.com')
-      .replaceAll('icloudcom', 'icloud.com');
+    // Fix common domain misspellings from speech-to-text
+    text = text
+        .replaceAll('gmailcom', 'gmail.com')
+        .replaceAll('yahoocom', 'yahoo.com')
+        .replaceAll('hotmailcom', 'hotmail.com')
+        .replaceAll('outlookcom', 'outlook.com')
+        .replaceAll('icloudcom', 'icloud.com');
 
-  // If user spoke a username without @ (e.g. "parehas" or "arronparejas"), append @gmail.com
-  if (!text.contains('@')) {
-    text = '$text@gmail.com';
+    // If user spoke a username without @ (e.g. "parehas" or "arronparejas"), append @gmail.com
+    if (!text.contains('@')) {
+      text = '$text@gmail.com';
+    }
+
+    return text;
+  } catch (_) {
+    return input.trim().replaceAll(' ', '');
   }
-
-  return text;
 }
 
 /// Helper to parse spoken date into MM / DD / YYYY format (e.g. "January 6, 2005" -> "01 / 06 / 2005")

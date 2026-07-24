@@ -45,26 +45,34 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
   }
 
   void _validateAndUpdate() {
-    final pass = _passwordController.text;
-    final confirm = _confirmController.text;
+    try {
+      final pass = _passwordController.text;
+      final confirm = _confirmController.text;
+      final isTagalog = widget.language.toLowerCase().contains('tagalog') || widget.language.toLowerCase().contains('filipino');
 
-    setState(() {
-      if (pass.isEmpty) {
-        _errorText = 'Please enter a password';
+      setState(() {
+        if (pass.isEmpty) {
+          _errorText = isTagalog ? 'Mangyaring gumawa ng password' : 'Please enter a password';
+          widget.onPasswordChanged('');
+        } else if (pass.length < 6) {
+          _errorText = isTagalog ? 'Ang password ay dapat may hindi bababa sa 6 na karakter' : 'Password must be at least 6 characters long';
+          widget.onPasswordChanged('');
+        } else if (confirm.isNotEmpty && pass != confirm) {
+          _errorText = isTagalog ? 'Hindi magkatugma ang dalawang password' : 'Passwords do not match';
+          widget.onPasswordChanged('');
+        } else if (pass == confirm) {
+          _errorText = null; // Valid!
+          widget.onPasswordChanged(pass);
+        } else {
+          _errorText = null;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _errorText = 'Error reading password input: ${e.toString()}';
         widget.onPasswordChanged('');
-      } else if (pass.length < 6) {
-        _errorText = 'Password must be at least 6 characters long';
-        widget.onPasswordChanged('');
-      } else if (confirm.isNotEmpty && pass != confirm) {
-        _errorText = 'Passwords do not match';
-        widget.onPasswordChanged('');
-      } else if (pass == confirm) {
-        _errorText = null; // Valid!
-        widget.onPasswordChanged(pass);
-      } else {
-        _errorText = null;
-      }
-    });
+      });
+    }
   }
 
   @override

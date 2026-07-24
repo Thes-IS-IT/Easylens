@@ -54,24 +54,46 @@ class _StepEmailInputState extends State<StepEmailInput> {
   }
 
   bool _isValidEmail(String email) {
-    final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    return emailRegExp.hasMatch(email.trim());
+    try {
+      final clean = email.trim();
+      if (!clean.contains('@') || !clean.contains('.')) return false;
+      final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+      return emailRegExp.hasMatch(clean);
+    } catch (_) {
+      return false;
+    }
   }
 
   void _handleContinue() {
-    final email = _controller.text.trim();
-    if (email.isEmpty) {
-      setState(() => _errorText = 'Please enter your email address');
-      return;
-    }
-    if (!_isValidEmail(email)) {
-      setState(() => _errorText = 'Please enter a valid email address (e.g. name@example.com)');
-      return;
-    }
+    try {
+      final email = _controller.text.trim();
+      final isTagalog = widget.language.toLowerCase().contains('tagalog') || widget.language.toLowerCase().contains('filipino');
+      
+      if (email.isEmpty) {
+        setState(() => _errorText = isTagalog 
+            ? 'Mangyaring ilagay ang iyong email address' 
+            : 'Please enter your email address');
+        return;
+      }
+      if (!email.contains('@')) {
+        setState(() => _errorText = isTagalog 
+            ? 'Kailangan ng "@" symbol sa email address (hal. pangalan@gmail.com)' 
+            : 'Email address must contain an "@" symbol (e.g. name@gmail.com)');
+        return;
+      }
+      if (!_isValidEmail(email)) {
+        setState(() => _errorText = isTagalog 
+            ? 'Mangyaring maglagay ng wastong email address (hal. pangalan@gmail.com)' 
+            : 'Please enter a valid email address (e.g. name@gmail.com)');
+        return;
+      }
 
-    setState(() => _errorText = null);
-    widget.onEmailChanged(email);
-    widget.onContinue();
+      setState(() => _errorText = null);
+      widget.onEmailChanged(email);
+      widget.onContinue();
+    } catch (e) {
+      setState(() => _errorText = 'Error validating email: ${e.toString()}');
+    }
   }
 
   @override

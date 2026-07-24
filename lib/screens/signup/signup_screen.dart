@@ -709,43 +709,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // Input validation & exception handling per step
     if (_currentStep == 10) {
       // Step 10: Email Step
-      final emailClean = _email.trim();
-      if (emailClean.isEmpty || !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(emailClean)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(SignupL10n.t('error_email', _selectedLanguage)),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        return;
-      }
-
-      setState(() => _isLoading = true);
-      final isRegistered = await _firebaseService.isEmailAlreadyRegistered(emailClean);
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-
-      if (isRegistered) {
+      try {
+        final emailClean = _email.trim();
         final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
             _selectedLanguage.toLowerCase().contains('tagalog');
-        final errorMsg = isTagalog
-            ? 'Ang email na ito ay ginagamit na. Mangyaring gumamit ng ibang email address.'
-            : 'This email address is already in use. Please try using another email address.';
-        
-        setState(() {
-          _errorMessage = errorMsg;
-        });
-        TtsService().speak(errorMsg);
-        
+
+        if (emailClean.isEmpty) {
+          final msg = isTagalog 
+              ? 'Mangyaring ilagay ang iyong email address' 
+              : 'Please enter your email address';
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+          return;
+        }
+        if (!emailClean.contains('@')) {
+          final msg = isTagalog 
+              ? 'Kailangan ng "@" symbol sa email address (hal. pangalan@gmail.com)' 
+              : 'Email address must contain an "@" symbol (e.g. name@gmail.com)';
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+          return;
+        }
+        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(emailClean)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(SignupL10n.t('error_email', _selectedLanguage)),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+          return;
+        }
+
+        setState(() => _isLoading = true);
+        final isRegistered = await _firebaseService.isEmailAlreadyRegistered(emailClean);
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        if (isRegistered) {
+          final errorMsg = isTagalog
+              ? 'Ang email na ito ay ginagamit na. Mangyaring gumamit ng ibang email address.'
+              : 'This email address is already in use. Please try using another email address.';
+          
+          setState(() {
+            _errorMessage = errorMsg;
+          });
+          TtsService().speak(errorMsg);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+          return;
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+          SnackBar(content: Text('Invalid input: ${e.toString()}'), backgroundColor: Colors.red),
         );
         return;
       }
