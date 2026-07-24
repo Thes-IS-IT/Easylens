@@ -41,6 +41,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   // Mascot zoom animation on successful login
   late Animation<double> _mascotZoomScale;
+  late Animation<Alignment> _mascotCenterAlignment;
   late Animation<double> _formFadeOut;
 
   // Staggered entrance animations
@@ -238,6 +239,15 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(
         parent: _mascotZoomController,
         curve: Curves.easeInCubic,
+      ),
+    );
+    _mascotCenterAlignment = AlignmentTween(
+      begin: const Alignment(-0.72, -0.42),
+      end: Alignment.center,
+    ).animate(
+      CurvedAnimation(
+        parent: _mascotZoomController,
+        curve: Curves.easeInOutCubic,
       ),
     );
     _formFadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
@@ -536,21 +546,24 @@ class _LoginScreenState extends State<LoginScreen>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     // Left Side: Bigger Mascot GIF sitting on top of white card
-                    ScaleTransition(
-                      scale: _loginSuccess ? _mascotZoomScale : _heroScale,
-                      child: FadeTransition(
-                        opacity: _heroFade,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          child: Image.asset(
-                            _activeMascotAsset,
-                            key: ValueKey(_activeMascotAsset),
-                            fit: BoxFit.contain,
-                            height: 140,
-                            errorBuilder: (_, __, ___) => Image.asset(
-                              'assets/Mascots/App Logo.png',
+                    Opacity(
+                      opacity: _loginSuccess ? 0.0 : 1.0,
+                      child: ScaleTransition(
+                        scale: _heroScale,
+                        child: FadeTransition(
+                          opacity: _heroFade,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: Image.asset(
+                              _activeMascotAsset,
+                              key: ValueKey(_activeMascotAsset),
                               fit: BoxFit.contain,
                               height: 140,
+                              errorBuilder: (_, __, ___) => Image.asset(
+                                'assets/Mascots/App Logo.png',
+                                fit: BoxFit.contain,
+                                height: 140,
+                              ),
                             ),
                           ),
                         ),
@@ -1153,6 +1166,29 @@ class _LoginScreenState extends State<LoginScreen>
                     filter: ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
                     child: Container(color: Colors.transparent),
                   ),
+                ),
+              ),
+            ),
+
+          // ── Centered Mascot Zoom-In Overlay on Successful Login ──
+          if (_loginSuccess)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _mascotZoomController,
+                  builder: (context, _) {
+                    return Align(
+                      alignment: _mascotCenterAlignment.value,
+                      child: Transform.scale(
+                        scale: _mascotZoomScale.value,
+                        child: Image.asset(
+                          'assets/Mascots/01 Happy.gif',
+                          height: 140,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
