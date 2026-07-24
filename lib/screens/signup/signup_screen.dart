@@ -168,8 +168,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
       case 9:
         prompt = isTagalog
-            ? "Hakbang 9 sa 19. Gumawa ng Account. Sabihin ang Google, Email, o Phone."
-            : "Step 9 of 19. Create Account. Say Google, Email, or Phone.";
+            ? "Hakbang 9 sa 19. Gumawa ng Account. Sabihin ang Email para magpatuloy."
+            : "Step 9 of 19. Create Account. Say Email to proceed.";
         break;
       case 10:
         prompt = isTagalog
