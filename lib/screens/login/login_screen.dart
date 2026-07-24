@@ -351,7 +351,7 @@ class _LoginScreenState extends State<LoginScreen>
           await Future.delayed(const Duration(milliseconds: 600));
           if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
-              AppRoute.to(const DashboardScreen()),
+              AppRoute.rocketLaunch(const DashboardScreen()),
               (route) => false,
             );
           }
@@ -417,7 +417,7 @@ class _LoginScreenState extends State<LoginScreen>
         await Future.delayed(const Duration(milliseconds: 600));
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
-            AppRoute.to(const DashboardScreen()),
+            AppRoute.rocketLaunch(const DashboardScreen()),
             (route) => false,
           );
         }

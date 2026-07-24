@@ -337,7 +337,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     ? null
                                     : () {
                                         Navigator.of(context).push(
-                                          AppRoute.to(const SignUpScreen()),
+                                          AppRoute.splitDoor(const SignUpScreen()),
                                         );
                                       },
                                 child: Text(

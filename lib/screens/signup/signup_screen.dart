@@ -16,6 +16,7 @@ import '../../services/storage/cloudflare_r2_service.dart';
 import 'celebration_screen.dart';
 import 'steps/signup_steps.dart';
 import 'steps/voice_input_widget.dart';
+import '../../utils/app_route.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -1080,13 +1081,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         Navigator.of(context).pushAndRemoveUntil(
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) =>
-                CelebrationScreen(userName: regName),
-            transitionsBuilder: (_, animation, __, child) =>
-                FadeTransition(opacity: animation, child: child),
-            transitionDuration: const Duration(milliseconds: 500),
-          ),
+          AppRoute.rocketLaunch(CelebrationScreen(userName: regName)),
           (route) => false,
         );
       }
