@@ -1988,7 +1988,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         label.contains('electronic keyboard')) {
       return 'laptop or keyboard';
     }
-    if (label.contains('wall') || label.contains('partition') || label.contains('divider')) {
+    if (label.contains('wall') || label.contains('partition') || label.contains('divider') || label.contains('pattern')) {
       return 'wall';
     }
     if (label.contains('door') || label.contains('doorway') || label.contains('entrance')) {
