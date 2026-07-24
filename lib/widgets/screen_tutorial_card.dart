@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/colors.dart';
 import '../services/settings_service.dart';
 import '../services/translation_service.dart';
@@ -14,6 +15,52 @@ class ScreenTutorialCard extends StatelessWidget {
     required String mascotAsset,
   });
 
+  /// Returns a UID-scoped pref key, e.g. "seen_tutorial_abc123_home".
+  /// Falls back to device-only key when no user is signed in.
+  static String _prefKey(String tutorialKey) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null && uid.isNotEmpty) {
+      return 'seen_tutorial_${uid}_$tutorialKey';
+    }
+    return 'seen_tutorial_$tutorialKey';
+  }
+
+  /// All known tutorial keys — used when marking all as seen for existing users.
+  static const List<String> _allTutorialKeys = [
+    'home',
+    'navigation',
+    'easylens',
+    'contacts',
+    'emergency',
+    'face_registration',
+    'devices',
+    'settings',
+    'notifications',
+    'image_labeling',
+    'rag_assistant',
+  ];
+
+  /// Call this right after a NEW account is created so tutorials show for that user.
+  /// For existing/returning users, call markAllSeen() to skip them.
+  static Future<void> resetForNewUser() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in _allTutorialKeys) {
+      await prefs.remove('seen_tutorial_${uid}_$key');
+    }
+  }
+
+  /// Call this for returning users (not first-time) so they never see tutorials.
+  static Future<void> markAllSeen() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in _allTutorialKeys) {
+      await prefs.setBool('seen_tutorial_${uid}_$key', true);
+    }
+  }
+
   static Future<void> showIfNeeded(
     BuildContext context, {
     required String tutorialKey,
@@ -22,14 +69,14 @@ class ScreenTutorialCard extends StatelessWidget {
     required String mascotAsset,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final hasSeen = prefs.getBool('seen_tutorial_$tutorialKey') ?? false;
+    final hasSeen = prefs.getBool(_prefKey(tutorialKey)) ?? false;
     if (hasSeen) return;
 
     if (!context.mounted) return;
 
     await showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.6), // Dim backdrop
+      barrierColor: Colors.black.withOpacity(0.6),
       builder: (context) {
         return _TutorialDialog(
           tutorialKey: tutorialKey,
@@ -43,7 +90,7 @@ class ScreenTutorialCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox.shrink(); // No longer used inline S01
+    return const SizedBox.shrink();
   }
 }
 
@@ -67,7 +114,7 @@ class _TutorialDialog extends StatefulWidget {
 class _TutorialDialogState extends State<_TutorialDialog> {
   Future<void> _dismiss() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('seen_tutorial_${widget.tutorialKey}', true);
+    await prefs.setBool(ScreenTutorialCard._prefKey(widget.tutorialKey), true);
     if (mounted) {
       Navigator.of(context).pop();
     }

@@ -13,6 +13,7 @@ import '../../services/sms_service.dart';
 import '../../services/emergency_contact_service.dart';
 
 import '../../services/storage/cloudflare_r2_service.dart';
+import '../../widgets/screen_tutorial_card.dart';
 import 'celebration_screen.dart';
 import 'steps/signup_steps.dart';
 import 'steps/voice_input_widget.dart';
@@ -1165,6 +1166,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (mounted) {
         setState(() => _isLoading = false);
+        // Mark tutorials as unseen for this new user — they will see each one once
+        await ScreenTutorialCard.resetForNewUser();
         Navigator.of(context).pushAndRemoveUntil(
           AppRoute.rocketLaunch(CelebrationScreen(userName: regName)),
           (route) => false,

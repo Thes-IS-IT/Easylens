@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/sound_service.dart';
+import '../../widgets/screen_tutorial_card.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../../utils/app_route.dart';
 
@@ -338,7 +339,9 @@ class _LoginScreenState extends State<LoginScreen>
           });
           _mascotZoomController.forward();
           await Future.delayed(const Duration(milliseconds: 550));
-          if (mounted) {
+        if (mounted) {
+            // Returning user — mark all tutorials as seen so they don't see them again
+            await ScreenTutorialCard.markAllSeen();
             Navigator.of(context).pushAndRemoveUntil(
               AppRoute.mascotZoom(const DashboardScreen()),
               (route) => false,
@@ -407,6 +410,8 @@ class _LoginScreenState extends State<LoginScreen>
         _mascotZoomController.forward();
         await Future.delayed(const Duration(milliseconds: 550));
         if (mounted) {
+          // Returning Google user — mark all tutorials as seen
+          await ScreenTutorialCard.markAllSeen();
           Navigator.of(context).pushAndRemoveUntil(
             AppRoute.mascotZoom(const DashboardScreen()),
             (route) => false,
