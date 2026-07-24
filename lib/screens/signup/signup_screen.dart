@@ -682,7 +682,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  void _nextStep() {
+  Future<void> _nextStep() async {
     _lastSpokenStep = null;
     _isAwaitingConfirmation = false;
     // Input validation & exception handling per step
@@ -700,6 +700,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
         return;
       }
+
+      setState(() => _isLoading = true);
+      final isRegistered = await _firebaseService.isEmailAlreadyRegistered(emailClean);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (isRegistered) {
+        final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
+            _selectedLanguage.toLowerCase().contains('tagalog');
+        final errorMsg = isTagalog
+            ? 'Ang email na ito ay ginagamit na. Mangyaring gumamit ng ibang email address.'
+            : 'This email address is already in use. Please try using another email address.';
+        
+        setState(() {
+          _errorMessage = errorMsg;
+        });
+        TtsService().speak(errorMsg);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+      
+      // Clear error message if validation succeeds
+      setState(() => _errorMessage = null);
     } else if (_currentStep == 11) {
       // Step 11: Phone Step
       if (_phone.trim().length < 10) {

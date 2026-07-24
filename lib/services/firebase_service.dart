@@ -98,6 +98,29 @@ class FirebaseService {
     }
   }
 
+  // Check if email already registered
+  Future<bool> isEmailAlreadyRegistered(String email) async {
+    final cleanEmail = email.trim().toLowerCase();
+    if (!_firebaseInitialized) return false;
+    try {
+      // 1. Check via Firebase Auth
+      final methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(cleanEmail);
+      if (methods.isNotEmpty) return true;
+    } catch (_) {}
+
+    try {
+      // 2. Check via Firestore users collection
+      final query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: cleanEmail)
+          .limit(1)
+          .get();
+      if (query.docs.isNotEmpty) return true;
+    } catch (_) {}
+
+    return false;
+  }
+
   // Sign up
   Future<EasyLensUser?> signUp(
     String email,
