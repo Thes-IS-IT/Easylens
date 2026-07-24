@@ -512,75 +512,117 @@ class _LoginScreenState extends State<LoginScreen>
 
               const SizedBox(height: 16),
 
-              // Animated mascot with golden glow ring
-              ScaleTransition(
-                scale: _heroScale,
-                child: FadeTransition(
-                  opacity: _heroFade,
-                  child: AnimatedBuilder(
-                    animation: _mascotGlow,
-                    builder: (context, child) {
-                      return Container(
-                        width: 116,
-                        height: 116,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.welcomeAccentGold.withValues(
-                              alpha: _mascotGlow.value,
-                            ),
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.welcomeAccentGold.withValues(
-                                alpha: _mascotGlow.value * 0.35,
+              // Horizontal Asymmetric Mascot & Speech Bubble Banner Row (Matches Dashboard MascotBanner Style)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Left Side: Glowing Mascot Profile
+                    ScaleTransition(
+                      scale: _heroScale,
+                      child: FadeTransition(
+                        opacity: _heroFade,
+                        child: AnimatedBuilder(
+                          animation: _mascotGlow,
+                          builder: (context, child) {
+                            return Container(
+                              width: 92,
+                              height: 92,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.welcomeAccentGold.withValues(
+                                    alpha: _mascotGlow.value,
+                                  ),
+                                  width: 2.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.welcomeAccentGold.withValues(
+                                      alpha: _mascotGlow.value * 0.35,
+                                    ),
+                                    blurRadius: 15,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
                               ),
-                              blurRadius: 20,
-                              spreadRadius: 2,
-                            ),
-                          ],
+                              child: ClipOval(
+                                child: Container(
+                                  color: const Color(0xFF0F3E8F),
+                                  padding: const EdgeInsets.all(3),
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 400),
+                                    child: Image.asset(
+                                      _activeMascotAsset,
+                                      key: ValueKey(_activeMascotAsset),
+                                      fit: BoxFit.contain,
+                                      width: 80,
+                                      height: 80,
+                                      errorBuilder: (_, __, ___) => Image.asset(
+                                        'assets/Mascots/App Logo.png',
+                                        fit: BoxFit.contain,
+                                        width: 80,
+                                        height: 80,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        child: ClipOval(
-                          child: Container(
-                            color: const Color(0xFF0F3E8F), // Solid background matching mascot colors
-                            padding: const EdgeInsets.all(4), // Prevent pixelated boundary cut-off
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 400),
-                              child: Image.asset(
-                                _activeMascotAsset,
-                                key: ValueKey(_activeMascotAsset),
-                                fit: BoxFit.contain, // Fit fully within circular border
-                                width: 104,
-                                height: 104,
-                                errorBuilder: (_, __, ___) => Image.asset(
-                                  'assets/Mascots/App Logo.png',
-                                  fit: BoxFit.contain,
-                                  width: 104,
-                                  height: 104,
+                      ),
+                    ),
+
+                    // Middle: Left-pointing speech bubble pointer triangle
+                    ScaleTransition(
+                      scale: _bubbleScale,
+                      child: FadeTransition(
+                        opacity: _bubbleFade,
+                        child: Transform.translate(
+                          offset: const Offset(4, 0),
+                          child: Transform.rotate(
+                            angle: 3.14159 / 4, // 45 degrees
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.25),
+                                    width: 1,
+                                  ),
+                                  left: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.25),
+                                    width: 1,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    // Right Side: Speech Bubble Card
+                    Expanded(
+                      child: ScaleTransition(
+                        scale: _bubbleScale,
+                        child: FadeTransition(
+                          opacity: _bubbleFade,
+                          child: _buildSpeechBubble(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 10),
-
-              // Random expandable message bubble from Buddy
-              ScaleTransition(
-                scale: _bubbleScale,
-                child: FadeTransition(
-                  opacity: _bubbleFade,
-                  child: _buildSpeechBubble(),
-                ),
-              ),
-
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
 
               // App name
               SlideTransition(
@@ -1185,100 +1227,76 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildSpeechBubble() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Little pointer triangle
-        Transform.translate(
-          offset: const Offset(0, 4),
-          child: Transform.rotate(
-            angle: 3.14159 / 4, // 45 degrees
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                border: Border(
-                  top: BorderSide(color: Colors.white.withValues(alpha: 0.25), width: 1),
-                  left: BorderSide(color: Colors.white.withValues(alpha: 0.25), width: 1),
-                ),
-              ),
-            ),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isBubbleExpanded = !_isBubbleExpanded;
+        });
+      },
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 290),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.25),
+            width: 1,
           ),
-        ),
-        // Bubble Body
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _isBubbleExpanded = !_isBubbleExpanded;
-            });
-          },
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 290),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.25),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 12,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
             ),
-            child: AnimatedSize(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: Column(
+          ],
+        ),
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _currentMessage.icon,
-                        color: AppColors.welcomeAccentGold,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          _currentMessage.shortText,
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
+                  Icon(
+                    _currentMessage.icon,
+                    color: AppColors.welcomeAccentGold,
+                    size: 18,
                   ),
-                  if (_isBubbleExpanded) ...[
-                    const SizedBox(height: 8),
-                    Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
-                    const SizedBox(height: 8),
-                    Text(
-                      _currentMessage.expandedText,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      _currentMessage.shortText,
                       style: GoogleFonts.inter(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                        height: 1.35,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ],
+                  ),
                 ],
               ),
-            ),
+              if (_isBubbleExpanded) ...[
+                const SizedBox(height: 8),
+                Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
+                const SizedBox(height: 8),
+                Text(
+                  _currentMessage.expandedText,
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

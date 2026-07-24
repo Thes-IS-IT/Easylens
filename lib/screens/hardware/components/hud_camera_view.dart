@@ -49,7 +49,7 @@ class HudCameraView extends StatelessWidget {
   });
 
   String _refineLabel(String rawLabel) {
-    final label = rawLabel.toLowerCase();
+    final label = rawLabel.replaceAll('_', ' ').toLowerCase();
     if (label.contains('metal')) {
       return 'elevator door';
     }
