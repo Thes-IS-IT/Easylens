@@ -143,8 +143,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
       case 4:
         prompt = isTagalog
-            ? "Hakbang 4 sa 19. Piliin ang iyong mga kondisyon sa paningin. Sabihin ang Low Vision, Blindness, Color Blindness, Elderly, o Tapos na."
-            : "Step 4 of 19. Select your vision conditions. Say Low Vision, Blindness, Color Blindness, Elderly, or Done.";
+            ? "Hakbang 4 sa 19. Piliin ang iyong mga kondisyon sa paningin. Maaaring sabihin ang: Cataracts, Glaucoma, Macular Degeneration, Low Vision, Diabetic Retinopathy, Retinitis Pigmentosa, Color Blindness, Hemianopia, o Elderly para sa mga nakakatanda. Sabihin ang Ituloy kapag tapos na."
+            : "Step 4 of 19. Select your vision conditions. You can say: Cataracts, Glaucoma, Macular Degeneration, Low Vision, Diabetic Retinopathy, Retinitis Pigmentosa, Color Blindness, Hemianopia, or Elderly. Say Continue when finished.";
         break;
       case 5:
         prompt = isTagalog
@@ -477,19 +477,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
 
       case 4: // Conditions
-        if (text.contains('low vision')) {
+        if (text.contains('cataract') || text.contains('katarata')) {
+          if (!_selectedConditions.contains('Cataracts')) _selectedConditions.add('Cataracts');
+          _triggerVoiceConfirmation(isTagalog ? 'Katarata (Cataracts)' : 'Cataracts');
+        } else if (text.contains('glaucoma') || text.contains('glaokoma')) {
+          if (!_selectedConditions.contains('Glaucoma')) _selectedConditions.add('Glaucoma');
+          _triggerVoiceConfirmation('Glaucoma');
+        } else if (text.contains('macular')) {
+          if (!_selectedConditions.contains('Macular Degeneration')) _selectedConditions.add('Macular Degeneration');
+          _triggerVoiceConfirmation('Macular Degeneration');
+        } else if (text.contains('low vision') || text.contains('malabo')) {
           if (!_selectedConditions.contains('Low Vision')) _selectedConditions.add('Low Vision');
-          _triggerVoiceConfirmation('Low Vision');
+          _triggerVoiceConfirmation(isTagalog ? 'Malabo ang Paningin (Low Vision)' : 'Low Vision');
+        } else if (text.contains('diabetic')) {
+          if (!_selectedConditions.contains('Diabetic Retinopathy')) _selectedConditions.add('Diabetic Retinopathy');
+          _triggerVoiceConfirmation('Diabetic Retinopathy');
+        } else if (text.contains('retinitis')) {
+          if (!_selectedConditions.contains('Retinitis Pigmentosa')) _selectedConditions.add('Retinitis Pigmentosa');
+          _triggerVoiceConfirmation('Retinitis Pigmentosa');
+        } else if (text.contains('color') || text.contains('bulag sa kulay')) {
+          if (!_selectedConditions.contains('Color Blindness')) _selectedConditions.add('Color Blindness');
+          _triggerVoiceConfirmation(isTagalog ? 'Bulag sa Kulay (Color Blindness)' : 'Color Blindness');
+        } else if (text.contains('hemianopia')) {
+          if (!_selectedConditions.contains('Hemianopia')) _selectedConditions.add('Hemianopia');
+          _triggerVoiceConfirmation('Hemianopia');
+        } else if (text.contains('elderly') || text.contains('matanda') || text.contains('nakakatanda') || text.contains('senior')) {
+          if (!_selectedConditions.contains('Elderly')) _selectedConditions.add('Elderly');
+          _triggerVoiceConfirmation(isTagalog ? 'Nakakatanda (Elderly)' : 'Elderly');
         } else if (text.contains('blind')) {
           if (!_selectedConditions.contains('Blindness')) _selectedConditions.add('Blindness');
           _triggerVoiceConfirmation('Blindness');
-        } else if (text.contains('color')) {
-          if (!_selectedConditions.contains('Color Blindness')) _selectedConditions.add('Color Blindness');
-          _triggerVoiceConfirmation('Color Blindness');
-        } else if (text.contains('elderly')) {
-          if (!_selectedConditions.contains('Elderly')) _selectedConditions.add('Elderly');
-          _triggerVoiceConfirmation('Elderly');
-        } else if (text.contains('done') || text.contains('tapos')) {
+        } else if (text.contains('done') || text.contains('tapos') || text.contains('next') || text.contains('ituloy') || text.contains('sige')) {
           _nextStep();
         }
         break;
