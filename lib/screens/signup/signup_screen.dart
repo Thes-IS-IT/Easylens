@@ -638,9 +638,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       case 11: // Phone Input
         final digits = text.replaceAll(RegExp(r'\D'), '');
-        if (digits.length >= 10) {
+        if (digits.length == 11) {
           setState(() => _phone = digits);
           _triggerVoiceConfirmation(digits);
+        } else if (digits.isNotEmpty) {
+          final isTagalog = _selectedLanguage.toLowerCase().contains('tagalog') || _selectedLanguage.toLowerCase().contains('filipino');
+          TtsService().speak(isTagalog
+              ? 'Ang numero ng telepono ay dapat eksaktong 11 digits. Nagsimula sa zero, hal. zero-siyam-isa-dalawa-tatlo-apat-lima-anim-pito-walo-siyam.'
+              : 'Phone number must be exactly 11 digits starting with zero, e.g. 0-9-1-2-3-4-5-6-7-8-9.');
         }
         break;
 
@@ -988,15 +993,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final regEmail = _email.trim();
     final regPassword = _password.trim();
     final regName = _name.isNotEmpty ? _name.trim() : "Buddy User";
+    final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
+        _selectedLanguage.toLowerCase().contains('tagalog');
 
-    // Validate email format and password if using Email/Phone auth
-    if (_authMethod != 'Google' && _authMethod != 'Apple') {
+    // Validate phone number when using Phone auth
+    if (_authMethod == 'Phone') {
+      if (_phone.trim().length != 11) {
+        final phoneMsg = isTagalog
+            ? 'Ang numero ng telepono ay dapat eksaktong 11 digits (hal. 09123456789). Mangyaring bumalik at itama ang numero.'
+            : 'Phone number must be exactly 11 digits (e.g. 09123456789). Please go back and fix your phone number.';
+        setState(() {
+          _isLoading = false;
+          _errorMessage = phoneMsg;
+          _currentStep = 11;
+        });
+        TtsService().speak(phoneMsg);
+        return;
+      }
+    }
+
+    // Validate email format and password if using Email auth
+    if (_authMethod == 'Email') {
       if (regEmail.isEmpty || !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(regEmail)) {
-        final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
-            _selectedLanguage.toLowerCase().contains('tagalog');
         final invalidMsg = isTagalog
-            ? "Maling email address format. Mangyaring ipasok ang iyong totoong email."
-            : "Invalid email address format. Please enter a valid email address.";
+            ? 'Maling email address format. Mangyaring ipasok ang iyong totoong email.'
+            : 'Invalid email address format. Please enter a valid email address.';
         setState(() {
           _isLoading = false;
           _errorMessage = invalidMsg;
@@ -1007,11 +1028,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
 
       if (regPassword.length < 6) {
-        final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
-            _selectedLanguage.toLowerCase().contains('tagalog');
         final passMsg = isTagalog
-            ? "Masyadong maikli ang password. Dapat ay may 6 o higit pang karakter."
-            : "Password is too short. Please use at least 6 characters.";
+            ? 'Masyadong maikli ang password. Dapat ay may 6 o higit pang karakter.'
+            : 'Password is too short. Please use at least 6 characters.';
         setState(() {
           _isLoading = false;
           _errorMessage = passMsg;
