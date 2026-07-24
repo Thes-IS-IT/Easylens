@@ -1541,6 +1541,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         duration: const Duration(milliseconds: 300),
                         switchInCurve: Curves.easeOutCubic,
                         switchOutCurve: Curves.easeInCubic,
+                        layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                          return Stack(
+                            alignment: Alignment.topCenter,
+                            children: <Widget>[
+                              ...previousChildren,
+                              if (currentChild != null) currentChild,
+                            ],
+                          );
+                        },
                         transitionBuilder: (Widget child, Animation<double> animation) {
                           return FadeTransition(
                             opacity: animation,
@@ -1555,10 +1564,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           );
                         },
-                        child: SingleChildScrollView(
+                        child: Align(
                           key: ValueKey<int>(_currentStep),
-                          physics: const BouncingScrollPhysics(),
-                          child: _buildStepContent(),
+                          alignment: Alignment.topCenter,
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: _buildStepContent(),
+                          ),
                         ),
                       ),
                     ),
