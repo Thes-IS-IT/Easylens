@@ -539,6 +539,11 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 1. Card 1: Talk to Buddy (Local AI)
     if (cleanText.contains("talk to buddy") ||
         cleanText.contains("talk to buddy local ai") ||
+        cleanText.contains("kausapin si buddy") ||
+        cleanText.contains("kausap si buddy") ||
+        cleanText.contains("makausap si buddy") ||
+        cleanText.contains("mag-chat kay buddy") ||
+        cleanText.contains("usap kay buddy") ||
         cleanText.contains("buddy") ||
         cleanText.contains("chat") ||
         cleanText.contains("kausap")) {
@@ -553,7 +558,9 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     if (cleanText.contains("easylens") ||
         cleanText.contains("easy lens") ||
         cleanText.contains("camera") ||
-        cleanText.contains("kamera")) {
+        cleanText.contains("kamera") ||
+        cleanText.contains("kamara") ||
+        cleanText.contains("kumuha ng larawan")) {
       SpeechNavigationNotifier.changeTab(2);
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
       return isFilipino ? "Binubuksan ang camera" : "Navigating to EasyLens camera";
@@ -563,16 +570,28 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     if (cleanText.contains("register face") ||
         cleanText.contains("face registration") ||
         cleanText.contains("registered faces") ||
-        cleanText.contains("mukha") ||
-        cleanText.contains("pagrehistro ng mukha")) {
+        cleanText.contains("magrehistro ng mukha") ||
+        cleanText.contains("rehistro ng mukha") ||
+        cleanText.contains("iparehistro ang mukha") ||
+        cleanText.contains("pagrehistro ng mukha") ||
+        cleanText.contains("magparehistro ng mukha") ||
+        cleanText.contains("mga mukha") ||
+        cleanText.contains("mukha")) {
       _pushAndRecord(const FaceRegistrationScreen(), "Face Registration");
       return isFilipino ? "Binubuksan ang pagrehistro ng mukha" : "Opening face registration";
     }
 
     // 4. Card 4: Nearby Text (OCR / Text Scanner)
     if (cleanText.contains("nearby text") ||
+        cleanText.contains("kalapit na teksto") ||
+        cleanText.contains("magbasa ng teksto") ||
+        cleanText.contains("magbasa ng sulat") ||
+        cleanText.contains("basahin ang teksto") ||
+        cleanText.contains("basahin ang sulat") ||
+        cleanText.contains("basa ng teksto") ||
         cleanText.contains("text scanner") ||
         cleanText.contains("text") ||
+        cleanText.contains("teksto") ||
         cleanText.contains("ocr") ||
         cleanText.contains("read text") ||
         cleanText.contains("basa")) {
@@ -587,6 +606,11 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
     // 5. Card 5: Audio Navigation (Maps / GPS)
     if (cleanText.contains("audio navigation") ||
+        cleanText.contains("audio na nabigasyon") ||
+        cleanText.contains("nabigasyon sa boses") ||
+        cleanText.contains("mapa ng nabigasyon") ||
+        cleanText.contains("pumunta sa mapa") ||
+        cleanText.contains("mag-navigate") ||
         cleanText.contains("navigation") ||
         cleanText.contains("map") ||
         cleanText.contains("maps") ||
@@ -599,6 +623,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
     // 6. Card 6: SOS Emergency
     if (cleanText.contains("sos emergency") ||
+        cleanText.contains("tulong emergency") ||
+        cleanText.contains("tawag emergency") ||
         cleanText.contains("emergency") ||
         cleanText.contains("sos") ||
         cleanText.contains("saklolo")) {
@@ -612,6 +638,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
         cleanText.contains("preference") ||
         cleanText.contains("preferensya") ||
         cleanText.contains("mga setting") ||
+        cleanText.contains("mga kaayusan") ||
         cleanText.contains("buksan ang setting")) {
       _pushAndRecord(const SettingsScreen(), "Settings");
       return isFilipino ? "Binubuksan ang mga setting" : "Navigating to settings";
@@ -621,7 +648,10 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     if (cleanText.contains("device") ||
         cleanText.contains("devices") ||
         cleanText.contains("glasses") ||
+        cleanText.contains("mga aparato") ||
+        cleanText.contains("aparato") ||
         cleanText.contains("salamin") ||
+        cleanText.contains("mga salamin") ||
         cleanText.contains("hardware screen")) {
       _pushAndRecord(const DevicesScreen(), "Glasses Settings");
       return isFilipino ? "Binubuksan ang screen ng salamin" : "Navigating to devices screen";
@@ -630,6 +660,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 9. Profile Details
     if (cleanText.contains("profile") ||
         cleanText.contains("account details") ||
+        cleanText.contains("detalye ng aking profile") ||
         cleanText.contains("detalye ng profile") ||
         cleanText.contains("aking profile")) {
       _pushAndRecord(const ProfileDetailsScreen(), "Profile Details");
@@ -640,6 +671,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     if (cleanText.contains("password") ||
         cleanText.contains("change password") ||
         cleanText.contains("palitan ang password") ||
+        cleanText.contains("baguhin ang password") ||
+        cleanText.contains("lihim na salita") ||
         cleanText.contains("security")) {
       _pushAndRecord(const ChangePasswordScreen(), "Change Password");
       return isFilipino ? "Binubuksan ang palitan ng password" : "Opening change password";
@@ -648,6 +681,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 11. Units / Measurement
     if (cleanText.contains("units") ||
         cleanText.contains("unit") ||
+        cleanText.contains("mga yunit") ||
+        cleanText.contains("yunit ng pagsukat") ||
         cleanText.contains("yunit") ||
         cleanText.contains("measurement")) {
       _pushAndRecord(const UnitsScreen(), "Units Settings");
@@ -657,6 +692,9 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 12. Customize Home Screen
     if (cleanText.contains("customize home") ||
         cleanText.contains("customize") ||
+        cleanText.contains("isaayos ang home screen") ||
+        cleanText.contains("i-customize ang home") ||
+        cleanText.contains("kaayusan ng home") ||
         cleanText.contains("home customizer") ||
         cleanText.contains("isaayos ang home")) {
       _pushAndRecord(const CustomizeHomeScreen(), "Customize Home Screen");
@@ -667,6 +705,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     if (cleanText.contains("help guide") ||
         cleanText.contains("help") ||
         cleanText.contains("user guide") ||
+        cleanText.contains("gabay sa tulong") ||
+        cleanText.contains("paano gamitin") ||
         cleanText.contains("gabay") ||
         cleanText.contains("tulong")) {
       _pushAndRecord(const HelpGuideScreen(), "Help Guide");
@@ -676,8 +716,9 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 14. Notifications
     if (cleanText.contains("notifications") ||
         cleanText.contains("notification") ||
+        cleanText.contains("mga abiso") ||
         cleanText.contains("abiso") ||
-        cleanText.contains("mga abiso")) {
+        cleanText.contains("patalastas")) {
       _pushAndRecord(const NotificationsScreen(), "Notifications");
       return isFilipino ? "Binubuksan ang mga abiso" : "Navigating to notifications";
     }
@@ -694,6 +735,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 16. Dashboard / Home Tab
     if (cleanText.contains("home") ||
         cleanText.contains("dashboard") ||
+        cleanText.contains("bahay") ||
         cleanText.contains("umpisa") ||
         cleanText.contains("simula")) {
       SpeechNavigationNotifier.changeTab(0);
@@ -704,6 +746,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 17. Object Detector
     if (cleanText.contains("object detector") ||
         cleanText.contains("object detection") ||
+        cleanText.contains("pang-amoy ng bagay") ||
+        cleanText.contains("mga bagay") ||
         cleanText.contains("bagay")) {
       _pushAndRecord(const HardwareScreen(initialStep: 4), "Object Detector");
       return isFilipino ? "Binubuksan ang object detector" : "Opening object detector";
@@ -712,6 +756,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 18. Go Back
     if (cleanText.contains("go back") ||
         cleanText.contains("back") ||
+        cleanText.contains("bumalik sa nakaraan") ||
         cleanText.contains("bumalik") ||
         cleanText.contains("pabalik") ||
         cleanText.contains("balik")) {
@@ -722,6 +767,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     // 19. Logout
     if (cleanText.contains("logout") ||
         cleanText.contains("log out") ||
+        cleanText.contains("umalis sa account") ||
+        cleanText.contains("mag-logout") ||
         cleanText.contains("umalis")) {
       await FirebaseService().signOut();
       navigatorKey.currentState?.pushAndRemoveUntil(
@@ -846,26 +893,27 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       "una", "pangalawa", "pangatlo", "pang-apat", "panlima",
       "search for", "search", "find", "hanapin", "maghanap", "hanap", "pumunta", "dalhin",
       "got to", "go to", "get to", "gu to", "open", "take me",
-      "home", "dashboard", "umpisa", "simula",
-      "map", "maps", "navigation", "mapa", "nabigasyon",
-      "camera", "easylens", "easy lens", "kamera",
-      "settings", "setting", "seting", "mga setting", "buksan ang setting",
-      "notifications", "notification", "abiso",
-      "contacts", "contact", "kontak",
-      "emergency", "sos", "saklolo",
+      "home", "dashboard", "umpisa", "simula", "bahay",
+      "map", "maps", "navigation", "mapa", "nabigasyon", "boses",
+      "camera", "easylens", "easy lens", "kamera", "kamara", "larawan",
+      "settings", "setting", "seting", "mga setting", "buksan ang setting", "preferensya", "kaayusan",
+      "notifications", "notification", "abiso", "mga abiso", "patalastas",
+      "contacts", "contact", "kontak", "mga kontak",
+      "emergency", "sos", "saklolo", "tulong",
       "back", "bumalik", "balik", "pabalik",
       "click", "pindutin", "pindot",
-      "help", "guide", "tulong", "gabay",
-      "password", "palitan",
-      "units", "yunit",
+      "help", "guide", "tulong", "gabay", "paano",
+      "password", "palitan", "lihim", "salita",
+      "units", "yunit", "pagsukat",
       "customize", "isaayos",
-      "face", "mukha", "register",
+      "face", "mukha", "register", "rehistro", "iparehistro", "pagrehistro",
       "logout", "log out", "umalis",
-      "profile", "detalye",
-      "devices", "glasses", "salamin", "device",
+      "profile", "detalye", "aking profile",
+      "devices", "glasses", "salamin", "device", "aparato", "mga aparato",
       "scenery", "tanawin", "faces", "face recognition", "pagkilala sa mukha",
       "bluetooth", "koneksyon", "gemini", "online ai", "local ai", "offline ai",
       "audio", "speaker", "network", "wifi", "lock mode", "screen lock", "i-lock",
+      "teksto", "sulat", "basahin", "magbasa", "basa", "kausapin", "kausap", "usap", "buddy",
       "stop listening", "stop speech", "tumahimik", "hinto", "pause voice", "stop"
     ];
     
