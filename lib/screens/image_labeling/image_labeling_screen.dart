@@ -340,7 +340,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
             ),
           ),
         ),
-        leadingWidth: 90,
+        leadingWidth: 100,
         title: Text(
           'Nearby Text',
           style: GoogleFonts.inter(
@@ -773,7 +773,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
 
     // Default Camera Scanner Viewfinder Placeholder
     return Container(
-      height: 220,
+      height: 255,
       decoration: BoxDecoration(
         color: isDefault ? const Color(0xFFF8FAFC) : AppColors.primaryBackground,
         borderRadius: BorderRadius.circular(26),
