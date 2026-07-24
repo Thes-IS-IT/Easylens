@@ -522,7 +522,7 @@ class _LoginScreenState extends State<LoginScreen>
                     // Middle & Right: Pointer + Speech Card cleanly connected
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 24),
+                        padding: const EdgeInsets.only(bottom: 56),
                         child: ScaleTransition(
                           scale: _bubbleScale,
                           child: FadeTransition(
