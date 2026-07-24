@@ -419,64 +419,71 @@ class _LoginScreenState extends State<LoginScreen>
           padding: const EdgeInsets.only(top: 8, bottom: 0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Bar: Back button + Title & Tagline
+              // 1. Back button row
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.arrow_back_ios_new, size: 13, color: Colors.white),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Back',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
                         ),
                       ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.arrow_back_ios_new, size: 13, color: Colors.white),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Back',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'BUDDY',
-                          style: GoogleFonts.inter(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 2.0,
-                          ),
-                        ),
-                        Text(
-                          _loginSuccess
-                              ? 'Welcome back! Logging you in...'
-                              : 'Sign in to continue',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white.withValues(alpha: 0.75),
-                          ),
-                        ),
-                      ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 2. Header Title & Subtitle (placed ON TOP of the Mascot GIF)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BUDDY',
+                      style: GoogleFonts.inter(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 3.0,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _loginSuccess
+                          ? 'Welcome back! Logging you in...'
+                          : 'Sign in to continue',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
                     ),
                   ],
                 ),
@@ -484,9 +491,9 @@ class _LoginScreenState extends State<LoginScreen>
 
               const SizedBox(height: 12),
 
-              // Mascot & Speech Bubble Row (Bigger mascot sitting on top of white card)
+              // 3. Mascot & Speech Bubble Row (Mascot sits on top of white card)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -501,47 +508,46 @@ class _LoginScreenState extends State<LoginScreen>
                             _activeMascotAsset,
                             key: ValueKey(_activeMascotAsset),
                             fit: BoxFit.contain,
-                            height: 145,
+                            height: 140,
                             errorBuilder: (_, __, ___) => Image.asset(
                               'assets/Mascots/App Logo.png',
                               fit: BoxFit.contain,
-                              height: 145,
+                              height: 140,
                             ),
                           ),
                         ),
                       ),
                     ),
 
-                    // Middle: Solid white speech bubble pointer triangle
-                    ScaleTransition(
-                      scale: _bubbleScale,
-                      child: FadeTransition(
-                        opacity: _bubbleFade,
-                        child: Transform.translate(
-                          offset: const Offset(4, -32),
-                          child: Transform.rotate(
-                            angle: 3.14159 / 4, // 45 degrees
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 4),
-
-                    // Right Side: Clean White Speech Bubble Card
+                    // Middle & Right: Pointer + Speech Card cleanly connected
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 22),
+                        padding: const EdgeInsets.only(bottom: 24),
                         child: ScaleTransition(
                           scale: _bubbleScale,
                           child: FadeTransition(
                             opacity: _bubbleFade,
-                            child: _buildSpeechBubble(),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Solid White Speech Pointer Triangle
+                                Transform.translate(
+                                  offset: const Offset(4, 0),
+                                  child: Transform.rotate(
+                                    angle: 3.14159 / 4, // 45 degrees
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                // White Speech Card
+                                Expanded(
+                                  child: _buildSpeechBubble(),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -1122,8 +1128,7 @@ class _LoginScreenState extends State<LoginScreen>
         });
       },
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 290),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
