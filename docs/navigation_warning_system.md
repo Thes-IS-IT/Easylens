@@ -57,32 +57,34 @@ $$\text{Threat Score} = (\text{Base Risk} \times 0.4) + (\text{Proximity Score} 
 
 ## 3. The 24 Custom Trained Navigation Objects
 
-These 24 target classes were merged and optimized from a noisy 26-class dataset specifically mapping urban navigation hazards to improve convergence:
+These are the 24 specific target classes trained for the core EasyLens visual classification and warning model, along with their empirical validation metrics:
 
-1. **Guide Cane**: White cane helper used by visually impaired pedestrians.
-2. **Stairs Ascending**: Indoor or outdoor stairs going upwards (step-up).
-3. **Stairs Descending**: Indoor or outdoor stairs going downwards (step-down).
-4. **Traffic Cone**: Construction zone safety marker.
-5. **Jeepney**: Local public utility vehicle (PUV) common in Philippine transit paths.
-6. **Tricycle**: Three-wheeled local public utility vehicle.
-7. **Car**: Standard passenger automobile.
-8. **Truck**: Medium-to-large cargo transport vehicle.
-9. **Bus**: Public transport transit vehicle.
-10. **Motorcycle**: Fast-moving two-wheeled vehicle.
-11. **Bicycle**: Non-motorized pedestrian path transit vehicle.
-12. **Utility Pole**: Electrical, telephone, or lamppost structures in walking paths.
-13. **Curb Edge**: Transition boundary between sidewalk and active roadway.
-14. **Pedestrian / Person**: Moving people or bystanders.
-15. **Door / Doorway**: Ingress/egress architectural gates and doors.
-16. **Window**: Building glass fixtures and panels.
-17. **Bench**: Public street seating structures.
-18. **Dining Table**: Flat-surface furniture items.
-19. **Chair / Sofa**: Household and office seating items.
-20. **Trash Bin**: Public waste receptacles on sidewalks.
-21. **Puddle / Wet Floor**: Slippery hazards or sidewalk potholes filled with water.
-22. **Tree Branch**: Low-hanging overhead branches or signboards.
-23. **Fire / Flame**: Active fires or smoke hazards.
-24. **Exposed Wires / Cables**: Hanging utility lines or loose cables.
+| Class Object | Precision | Recall | F1-Score | Support | Visual Warning Role |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Bus** | 0.64 | 0.92 | 0.75 | 85 | Large transport vehicle in path |
+| **Bushes** | 0.91 | 0.81 | 0.85 | 109 | Sidewalk greenery / obstacle |
+| **Person** | 0.54 | 0.68 | 0.60 | 90 | Moving pedestrian detection |
+| **Truck** | 0.89 | 0.45 | 0.60 | 38 | Heavy commercial vehicle hazard |
+| **Bicycle** | 0.91 | 0.88 | 0.90 | 143 | Two-wheeled path obstacle |
+| **Branch** | 0.72 | 0.95 | 0.82 | 19 | Overhead hazard / low hanging branch |
+| **Car** | 0.84 | 0.76 | 0.80 | 75 | Automobile pathway block |
+| **Crosswalk** | 0.95 | 0.92 | 0.94 | 155 | Road crossing assistance indicator |
+| **Door** | 0.90 | 0.85 | 0.87 | 102 | Entryway / Exit pathway |
+| **Elevator** | 0.90 | 0.93 | 0.92 | 100 | Indoor transition aid |
+| **Fire Hydrant** | 0.97 | 0.98 | 0.98 | 101 | Sidewalk street obstacle |
+| **Green Light** | 0.79 | 0.48 | 0.59 | 124 | Traffic signal "Safe to cross" |
+| **Gun** | 0.88 | 0.89 | 0.88 | 107 | Critical threat detection |
+| **Motorcycle** | 0.53 | 0.82 | 0.64 | 22 | Fast-moving transit hazard |
+| **Pothole** | 0.80 | 0.97 | 0.88 | 33 | Elevation ground danger |
+| **Rat** | 1.00 | 0.95 | 0.97 | 101 | Animal caution indicator |
+| **Red Light** | 0.75 | 0.78 | 0.77 | 109 | Traffic signal "Stop crossing" |
+| **Scooter** | 0.89 | 0.80 | 0.84 | 122 | Micro-mobility path transit |
+| **Stairs** | 0.70 | 0.84 | 0.76 | 25 | Level changes step-up / step-down |
+| **Stop Sign** | 0.89 | 0.95 | 0.92 | 74 | Stop warning signpost |
+| **Traffic Cone** | 0.89 | 0.98 | 0.93 | 86 | Construction zone barrier |
+| **Train** | 0.74 | 0.97 | 0.84 | 112 | Rail transit hazard |
+| **Tree** | 0.90 | 0.94 | 0.92 | 100 | Large outdoor street obstacle |
+| **Yellow Light** | 0.79 | 0.51 | 0.62 | 94 | Traffic signal "Caution transition" |
 
 ---
 
