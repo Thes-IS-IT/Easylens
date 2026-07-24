@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
-import '../../services/translation_service.dart';
 
 class SurveyScreen extends StatefulWidget {
   const SurveyScreen({super.key});
@@ -135,7 +134,6 @@ class _SurveyScreenState extends State<SurveyScreen> {
   Widget build(BuildContext context) {
     final settings = SettingsService();
     final isDefault = settings.selectedContrastTheme == 'Default';
-    final lang = settings.selectedLanguage;
 
     final headerTextColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
     final contentTextColor = isDefault ? Colors.black : AppColors.primaryText;

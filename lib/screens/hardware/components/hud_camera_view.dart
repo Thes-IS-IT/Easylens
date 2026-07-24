@@ -4,7 +4,6 @@ import 'package:camera/camera.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../../../services/settings_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/esp32_service.dart';
 import '../../../services/active_navigation_service.dart';

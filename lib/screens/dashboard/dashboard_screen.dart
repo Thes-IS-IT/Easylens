@@ -6,7 +6,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../../services/firebase_service.dart';
 import '../../constants/colors.dart';
-import '../onboarding/onboarding_screen.dart';
 import '../navigation/navigation_screen.dart';
 import '../hardware/hardware_screen.dart';
 import '../emergency/emergency_screen.dart';
@@ -159,16 +158,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } catch (e) {
         print("Error fetching dynamic displayName: $e");
       }
-    }
-  }
-
-  Future<void> _handleLogout() async {
-    await _firebaseService.signOut();
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        AppRoute.to(const OnboardingScreen()),
-        (route) => false,
-      );
     }
   }
 

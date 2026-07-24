@@ -37,7 +37,6 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
   
   bool _isListening = false;
   bool _isThinking = false;
-  bool _isSpeaking = false;
   bool _isStreaming = false; // true while local Gemma is generating tokens
   String _buddyState = 'idle'; // 'idle', 'thinking', 'speaking', 'error'
 
@@ -72,7 +71,6 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
   @override
   void dispose() {
     BuddyAssistantSheet.isVisible.value = false;
-    RagService().clearGemmaSession();
     TtsService().stop();
     _textController.dispose();
     _scrollController.dispose();
@@ -83,13 +81,11 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
     // Strip the navigation tag before speaking to the user S01
     final cleanText = text.replaceAll(RegExp(r'\[NAVIGATE:.*?\]'), '').trim();
     setState(() {
-      _isSpeaking = true;
       _buddyState = 'speaking';
     });
     await TtsService().speak(cleanText);
     if (mounted) {
       setState(() {
-        _isSpeaking = false;
         _buddyState = 'idle';
       });
 
@@ -256,7 +252,6 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
     }
 
     final query = userQuery.toLowerCase();
-    final response = llmResponse.toLowerCase();
 
     // 2. Perform direct regex/sub-string heuristics based on User query
     final containsGoAction = query.contains('go to') || 

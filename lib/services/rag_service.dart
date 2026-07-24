@@ -337,13 +337,6 @@ class RagService {
     await _gemmaInitFuture;
   }
 
-  dynamic _gemmaSession;
-
-  void clearGemmaSession() {
-    _gemmaSession = null;
-    print("[Gemma] Local session cleared.");
-  }
-
   Future<String> _queryGemmaOffline(String prompt, {String? systemInstruction}) async {
     try {
       final modelPath = await _getLocalModelPath();
@@ -361,7 +354,7 @@ class RagService {
       await session.addQueryChunk(Message(text: finalPrompt, isUser: true));
       
       final response = await session.getResponse().timeout(const Duration(seconds: 5));
-      if (response == null) return "No response from offline local model.";
+      if (response.isEmpty) return "No response from offline local model.";
       return response
           .replaceAll('<start_of_turn>user', '')
           .replaceAll('<start_of_turn>model', '')
@@ -433,15 +426,13 @@ class RagService {
         );
 
         await for (final token in responseStream) {
-          if (token != null) {
-            final cleaned = token
-                .replaceAll('<start_of_turn>user', '')
-                .replaceAll('<start_of_turn>model', '')
-                .replaceAll('<start_of_turn>', '')
-                .replaceAll('<end_of_turn>', '');
-            if (cleaned.isNotEmpty) {
-              controller.add(cleaned);
-            }
+          final cleaned = token
+              .replaceAll('<start_of_turn>user', '')
+              .replaceAll('<start_of_turn>model', '')
+              .replaceAll('<start_of_turn>', '')
+              .replaceAll('<end_of_turn>', '');
+          if (cleaned.isNotEmpty) {
+            controller.add(cleaned);
           }
         }
       } catch (e) {
@@ -532,69 +523,6 @@ class RagService {
       yield "Gemini API rate limit or free-tier quota exceeded. Please wait ~15 seconds or add a fresh key in Settings.";
     } else {
       yield "Gemini API Connection error. Please check your network or API keys in Settings.";
-    }
-  }
-
-  String _getOllamaBaseUrl() {
-    if (Platform.isAndroid) {
-      return "http://10.0.2.2:11434";
-    }
-    return "http://localhost:11434";
-  }
-
-  Future<String> _queryLocalOllama(String prompt) async {
-    final baseUrl = _getOllamaBaseUrl();
-    try {
-      final tagsResponse = await http
-          .get(Uri.parse("$baseUrl/api/tags"))
-          .timeout(const Duration(seconds: 2));
-      
-      if (tagsResponse.statusCode != 200) {
-        throw Exception("Ollama server code ${tagsResponse.statusCode}");
-      }
-
-      final tagsData = jsonDecode(tagsResponse.body);
-      final List modelsList = tagsData['models'] ?? [];
-      if (modelsList.isEmpty) {
-        throw Exception("No models installed in Ollama.");
-      }
-
-      final availableNames = modelsList.map((m) => m['name'].toString()).toList();
-      String selectedModel = availableNames.first;
-      const preferredModels = [
-        "llama3.2:latest",
-        "gemma2:2b",
-        "qwen2.5:0.5b",
-        "gemma3:4b",
-        "qwen2.5-coder:7b",
-        "gemma4:latest"
-      ];
-      for (var pref in preferredModels) {
-        if (availableNames.contains(pref)) {
-          selectedModel = pref;
-          break;
-        }
-      }
-
-      final generateUrl = Uri.parse("$baseUrl/api/generate");
-      final response = await http.post(
-        generateUrl,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "model": selectedModel,
-          "prompt": prompt,
-          "stream": false,
-        }),
-      ).timeout(const Duration(seconds: 20));
-
-      if (response.statusCode == 200) {
-        final resData = jsonDecode(response.body);
-        return resData['response']?.toString().trim() ?? "Empty response from Local LLM.";
-      } else {
-        return "Local LLM Error: HTTP ${response.statusCode}";
-      }
-    } catch (e) {
-      return "Local LLM connection failed: $e";
     }
   }
 
@@ -754,31 +682,27 @@ class RagService {
         var permission = await Geolocator.checkPermission();
         if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
           Position? pos = await Geolocator.getLastKnownPosition();
-          if (pos == null) {
-            pos = await Geolocator.getCurrentPosition(
-              desiredAccuracy: LocationAccuracy.low,
-              timeLimit: const Duration(seconds: 1),
-            );
-          }
-          if (pos != null) {
-            locationStr = "Latitude ${pos.latitude.toStringAsFixed(4)}, Longitude ${pos.longitude.toStringAsFixed(4)}";
-            try {
-              final response = await http.get(
-                Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.latitude}&lon=${pos.longitude}&zoom=10'),
-                headers: {'User-Agent': 'EasyLensApp/1.0 (cs-thesis)'},
-              ).timeout(const Duration(milliseconds: 1500));
-              if (response.statusCode == 200) {
-                final data = jsonDecode(response.body);
-                final address = data['address'];
-                if (address != null) {
-                  final city = address['city'] ?? address['town'] ?? address['village'] ?? address['municipality'] ?? address['county'] ?? address['state'];
-                  if (city != null) {
-                    locationStr = "$city ($locationStr)";
-                  }
+          pos ??= await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.low,
+            timeLimit: const Duration(seconds: 1),
+          );
+          locationStr = "Latitude ${pos.latitude.toStringAsFixed(4)}, Longitude ${pos.longitude.toStringAsFixed(4)}";
+          try {
+            final response = await http.get(
+              Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.latitude}&lon=${pos.longitude}&zoom=10'),
+              headers: {'User-Agent': 'EasyLensApp/1.0 (cs-thesis)'},
+            ).timeout(const Duration(milliseconds: 1500));
+            if (response.statusCode == 200) {
+              final data = jsonDecode(response.body);
+              final address = data['address'];
+              if (address != null) {
+                final city = address['city'] ?? address['town'] ?? address['village'] ?? address['municipality'] ?? address['county'] ?? address['state'];
+                if (city != null) {
+                  locationStr = "$city ($locationStr)";
                 }
               }
-            } catch (_) {}
-          }
+            }
+          } catch (_) {}
         }
       }
     } catch (_) {}
@@ -1027,7 +951,6 @@ class RagService {
     );
 
     final useLocal = SettingsService().useLocalAI;
-    final modelPath = await _getLocalModelPath();
  
     final StringBuffer buf = StringBuffer();
     bool yieldedAnything = false;
@@ -1122,11 +1045,6 @@ class RagService {
     final lowerQ = question.toLowerCase().trim();
     final lang = SettingsService().selectedLanguage;
     final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-    final user = FirebaseService().currentUser;
-    final name = user?.displayName ?? "friend";
-    final aid = SettingsService().selectedMobilityAid.isNotEmpty
-        ? SettingsService().selectedMobilityAid
-        : "None";
 
     if (lowerQ.contains("how to use this app") || lowerQ.contains("how to use the app") || lowerQ.contains("app guide") || lowerQ.contains("how to use") || lowerQ.contains("instructions") || lowerQ.contains("tutorial") || lowerQ.contains("guide")) {
       return isUserFilipino
@@ -1639,19 +1557,6 @@ Buddy:""";
 
   Future<void> simulateModelInstall() async {
     _isGemmaModelInstalled = true;
-  }
-}
-
-class _Mutex {
-  Future<void> _last = Future.value();
-
-  Future<T> protect<T>(Future<T> Function() criticalSection) {
-    final completer = Completer<void>();
-    final next = _last.then((_) => criticalSection()).whenComplete(() {
-      completer.complete();
-    });
-    _last = completer.future;
-    return next;
   }
 }
 

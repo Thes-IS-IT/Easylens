@@ -7,7 +7,6 @@ import '../services/settings_service.dart';
 import '../services/stt_service.dart';
 import '../services/tts_service.dart';
 import '../services/firebase_service.dart';
-import '../services/translation_service.dart';
 import '../utils/app_route.dart';
 import '../main.dart'; // access navigatorKey S01
 

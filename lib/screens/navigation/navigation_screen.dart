@@ -22,8 +22,6 @@ import '../../widgets/speech_navigation_overlay.dart';
 import '../../widgets/screen_tutorial_card.dart';
 import 'package:flutter/services.dart';
 import '../../services/danger_warning_service.dart';
-import '../../services/notification_service.dart';
-import '../../models/app_notification.dart';
 import '../../widgets/critical_danger_overlay.dart';
 import '../../services/navigation_voice_assistant.dart';
 
@@ -80,7 +78,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
   // 2 = Full navigation detail map view (Figma screen 4)
   int _navState = 0;
 
-  String _searchQuery = "";
   final _searchController = TextEditingController();
   final List<String> _filters = ['Home', 'Work', 'Holy Angel University'];
   String _selectedFilter = '';
@@ -91,13 +88,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   LatLng _currentLocation = const LatLng(15.1325, 120.5901); // Fallback coordinates
   StreamSubscription<Position>? _positionStreamSubscription;
-  bool _isLoadingLocation = false;
   List<LatLng> _routePoints = [];
   bool _isFetchingRoute = false;
 
-  // Obstacle / proximity guidance
-  int _lastNavAlertTime = 0;
-  static const int _navAlertCooldownMs = 8000; // 8 s between spoken alerts
   bool _hasAnnouncedArrival = false;
   
 
@@ -259,38 +252,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
     TtsService().speak(isTagalog ? "Kinansela ang paghahanap ng ruta." : "Navigation setup cancelled.");
   }
 
-  void _triggerHazardAlert(String label) {
-    final lang = SettingsService().selectedLanguage;
-    final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-    
-    final info = DangerWarningService().getHazardInfo(label);
-    final message = isTagalog ? info.messageTl : info.messageEn;
-
-    // 1. Update ActiveNavigationService state
-    ActiveNavigationService().triggerHazardAlert(
-      hazardName: info.label,
-      severity: info.severity,
-      message: message,
-    );
-
-    // 2. Trigger Maximum Hardware Motor Vibration
-    DangerWarningService().triggerStrongHazardVibration(
-      isCritical: info.severity == HazardSeverity.critical,
-    );
-
-    // 3. Spoken TTS Voice Alert
-    TtsService().speak(message);
-
-    // 4. Local Push Notification
-    NotificationService().push(
-      type: info.severity == HazardSeverity.critical ? NotificationType.warning : NotificationType.obstacle,
-      title: info.title,
-      body: message,
-    );
-
-    if (mounted) setState(() {});
-  }
-
   void _clearHazardAlert() {
     ActiveNavigationService().clearHazardAlert();
     if (mounted) setState(() {});
@@ -353,7 +314,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (mounted) setState(() => _isLoadingLocation = false);
         return;
       }
 
@@ -361,13 +321,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          if (mounted) setState(() => _isLoadingLocation = false);
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        if (mounted) setState(() => _isLoadingLocation = false);
         return;
       }
 
@@ -380,7 +338,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
       if (mounted) {
         setState(() {
           _currentLocation = LatLng(position.latitude, position.longitude);
-          _isLoadingLocation = false;
         });
       }
 
@@ -425,7 +382,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
           });
         }
       } catch (_) {}
-      setState(() => _isLoadingLocation = false);
     }
   }
 
@@ -498,7 +454,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
     if (distToDestM < 20 && !_hasAnnouncedArrival) {
       _hasAnnouncedArrival = true;
-      _lastNavAlertTime = now;
       TtsService().speak(
         SettingsService().selectedLanguage == 'Tagalog'
             ? 'Nakarating ka na sa iyong patutunguhan, ${_selectedPlace!["name"]}. Magaling!'
@@ -748,9 +703,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   // Live filtered search with API cache limit protection
   Future<void> _performSearch(String query) async {
-    setState(() {
-      _searchQuery = query;
-    });
 
     if (query.trim().isEmpty) {
       _updateSearchResults(List.from(_allPlaces));
@@ -917,7 +869,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _currentStepIndex = 0;
       _lastDynamicAnnouncedDistanceM = null;
       _hasAnnouncedArrival = false;
-      _lastNavAlertTime = 0;
       _navState = 1;
     });
     _fetchRoadRoute();

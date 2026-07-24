@@ -20,16 +20,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/active_navigation_service.dart';
 import '../../services/danger_warning_service.dart';
 import '../../services/face_registration_service.dart';
-import '../emergency/emergency_screen.dart';
-import '../settings/settings_screen.dart';
-import '../notifications/notifications_screen.dart';
 import '../../services/notification_service.dart';
 import '../../services/esp32_service.dart';
-import '../devices/devices_screen.dart';
 import 'package:battery_plus/battery_plus.dart';
 import '../../widgets/screen_tutorial_card.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
-import '../contacts/contacts_screen.dart';
 import '../../widgets/speech_navigation_overlay.dart';
 import '../../utils/app_route.dart';
 import 'components/pairing_wizard.dart';
@@ -85,7 +80,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
   bool _isContinuousVoiceEnabled = false;
   String _continuousVoiceText = '';
   Timer? _silenceTimer;
-  bool _isFocusModeEnabled = false;
   bool get _isScreenLocked => HardwareScreen.screenLockNotifier.value;
   set _isScreenLocked(bool v) => HardwareScreen.screenLockNotifier.value = v;
   bool _useLocalAI = true;
@@ -149,7 +143,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   String _lastGuidanceText = "";
   DateTime? _lastGuidanceTime;
-  final Map<String, double> _objectLastAreas = {};
 
   // Dynamic Hazard simulation lists
   final List<Map<String, dynamic>> _hazardSimulations = [
@@ -2157,14 +2150,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
               final String signText = recognizedText.text.toUpperCase();
               if (signText.contains('STOP')) {
                 selectedSim = _hazardSimulations[11]; // STOP!
-                selectedSim = Map<String, dynamic>.from(selectedSim!)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
+                selectedSim = Map<String, dynamic>.from(selectedSim)..['speech'] = 'STOP! Stop sign detected. Please halt immediately.';
               } else if (signText.contains('GO') || signText.contains('WALK') || signText.contains('CROSS')) {
                 selectedSim = _hazardSimulations[13]; // GO Signal Detected
               } else {
                 selectedSim = _hazardSimulations[1]; // General Traffic Sign
                 if (recognizedText.text.trim().isNotEmpty) {
                   final words = recognizedText.text.split('\n').first.trim();
-                  selectedSim = Map<String, dynamic>.from(selectedSim!)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
+                  selectedSim = Map<String, dynamic>.from(selectedSim)..['desc'] = 'Traffic sign detected reading: "$words"'..['speech'] = 'Traffic sign detected reading: $words';
                 }
               }
             } catch (e) {
@@ -2255,7 +2248,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         });
 
         final now = DateTime.now();
-        final String title = selectedSim!['title'];
+        final String title = selectedSim['title'];
         final String speech = selectedSim['speech'];
 
         final isImmediate = title == 'STOP!' || title == 'Fire Hazard!';

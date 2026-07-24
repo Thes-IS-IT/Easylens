@@ -162,17 +162,8 @@ class TfliteProcessor {
       }
       
       final results = <SSDResult>[];
-      double maxScore = 0.0;
-      String maxLabel = 'none';
-
       for (int i = 0; i < math.min(count, _maxDetections); i++) {
         final double score = _getVal(outputs[_scrIdx]!, i);
-        if (score > maxScore) {
-          maxScore = score;
-          final int tempIdx = _getVal(outputs[_clsIdx]!, i).toInt();
-          if (tempIdx >= 0 && tempIdx < _labels.length) maxLabel = _labels[tempIdx];
-        }
-
         if (score < 0.15) continue; // standard threshold
         
         final int classIdx = _getVal(outputs[_clsIdx]!, i).toInt();
@@ -207,7 +198,7 @@ class TfliteProcessor {
     try {
       if (t is List) {
         var v = t;
-        while (v is List && v.isNotEmpty) {
+        while (v.isNotEmpty) {
           final first = v[0];
           if (first is List) {
             v = first;

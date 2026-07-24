@@ -268,7 +268,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                             ),
                           )
                         : Text(
-                            'sos',
+                            _alertSent ? 'SOS' : '...',
                             style: GoogleFonts.inter(
                               fontSize: 78,
                               fontWeight: FontWeight.w900,

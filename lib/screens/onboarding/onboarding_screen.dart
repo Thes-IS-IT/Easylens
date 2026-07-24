@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../signup/signup_screen.dart';
-import '../dashboard/dashboard_screen.dart';
 import '../login/login_screen.dart';
 import '../../utils/app_route.dart';
 import '../../services/rag_service.dart';
