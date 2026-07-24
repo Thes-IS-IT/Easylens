@@ -119,6 +119,10 @@ class DangerWarningService {
     'curb', 'ramp', 'slope', 'drain', 'sewer', 'ditch', 'gutter', 'pavement crack', 'gravel', 'mud'
   };
 
+  static final Set<String> _elevatorKeywords = {
+    'elevator', 'lift', 'escalator'
+  };
+
   /// Evaluates an object label string and returns its hazard severity level
   HazardSeverity evaluateLabel(String label) {
     final cleanLabel = label.toLowerCase().trim();
@@ -180,6 +184,11 @@ class DangerWarningService {
 
     // Check Elevation / Terrain (Caution)
     for (final kw in _elevationTerrainKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.caution;
+    }
+
+    // Check Elevator (Caution)
+    for (final kw in _elevatorKeywords) {
       if (cleanLabel.contains(kw)) return HazardSeverity.caution;
     }
 
@@ -356,6 +365,20 @@ class DangerWarningService {
           title: 'TERRAIN ELEVATION CAUTION',
           messageEn: "Caution: Elevation change ($capitalized) detected on your path. Watch your footing.",
           messageTl: "Mag-ingat: May bangketa, dalisdis, o kanal ($capitalized) sa iyong hahakbangan.",
+        );
+      }
+    }
+
+    // 13. Elevator check (Caution)
+    for (final kw in _elevatorKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.caution,
+          icon: Icons.elevator_rounded,
+          title: 'ELEVATOR APPROACHING',
+          messageEn: "Caution: Approaching elevator door ahead. Locate the call buttons and wait for it to open before stepping inside.",
+          messageTl: "Mag-ingat: May elevator o hagdanang de-motor sa iyong tapat. Hintayin itong bumukas bago pumasok.",
         );
       }
     }
