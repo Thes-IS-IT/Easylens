@@ -754,7 +754,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _errorMessage = null);
     } else if (_currentStep == 11) {
       // Step 11: Phone Step
-      if (_phone.trim().length < 10) {
+      if (_phone.trim().length != 11) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(SignupL10n.t('error_phone', _selectedLanguage)),
@@ -869,8 +869,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _smsErrorMessage = null;
     });
 
-    if (_phone.isEmpty || _phone.trim().length < 10) {
-      setState(() => _smsErrorMessage = 'Please enter a valid 11-digit phone number');
+    if (_phone.isEmpty || _phone.trim().length != 11) {
+      final isTagalog = _selectedLanguage.toLowerCase().contains('tagalog') || _selectedLanguage.toLowerCase().contains('filipino');
+      setState(() => _smsErrorMessage = isTagalog 
+          ? 'Mangyaring maglagay ng wastong 11-digit na numero (hal. 09123456789)' 
+          : 'Please enter a valid 11-digit phone number (e.g. 09123456789)');
       return;
     }
 

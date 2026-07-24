@@ -45,13 +45,18 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
 
   Future<void> _handleSendCode() async {
     final phone = _controller.text.trim();
+    final isTagalog = widget.language.toLowerCase().contains('tagalog') || widget.language.toLowerCase().contains('filipino');
     if (phone.isEmpty) {
-      setState(() => _errorText = 'Please enter your phone number');
+      setState(() => _errorText = isTagalog 
+          ? 'Mangyaring ilagay ang iyong numero ng telepono' 
+          : 'Please enter your phone number');
       return;
     }
 
-    if (phone.length < 10) {
-      setState(() => _errorText = 'Please enter a valid 11-digit phone number');
+    if (phone.length != 11) {
+      setState(() => _errorText = isTagalog 
+          ? 'Ang numero ng telepono ay dapat eksaktong 11 digits (hal. 09123456789)' 
+          : 'Please enter a valid 11-digit phone number (e.g. 09123456789)');
       return;
     }
 
