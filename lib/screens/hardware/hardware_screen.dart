@@ -1233,7 +1233,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
     ];
     final hazardKeywords = [
       'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
-      'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush'
+      'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush',
+      'elevator', 'lift', 'escalator', 'metal'
     ];
     final vehicleKeywords = [
       'car', 'bus', 'truck', 'vehicle', 'jeepney', 'tricycle', 'motorcycle', 'van', 'automobile'
@@ -1703,7 +1704,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final hazardKeywords = [
         'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
         'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush',
-        'traffic light', 'traffic sign', 'stop sign'
+        'traffic light', 'traffic sign', 'stop sign',
+        'elevator', 'lift', 'escalator', 'metal'
       ];
       final isHazard = hazardKeywords.any((k) => targetLabel.toLowerCase().contains(k));
 
@@ -1979,6 +1981,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   String _refineLabel(String rawLabel) {
     final label = rawLabel.toLowerCase();
+    if (label.contains('metal')) {
+      return 'elevator door';
+    }
     if (label.contains('hair drier') || label.contains('hairdryer')) {
       return 'hair drier';
     }

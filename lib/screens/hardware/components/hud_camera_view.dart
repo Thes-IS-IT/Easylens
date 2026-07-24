@@ -50,6 +50,9 @@ class HudCameraView extends StatelessWidget {
 
   String _refineLabel(String rawLabel) {
     final label = rawLabel.toLowerCase();
+    if (label.contains('metal')) {
+      return 'elevator door';
+    }
     if (label.contains('hair drier') || label.contains('hairdryer')) {
       return 'hair drier';
     }
