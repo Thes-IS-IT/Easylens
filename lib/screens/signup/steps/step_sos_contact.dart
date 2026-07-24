@@ -246,6 +246,54 @@ class _StepSosContactState extends State<StepSosContact> {
             ),
             onPressed: () {
               try {
+                final isTagalog = widget.language.toLowerCase().contains('tagalog') ||
+                    widget.language.toLowerCase().contains('filipino');
+
+                // Validate SOS contact name
+                if (_nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isTagalog
+                          ? 'Mangyaring ilagay ang pangalan ng iyong SOS contact.'
+                          : 'Please enter the name of your SOS contact.'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                  return;
+                }
+
+                // Validate SOS phone number — must be exactly 11 digits if provided
+                final sosPhone = _phoneController.text.trim();
+                if (sosPhone.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isTagalog
+                          ? 'Mangyaring ilagay ang numero ng telepono ng iyong SOS contact (11 digits, hal. 09123456789).'
+                          : 'Please enter the SOS contact phone number (11 digits, e.g. 09123456789).'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                  return;
+                }
+
+                if (sosPhone.length != 11) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isTagalog
+                          ? 'Ang numero ng SOS contact ay dapat eksaktong 11 digits (hal. 09123456789). Kasalukuyang may ${sosPhone.length} digit.'
+                          : 'SOS contact phone must be exactly 11 digits (e.g. 09123456789). Currently has ${sosPhone.length} digit(s).'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                  return;
+                }
+
                 widget.onFinish();
               } catch (e) {
                 if (mounted) {

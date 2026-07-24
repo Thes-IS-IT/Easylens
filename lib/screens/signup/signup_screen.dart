@@ -1041,6 +1041,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     }
 
+    // Final safety-net: re-validate SOS contact phone before account creation
+    if (_sosPhone.trim().isNotEmpty && _sosPhone.trim().length != 11) {
+      final sosPhoneMsg = isTagalog
+          ? 'Ang numero ng SOS contact ay dapat eksaktong 11 digits (hal. 09123456789). Mangyaring bumalik at itama.'
+          : 'SOS contact phone must be exactly 11 digits (e.g. 09123456789). Please go back and fix it.';
+      setState(() {
+        _isLoading = false;
+        _errorMessage = sosPhoneMsg;
+        _currentStep = 19;
+      });
+      TtsService().speak(sosPhoneMsg);
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
