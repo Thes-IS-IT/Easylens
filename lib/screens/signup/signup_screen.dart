@@ -16,6 +16,7 @@ import '../../services/storage/cloudflare_r2_service.dart';
 import 'celebration_screen.dart';
 import 'steps/signup_steps.dart';
 import 'steps/voice_input_widget.dart';
+import '../../services/sound_service.dart';
 import '../../utils/app_route.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -684,6 +685,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _nextStep() async {
+    SoundService.playPop();
     _lastSpokenStep = null;
     _isAwaitingConfirmation = false;
     // Input validation & exception handling per step
@@ -804,6 +806,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _prevStep() {
+    SoundService.playTab();
     _lastSpokenStep = null;
     _isAwaitingConfirmation = false;
     _pendingVoiceSelection = '';

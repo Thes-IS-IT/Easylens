@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
+import '../../services/sound_service.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../../utils/app_route.dart';
 
@@ -268,6 +269,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _handleLogin() async {
+    SoundService.playPop();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -351,6 +353,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _handleGoogleLogin() async {
+    SoundService.playPop();
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -427,7 +430,10 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      SoundService.playTab();
+                      Navigator.of(context).pop();
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(

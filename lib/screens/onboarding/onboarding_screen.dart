@@ -8,6 +8,7 @@ import '../dashboard/dashboard_screen.dart';
 import '../login/login_screen.dart';
 import '../../utils/app_route.dart';
 import '../../services/rag_service.dart';
+import '../../services/sound_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -336,6 +337,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 onPressed: _isDownloading
                                     ? null
                                     : () {
+                                        SoundService.playPop();
                                         Navigator.of(context).push(
                                           AppRoute.splitDoor(const SignUpScreen()),
                                         );
@@ -367,6 +369,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 onPressed: _isDownloading
                                     ? null
                                     : () {
+                                        SoundService.playPop();
                                         Navigator.of(context).push(
                                           AppRoute.to(const LoginScreen()),
                                         );
