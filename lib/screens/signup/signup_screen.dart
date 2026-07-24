@@ -1538,26 +1538,89 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     Expanded(
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          final slideAnimation = Tween<Offset>(
-                            begin: const Offset(0.08, 0.0),
-                            end: Offset.zero,
-                          ).animate(animation);
-                          final fadeAnimation = Tween<double>(
-                            begin: 0.0,
-                            end: 1.0,
-                          ).animate(animation);
-
-                          return FadeTransition(
-                            opacity: fadeAnimation,
-                            child: SlideTransition(
-                              position: slideAnimation,
-                              child: child,
-                            ),
+                        duration: const Duration(milliseconds: 600),
+                        switchInCurve: Curves.easeInOutCubic,
+                        switchOutCurve: Curves.easeInOutCubic,
+                        layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                          return Stack(
+                            alignment: Alignment.topCenter,
+                            children: <Widget>[
+                              ...previousChildren,
+                              if (currentChild != null) currentChild,
+                            ],
                           );
+                        },
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          final isIncoming = (child.key as ValueKey<int>?)?.value == _currentStep;
+
+                          if (isIncoming) {
+                            final scale = Tween<double>(begin: 0.90, end: 1.0).animate(animation);
+                            final fade = Tween<double>(begin: 0.0, end: 1.0).animate(animation);
+                            return FadeTransition(
+                              opacity: fade,
+                              child: ScaleTransition(
+                                scale: scale,
+                                child: child,
+                              ),
+                            );
+                          } else {
+                            return AnimatedBuilder(
+                              animation: animation,
+                              builder: (context, _) {
+                                final splitProgress = 1.0 - animation.value;
+                                final leftOffset = Offset(-1.0 * splitProgress, 0.0);
+                                final rightOffset = Offset(1.0 * splitProgress, 0.0);
+
+                                return Stack(
+                                  children: [
+                                    // Left half of outgoing step question
+                                    FractionalTranslation(
+                                      translation: leftOffset,
+                                      child: ClipRect(
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          widthFactor: 0.5,
+                                          child: Container(
+                                            decoration: const BoxDecoration(
+                                              border: Border(
+                                                right: BorderSide(
+                                                  color: Color(0xFFFFD700),
+                                                  width: 2.0,
+                                                ),
+                                              ),
+                                            ),
+                                            child: child,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Right half of outgoing step question
+                                    FractionalTranslation(
+                                      translation: rightOffset,
+                                      child: ClipRect(
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          widthFactor: 0.5,
+                                          child: Container(
+                                            decoration: const BoxDecoration(
+                                              border: Border(
+                                                left: BorderSide(
+                                                  color: Color(0xFFFFD700),
+                                                  width: 2.0,
+                                                ),
+                                              ),
+                                            ),
+                                            child: child,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          }
                         },
                         child: SingleChildScrollView(
                           key: ValueKey<int>(_currentStep),
