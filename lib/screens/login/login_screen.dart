@@ -37,6 +37,11 @@ class _LoginScreenState extends State<LoginScreen>
   late AnimationController _entranceController;
   late AnimationController _buttonPressController;
   late AnimationController _errorSlideController;
+  late AnimationController _mascotZoomController;
+
+  // Mascot zoom animation on successful login
+  late Animation<double> _mascotZoomScale;
+  late Animation<double> _formFadeOut;
 
   // Staggered entrance animations
   late Animation<double> _heroScale;
@@ -224,6 +229,24 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
 
+    // Mascot zoom controller for successful login
+    _mascotZoomController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+    _mascotZoomScale = Tween<double>(begin: 1.0, end: 4.5).animate(
+      CurvedAnimation(
+        parent: _mascotZoomController,
+        curve: Curves.easeInCubic,
+      ),
+    );
+    _formFadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _mascotZoomController,
+        curve: const Interval(0.0, 0.45, curve: Curves.easeOut),
+      ),
+    );
+
     // Start entrance animation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _entranceController.forward();
@@ -241,6 +264,7 @@ class _LoginScreenState extends State<LoginScreen>
     _entranceController.dispose();
     _buttonPressController.dispose();
     _errorSlideController.dispose();
+    _mascotZoomController.dispose();
     super.dispose();
   }
 
@@ -302,10 +326,14 @@ class _LoginScreenState extends State<LoginScreen>
             _loginSuccess = true;
             _isLoading = false;
           });
-          Navigator.of(context).pushAndRemoveUntil(
-            AppRoute.rocketLaunch(const DashboardScreen()),
-            (route) => false,
-          );
+          _mascotZoomController.forward();
+          await Future.delayed(const Duration(milliseconds: 550));
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              AppRoute.mascotZoom(const DashboardScreen()),
+              (route) => false,
+            );
+          }
         }
       }
     } on FirebaseAuthException catch (e) {
@@ -366,10 +394,14 @@ class _LoginScreenState extends State<LoginScreen>
           _loginSuccess = true;
           _isLoading = false;
         });
-        Navigator.of(context).pushAndRemoveUntil(
-          AppRoute.rocketLaunch(const DashboardScreen()),
-          (route) => false,
-        );
+        _mascotZoomController.forward();
+        await Future.delayed(const Duration(milliseconds: 550));
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            AppRoute.mascotZoom(const DashboardScreen()),
+            (route) => false,
+          );
+        }
       } else if (mounted) {
         setState(() {
           _isLoading = false;
@@ -505,7 +537,7 @@ class _LoginScreenState extends State<LoginScreen>
                   children: [
                     // Left Side: Bigger Mascot GIF sitting on top of white card
                     ScaleTransition(
-                      scale: _heroScale,
+                      scale: _loginSuccess ? _mascotZoomScale : _heroScale,
                       child: FadeTransition(
                         opacity: _heroFade,
                         child: AnimatedSwitcher(
@@ -961,9 +993,11 @@ class _LoginScreenState extends State<LoginScreen>
 
               // ── WHITE FORM SHEET (overlaps hero by ~20px) ──
               Expanded(
-                child: Transform.translate(
-                  offset: const Offset(0, -24),
-                  child: Container(
+                child: FadeTransition(
+                  opacity: _formFadeOut,
+                  child: Transform.translate(
+                    offset: const Offset(0, -24),
+                    child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.primaryBackground,
                       borderRadius: const BorderRadius.only(
@@ -1099,6 +1133,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ],
                         ),
                       ),
+                    ),
                     ),
                   ),
                 ),

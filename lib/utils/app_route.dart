@@ -64,6 +64,41 @@ class AppRoute {
     );
   }
 
+  /// 🐶 HERO MASCOT ZOOM TRANSITION
+  /// Used upon successful login when navigating to Dashboard.
+  /// The Buddy Mascot GIF expands towards the user camera with a happy glow reveal,
+  /// seamlessly dissolving into the Dashboard screen!
+  static PageRouteBuilder<T> mascotZoom<T>(Widget screen) {
+    return PageRouteBuilder<T>(
+      transitionDuration: const Duration(milliseconds: 650),
+      reverseTransitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, animation, secondaryAnimation) => screen,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final incomingScale = Tween<double>(begin: 0.90, end: 1.0).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+          ),
+        );
+
+        final incomingFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0.1, 0.7, curve: Curves.easeOut),
+          ),
+        );
+
+        return FadeTransition(
+          opacity: incomingFade,
+          child: ScaleTransition(
+            scale: incomingScale,
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   /// 🚪 NEAT HIGH-TECH DOUBLE-DOOR SPLIT TRANSITION
   /// Used when navigating to Account Creation / SignUp or between major wizard phases.
   /// The screen splits cleanly down the center like double doors sliding open,
