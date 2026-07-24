@@ -140,13 +140,6 @@ class AppRoute {
                   child: Container(
                     decoration: const BoxDecoration(
                       color: Color(0xFF071426),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0xFFFFD700),
-                          blurRadius: 10,
-                          spreadRadius: 1,
-                        )
-                      ],
                     ),
                     child: Stack(
                       children: [
@@ -164,12 +157,12 @@ class AppRoute {
                             ),
                           ),
                         ),
-                        // Golden vertical seam border
+                        // Clean vertical seam border
                         Align(
                           alignment: Alignment.centerRight,
                           child: Container(
-                            width: 2.5,
-                            color: const Color(0xFFFFD700),
+                            width: 1.5,
+                            color: Colors.white.withValues(alpha: 0.3),
                           ),
                         ),
                       ],
@@ -189,13 +182,6 @@ class AppRoute {
                   child: Container(
                     decoration: const BoxDecoration(
                       color: Color(0xFF071426),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0xFFFFD700),
-                          blurRadius: 10,
-                          spreadRadius: 1,
-                        )
-                      ],
                     ),
                     child: Stack(
                       children: [
@@ -213,12 +199,12 @@ class AppRoute {
                             ),
                           ),
                         ),
-                        // Golden vertical seam border
+                        // Clean vertical seam border
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Container(
-                            width: 2.5,
-                            color: const Color(0xFFFFD700),
+                            width: 1.5,
+                            color: Colors.white.withValues(alpha: 0.3),
                           ),
                         ),
                       ],
@@ -234,20 +220,15 @@ class AppRoute {
                 opacity: beamOpacity,
                 child: Center(
                   child: Container(
-                    width: 3,
+                    width: 2,
                     height: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Color(0xFFFFD700),
-                          blurRadius: 20,
-                          spreadRadius: 6,
-                        ),
-                        BoxShadow(
                           color: Color(0xFF3B82F6),
-                          blurRadius: 35,
-                          spreadRadius: 12,
+                          blurRadius: 25,
+                          spreadRadius: 8,
                         ),
                       ],
                     ),

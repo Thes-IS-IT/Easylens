@@ -1580,17 +1580,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                         child: Align(
                                           alignment: Alignment.centerLeft,
                                           widthFactor: 0.5,
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              border: Border(
-                                                right: BorderSide(
-                                                  color: Color(0xFFFFD700),
-                                                  width: 2.0,
-                                                ),
-                                              ),
-                                            ),
-                                            child: child,
-                                          ),
+                                          child: child,
                                         ),
                                       ),
                                     ),
@@ -1602,17 +1592,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                         child: Align(
                                           alignment: Alignment.centerRight,
                                           widthFactor: 0.5,
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              border: Border(
-                                                left: BorderSide(
-                                                  color: Color(0xFFFFD700),
-                                                  width: 2.0,
-                                                ),
-                                              ),
-                                            ),
-                                            child: child,
-                                          ),
+                                          child: child,
                                         ),
                                       ),
                                     ),
