@@ -1051,14 +1051,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (user == null) {
         if (_authMethod == 'Google') {
-          user = EasyLensUser(
-            uid: "google_user_${DateTime.now().millisecondsSinceEpoch}",
-            email: regEmail.isNotEmpty ? regEmail : "user@google.com",
-            displayName: regName,
-            isForMyself: _isForMyself,
-          );
+          // Use real Google Sign-In — returns the actual Gmail address from the account picker
+          user = await _firebaseService.signInWithGoogle();
+          if (user == null) {
+            setState(() {
+              _isLoading = false;
+              _errorMessage = isTagalog
+                  ? 'Hindi matagumpay ang Google Sign-In. Mangyaring subukan ulit.'
+                  : 'Google Sign-In failed or was cancelled. Please try again.';
+            });
+            return;
+          }
         } else {
-          // Direct real Firebase registration
+          // Direct real Firebase registration (Email auth)
           user = await _firebaseService.signUp(regEmail, regPassword, regName, _isForMyself);
         }
       }
