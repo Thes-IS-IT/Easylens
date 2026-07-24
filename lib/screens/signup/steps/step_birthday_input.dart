@@ -50,7 +50,7 @@ class _StepBirthdayInputState extends State<StepBirthdayInput> {
             colorScheme: ColorScheme.light(
               primary: AppColors.primaryButton,
               onPrimary: AppColors.primaryButtonText,
-              surface: Colors.white,
+              surface: AppColors.primaryBackground,
               onSurface: AppColors.primaryText,
             ),
             textButtonTheme: TextButtonThemeData(
@@ -116,18 +116,9 @@ class _StepBirthdayInputState extends State<StepBirthdayInput> {
           decoration: InputDecoration(
             hintText: 'MM / DD / YYYY',
             hintStyle: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 14),
-            suffixIcon: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                VoiceMicIconButton(
-                  controller: _controller,
-                  onChanged: widget.onBirthdayChanged,
-                ),
-                IconButton(
-                  icon: Icon(Icons.calendar_month_outlined, color: AppColors.textMuted, size: 20),
-                  onPressed: _openDatePicker,
-                ),
-              ],
+            suffixIcon: IconButton(
+              icon: Icon(Icons.calendar_month_outlined, color: AppColors.textMuted, size: 20),
+              onPressed: _openDatePicker,
             ),
             filled: true,
             fillColor: AppColors.lightBackground,

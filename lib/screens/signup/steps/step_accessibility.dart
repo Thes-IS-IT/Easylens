@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../constants/colors.dart';
 import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
@@ -29,10 +30,10 @@ class StepAccessibility extends StatelessWidget {
       height: 76,
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.lightBackground,
         borderRadius: BorderRadius.circular(20.0),
         border: Border.all(
-          color: const Color(0xFFE2E8F0),
+          color: AppColors.cardBorder.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -44,15 +45,15 @@ class StepAccessibility extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF002663),
+              color: AppColors.primaryText,
             ),
           ),
           Switch(
             value: value,
-            activeColor: Colors.white,
-            activeTrackColor: const Color(0xFF002663),
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFFE2E8F0),
+            activeThumbColor: AppColors.primaryButtonText,
+            activeTrackColor: AppColors.primaryButton,
+            inactiveThumbColor: AppColors.primaryText.withValues(alpha: 0.6),
+            inactiveTrackColor: AppColors.unselectedBorder,
             onChanged: onChanged,
           ),
         ],

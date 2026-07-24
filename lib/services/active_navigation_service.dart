@@ -28,6 +28,7 @@ class ActiveNavigationService extends ChangeNotifier {
   HazardSeverity _hazardSeverity = HazardSeverity.safe;
   String _activeHazardName = "";
   String _activeHazardMessage = "";
+  String _avoidanceDirection = ""; // 'left', 'right', 'center', or '' for no directional advice
   DateTime? _hazardTimestamp;
 
   bool get isNavigating => _isNavigating;
@@ -49,17 +50,20 @@ class ActiveNavigationService extends ChangeNotifier {
   HazardSeverity get hazardSeverity => _hazardSeverity;
   String get activeHazardName => _activeHazardName;
   String get activeHazardMessage => _activeHazardMessage;
+  String get avoidanceDirection => _avoidanceDirection;
   DateTime? get hazardTimestamp => _hazardTimestamp;
 
   void triggerHazardAlert({
     required String hazardName,
     required HazardSeverity severity,
     required String message,
+    String avoidanceDirection = '',
   }) {
     _isHazardActive = true;
     _hazardSeverity = severity;
     _activeHazardName = hazardName;
     _activeHazardMessage = message;
+    _avoidanceDirection = avoidanceDirection;
     _hazardTimestamp = DateTime.now();
     notifyListeners();
   }
@@ -69,6 +73,7 @@ class ActiveNavigationService extends ChangeNotifier {
     _hazardSeverity = HazardSeverity.safe;
     _activeHazardName = "";
     _activeHazardMessage = "";
+    _avoidanceDirection = "";
     _hazardTimestamp = null;
     notifyListeners();
   }

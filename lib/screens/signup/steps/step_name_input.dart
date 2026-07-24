@@ -114,10 +114,6 @@ class _StepNameInputState extends State<StepNameInput> {
             hintText: SignupL10n.t('name_hint', widget.language),
             hintStyle: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 14),
             prefixIcon: Icon(Icons.person_outline, color: AppColors.textMuted, size: 20),
-            suffixIcon: VoiceMicIconButton(
-              controller: _controller,
-              onChanged: _handleNameChanged,
-            ),
             filled: true,
             fillColor: AppColors.lightBackground,
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

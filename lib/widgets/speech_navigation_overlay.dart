@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../constants/colors.dart';
 import '../services/settings_service.dart';
 import '../services/stt_service.dart';
 import '../services/tts_service.dart';
@@ -26,14 +27,24 @@ import '../screens/image_labeling/image_labeling_screen.dart';
 import '../screens/hardware/hardware_screen.dart';
 import '../screens/devices/devices_screen.dart';
 import '../services/rag_service.dart';
+import '../services/active_navigation_service.dart';
 
 class SpeechNavigationNotifier {
   static final ValueNotifier<int?> tabChangeNotifier = ValueNotifier<int?>(null);
   static final ValueNotifier<String?> searchPlaceNotifier = ValueNotifier<String?>(null);
   static final ValueNotifier<int?> selectResultNotifier = ValueNotifier<int?>(null);
+  static final ValueNotifier<Map<String, dynamic>?> confirmPlaceNotifier = ValueNotifier<Map<String, dynamic>?>(null);
+  static final ValueNotifier<bool?> stopRouteNotifier = ValueNotifier<bool?>(null);
   static final ValueNotifier<bool?> openBuddyNotifier = ValueNotifier<bool?>(null);
   static final ValueNotifier<String?> hardwareControlNotifier = ValueNotifier<String?>(null);
   static List<Map<String, dynamic>> activeSearchResults = [];
+
+  static void stopRouteNavigation() {
+    stopRouteNotifier.value = true;
+    Future.delayed(const Duration(milliseconds: 50), () {
+      stopRouteNotifier.value = null;
+    });
+  }
   
   static void changeTab(int index) {
     tabChangeNotifier.value = index;
@@ -53,6 +64,13 @@ class SpeechNavigationNotifier {
     selectResultNotifier.value = index;
     Future.delayed(const Duration(milliseconds: 50), () {
       selectResultNotifier.value = null;
+    });
+  }
+
+  static void confirmAndStartNavigation(Map<String, dynamic> place) {
+    confirmPlaceNotifier.value = place;
+    Future.delayed(const Duration(milliseconds: 50), () {
+      confirmPlaceNotifier.value = null;
     });
   }
 
@@ -84,6 +102,9 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
   double? _btnTop;
   bool _isDragging = false;
   int _pendingSearchFlow = 0;
+  Map<String, dynamic>? _pendingPlaceToConfirm;
+
+  bool _isInitialGreeting = false;
 
   Future<void> _pushAndRecord(Widget screen, String description) async {
     final prev = RagService.currentScreen;
@@ -107,24 +128,66 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     }
   }
 
+  bool _isProcessing = false;
+
+  bool _isSelfEcho(String text) {
+    final clean = text.toLowerCase().trim();
+    if (clean.isEmpty) return true;
+    final selfPhrases = [
+      "speech navigation",
+      "naka-enable",
+      "where would you like to navigate",
+      "saan mo gustong pumunta",
+      "say 1 to search",
+      "sabihin ang 1",
+      "executing command",
+      "isinasagawa ang utos",
+      "listening for command",
+      "nakinig para sa utos",
+      "navigating to",
+      "papunta sa",
+      "opening",
+      "binubuksan"
+    ];
+    for (final phrase in selfPhrases) {
+      if (clean.contains(phrase)) return true;
+    }
+    return false;
+  }
+
   void _startLoop() async {
+    // Explicitly mute/stop mic while initial greeting prompt is spoken S01
+    await SttService().stopListening((_) {});
     setState(() {
       _isLoopActive = true;
+      _isListening = false;
       _lastRecognized = "";
+      _isInitialGreeting = true;
+      _isProcessing = false;
     });
 
     final lang = SettingsService().selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     final startPrompt = isFilipino 
-        ? "Naka-enable ang Speech Navigation. Saan mo gustong pumunta o pindutin?" 
-        : "Speech Navigation enabled. Where would you like to navigate or click?";
+        ? "Naka-enable ang Speech Navigation. Saan mo gustong pumunta o kung anong i-navigate?" 
+        : "Speech Navigation enabled. Where would you like to navigate?";
     
     setState(() {
       _lastRecognized = startPrompt;
     });
 
     await TtsService().speakAwait(startPrompt);
-    _runSpeechNavigationLoop();
+
+    // Mute decay delay (500ms) to ensure speaker sound drops completely before mic unmutes
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (mounted && _isLoopActive) {
+      setState(() {
+        _isInitialGreeting = false;
+        _lastRecognized = "";
+      });
+      _runSpeechNavigationLoop();
+    }
   }
 
   void _stopLoop() async {
@@ -134,53 +197,72 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       _isLoopActive = false;
       _isListening = false;
       _lastRecognized = "";
+      _isProcessing = false;
     });
   }
 
   void _runSpeechNavigationLoop() async {
-    if (!mounted || !_isLoopActive) return;
+    if (!mounted || !_isLoopActive || _isProcessing) return;
 
-    setState(() {
-      _isListening = true;
-      _lastRecognized = "";
-    });
+    try {
+      // Guarantee previous listening handlers are stopped before restarting mic
+      await SttService().stopListening((_) {});
+      await Future.delayed(const Duration(milliseconds: 200));
 
-    await SttService().startListening(
-      onListeningStateChanged: (listening) {
-        if (mounted && _isLoopActive) {
-          setState(() {
-            _isListening = listening;
-          });
-        }
-      },
-      onResult: (text, isFinal) {
-        if (mounted && _isLoopActive) {
-          setState(() {
-            _lastRecognized = text;
-          });
+      if (!mounted || !_isLoopActive || _isProcessing) return;
 
-          // Reset silence timer on every recognized word chunk S01
-          _silenceTimer?.cancel();
-          _silenceTimer = Timer(const Duration(milliseconds: 1500), () {
-            _processAndSpeakCurrentText();
-          });
-        }
-      },
-    );
+      setState(() {
+        _isListening = true;
+        _lastRecognized = "";
+      });
+
+      await SttService().startListening(
+        onListeningStateChanged: (listening) {
+          if (mounted && _isLoopActive) {
+            setState(() {
+              _isListening = listening;
+            });
+          }
+        },
+        onResult: (text, isFinal) {
+          if (mounted && _isLoopActive && !_isProcessing) {
+            if (_isSelfEcho(text)) return;
+
+            setState(() {
+              _lastRecognized = text;
+            });
+
+            // Reset silence timer on every recognized word chunk S01
+            _silenceTimer?.cancel();
+            _silenceTimer = Timer(const Duration(milliseconds: 1500), () {
+              _processAndSpeakCurrentText();
+            });
+          }
+        },
+      );
+    } catch (e) {
+      print("STT restart error: $e");
+    }
   }
 
   void _processAndSpeakCurrentText() async {
     _silenceTimer?.cancel();
-    if (!mounted || !_isLoopActive) return;
+    if (!mounted || !_isLoopActive || _isProcessing) return;
 
-    // Stop listening so TTS can speak
+    _isProcessing = true;
+
+    // Dynamically mute microphone completely so TTS audio playback is not registered by STT
     await SttService().stopListening((_) {});
-    setState(() {
-      _isListening = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isListening = false;
+      });
+    }
 
     final text = _lastRecognized.trim();
-    if (text.isEmpty) {
+    if (text.isEmpty || _isSelfEcho(text)) {
+      _isProcessing = false;
+      _lastRecognized = "";
       // Quietly restart microphone listening on silence without repeating audio prompts
       if (mounted && _isLoopActive) {
         _runSpeechNavigationLoop();
@@ -190,10 +272,11 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
     // Filter background/registered noise (ignore speech that lacks core command keywords)
     if (!_containsAnyKeyword(text)) {
+      _isProcessing = false;
       setState(() {
         _lastRecognized = "";
       });
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 400));
       if (mounted && _isLoopActive) {
         _runSpeechNavigationLoop();
       }
@@ -204,15 +287,23 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     final response = await _processCommand(text);
 
     if (mounted && _isLoopActive && response.isNotEmpty) {
-      setState(() {
-        _lastRecognized = response;
-      });
+      // Mute STT completely while assistant reads instruction
+      await SttService().stopListening((_) {});
 
-      // Speak direct concise confirmation without appending repetitive prompt questions
+      // Speak direct concise confirmation
       await TtsService().speakAwait(response);
+
+      // Pause 500ms after TTS finishes to allow speaker echo to decay before unmuting mic for user turn
+      await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    await Future.delayed(const Duration(milliseconds: 1000));
+    if (mounted) {
+      setState(() {
+        _lastRecognized = "";
+      });
+    }
+    _isProcessing = false;
+
     if (mounted && _isLoopActive) {
       _runSpeechNavigationLoop();
     }
@@ -225,10 +316,99 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     final lang = SettingsService().selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
 
-    // Voice Pause / Stop Command
-    if (cleanText.contains("stop listening") || cleanText.contains("stop speech") || cleanText.contains("turn off voice") || cleanText.contains("tumahimik") || cleanText.contains("hinto") || cleanText.contains("pause voice")) {
+    // Active Route Guidance Stop Command (Stops destination route guidance, NOT Speech Navigation overlay)
+    final isRouteActive = ActiveNavigationService().isNavigating ||
+        _pendingSearchFlow != 0 ||
+        _pendingPlaceToConfirm != null;
+
+    final routeStopKeywords = [
+      "stop navigation", "stop route", "cancel navigation", "stop guidance", "stop walking",
+      "hinto ang nabigasyon", "hinto ang ruta", "kanselahin ang nabigasyon", "tumigil sa paglalakad"
+    ];
+
+    if (isRouteActive) {
+      if (routeStopKeywords.any((k) => cleanText.contains(k)) ||
+          cleanText == "stop" ||
+          cleanText == "hinto" ||
+          cleanText == "cancel" ||
+          cleanText == "kanselahin") {
+        ActiveNavigationService().stopNavigation();
+        SpeechNavigationNotifier.stopRouteNavigation();
+        setState(() {
+          _pendingSearchFlow = 0;
+          _pendingPlaceToConfirm = null;
+        });
+        return isFilipino 
+            ? "Nakahinto ang gabay sa ruta. Saan mo gustong pumunta?" 
+            : "Route guidance stopped. Where would you like to navigate?";
+      }
+    }
+
+    // Voice Overlay Pause / Stop Command (Only if explicitly asking to turn off speech overlay)
+    if (cleanText.contains("stop listening") ||
+        cleanText.contains("stop speech") ||
+        cleanText.contains("turn off voice") ||
+        cleanText.contains("tumahimik") ||
+        cleanText.contains("pause voice")) {
       _stopLoop();
       return isFilipino ? "Naka-pause ang Speech Navigation." : "Speech Navigation paused.";
+    }
+
+    // ── STEP 3: AWAITING SEARCH QUERY ──
+    if (_pendingSearchFlow == 3) {
+      if (cleanText.contains("cancel") || cleanText.contains("hinto") || cleanText.contains("stop") || cleanText.contains("hindi") || cleanText.contains("no") || cleanText.contains("ayaw")) {
+        setState(() {
+          _pendingSearchFlow = 0;
+        });
+        return isFilipino ? "Kinansela ang paghahanap." : "Search cancelled.";
+      }
+
+      final searchQuery = cleanText;
+      SpeechNavigationNotifier.changeTab(1);
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      SpeechNavigationNotifier.searchPlace(searchQuery);
+
+      await Future.delayed(const Duration(milliseconds: 1000));
+      final results = SpeechNavigationNotifier.activeSearchResults;
+
+      if (results.isEmpty) {
+        setState(() {
+          _pendingSearchFlow = 0;
+        });
+        return isFilipino 
+            ? "Paumanhin, walang nahanap na lugar para sa '$searchQuery'." 
+            : "Sorry, no places found for '$searchQuery'.";
+      }
+
+      if (results.length == 1) {
+        final place = results[0];
+        setState(() {
+          _pendingSearchFlow = 2;
+          _pendingPlaceToConfirm = place;
+        });
+        SpeechNavigationNotifier.selectResult(0);
+        final placeName = place['name'];
+        return isFilipino 
+            ? "Nahanap ang $placeName. Sabihin ang 'Oo', 'Kumpirmahin', o 'Sige' para simulan ang ruta, o 'Hindi' para kanselahin." 
+            : "Found $placeName. Say 'Yes', 'Confirm', or 'Search' to start route guidance, or 'No' to cancel.";
+      }
+
+      setState(() {
+        _pendingSearchFlow = 1;
+      });
+
+      final count = results.length > 5 ? 5 : results.length;
+      final sb = StringBuffer();
+      sb.write(isFilipino 
+          ? "May nahanap akong $count na lugar para sa '$searchQuery'. " 
+          : "I found $count places for '$searchQuery'. ");
+      for (int i = 0; i < count; i++) {
+        sb.write("${i + 1}: ${results[i]['name']}. ");
+      }
+      sb.write(isFilipino 
+          ? "Sabihin ang numero 1 hanggang $count upang mag-navigate, o 'Kanselahin'." 
+          : "Please say number 1 to $count to navigate, or say 'Cancel'.");
+      return sb.toString();
     }
 
     // ── SEARCH RESULTS SELECTION FLOW S01 ──
@@ -236,9 +416,10 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       final results = SpeechNavigationNotifier.activeSearchResults;
       
       // Check for cancel command
-      if (cleanText.contains("cancel") || cleanText.contains("i-cancel") || cleanText.contains("hinto") || cleanText.contains("stop")) {
+      if (cleanText.contains("cancel") || cleanText.contains("i-cancel") || cleanText.contains("hinto") || cleanText.contains("stop") || cleanText.contains("hindi") || cleanText.contains("no")) {
         setState(() {
           _pendingSearchFlow = 0;
+          _pendingPlaceToConfirm = null;
         });
         return isFilipino ? "Kinansela ang paghahanap" : "Search cancelled";
       }
@@ -252,9 +433,13 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
         selectedIndex = 1;
       } else if (cleanText.contains("3") || cleanText.contains("three") || cleanText.contains("third") || cleanText.contains("pangatlo")) {
         selectedIndex = 2;
+      } else if (cleanText.contains("4") || cleanText.contains("four") || cleanText.contains("fourth") || cleanText.contains("pang-apat")) {
+        selectedIndex = 3;
+      } else if (cleanText.contains("5") || cleanText.contains("five") || cleanText.contains("fifth") || cleanText.contains("panlima")) {
+        selectedIndex = 4;
       } else {
         // Match specific place name
-        for (int i = 0; i < results.length && i < 3; i++) {
+        for (int i = 0; i < results.length && i < 5; i++) {
           final name = (results[i]['name'] as String).toLowerCase();
           if (cleanText.contains(name) || name.contains(cleanText)) {
             selectedIndex = i;
@@ -264,31 +449,105 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       }
       
       if (selectedIndex >= 0 && selectedIndex < results.length) {
+        final place = results[selectedIndex];
         setState(() {
-          _pendingSearchFlow = 0;
+          _pendingSearchFlow = 2; // Move to confirmation step
+          _pendingPlaceToConfirm = place;
         });
         SpeechNavigationNotifier.selectResult(selectedIndex);
-        final placeName = results[selectedIndex]['name'];
+        final placeName = place['name'];
         return isFilipino 
-            ? "Papunta sa $placeName" 
-            : "Starting navigation to $placeName";
+            ? "Nahanap ang $placeName. Sabihin ang 'Oo', 'Kumpirmahin', o 'Sige' para simulan ang ruta, o 'Hindi' para kanselahin." 
+            : "Found $placeName. Say 'Yes', 'Confirm', or 'Search' to start route guidance, or 'No' to cancel.";
       } else {
         return isFilipino 
-            ? "Hindi nakuha ang numero. Mangyaring sabihin ang numero o kanselahin." 
-            : "I didn't catch that number. Please say the number or cancel.";
+            ? "Hindi nakuha ang numero o lugar. Mangyaring sabihin ang numero o kanselahin." 
+            : "I didn't catch that number or place. Please say the number or cancel.";
       }
     }
 
-    // ── TRIGGER SEARCH PLACE COMMAND S01 ──
+    // ── STEP 2: NAVIGATION CONFIRMATION STEP ──
+    if (_pendingSearchFlow == 2 && _pendingPlaceToConfirm != null) {
+      final confirmKeywords = [
+        'yes', 'confirm', 'search', 'find me', 'take me', 'go', 'start', 'proceed',
+        'oo', 'opopo', 'opo', 'kumpirmahin', 'sige', 'pumunta', 'ituloy'
+      ];
+      final cancelKeywords = [
+        'no', 'cancel', 'stop', 'different', 'change', 'hindi', 'kanselahin', 'ayaw', 'baguhin'
+      ];
+
+      if (confirmKeywords.any((k) => cleanText.contains(k))) {
+        final place = _pendingPlaceToConfirm!;
+        setState(() {
+          _pendingSearchFlow = 0;
+          _pendingPlaceToConfirm = null;
+        });
+        SpeechNavigationNotifier.confirmAndStartNavigation(place);
+        final name = place['name'];
+        return isFilipino 
+            ? "Sinisimulan ang ruta patungo sa $name. Mag-ingat sa paglalakad." 
+            : "Starting route guidance to $name. Have a safe walk.";
+      } else if (cancelKeywords.any((k) => cleanText.contains(k))) {
+        setState(() {
+          _pendingSearchFlow = 0;
+          _pendingPlaceToConfirm = null;
+        });
+        return isFilipino 
+            ? "Kinansela ang nabigasyon. Anong lugar ang nais mong hanapin?" 
+            : "Navigation cancelled. What destination would you like to find?";
+      } else {
+        return isFilipino 
+            ? "Sabihin ang 'Oo' o 'Kumpirmahin' para mag-navigate sa ${_pendingPlaceToConfirm!['name']}, o 'Hindi' para kanselahin." 
+            : "Say 'Yes' or 'Confirm' to navigate to ${_pendingPlaceToConfirm!['name']}, or 'No' to cancel.";
+      }
+    }
+
+    // ── INTERACTIVE VOICE MENU OPTIONS 1-5 ──
+    if (cleanText == "1" || cleanText.startsWith("1 ") || cleanText.contains("say 1") || cleanText.contains("option 1") || cleanText.contains("numero 1") || cleanText == "one" || cleanText == "una" || cleanText == "search" || cleanText == "maghanap" || cleanText == "hanap") {
+      setState(() {
+        _pendingSearchFlow = 3;
+      });
+      return isFilipino
+          ? "Anong lugar ang nais mong hanapin?"
+          : "What destination would you like to search for?";
+    }
+
+    if (cleanText == "2" || cleanText.startsWith("2 ") || cleanText.contains("say 2") || cleanText.contains("option 2") || cleanText.contains("numero 2") || cleanText == "two" || cleanText == "pangalawa") {
+      SpeechNavigationNotifier.changeTab(0);
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      return isFilipino ? "Papunta sa Home" : "Navigating to Home";
+    }
+
+    if (cleanText == "3" || cleanText.startsWith("3 ") || cleanText.contains("say 3") || cleanText.contains("option 3") || cleanText.contains("numero 3") || cleanText == "three" || cleanText == "pangatlo") {
+      SpeechNavigationNotifier.changeTab(2);
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      return isFilipino ? "Papunta sa EasyLens Camera" : "Navigating to EasyLens Camera";
+    }
+
+    if (cleanText == "4" || cleanText.startsWith("4 ") || cleanText.contains("say 4") || cleanText.contains("option 4") || cleanText.contains("numero 4") || cleanText == "four" || cleanText == "pang-apat") {
+      _pushAndRecord(const SettingsScreen(), "Settings");
+      return isFilipino ? "Binubuksan ang Settings" : "Opening Settings";
+    }
+
+    if (cleanText == "5" || cleanText.startsWith("5 ") || cleanText.contains("say 5") || cleanText.contains("option 5") || cleanText.contains("numero 5") || cleanText == "five" || cleanText == "panlima" || cleanText.contains("stop") || cleanText.contains("hinto") || cleanText.contains("tumahimik")) {
+      _stopLoop();
+      return isFilipino ? "Nakahinto ang Speech Navigation." : "Speech Navigation stopped.";
+    }
+
+    // ── EXPANDED SEARCH PLACE COMMAND TRIGGER S01 ──
     String? searchQuery;
-    if (cleanText.startsWith("search for ")) {
-      searchQuery = cleanText.substring("search for ".length).trim();
-    } else if (cleanText.startsWith("find ")) {
-      searchQuery = cleanText.substring("find ".length).trim();
-    } else if (cleanText.startsWith("hanapin ang ")) {
-      searchQuery = cleanText.substring("hanapin ang ".length).trim();
-    } else if (cleanText.startsWith("hanapin ")) {
-      searchQuery = cleanText.substring("hanapin ".length).trim();
+    final searchPrefixes = [
+      "search for ", "search place ", "search ", "find me ", "find ",
+      "navigate to ", "take me to ", "go to ", "look for ",
+      "pumunta sa ", "hanapin ang ", "hanapin sa ", "dalhin ako sa ",
+      "hanapin mo ", "hanapin "
+    ];
+
+    for (final prefix in searchPrefixes) {
+      if (cleanText.startsWith(prefix)) {
+        searchQuery = cleanText.substring(prefix.length).trim();
+        break;
+      }
     }
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -306,32 +565,77 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
             : "Sorry, no results found for '$searchQuery'";
       }
 
+      if (results.length == 1) {
+        final place = results[0];
+        setState(() {
+          _pendingSearchFlow = 2;
+          _pendingPlaceToConfirm = place;
+        });
+        SpeechNavigationNotifier.selectResult(0);
+        final placeName = place['name'];
+        return isFilipino 
+            ? "Nahanap ang $placeName. Sabihin ang 'Oo', 'Kumpirmahin', o 'Sige' para simulan ang ruta, o 'Hindi' para kanselahin." 
+            : "Found $placeName. Say 'Yes', 'Confirm', or 'Search' to start route guidance, or 'No' to cancel.";
+      }
+
       setState(() {
         _pendingSearchFlow = 1;
       });
 
+      final count = results.length > 5 ? 5 : results.length;
       final sb = StringBuffer();
       sb.write(isFilipino 
-          ? "May nahanap akong ${results.length > 3 ? 3 : results.length} na lugar. " 
-          : "I found ${results.length > 3 ? 3 : results.length} places. ");
-      for (int i = 0; i < results.length && i < 3; i++) {
+          ? "May nahanap akong $count na lugar. " 
+          : "I found $count places. ");
+      for (int i = 0; i < count; i++) {
         sb.write("${i + 1}: ${results[i]['name']}. ");
       }
       sb.write(isFilipino 
-          ? "Sabihin ang numero upang mag-navigate." 
-          : "Please say the number to navigate.");
+          ? "Sabihin ang numero 1 hanggang $count upang mag-navigate." 
+          : "Please say the number 1 to $count to navigate.");
       return sb.toString();
     }
 
-    // 1. Dashboard/Home tab navigation
-    if (cleanText.contains("go to home") || cleanText.contains("open home") || cleanText.contains("go to dashboard") || cleanText.contains("open dashboard") || cleanText.contains("dashboard") || cleanText.contains("pumunta sa dashboard") || cleanText.contains("umpisa")) {
+    // 1. Dashboard/Home tab navigation (supports "got to dashboard", "go to home", etc.)
+    if (cleanText.contains("go to home") ||
+        cleanText.contains("got to home") ||
+        cleanText.contains("get to home") ||
+        cleanText.contains("gu to home") ||
+        cleanText.contains("open home") ||
+        cleanText.contains("go to dashboard") ||
+        cleanText.contains("got to dashboard") ||
+        cleanText.contains("get to dashboard") ||
+        cleanText.contains("gu to dashboard") ||
+        cleanText.contains("open dashboard") ||
+        cleanText.contains("dashboard") ||
+        cleanText.contains("home") ||
+        cleanText.contains("pumunta sa dashboard") ||
+        cleanText.contains("pumunta sa bahay") ||
+        cleanText.contains("umpisa") ||
+        cleanText.contains("simula")) {
       SpeechNavigationNotifier.changeTab(0);
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
       return isFilipino ? "Papunta sa dashboard" : "Navigating to dashboard";
     }
 
-    // 2. Navigation/Map tab navigation
-    if (cleanText.contains("go to map") || cleanText.contains("open map") || cleanText.contains("go to navigation") || cleanText.contains("navigation") || cleanText.contains("map") || cleanText.contains("pumunta sa mapa") || cleanText.contains("nabigasyon")) {
+    // 2. Navigation/Map tab navigation (supports "got to maps", "got to map", "go to map", etc.)
+    if (cleanText.contains("go to map") ||
+        cleanText.contains("got to map") ||
+        cleanText.contains("get to map") ||
+        cleanText.contains("gu to map") ||
+        cleanText.contains("go to maps") ||
+        cleanText.contains("got to maps") ||
+        cleanText.contains("get to maps") ||
+        cleanText.contains("open map") ||
+        cleanText.contains("open maps") ||
+        cleanText.contains("go to navigation") ||
+        cleanText.contains("got to navigation") ||
+        cleanText.contains("navigation") ||
+        cleanText.contains("mapa") ||
+        cleanText.contains("map") ||
+        cleanText.contains("maps") ||
+        cleanText.contains("pumunta sa mapa") ||
+        cleanText.contains("nabigasyon")) {
       SpeechNavigationNotifier.changeTab(1);
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
       return isFilipino ? "Papunta sa mapa" : "Navigating to map";
@@ -351,8 +655,19 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Binubuksan ang pagdaragdag ng aparato" : "Navigating to add device";
     }
 
-    // 3. EasyLens camera tab navigation
-    if (cleanText.contains("go to camera") || cleanText.contains("open camera") || cleanText.contains("go to easylens") || cleanText.contains("easylens") || cleanText.contains("go to easy lens") || cleanText.contains("easy lens") || cleanText.contains("camera") || cleanText.contains("pumunta sa camera")) {
+    // 3. EasyLens camera tab navigation (supports "got to camera", "got to easylens", etc.)
+    if (cleanText.contains("go to camera") ||
+        cleanText.contains("got to camera") ||
+        cleanText.contains("get to camera") ||
+        cleanText.contains("open camera") ||
+        cleanText.contains("go to easylens") ||
+        cleanText.contains("got to easylens") ||
+        cleanText.contains("get to easylens") ||
+        cleanText.contains("easylens") ||
+        cleanText.contains("easy lens") ||
+        cleanText.contains("camera") ||
+        cleanText.contains("kamera") ||
+        cleanText.contains("pumunta sa camera")) {
       SpeechNavigationNotifier.changeTab(2);
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
       return isFilipino ? "Binubuksan ang camera" : "Navigating to EasyLens camera";
@@ -522,12 +837,15 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
   }
 
   bool _containsAnyKeyword(String text) {
-    if (_pendingSearchFlow == 1) return true;
+    if (_pendingSearchFlow == 1 || _pendingSearchFlow == 2 || _pendingSearchFlow == 3) return true;
     final words = [
-      "search for", "find", "hanapin",
-      "home", "dashboard", "umpisa",
-      "map", "navigation", "mapa", "nabigasyon",
-      "camera", "easylens", "easy lens",
+      "1", "2", "3", "4", "5", "one", "two", "three", "four", "five",
+      "una", "pangalawa", "pangatlo", "pang-apat", "panlima",
+      "search for", "search", "find", "hanapin", "maghanap", "hanap", "pumunta", "dalhin",
+      "got to", "go to", "get to", "gu to", "open", "take me",
+      "home", "dashboard", "umpisa", "simula",
+      "map", "maps", "navigation", "mapa", "nabigasyon",
+      "camera", "easylens", "easy lens", "kamera",
       "settings", "setting", "seting", "mga setting", "buksan ang setting",
       "notifications", "notification", "abiso",
       "contacts", "contact", "kontak",
@@ -545,7 +863,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       "scenery", "tanawin", "faces", "face recognition", "pagkilala sa mukha",
       "bluetooth", "koneksyon", "gemini", "online ai", "local ai", "offline ai",
       "audio", "speaker", "network", "wifi", "lock mode", "screen lock", "i-lock",
-      "stop listening", "stop speech", "tumahimik", "hinto", "pause voice"
+      "stop listening", "stop speech", "tumahimik", "hinto", "pause voice", "stop"
     ];
     
     final clean = text.toLowerCase();
@@ -562,6 +880,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       builder: (context, _) {
         final settings = SettingsService();
         final isEnabled = settings.speechNavigation;
+        final lang = settings.selectedLanguage;
+        final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
 
         if (_btnLeft == null || _btnTop == null) {
           final size = MediaQuery.of(context).size;
@@ -588,15 +908,15 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: _isListening ? const Color(0xFFE8F5E9) : const Color(0xFFE0F2FE),
+                      color: AppColors.lightBackground,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: _isListening ? const Color(0xFF4CAF50) : const Color(0xFF0284C7),
+                        color: _isListening ? const Color(0xFF10B981) : AppColors.primaryButton,
                         width: 2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(25),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -606,7 +926,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
                       children: [
                         Icon(
                           _isListening ? Icons.hearing : Icons.check_circle,
-                          color: _isListening ? const Color(0xFF2E7D32) : const Color(0xFF0369A1),
+                          color: _isListening ? const Color(0xFF10B981) : AppColors.primaryButton,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
@@ -616,11 +936,15 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                _isListening ? "Listening for command..." : "Executing command",
+                                _isInitialGreeting
+                                    ? (isFilipino ? "Aktibo ang Speech Navigation" : "Speech Navigation Active")
+                                    : (_isListening
+                                        ? (isFilipino ? "Nakinig para sa utos..." : "Listening for command...")
+                                        : (isFilipino ? "Isinasagawa ang utos" : "Executing command")),
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: _isListening ? const Color(0xFF1B5E20) : const Color(0xFF075985),
+                                  color: AppColors.primaryText,
                                 ),
                               ),
                               if (_lastRecognized.isNotEmpty) ...[
@@ -630,7 +954,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
                                   style: GoogleFonts.inter(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
+                                    color: AppColors.primaryText,
                                   ),
                                 ),
                               ],

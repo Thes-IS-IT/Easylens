@@ -9,6 +9,7 @@ import '../dashboard/components/custom_navbar.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
 import 'registered_faces_screen.dart';
 import '../../utils/app_route.dart';
+import '../../widgets/screen_tutorial_card.dart';
 
 class FaceRegistrationScreen extends StatefulWidget {
   const FaceRegistrationScreen({super.key});
@@ -53,6 +54,16 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
     _pulseAnim = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'faces',
+        titleKey: 'tutorial_faces_title',
+        descriptionKey: 'tutorial_faces_desc',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+      );
+    });
   }
 
   @override

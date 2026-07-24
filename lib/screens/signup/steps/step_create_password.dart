@@ -196,7 +196,10 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
             style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColors.primaryText),
           ),
           value: _rememberMe,
-          activeColor: AppColors.primaryButton,
+          activeTrackColor: AppColors.primaryButton,
+          activeThumbColor: AppColors.primaryButtonText,
+          inactiveTrackColor: AppColors.unselectedBorder,
+          inactiveThumbColor: AppColors.primaryText.withValues(alpha: 0.6),
           onChanged: (val) {
             setState(() {
               _rememberMe = val;

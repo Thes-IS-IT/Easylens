@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../constants/colors.dart';
 import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
@@ -23,11 +24,11 @@ class StepLanguage extends StatelessWidget {
       child: Container(
         height: 56,
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF002663) : Colors.white,
+          color: isSelected ? AppColors.primaryButton : AppColors.lightBackground,
           borderRadius: BorderRadius.circular(28.0),
           border: Border.all(
-            color: const Color(0xFF002663),
-            width: 1.5,
+            color: isSelected ? AppColors.primaryButton : AppColors.cardBorder.withValues(alpha: 0.4),
+            width: isSelected ? 2.0 : 1.5,
           ),
         ),
         child: Center(
@@ -36,7 +37,7 @@ class StepLanguage extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isSelected ? Colors.white : const Color(0xFF002663),
+              color: isSelected ? AppColors.primaryButtonText : AppColors.primaryText,
             ),
           ),
         ),

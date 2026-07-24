@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:vibration/vibration.dart';
 
 enum HazardSeverity {
   critical, // Knife, Fire, Weapon, Vehicle Traffic
@@ -29,13 +31,46 @@ class DangerWarningService {
   factory DangerWarningService() => _instance;
   DangerWarningService._internal();
 
-  /// Critical danger keywords (Knife, Fire, Weapon, Vehicle)
+  /// Triggers maximum physical hardware vibration on Android & iOS devices
+  Future<void> triggerStrongHazardVibration({bool isCritical = true}) async {
+    try {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
+        if (isCritical) {
+          final hasCustom = await Vibration.hasCustomVibrationsSupport();
+          if (hasCustom == true) {
+            Vibration.vibrate(
+              pattern: [0, 500, 150, 500, 150, 800],
+              intensities: [0, 255, 0, 255, 0, 255],
+            );
+          } else {
+            Vibration.vibrate(pattern: [0, 500, 150, 500, 150, 800]);
+          }
+        } else {
+          Vibration.vibrate(duration: 400);
+        }
+        return;
+      }
+    } catch (_) {}
+
+    HapticFeedback.vibrate();
+    HapticFeedback.heavyImpact();
+    for (int i = 1; i <= 4; i++) {
+      Future.delayed(Duration(milliseconds: i * 180), () {
+        HapticFeedback.vibrate();
+        HapticFeedback.heavyImpact();
+      });
+    }
+  }
+
+  /// Critical danger keywords (Knife, Fire, Weapon, Vehicle, Electrical)
   static final Set<String> _criticalKnifeKeywords = {
     'knife', 'blade', 'dagger', 'scissors', 'cutter', 'machete', 'sword', 'razor', 'scalpel', 'cleaver'
   };
 
   static final Set<String> _criticalFireKeywords = {
-    'fire', 'flame', 'smoke', 'lighter', 'torch', 'burning', 'explosion', 'fire hazard'
+    'fire', 'flame', 'smoke', 'lighter', 'torch', 'burning', 'explosion', 'fire hazard',
+    'stove', 'grill', 'oven', 'steam', 'boiler', 'burner'
   };
 
   static final Set<String> _criticalWeaponKeywords = {
@@ -43,10 +78,15 @@ class DangerWarningService {
   };
 
   static final Set<String> _criticalVehicleKeywords = {
-    'car', 'truck', 'bus', 'motorcycle', 'bicycle', 'scooter', 'train', 'vehicle', 'van'
+    'car', 'truck', 'bus', 'motorcycle', 'bicycle', 'scooter', 'train', 'vehicle', 'van',
+    'jeepney', 'tricycle', 'e-bike', 'trolley', 'stroller', 'forklift', 'golf cart', 'heavy machinery'
   };
 
-  /// Non-critical caution keywords (Animals, Stairs/Ground, Overhead, Crowds)
+  static final Set<String> _criticalElectricalKeywords = {
+    'wire', 'cable', 'voltage', 'live wire', 'power line', 'exposed wire', 'generator'
+  };
+
+  /// Non-critical caution keywords (Animals, Stairs/Ground, Overhead, Crowds, Indoor, Outdoor, Terrain)
   static final Set<String> _animalKeywords = {
     'dog', 'cat', 'animal', 'pet', 'horse', 'cow', 'sheep', 'goat', 'pig',
     'bear', 'snake', 'bird', 'duck', 'chicken', 'rabbit', 'deer', 'squirrel'
@@ -63,6 +103,20 @@ class DangerWarningService {
 
   static final Set<String> _crowdKeywords = {
     'crowd', 'group of people', 'pedestrian blocking', 'people'
+  };
+
+  static final Set<String> _indoorObstacleKeywords = {
+    'chair', 'table', 'desk', 'sofa', 'couch', 'bed', 'cabinet', 'shelf', 'bookcase',
+    'box', 'crate', 'backpack', 'bag', 'luggage', 'bin', 'trashcan', 'pot', 'plant', 'stand', 'doorway'
+  };
+
+  static final Set<String> _outdoorObstacleKeywords = {
+    'pole', 'lamppost', 'signpost', 'hydrant', 'fire hydrant', 'trash bin', 'bollard',
+    'bench', 'barricade', 'construction barrier', 'scaffolding', 'gate', 'guardrail', 'fence'
+  };
+
+  static final Set<String> _elevationTerrainKeywords = {
+    'curb', 'ramp', 'slope', 'drain', 'sewer', 'ditch', 'gutter', 'pavement crack', 'gravel', 'mud'
   };
 
   /// Evaluates an object label string and returns its hazard severity level
@@ -89,6 +143,11 @@ class DangerWarningService {
       if (cleanLabel.contains(kw)) return HazardSeverity.critical;
     }
 
+    // Check Electrical (Critical)
+    for (final kw in _criticalElectricalKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.critical;
+    }
+
     // Check Animal (Caution)
     for (final kw in _animalKeywords) {
       if (cleanLabel.contains(kw)) return HazardSeverity.caution;
@@ -109,6 +168,21 @@ class DangerWarningService {
       if (cleanLabel.contains(kw)) return HazardSeverity.caution;
     }
 
+    // Check Indoor Obstacle (Caution)
+    for (final kw in _indoorObstacleKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.caution;
+    }
+
+    // Check Outdoor Obstacle (Caution)
+    for (final kw in _outdoorObstacleKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.caution;
+    }
+
+    // Check Elevation / Terrain (Caution)
+    for (final kw in _elevationTerrainKeywords) {
+      if (cleanLabel.contains(kw)) return HazardSeverity.caution;
+    }
+
     return HazardSeverity.safe;
   }
 
@@ -126,8 +200,8 @@ class DangerWarningService {
           severity: HazardSeverity.critical,
           icon: Icons.directions_car_rounded,
           title: 'CRITICAL TRAFFIC DANGER ALERT',
-          messageEn: "CRITICAL WARNING! Approaching vehicle ($capitalized) detected on your walking path! Stay on the sidewalk!",
-          messageTl: "KRITIKAL NA BABALA! May mabilis na sasakyan ($capitalized) sa iyong daanan! Manatili sa bangketa!",
+          messageEn: "CRITICAL DANGER! Approaching vehicle ($capitalized) detected on your walking path! STOP AND AVOID THIS AREA IMMEDIATELY!",
+          messageTl: "KRITIKAL NA PANGANIB! May mabilis na sasakyan ($capitalized) sa iyong daanan! HUMINTO AT UMIWAS AGAD!",
         );
       }
     }
@@ -140,8 +214,8 @@ class DangerWarningService {
           severity: HazardSeverity.critical,
           icon: Icons.warning_amber_rounded,
           title: 'CRITICAL SHARP OBJECT ALERT',
-          messageEn: "CRITICAL WARNING! Dangerous sharp object ($capitalized) detected ahead! Stop immediately!",
-          messageTl: "KRITIKAL NA BABALA! May matalas na bagay ($capitalized) sa iyong daanan! Huminto agad!",
+          messageEn: "CRITICAL DANGER! Sharp object ($capitalized) detected ahead! STOP AND AVOID THIS AREA IMMEDIATELY!",
+          messageTl: "KRITIKAL NA PANGANIB! May matalas na bagay ($capitalized) sa iyong daanan! HUMINTO AT UMIWAS AGAD!",
         );
       }
     }
@@ -154,8 +228,8 @@ class DangerWarningService {
           severity: HazardSeverity.critical,
           icon: Icons.local_fire_department_rounded,
           title: 'CRITICAL FIRE HAZARD ALERT',
-          messageEn: "CRITICAL WARNING! Fire hazard detected ahead! Exercise extreme caution and stay back!",
-          messageTl: "KRITIKAL NA BABALA! May apoy o usok sa iyong daanan! Mag-ingat nang husto at lumayo!",
+          messageEn: "CRITICAL DANGER! Fire hazard detected ahead! STOP AND AVOID THIS AREA IMMEDIATELY!",
+          messageTl: "KRITIKAL NA PANGANIB! May apoy o usok sa iyong daanan! HUMINTO AT UMIWAS AGAD!",
         );
       }
     }
@@ -168,8 +242,8 @@ class DangerWarningService {
           severity: HazardSeverity.critical,
           icon: Icons.gavel_rounded,
           title: 'CRITICAL WEAPON DANGER ALERT',
-          messageEn: "CRITICAL WARNING! Weapon hazard detected ahead! Stop and seek assistance immediately!",
-          messageTl: "KRITIKAL NA BABALA! May peligrosong armas sa iyong daanan! Huminto at humingi agad ng tulong!",
+          messageEn: "CRITICAL DANGER! Weapon hazard detected ahead! STOP AND AVOID THIS AREA IMMEDIATELY!",
+          messageTl: "KRITIKAL NA PANGANIB! May peligrosong armas sa iyong daanan! HUMINTO AT UMIWAS AGAD!",
         );
       }
     }
@@ -226,6 +300,62 @@ class DangerWarningService {
           title: 'DENSE CROWD CAUTION',
           messageEn: "CAUTION: Dense crowd ahead. Proceed with care.",
           messageTl: "MAG-INGAT: Maraming tao sa iyong harapan. Maglakad nang may pag-iingat.",
+        );
+      }
+    }
+
+    // 9. Electrical check (Critical)
+    for (final kw in _criticalElectricalKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.critical,
+          icon: Icons.electric_bolt_rounded,
+          title: 'CRITICAL ELECTRICAL HAZARD',
+          messageEn: "CRITICAL DANGER! Live wire or electrical hazard ($capitalized) detected ahead! STOP AND AVOID THIS AREA IMMEDIATELY!",
+          messageTl: "KRITIKAL NA PANGANIB! May nakalawit na linya ng kuryente o exposed wire ($capitalized) sa harap! HUMINTO AT UMIWAS AGAD!",
+        );
+      }
+    }
+
+    // 10. Indoor Obstacle check (Caution)
+    for (final kw in _indoorObstacleKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.caution,
+          icon: Icons.chair_rounded,
+          title: 'INDOOR OBSTACLE CAUTION',
+          messageEn: "Caution: Indoor obstacle ($capitalized) detected on your path. Proceed slowly.",
+          messageTl: "Mag-ingat: May kasangkapan o harang ($capitalized) sa iyong dinadaanan.",
+        );
+      }
+    }
+
+    // 11. Outdoor Obstacle check (Caution)
+    for (final kw in _outdoorObstacleKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.caution,
+          icon: Icons.door_sliding_rounded,
+          title: 'STREET FIXTURE CAUTION',
+          messageEn: "Caution: Street obstacle ($capitalized) detected ahead. Step aside to avoid it.",
+          messageTl: "Mag-ingat: May poste o harang sa daan ($capitalized) sa iyong harapan.",
+        );
+      }
+    }
+
+    // 12. Elevation / Terrain check (Caution)
+    for (final kw in _elevationTerrainKeywords) {
+      if (cleanLabel.contains(kw)) {
+        return DangerHazardInfo(
+          label: capitalized,
+          severity: HazardSeverity.caution,
+          icon: Icons.terrain_rounded,
+          title: 'TERRAIN ELEVATION CAUTION',
+          messageEn: "Caution: Elevation change ($capitalized) detected on your path. Watch your footing.",
+          messageTl: "Mag-ingat: May bangketa, dalisdis, o kanal ($capitalized) sa iyong hahakbangan.",
         );
       }
     }

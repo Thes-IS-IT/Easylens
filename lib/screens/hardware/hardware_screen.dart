@@ -18,6 +18,7 @@ import '../../services/tflite_processor.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/active_navigation_service.dart';
+import '../../services/danger_warning_service.dart';
 import '../../services/face_registration_service.dart';
 import '../emergency/emergency_screen.dart';
 import '../settings/settings_screen.dart';
@@ -36,6 +37,7 @@ import 'components/hud_mode_selector.dart';
 import 'components/hud_controls_panel.dart';
 import 'components/hud_camera_view.dart';
 import 'components/camera_loading_overlay.dart';
+import '../../widgets/local_ai_instructions_dialog.dart';
 
 enum HudMode {
   navigation,
@@ -423,6 +425,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
           _conversationHistory.clear();
           TtsService().speak(isTagalog ? "Aktibo ang Local AI. Simulan ang tuloy-tuloy na boses." : "Local offline AI active. Continuous voice enabled.");
           _runContinuousVoiceLoop();
+          LocalAiInstructionsDialog.show(context);
         }
       });
     } else if (control == 'audio') {
@@ -1077,25 +1080,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
     Future.microtask(() async {
       try {
-        if (isCritical) {
-          // Critical Red Hazard: Strong physical motor vibration 5x
-          for (int i = 0; i < 5; i++) {
-            await HapticFeedback.vibrate();
-            await HapticFeedback.heavyImpact();
-            if (i < 4) {
-              await Future.delayed(const Duration(milliseconds: 180));
-            }
-          }
-        } else {
-          // Moderate Yellow Hazard: Strong physical motor vibration 2x
-          for (int i = 0; i < 2; i++) {
-            await HapticFeedback.vibrate();
-            await HapticFeedback.heavyImpact();
-            if (i < 1) {
-              await Future.delayed(const Duration(milliseconds: 220));
-            }
-          }
-        }
+        await DangerWarningService().triggerStrongHazardVibration(isCritical: isCritical);
       } catch (e) {
         print('[Haptic] Feedback failed: $e');
       } finally {
@@ -1241,6 +1226,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
     
     final displayLabel = refinedLabel[0].toUpperCase() + refinedLabel.substring(1);
 
+    final criticalKeywords = [
+      'fire', 'flame', 'smoke', 'lighter', 'torch', 'burning', 'explosion',
+      'knife', 'blade', 'dagger', 'scissors', 'cutter', 'machete', 'sword',
+      'gun', 'weapon', 'pistol', 'rifle'
+    ];
     final hazardKeywords = [
       'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
       'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush'
@@ -1249,29 +1239,41 @@ class _HardwareScreenState extends State<HardwareScreen> {
       'car', 'bus', 'truck', 'vehicle', 'jeepney', 'tricycle', 'motorcycle', 'van', 'automobile'
     ];
 
+    final isCriticalDanger = criticalKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
     final isHazard = hazardKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
     final isVehicle = vehicleKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
     final isPerson = refinedLabel.toLowerCase() == 'person';
 
-    if (isVehicle && (largestArea > 0.10 || (isCentered && largestArea > 0.07))) {
-      // CRITICAL RED WARNING: Vehicle is dangerously close!
+    if (isCriticalDanger || (isVehicle && (largestArea > 0.08 || (isCentered && largestArea > 0.05)))) {
+      // CRITICAL RED WARNING: Fire, Knife, Weapon, or Vehicle detected!
+      final isFire = refinedLabel.toLowerCase().contains('fire') || refinedLabel.toLowerCase().contains('flame') || refinedLabel.toLowerCase().contains('smoke');
       final guidance = isTagalog
-          ? 'Babala! Napakalapit ng sasakyan! Huminto o umiwas agad!'
-          : 'Warning! Vehicle is too close! Stop or avoid immediately!';
+          ? 'KRITIKAL NA PANGANIB! May ${isFire ? "apoy" : displayLabel} sa iyong daanan! HUMINTO AT UMIWAS AGAD!'
+          : 'CRITICAL DANGER! $displayLabel hazard detected ahead! STOP AND AVOID THIS AREA IMMEDIATELY!';
 
       _triggerHapticAlert(isCritical: true);
       _wasPathBlocked = true;
+
+      // Sync to ActiveNavigationService for persistent app-wide warning overlay & card
+      // Determine escape direction: if obstacle is on left, tell user to move right, and vice versa
+      final escapeDirection = direction == 'left' ? 'right' : (direction == 'right' ? 'left' : 'center');
+      ActiveNavigationService().triggerHazardAlert(
+        hazardName: displayLabel,
+        severity: HazardSeverity.critical,
+        message: guidance,
+        avoidanceDirection: escapeDirection,
+      );
 
       final isDifferent = guidance != _lastGuidanceText;
       final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
       
       bool shouldSpeak = false;
       if (isDifferent) {
-        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 3) {
+        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 2) {
           shouldSpeak = true;
         }
       } else {
-        if (elapsed.inSeconds >= 6) {
+        if (elapsed.inSeconds >= 5) {
           shouldSpeak = true;
         }
       }
@@ -1283,28 +1285,50 @@ class _HardwareScreenState extends State<HardwareScreen> {
           TtsService().speak(guidance);
         }
         NotificationService().pushWarning(
-          isTagalog ? 'BABALA: MALAPIT ANG SASAKYAN!' : 'CRITICAL: VEHICLE TOO CLOSE!',
+          isTagalog ? 'KRITIKAL NA PANGANIB!' : 'CRITICAL DANGER ALERT!',
           guidance,
         );
       }
 
       if (mounted) {
         setState(() {
-          _activeTitle = isTagalog ? 'BABALA: MALAPIT ANG SASAKYAN!' : 'CRITICAL: VEHICLE TOO CLOSE!';
+          _activeTitle = isTagalog
+              ? 'KRITIKAL: MAY ${displayLabel.toUpperCase()} — UMIWAS AGAD!'
+              : 'CRITICAL: ${displayLabel.toUpperCase()} DETECTED — AVOID IMMEDIATELY!';
           _activeDescription = guidance;
           _statusCardBg = const Color(0xFFFFEBEE); // Crimson Red background card
-          _statusIcon = Icons.directions_car_rounded;
+          _statusIcon = isFire ? Icons.local_fire_department_rounded : Icons.report_problem_rounded;
           _statusIconColor = Colors.red;
         });
       }
     } else if (isCentered && largestArea > 0.45) {
       // STOP immediately — extremely close centered obstacle covering the camera
+      // Check which side is clear for escape
+      bool leftBlocked = false;
+      bool rightBlocked = false;
+      for (final r in validResults) {
+        if (r == targetResult) continue;
+        final cX = 1.0 - ((r.yMin + r.yMax) / 2.0);
+        if (cX < 0.38) leftBlocked = true;
+        if (cX > 0.62) rightBlocked = true;
+      }
+      final stopEscapeDir = (leftBlocked && !rightBlocked) ? 'right' : (!leftBlocked ? 'left' : 'center');
+      final stopEscapeTagalog = stopEscapeDir == 'left' ? 'kaliwa' : (stopEscapeDir == 'right' ? 'kanan' : 'gilid');
+
       final guidance = isTagalog
-          ? 'Huminto agad. May $displayLabel sa iyong tapat. Mangyaring tumabi upang maiwasan ito.'
-          : 'Stop immediately. $displayLabel is directly in front of you. Please step aside to avoid it.';
+          ? 'Huminto agad. May $displayLabel sa iyong tapat. Tumabi sa iyong $stopEscapeTagalog upang maiwasan ito.'
+          : 'Stop immediately. $displayLabel is directly in front of you. Move to your $stopEscapeDir to avoid it.';
 
       _triggerHapticAlert(isCritical: true);
       _wasPathBlocked = true;
+
+      // Sync to ActiveNavigationService for navigation screen
+      ActiveNavigationService().triggerHazardAlert(
+        hazardName: displayLabel,
+        severity: HazardSeverity.critical,
+        message: guidance,
+        avoidanceDirection: stopEscapeDir,
+      );
 
       final isDifferent = guidance != _lastGuidanceText;
       final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
@@ -1362,6 +1386,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
       _triggerHapticAlert(isCritical: false);
       _wasPathBlocked = true;
 
+      // Sync to ActiveNavigationService for navigation screen
+      ActiveNavigationService().triggerHazardAlert(
+        hazardName: displayLabel,
+        severity: HazardSeverity.caution,
+        message: guidance,
+        avoidanceDirection: escapeDir,
+      );
+
       final isDifferent = guidance != _lastGuidanceText;
       final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
       
@@ -1398,11 +1430,21 @@ class _HardwareScreenState extends State<HardwareScreen> {
       }
     } else if (isPerson && (largestArea > 0.02 || isCentered)) {
       // Explicit Person Ahead Warning ("A person is in front of you, be careful")
+      // Determine which side the person is on so we can suggest escape direction
+      final personEscapeDir = direction == 'left' ? 'right' : (direction == 'right' ? 'left' : '');
       final String guidance = isTagalog
-          ? 'May tao sa iyong harapan, mag-iingat ka.'
-          : 'Person detected. A person is in front of you, be careful.';
+          ? 'May tao sa iyong ${direction == "center" ? "harapan" : (direction == "left" ? "kaliwa" : "kanan")}, mag-iingat ka.${personEscapeDir.isNotEmpty ? " Lumipat sa iyong ${personEscapeDir == "left" ? "kaliwa" : "kanan"}." : ""}'
+          : 'Person detected on your ${direction == "center" ? "front" : direction}, be careful.${personEscapeDir.isNotEmpty ? " Move to your $personEscapeDir." : ""}';
 
       _triggerHapticAlert(isCritical: false);
+
+      // Sync to ActiveNavigationService for navigation screen
+      ActiveNavigationService().triggerHazardAlert(
+        hazardName: displayLabel,
+        severity: HazardSeverity.caution,
+        message: guidance,
+        avoidanceDirection: personEscapeDir.isNotEmpty ? personEscapeDir : direction,
+      );
 
       final isDifferent = guidance != _lastGuidanceText;
       final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
@@ -1449,7 +1491,17 @@ class _HardwareScreenState extends State<HardwareScreen> {
             : 'Slow down. $displayLabel hazard detected on your $sideDir.';
       }
 
+      final hazardEscapeDir = direction == 'left' ? 'right' : (direction == 'right' ? 'left' : '');
+
       _triggerHapticAlert(isCritical: false);
+
+      // Sync to ActiveNavigationService for navigation screen
+      ActiveNavigationService().triggerHazardAlert(
+        hazardName: displayLabel,
+        severity: HazardSeverity.caution,
+        message: guidance,
+        avoidanceDirection: hazardEscapeDir.isNotEmpty ? hazardEscapeDir : direction,
+      );
 
       final isDifferent = guidance != _lastGuidanceText;
       final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
@@ -1869,6 +1921,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _lastGuidanceText = "";
     if (_wasPathBlocked) {
       _wasPathBlocked = false;
+      ActiveNavigationService().clearHazardAlert();
       final clearText = isTagalog ? "Malinis ang daan." : "The pathway ahead is clear.";
       if (!_isContinuousVoiceEnabled) {
         TtsService().speak(clearText);
@@ -2577,9 +2630,39 @@ class _HardwareScreenState extends State<HardwareScreen> {
       String response = "";
       bool handledByVoiceCommand = false;
 
-      // 1. Voice commands: Switch modes and interact S01
+      // 1. Voice commands: Switch modes, query scene, and interact
       if (question.isNotEmpty && question != "listening...") {
-        if (question.contains("object") || question.contains("bagay")) {
+        if (question.contains("switch to gemini") ||
+            question.contains("lumipat sa gemini") ||
+            question.contains("use gemini") ||
+            question.contains("gemini mode") ||
+            question.contains("turn on gemini")) {
+          setState(() {
+            _useLocalAI = false;
+            _isGeminiEnabled = true;
+          });
+          response = isFilipino
+              ? "Lumipat na sa Gemini AI mode. Pwedeng magtanong ng anumang malalim na bagay."
+              : "Switched to Gemini AI mode. Feel free to ask complex questions.";
+          handledByVoiceCommand = true;
+        } else if (question.contains("what's in front of me") ||
+            question.contains("what is in front of me") ||
+            question.contains("ano ang nasa harap ko") ||
+            question.contains("ano nasa harap ko") ||
+            question.contains("describe") ||
+            question.contains("ilarawan")) {
+          // Direct request for visual scene description fallback
+          if (detectedItems.trim().isEmpty) {
+            response = isFilipino
+                ? "Wala akong makitang malinaw na bagay sa iyong harapan sa ngayon."
+                : "I don't see any clear objects in front of you right now.";
+          } else {
+            response = isFilipino
+                ? "Sa iyong harapan, nakikita ko ang: $detectedItems."
+                : "In front of you, I see: $detectedItems.";
+          }
+          handledByVoiceCommand = true;
+        } else if (question.contains("object") || question.contains("bagay")) {
           setState(() {
             _selectedHudMode = HudMode.objectDetection;
           });
@@ -2708,38 +2791,50 @@ Keep the response to exactly one natural, friendly sentence.
           }
         }
       } else {
-        final historyContext = _conversationHistory.isNotEmpty 
-            ? "Conversation history context for context awareness:\n${_conversationHistory.join('\n')}\n\n" 
-            : "";
-        if (_useLocalAI) {
-          final prompt = isFilipino
-              ? """
+        // Complex Question Check when Local AI is active
+        final isComplexQuery = [
+          'why', 'how to', 'explain', 'detail', 'recipe', 'code', 'history',
+          'paano', 'bakit', 'ipaliwanag', 'detalye', 'complex', 'summarize'
+        ].any((kw) => question.contains(kw));
+
+        if (_useLocalAI && isComplexQuery) {
+          response = isFilipino
+              ? "Mukhang malalim ang iyong tanong. Pwedeng lumipat sa Gemini AI mode para sa mas detalyadong sagot. Sabihin lang ang 'lumipat sa Gemini'."
+              : "That question seems complex! You can switch to Gemini AI mode for deeper answers. Just say 'switch to Gemini'.";
+        } else {
+          final historyContext = _conversationHistory.isNotEmpty 
+              ? "Conversation history context for context awareness:\n${_conversationHistory.join('\n')}\n\n" 
+              : "";
+          if (_useLocalAI) {
+            final prompt = isFilipino
+                ? """
 You are Buddy, the visual assistant dog.
 ${historyContext}The user asked: "$question".
 The camera reports these environment labels: $detectedItems.
 Answer the user's question directly in Tagalog based on the labels and history context. Keep the response to 1 or 2 friendly sentences.
 """
-              : """
+                : """
 You are Buddy, the friendly dog mascot and EasyLens assistant.
 ${historyContext}The user asked: "$question".
 The camera reports these environment labels: $detectedItems.
 Answer the user's question directly based on the labels and history context. Keep the response to 1 or 2 friendly sentences.
 """;
-          response = await RagService().askBuddyLocalOnly(prompt);
-        } else {
-          final prompt = isFilipino
-              ? """
+            response = await RagService().askBuddyLocalOnly(prompt);
+          } else {
+            final prompt = isFilipino
+                ? """
 You are Buddy, the visual assistant dog.
 ${historyContext}The user asked: "$question".
 Answer the user's question directly in Tagalog based on the provided camera image and history context. Keep the response to 1 or 2 friendly sentences.
 """
-              : """
+                : """
 You are Buddy, the friendly dog mascot and EasyLens assistant.
 ${historyContext}The user asked: "$question".
 Answer the user's question directly based on the provided camera image and history context. Keep the response to 1 or 2 friendly sentences.
 """;
-          final imageBytes = await _captureCurrentImageBytes();
-          response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
+            final imageBytes = await _captureCurrentImageBytes();
+            response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
+          }
         }
       }
 
@@ -3475,6 +3570,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 });
                 if (_isContinuousVoiceEnabled) {
                   _runContinuousVoiceLoop();
+                  LocalAiInstructionsDialog.show(context);
                 } else {
                   _silenceTimer?.cancel();
                   SttService().stopListening((_) {});

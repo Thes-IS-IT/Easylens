@@ -138,6 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _displayName = user.displayName;
         });
+        SettingsService().updateDisplayName(_displayName);
       }
 
       // 2. Fetch from Firestore to get the registered name
@@ -151,6 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               setState(() {
                 _displayName = prefs['name'];
               });
+              SettingsService().updateDisplayName(_displayName);
             }
           }
         }

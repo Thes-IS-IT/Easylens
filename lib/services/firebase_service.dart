@@ -9,8 +9,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'storage/cloudflare_r2_service.dart';
-import '../models/user_preferences.dart';
-import '../models/emergency_contact.dart';
+import 'settings_service.dart';
+import 'emergency_contact_service.dart';
 
 class EasyLensUser {
   final String uid;
@@ -292,6 +292,11 @@ class FirebaseService {
 
   // Sign out
   Future<void> signOut() async {
+    try {
+      await SettingsService().resetToDefaults();
+      await EmergencyContactService().clearContacts();
+    } catch (_) {}
+
     if (_firebaseInitialized) {
       await FirebaseAuth.instance.signOut();
     } else {

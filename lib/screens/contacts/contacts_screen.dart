@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../../services/emergency_contact_service.dart';
+import '../../services/firebase_service.dart';
 import '../../services/sms_service.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' as fc;
+
+import '../../widgets/screen_tutorial_card.dart';
 
 class Contact {
   String name;
@@ -33,6 +37,138 @@ class _ContactsScreenState extends State<ContactsScreen> {
   void initState() {
     super.initState();
     _loadContacts();
+    EmergencyContactService().addListener(_onContactsChanged);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'contacts',
+        titleKey: 'tutorial_contacts_title',
+        descriptionKey: 'tutorial_contacts_desc',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    EmergencyContactService().removeListener(_onContactsChanged);
+    super.dispose();
+  }
+
+  void _onContactsChanged() {
+    _loadContacts();
+  }
+
+  String _sanitizePhone(String raw) {
+    String digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('63') && digits.length == 12) {
+      digits = '0${digits.substring(2)}';
+    }
+    return digits.length > 11 ? digits.substring(0, 11) : digits;
+  }
+
+  Future<void> _importContactFromPhone() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      try {
+        await fc.FlutterContacts.permissions.request(fc.PermissionType.read);
+      } catch (_) {}
+
+      final picked = await fc.FlutterContacts.native.showPicker();
+      if (picked != null) {
+        fc.Contact? fullContact;
+        final contactId = picked.id;
+        if (contactId != null && contactId.isNotEmpty) {
+          try {
+            fullContact = await fc.FlutterContacts.get(
+              contactId,
+              properties: {fc.ContactProperty.phone, fc.ContactProperty.name},
+            );
+          } catch (_) {}
+        }
+        fullContact ??= picked;
+
+        final displayName = fullContact.displayName ?? '';
+        final firstName = fullContact.name?.first ?? '';
+        final lastName = fullContact.name?.last ?? '';
+        final name = displayName.isNotEmpty
+            ? displayName
+            : ('$firstName $lastName').trim();
+
+        String phone = '';
+        if (fullContact.phones.isNotEmpty) {
+          final numStr = fullContact.phones.firstWhere(
+            (p) => p.number.trim().isNotEmpty,
+            orElse: () => fullContact!.phones.first,
+          ).number;
+          phone = _sanitizePhone(numStr);
+        }
+
+        if (phone.isEmpty && name.isNotEmpty) {
+          try {
+            final allContacts = await fc.FlutterContacts.getAll(
+              properties: {fc.ContactProperty.phone, fc.ContactProperty.name},
+            );
+            for (final c in allContacts) {
+              if ((c.displayName ?? '').toLowerCase() == name.toLowerCase() && c.phones.isNotEmpty) {
+                phone = _sanitizePhone(c.phones.first.number);
+                break;
+              }
+            }
+          } catch (_) {}
+        }
+
+        if (phone.isEmpty) {
+          if (mounted) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Selected contact does not have a valid phone number.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
+
+        final newShared = SharedEmergencyContact(
+          name: name.isNotEmpty ? name : 'Imported Contact',
+          phone: phone,
+          relationship: 'Friend',
+          isActive: true,
+        );
+
+        await EmergencyContactService().saveContact(newShared);
+
+        final user = FirebaseService().currentUser;
+        if (user != null) {
+          try {
+            await FirebaseService().syncContactToCloud(user.uid, newShared.toJson());
+          } catch (_) {}
+        }
+
+        await _loadContacts();
+
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Imported contact: $name ($phone)'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Import contact error: $e');
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Could not access phone contacts. Please check permissions in Settings.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadContacts() async {
@@ -559,11 +695,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   width: 95,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.lightBackground,
                     borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
+                        color: Colors.black.withValues(alpha: 0.06),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       )
@@ -572,12 +709,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.chevron_left, color: Color(0xFF002663), size: 24),
+                      Icon(Icons.chevron_left, color: AppColors.primaryText, size: 24),
                       const SizedBox(width: 4),
                       Text(
                         'Back',
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF002663),
+                          color: AppColors.primaryText,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -595,22 +732,23 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF002663),
+                  color: AppColors.primaryText,
                 ),
               ),
               
               const SizedBox(height: 24),
               
-              // 3. Inner White Container holding local profiles card
+              // 3. Inner Container holding local profiles card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20.0),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.lightBackground,
                   borderRadius: BorderRadius.circular(24.0),
+                  border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     )
@@ -630,7 +768,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                               style: GoogleFonts.inter(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: const Color(0xFF002663),
+                                color: AppColors.primaryText,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -742,7 +880,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       borderRadius: BorderRadius.circular(28.0),
                     ),
                   ),
-                  onPressed: () {},
+                  onPressed: _importContactFromPhone,
                   icon: const Icon(Icons.phone_outlined, size: 20),
                   label: Text(
                     'Import from Contacts',
@@ -762,19 +900,21 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 height: 56,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF002663), width: 1.5),
+                    foregroundColor: AppColors.primaryText,
+                    backgroundColor: AppColors.lightBackground,
+                    side: BorderSide(color: AppColors.cardBorder, width: 1.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28.0),
                     ),
                   ),
                   onPressed: _showAddContactModal,
-                  icon: const Icon(Icons.person_add_alt_1_outlined, size: 20, color: Color(0xFF002663)),
+                  icon: Icon(Icons.person_add_alt_1_outlined, size: 20, color: AppColors.primaryText),
                   label: Text(
                     'Add Person Manually',
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF002663),
+                      color: AppColors.primaryText,
                     ),
                   ),
                 ),

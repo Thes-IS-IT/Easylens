@@ -358,7 +358,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               child: OutlinedButton(
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.primaryText,
-                                  backgroundColor: Colors.white,
+                                  backgroundColor: AppColors.lightBackground,
                                   side: BorderSide(color: AppColors.cardBorder, width: 2.0),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(28.0),

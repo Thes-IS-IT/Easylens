@@ -171,25 +171,6 @@ class _StepEmailInputState extends State<StepEmailInput> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryText,
-              side: BorderSide(color: AppColors.cardBorder, width: 1.5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28.0),
-              ),
-            ),
-            onPressed: widget.onChangeMethod,
-            child: Text(
-              SignupL10n.t('email_change_method', widget.language),
-              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
       ],
     );
   }

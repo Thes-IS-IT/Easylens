@@ -16,33 +16,64 @@ class InteractiveTutorialOverlay extends StatefulWidget {
 class _InteractiveTutorialOverlayState extends State<InteractiveTutorialOverlay> {
   int _currentStep = 0;
 
-  final List<Map<String, String>> _steps = [
-    {
-      'title': 'Welcome to EasyLens!',
-      'description': 'Let\'s take a quick 1-minute tour to help you navigate Buddy and your sensor dashboard.',
-      'actionText': 'Start Tour',
-    },
-    {
-      'title': 'Meet Buddy, Your AI Guide',
-      'description': 'Tap the floating Buddy Mascot button (or the center button on the navbar) to open the Buddy Assistant sheet. Ask Buddy anything or let him guide your navigation!',
-      'actionText': 'Next',
-    },
-    {
-      'title': 'Sensors & Obstacle alerts',
-      'description': 'Use the "Hardware" tab to access real-time object detection, text recognition, and hazard mapping sensors.',
-      'actionText': 'Next',
-    },
-    {
-      'title': 'Audio Navigation & SOS',
-      'description': 'Access the "Navigation" tab for hands-free audio route guidance, or trigger "SOS Emergency" from the dashboard for immediate help.',
-      'actionText': 'Next',
-    },
-    {
-      'title': 'Voice Control Enabled!',
-      'description': 'You can activate "Speech Navigation" in settings to navigate screens and click elements entirely hands-free using simple voice commands.',
-      'actionText': 'Finish',
-    },
-  ];
+  List<Map<String, String>> _getSteps(bool isTagalog) {
+    if (isTagalog) {
+      return [
+        {
+          'title': 'Maligayang Pagdating sa EasyLens!',
+          'description': 'Mag-tour tayo nang mabilis sa loob ng 1 minuto para matutunan ang paggamit kay Buddy at sa iyong dashboard.',
+          'actionText': 'Simulan ang Tour',
+        },
+        {
+          'title': 'Kilalanin si Buddy, Ang Iyong AI Guide',
+          'description': 'I-tap ang floating Buddy Mascot button (o ang gitnang button sa navbar) para buksan si Buddy. Magtanong ng kahit ano o magpatulong sa nabigasyon!',
+          'actionText': 'Susunod',
+        },
+        {
+          'title': 'Mga Sensor at Alerto sa Harang',
+          'description': 'Gamitin ang "EasyLens" tab para sa real-time object detection, pagbasa ng teksto, at mga sensor sa pag-iwas sa harang.',
+          'actionText': 'Susunod',
+        },
+        {
+          'title': 'Nabigasyon sa Boses at SOS',
+          'description': 'Gamitin ang "Nav" tab para sa hands-free na gabay sa daan, o i-tap ang "SOS Emergency" sa dashboard para sa mabilis na saklolo.',
+          'actionText': 'Susunod',
+        },
+        {
+          'title': 'Boses na Nabigasyon',
+          'description': 'Maaari mong i-activate ang "Speech Navigation" sa mga setting para mag-navigate sa mga screen at mag-click ng mga button gamit ang utos ng boses.',
+          'actionText': 'Tapusin',
+        },
+      ];
+    }
+    return [
+      {
+        'title': 'Welcome to EasyLens!',
+        'description': 'Let\'s take a quick 1-minute tour to help you navigate Buddy and your sensor dashboard.',
+        'actionText': 'Start Tour',
+      },
+      {
+        'title': 'Meet Buddy, Your AI Guide',
+        'description': 'Tap the floating Buddy Mascot button (or the center button on the navbar) to open the Buddy Assistant sheet. Ask Buddy anything or let him guide your navigation!',
+        'actionText': 'Next',
+      },
+      {
+        'title': 'Sensors & Obstacle alerts',
+        'description': 'Use the "EasyLens" tab to access real-time object detection, text recognition, and hazard mapping sensors.',
+        'actionText': 'Next',
+      },
+      {
+        'title': 'Audio Navigation & SOS',
+        'description': 'Access the "Nav" tab for hands-free audio route guidance, or trigger "SOS Emergency" from the dashboard for immediate help.',
+        'actionText': 'Next',
+      },
+      {
+        'title': 'Voice Control Enabled!',
+        'description': 'You can activate "Speech Navigation" in settings to navigate screens and click elements entirely hands-free using simple voice commands.',
+        'actionText': 'Finish',
+      },
+    ];
+  }
 
   Future<void> _finishTutorial() async {
     final prefs = await SharedPreferences.getInstance();
@@ -50,8 +81,8 @@ class _InteractiveTutorialOverlayState extends State<InteractiveTutorialOverlay>
     widget.onComplete();
   }
 
-  void _nextStep() {
-    if (_currentStep < _steps.length - 1) {
+  void _nextStep(int maxSteps) {
+    if (_currentStep < maxSteps - 1) {
       setState(() {
         _currentStep++;
       });
@@ -64,7 +95,10 @@ class _InteractiveTutorialOverlayState extends State<InteractiveTutorialOverlay>
   Widget build(BuildContext context) {
     final settings = SettingsService();
     final isDefault = settings.selectedContrastTheme == 'Default';
-    final step = _steps[_currentStep];
+    final isTagalog = settings.selectedLanguage.toLowerCase().contains('tagalog') ||
+        settings.selectedLanguage.toLowerCase().contains('filipino');
+    final steps = _getSteps(isTagalog);
+    final step = steps[_currentStep];
 
     return Scaffold(
       backgroundColor: Colors.black.withOpacity(0.85),
@@ -154,7 +188,7 @@ class _InteractiveTutorialOverlayState extends State<InteractiveTutorialOverlay>
                       // Step indicator dots
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(_steps.length, (index) {
+                        children: List.generate(steps.length, (index) {
                           final isActive = index == _currentStep;
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
@@ -180,7 +214,7 @@ class _InteractiveTutorialOverlayState extends State<InteractiveTutorialOverlay>
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _nextStep,
+                  onPressed: () => _nextStep(steps.length),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,

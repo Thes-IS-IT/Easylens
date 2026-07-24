@@ -28,6 +28,7 @@ class SettingsService extends ChangeNotifier {
   bool faceIdUnlock = false;
   bool shakeToUndo = true;
   bool speechNavigation = false;
+  bool get voiceNavigationEnabled => speechNavigation;
   double speechRate = 0.5;
   double speechPitch = 0.5;
   List<String> homeScreenCards = ['buddy', 'easylens', 'faces', 'text', 'navigation', 'sos'];
@@ -38,6 +39,15 @@ class SettingsService extends ChangeNotifier {
 
   // Custom Gemini API Key
   String geminiApiKey = '';
+  String userDisplayName = '';
+
+  Future<void> updateDisplayName(String name) async {
+    if (userDisplayName == name) return;
+    userDisplayName = name;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userDisplayName', name);
+    notifyListeners();
+  }
 
   // Load preferences from local storage (public so TtsService can reload on demand)
   Future<void> loadSettingsFromLocal() async {
@@ -66,6 +76,7 @@ class SettingsService extends ChangeNotifier {
       useLocalAI = prefs.getBool('useLocalAI') ?? true;
       showFloatingMascot = prefs.getBool('showFloatingMascot') ?? true;
       geminiApiKey = prefs.getString('geminiApiKey') ?? '';
+      userDisplayName = prefs.getString('userDisplayName') ?? '';
 
       notifyListeners();
     } catch (e) {
@@ -144,6 +155,37 @@ class SettingsService extends ChangeNotifier {
       if (geminiApiKey != null) await prefs.setString('geminiApiKey', geminiApiKey);
     } catch (e) {
       print('Error saving settings to local storage: $e');
+    }
+  }
+
+  /// Reset preferences to defaults (called upon sign-out / new account setup)
+  Future<void> resetToDefaults() async {
+    voiceFeedback = true;
+    hapticFeedback = true;
+    companionSharing = false;
+    selectedContrastTheme = 'Default';
+    selectedLanguage = 'English (US)';
+    selectedVoicePersona = 'Aria (Calm)';
+    selectedUnit = 'Metric';
+    selectedMobilityAid = 'None (Hands-Free)';
+    appearanceTheme = 'Default';
+    accentColorIndex = 0;
+    faceIdUnlock = false;
+    shakeToUndo = true;
+    speechNavigation = false;
+    speechRate = 0.5;
+    speechPitch = 0.5;
+    homeScreenCards = ['buddy', 'easylens', 'faces', 'text', 'navigation', 'sos'];
+    useLocalAI = true;
+    showFloatingMascot = true;
+    geminiApiKey = '';
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } catch (e) {
+      print('Error clearing SharedPreferences: $e');
     }
   }
 }

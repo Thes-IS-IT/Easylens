@@ -5,7 +5,6 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../../constants/colors.dart';
 import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
-import 'voice_input_widget.dart';
 
 // STEP 19: Your SOS Contact
 class StepSosContact extends StatefulWidget {
@@ -319,12 +318,6 @@ class _SosTextField extends StatelessWidget {
       style: GoogleFonts.inter(fontSize: 15, color: AppColors.primaryText),
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: AppColors.textMuted, size: 18),
-        suffixIcon: VoiceMicIconButton(
-          controller: controller,
-          onChanged: onChanged,
-          keyboardType: keyboardType,
-          isPhone: isPhone,
-        ),
         filled: true,
         fillColor: AppColors.lightBackground,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),

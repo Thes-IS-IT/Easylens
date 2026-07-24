@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/emergency_contact_service.dart';
 import '../../constants/colors.dart';
 
 class ProfileDetailsScreen extends StatefulWidget {
@@ -73,6 +74,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             final prefs = data['preferences'] as Map<String, dynamic>;
             if (prefs.containsKey('name') && (prefs['name'] as String).trim().isNotEmpty) {
               _nameController.text = prefs['name'];
+              SettingsService().updateDisplayName(prefs['name']);
             }
             if (prefs.containsKey('birthday')) {
               _birthdayController.text = prefs['birthday'] ?? '';
@@ -161,9 +163,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
     final user = _firebaseService.currentUser;
     if (user != null) {
-      // 1. Update Display Name in Firebase Auth
+      // 1. Update Display Name in Firebase Auth & SettingsService
       if (name.isNotEmpty) {
         await _firebaseService.updateDisplayName(name);
+        await SettingsService().updateDisplayName(name);
       }
 
       // 2. Sync Preferences (Name & Birthday) to Cloud Firestore
@@ -174,7 +177,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
       };
       await _firebaseService.syncPreferencesToCloud(user.uid, prefsJson);
 
-      // 3. Sync Emergency SOS Contact to Cloud Firestore
+      // 3. Sync Emergency SOS Contact to Cloud Firestore & EmergencyContactService
       if (sosName.isNotEmpty || sosPhone.isNotEmpty) {
         final sosJson = {
           'name': sosName,
@@ -182,6 +185,14 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
           'relationship': sosRel,
         };
         await _firebaseService.syncContactToCloud(user.uid, sosJson);
+        await EmergencyContactService().saveContact(
+          SharedEmergencyContact(
+            name: sosName.isNotEmpty ? sosName : "SOS Contact",
+            phone: sosPhone,
+            relationship: sosRel.isNotEmpty ? sosRel : "Family",
+            isActive: true,
+          ),
+        );
       }
 
       if (mounted) {

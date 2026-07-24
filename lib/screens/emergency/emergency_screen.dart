@@ -8,6 +8,7 @@ import '../../constants/colors.dart';
 import '../../services/sms_service.dart';
 import '../../services/emergency_contact_service.dart';
 import '../../services/tts_service.dart';
+import '../../widgets/screen_tutorial_card.dart';
 
 class EmergencyScreen extends StatefulWidget {
   const EmergencyScreen({super.key});
@@ -27,6 +28,16 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   void initState() {
     super.initState();
     _startCountdown();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'emergency',
+        titleKey: 'tutorial_emergency_title',
+        descriptionKey: 'tutorial_emergency_desc',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+      );
+    });
   }
 
   @override

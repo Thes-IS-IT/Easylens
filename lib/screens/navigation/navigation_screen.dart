@@ -10,7 +10,6 @@ import 'package:geolocator/geolocator.dart';
 import '../../constants/colors.dart';
 import '../../services/tts_service.dart';
 import '../../services/firebase_service.dart';
-
 import '../emergency/emergency_screen.dart';
 import '../settings/settings_screen.dart';
 import '../notifications/notifications_screen.dart';
@@ -26,7 +25,7 @@ import '../../services/danger_warning_service.dart';
 import '../../services/notification_service.dart';
 import '../../models/app_notification.dart';
 import '../../widgets/critical_danger_overlay.dart';
-
+import '../../services/navigation_voice_assistant.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -86,13 +85,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
   final List<String> _filters = ['Home', 'Work', 'Holy Angel University'];
   String _selectedFilter = '';
 
-  // Google Map Controller
+  // Google Map Controller & Native Map availability flag
   GoogleMapController? _mapController;
+  bool _isNativeMapAvailable = true;
 
-  // Real-time GPS Location tracking variables
   LatLng _currentLocation = const LatLng(15.1325, 120.5901); // Fallback coordinates
   StreamSubscription<Position>? _positionStreamSubscription;
-  bool _isLoadingLocation = true;
+  bool _isLoadingLocation = false;
   List<LatLng> _routePoints = [];
   bool _isFetchingRoute = false;
 
@@ -100,6 +99,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   int _lastNavAlertTime = 0;
   static const int _navAlertCooldownMs = 8000; // 8 s between spoken alerts
   bool _hasAnnouncedArrival = false;
+  
 
   // Expanded Warning & Proximity Guidance Variables
   List<LatLng> _stepLocations = [];
@@ -168,6 +168,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   List<Map<String, dynamic>> _searchResults = [];
   Map<String, dynamic>? _selectedPlace;
+  Map<String, dynamic>? _pendingPlaceToConfirm;
   int _currentStepIndex = 0;
 
   void _updateSearchResults(List<Map<String, dynamic>> results) {
@@ -175,6 +176,24 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _searchResults = results;
     });
     SpeechNavigationNotifier.activeSearchResults = results;
+  }
+
+  void _activateVoiceSearch() {
+    NavigationVoiceAssistant.activateSearchAssistant(
+      context: context,
+      onQueryDiscovered: (query) {
+        if (mounted) {
+          _searchController.text = query;
+          _performSearch(query);
+        }
+      },
+      getSearchResults: () => _searchResults,
+      onPlaceConfirmed: (place) {
+        if (mounted) {
+          _requestNavigationConfirmation(place);
+        }
+      },
+    );
   }
 
   void _onVoiceSearchRequested() {
@@ -189,8 +208,55 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final index = SpeechNavigationNotifier.selectResultNotifier.value;
     if (index != null && index >= 0 && index < _searchResults.length && mounted) {
       final place = _searchResults[index];
-      _startGuidance(place);
+      _requestNavigationConfirmation(place);
     }
+  }
+
+  void _onVoiceConfirmRequested() {
+    final place = SpeechNavigationNotifier.confirmPlaceNotifier.value;
+    if (place != null && mounted) {
+      _confirmPendingNavigation();
+    }
+  }
+
+  void _onVoiceStopRouteRequested() {
+    if (SpeechNavigationNotifier.stopRouteNotifier.value == true && mounted) {
+      _cancelNavigation();
+    }
+  }
+
+  void _requestNavigationConfirmation(Map<String, dynamic> place) {
+    final lang = SettingsService().selectedLanguage;
+    final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    
+    setState(() {
+      _pendingPlaceToConfirm = place;
+    });
+
+    final placeName = place['name'] as String;
+    final prompt = isTagalog
+        ? "Kumpirmahin ang paglakad patungo sa $placeName. Sabihin ang 'Oo', 'Kumpirmahin', o 'Sige' para simulan ang ruta, o 'Hindi' para kanselahin."
+        : "Confirm navigation to $placeName? Say 'Yes', 'Confirm', or 'Search' to start guidance, or 'No' to cancel.";
+    
+    TtsService().speak(prompt);
+  }
+
+  void _confirmPendingNavigation() {
+    if (_pendingPlaceToConfirm == null) return;
+    final place = _pendingPlaceToConfirm!;
+    setState(() {
+      _pendingPlaceToConfirm = null;
+    });
+    _startGuidance(place);
+  }
+
+  void _cancelPendingNavigation() {
+    final lang = SettingsService().selectedLanguage;
+    final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    setState(() {
+      _pendingPlaceToConfirm = null;
+    });
+    TtsService().speak(isTagalog ? "Kinansela ang paghahanap ng ruta." : "Navigation setup cancelled.");
   }
 
   void _triggerHazardAlert(String label) {
@@ -207,14 +273,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
       message: message,
     );
 
-    // 2. Trigger Haptic Vibration
-    if (info.severity == HazardSeverity.critical) {
-      HapticFeedback.vibrate();
-      Future.delayed(const Duration(milliseconds: 300), () => HapticFeedback.vibrate());
-      Future.delayed(const Duration(milliseconds: 600), () => HapticFeedback.vibrate());
-    } else {
-      HapticFeedback.mediumImpact();
-    }
+    // 2. Trigger Maximum Hardware Motor Vibration
+    DangerWarningService().triggerStrongHazardVibration(
+      isCritical: info.severity == HazardSeverity.critical,
+    );
 
     // 3. Spoken TTS Voice Alert
     TtsService().speak(message);
@@ -243,6 +305,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _initializeLocationTracking();
     SpeechNavigationNotifier.searchPlaceNotifier.addListener(_onVoiceSearchRequested);
     SpeechNavigationNotifier.selectResultNotifier.addListener(_onVoiceSelectRequested);
+    SpeechNavigationNotifier.confirmPlaceNotifier.addListener(_onVoiceConfirmRequested);
+    SpeechNavigationNotifier.stopRouteNotifier.addListener(_onVoiceStopRouteRequested);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScreenTutorialCard.showIfNeeded(
@@ -276,6 +340,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
   void dispose() {
     SpeechNavigationNotifier.searchPlaceNotifier.removeListener(_onVoiceSearchRequested);
     SpeechNavigationNotifier.selectResultNotifier.removeListener(_onVoiceSelectRequested);
+    SpeechNavigationNotifier.confirmPlaceNotifier.removeListener(_onVoiceConfirmRequested);
+    SpeechNavigationNotifier.stopRouteNotifier.removeListener(_onVoiceStopRouteRequested);
     _searchController.dispose();
     _mapController?.dispose();
     _positionStreamSubscription?.cancel();
@@ -287,27 +353,21 @@ class _NavigationScreenState extends State<NavigationScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // Automatically request GPS activation from their phone
-        await Geolocator.openLocationSettings();
-        await Future.delayed(const Duration(seconds: 3));
-        serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (!serviceEnabled) {
-          setState(() => _isLoadingLocation = false);
-          return;
-        }
+        if (mounted) setState(() => _isLoadingLocation = false);
+        return;
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          setState(() => _isLoadingLocation = false);
+          if (mounted) setState(() => _isLoadingLocation = false);
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        setState(() => _isLoadingLocation = false);
+        if (mounted) setState(() => _isLoadingLocation = false);
         return;
       }
 
@@ -317,10 +377,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
         timeLimit: const Duration(seconds: 5),
       );
       
-      setState(() {
-        _currentLocation = LatLng(position.latitude, position.longitude);
-        _isLoadingLocation = false;
-      });
+      if (mounted) {
+        setState(() {
+          _currentLocation = LatLng(position.latitude, position.longitude);
+          _isLoadingLocation = false;
+        });
+      }
 
       // Animate map to location on boot
       _mapController?.animateCamera(
@@ -1104,49 +1166,73 @@ class _NavigationScreenState extends State<NavigationScreen> {
           _cancelNavigation();
         }
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Stack(
-          children: [
-          // ── GOOGLE MAPS BACKGROUND ──
+      child: ListenableBuilder(
+        listenable: SettingsService(),
+        builder: (context, _) {
+          final isDefaultTheme = SettingsService().selectedContrastTheme == 'Default';
+          return Scaffold(
+            backgroundColor: isDefaultTheme ? const Color(0xFFE2E8F0) : AppColors.primaryBackground,
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+          // ── GOOGLE MAPS BACKGROUND WITH STYLIZED CANVAS FALLBACK ──
           Positioned.fill(
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _currentLocation,
-                zoom: 15.0,
-              ),
-              zoomControlsEnabled: false,
-              myLocationButtonEnabled: false,
-              myLocationEnabled: true, // Shows blue location dot natively
-              mapToolbarEnabled: false,
-              markers: _getMapMarkers(),
-              polylines: _getMapPolylines(),
-              onTap: _onMapLongPress,
-              onLongPress: _onMapLongPress,
-              onMapCreated: (controller) {
-                _mapController = controller;
-                _mapController?.animateCamera(
-                  CameraUpdate.newCameraPosition(
-                    CameraPosition(
-                      target: _currentLocation,
-                      zoom: 16.0,
+            child: SizedBox.expand(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      size: Size.infinite,
+                      painter: _MapCanvasPainter(
+                        isNavigating: _navState == 1 || _selectedPlace != null,
+                        destinationName: _selectedPlace != null ? _selectedPlace!['name'] as String? : null,
+                      ),
                     ),
                   ),
-                );
-              },
+                  if (_isNativeMapAvailable)
+                    Positioned.fill(
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: _currentLocation,
+                          zoom: 15.0,
+                        ),
+                        zoomControlsEnabled: false,
+                        myLocationButtonEnabled: false,
+                        myLocationEnabled: false, // Prevents native SecurityException crash on Android
+                        mapToolbarEnabled: false,
+                        compassEnabled: false,
+                        mapType: MapType.normal,
+                        markers: _getMapMarkers(),
+                        polylines: _getMapPolylines(),
+                        onTap: _onMapLongPress,
+                        onLongPress: _onMapLongPress,
+                        onMapCreated: (controller) {
+                          _mapController = controller;
+                          if (mounted) {
+                            setState(() {
+                              _isNativeMapAvailable = true;
+                            });
+                          }
+                          try {
+                            _mapController?.animateCamera(
+                              CameraUpdate.newCameraPosition(
+                                CameraPosition(
+                                  target: _currentLocation,
+                                  zoom: 16.0,
+                                ),
+                              ),
+                            );
+                          } catch (_) {}
+                        },
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
 
-          // ── Loading GPS Overlay ──
-          if (_isLoadingLocation)
-            Container(
-              color: Colors.white.withOpacity(0.7),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF002663),
-                ),
-              ),
-            ),
+
 
           // ── FIGMA CUSTOM APPBAR ──
           Positioned(
@@ -1197,6 +1283,20 @@ class _NavigationScreenState extends State<NavigationScreen> {
                     child: Row(
                       children: [
                         IconButton(
+                          icon: Icon(
+                            _isNativeMapAvailable ? Icons.map : Icons.map_outlined,
+                            size: 20,
+                            color: _isNativeMapAvailable ? const Color(0xFF002663) : Colors.black87,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isNativeMapAvailable = !_isNativeMapAvailable;
+                            });
+                          },
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                        ),
+                        IconButton(
                           icon: const Icon(Icons.notifications_none, size: 20),
                           onPressed: () => Navigator.push(context, AppRoute.to(const NotificationsScreen())),
                           constraints: const BoxConstraints(),
@@ -1223,38 +1323,226 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
 
           // ── CRITICAL DANGER / HAZARD OVERLAY ──
-          if (ActiveNavigationService().isHazardActive)
-            Positioned(
-              top: 80,
-              left: 12,
-              right: 12,
-              child: SafeArea(
-                child: CriticalDangerOverlay(
-                  severity: ActiveNavigationService().hazardSeverity,
-                  title: ActiveNavigationService().activeHazardName,
-                  message: ActiveNavigationService().activeHazardMessage,
-                  hazardName: ActiveNavigationService().activeHazardName,
-                  onDismiss: _clearHazardAlert,
-                  onReannounce: () {
-                    TtsService().speak(ActiveNavigationService().activeHazardMessage);
-                  },
-                  onEmergencyCall: () {
-                    Navigator.push(context, AppRoute.to(const EmergencyScreen()));
-                  },
+          ListenableBuilder(
+            listenable: ActiveNavigationService(),
+            builder: (context, child) {
+              if (!ActiveNavigationService().isHazardActive) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
+                top: 80,
+                left: 12,
+                right: 12,
+                child: SafeArea(
+                  child: CriticalDangerOverlay(
+                    severity: ActiveNavigationService().hazardSeverity,
+                    title: ActiveNavigationService().activeHazardName,
+                    message: ActiveNavigationService().activeHazardMessage,
+                    hazardName: ActiveNavigationService().activeHazardName,
+                    onDismiss: _clearHazardAlert,
+                    onReannounce: () {
+                      TtsService().speak(ActiveNavigationService().activeHazardMessage);
+                    },
+                    onEmergencyCall: () {
+                      Navigator.push(context, AppRoute.to(const EmergencyScreen()));
+                    },
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
+          ),
 
           // ── FIGMA SLIDING CARD OVERLAYS ──
           Positioned.fill(
             child: _buildDraggableCardOverlay(),
           ),
 
+          // ── SPEECH NAVIGATION DESTINATION CONFIRMATION CARD OVERLAY ──
+          Positioned.fill(
+            child: _buildNavigationConfirmationCardOverlay(),
+          ),
+
         ],
       ),
-    ),
-  );
-}
+    );
+        },
+      ),
+    );
+  }
+
+  /// Interactive Confirmation Card Dialog Overlay for Hands-Free Speech Navigation
+  Widget _buildNavigationConfirmationCardOverlay() {
+    if (_pendingPlaceToConfirm == null) return const SizedBox.shrink();
+
+    final settings = SettingsService();
+    final isTagalog = settings.selectedLanguage.toLowerCase().contains('tagalog') ||
+        settings.selectedLanguage.toLowerCase().contains('filipino');
+
+    final place = _pendingPlaceToConfirm!;
+    final name = place['name'] as String;
+    final address = place['address'] as String? ?? '';
+    final dist = place['dist'] as String? ?? '';
+    final time = place['time'] as String? ?? '';
+
+    final bgColor = AppColors.primaryBackground;
+    final textColor = AppColors.primaryText;
+
+    return Container(
+      color: Colors.black.withValues(alpha: 0.65),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: AppColors.cardBorder,
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header Mascot or Icon
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryButton.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.navigation_rounded, color: AppColors.primaryButton, size: 32),
+              ),
+              const SizedBox(height: 14),
+
+              Text(
+                isTagalog ? 'Kumpirmahin ang Ruta' : 'Confirm Destination',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                name,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryButton == Colors.white ? Colors.white : AppColors.primaryButton,
+                ),
+              ),
+              if (address.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  address,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+
+              // Distance & Time pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryButton.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  '${_formatDistance(dist, SettingsService().selectedUnit)} • $time',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Voice prompt instruction text (Only show if Speech Navigation setting is enabled)
+              if (SettingsService().voiceNavigationEnabled) ...[
+                Text(
+                  isTagalog
+                      ? "Sabihin ang 'Oo', 'Kumpirmahin', o 'Sige' para magpatuloy, o 'Hindi' / 'Kanselahin'."
+                      : "Say 'Yes', 'Confirm', or 'Search' to proceed, or 'No' / 'Cancel'.",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ] else
+                const SizedBox(height: 12),
+
+              // Action Buttons Row
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _cancelPendingNavigation,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: const BorderSide(color: Colors.red, width: 1.5),
+                      ),
+                      child: Text(
+                        isTagalog ? 'Kanselahin' : 'Cancel',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _confirmPendingNavigation,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryButton,
+                        foregroundColor: AppColors.primaryButtonText,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: Text(
+                        isTagalog ? 'Simulan' : 'Start',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   // ── MAP MARKERS GENERATION ──
   Set<Marker> _getMapMarkers() {
@@ -1321,11 +1609,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
       builder: (BuildContext context, ScrollController scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.primaryBackground,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 16,
                 offset: const Offset(0, -4),
               )
@@ -1360,6 +1648,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   // ── OVERLAY CONTENT 1: Search & Filter ──────────────────────────────
   Widget _buildInitialSearchContent() {
     final lang = SettingsService().selectedLanguage;
+    final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1369,7 +1658,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             width: 50,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFF002663).withOpacity(0.8),
+              color: AppColors.primaryText.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1380,21 +1669,26 @@ class _NavigationScreenState extends State<NavigationScreen> {
         TextField(
           controller: _searchController,
           onChanged: _performSearch,
+          style: GoogleFonts.inter(fontSize: 15, color: AppColors.primaryText),
           decoration: InputDecoration(
             hintText: TranslationService.translate('Where to?', lang),
-            hintStyle: GoogleFonts.inter(color: Colors.grey.shade400),
-            prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 22),
-            suffixIcon: Icon(Icons.mic, color: Colors.grey.shade500, size: 20),
+            hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
+            prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 22),
+            suffixIcon: IconButton(
+              icon: Icon(Icons.mic, color: AppColors.primaryButton, size: 22),
+              tooltip: isTagalog ? "Magsalita para maghanap" : "Voice search",
+              onPressed: _activateVoiceSearch,
+            ),
             filled: true,
-            fillColor: Colors.grey.shade50,
+            fillColor: AppColors.lightBackground,
             contentPadding: const EdgeInsets.symmetric(vertical: 14),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide(color: Colors.grey.shade100, width: 1.5),
+              borderSide: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.3), width: 1.5),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide(color: Colors.grey.shade100, width: 1.5),
+              borderSide: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.3), width: 1.5),
             ),
           ),
         ),
@@ -1415,11 +1709,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   labelStyle: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    color: isSelected ? const Color(0xFF002663) : Colors.black,
+                    color: isSelected ? AppColors.primaryButtonText : AppColors.primaryText,
                   ),
-                  backgroundColor: Colors.grey.shade100,
-                  selectedColor: const Color(0xFF002663).withOpacity(0.08),
-                  checkmarkColor: const Color(0xFF002663),
+                  backgroundColor: AppColors.lightBackground,
+                  selectedColor: AppColors.primaryButton,
+                  checkmarkColor: AppColors.primaryButtonText,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
               );
@@ -1433,7 +1727,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           style: GoogleFonts.inter(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: Colors.grey.shade400,
+            color: AppColors.textMuted,
             letterSpacing: 0.8,
           ),
         ),
@@ -1445,31 +1739,41 @@ class _NavigationScreenState extends State<NavigationScreen> {
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
           itemCount: _searchResults.length > 5 ? 5 : _searchResults.length,
-          separatorBuilder: (_, __) => const Divider(height: 16),
+          separatorBuilder: (_, __) => Divider(height: 16, color: AppColors.cardBorder.withValues(alpha: 0.2)),
           itemBuilder: (context, index) {
             final place = _searchResults[index];
-            return ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue.shade50,
-                radius: 20,
-                child: Icon(Icons.access_time, color: Colors.blue.shade700, size: 20),
+            return Theme(
+              data: Theme.of(context).copyWith(
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                focusColor: Colors.transparent,
               ),
-              title: Text(
-                place['name'] as String,
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                tileColor: Colors.transparent,
+                selectedTileColor: Colors.transparent,
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.primaryButton.withValues(alpha: 0.12),
+                  radius: 20,
+                  child: Icon(Icons.access_time, color: AppColors.primaryButton, size: 20),
+                ),
+                title: Text(
+                  place['name'] as String,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primaryText),
+                ),
+                subtitle: Text(
+                  place['address'] as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
+                ),
+                trailing: Text(
+                  '${_formatDistance(place['dist'] as String, SettingsService().selectedUnit)} • ${place['time']}',
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryText),
+                ),
+                onTap: () => _requestNavigationConfirmation(place),
               ),
-              subtitle: Text(
-                place['address'] as String,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade400),
-              ),
-              trailing: Text(
-                '${_formatDistance(place['dist'] as String, SettingsService().selectedUnit)} • ${place['time']}',
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-              onTap: () => _startGuidance(place),
             );
           },
         ),
@@ -1656,141 +1960,324 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   Widget _buildHazardTestPanel() {
-    final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return ListenableBuilder(
+      listenable: ActiveNavigationService(),
+      builder: (context, child) {
+        final navService = ActiveNavigationService();
+        final isHazard = navService.isHazardActive;
+        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
+
+        final Color cardBg = isHazard
+            ? (navService.hazardSeverity == HazardSeverity.critical
+                ? Colors.red.shade50
+                : Colors.orange.shade50)
+            : Colors.grey.shade50;
+
+        final Color borderColor = isHazard
+            ? (navService.hazardSeverity == HazardSeverity.critical
+                ? Colors.red.shade300
+                : Colors.orange.shade300)
+            : Colors.grey.shade200;
+
+        final Color iconColor = isHazard
+            ? (navService.hazardSeverity == HazardSeverity.critical
+                ? Colors.red.shade700
+                : Colors.orange.shade700)
+            : const Color(0xFF002663);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderColor, width: 1.5),
+            boxShadow: isHazard
+                ? [
+                    BoxShadow(
+                      color: (navService.hazardSeverity == HazardSeverity.critical
+                              ? Colors.red
+                              : Colors.orange)
+                          .withValues(alpha: 0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    )
+                  ]
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.shield_outlined, size: 18, color: Color(0xFF002663)),
-              const SizedBox(width: 8),
-              Text(
-                isTagalog ? "SISTEMA NG BABALA SA PANGANIB" : "HAZARD WARNING SYSTEM",
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF002663),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.green.shade300),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
+              // Header Row
+              Row(
+                children: [
+                  Icon(
+                    isHazard ? Icons.warning_amber_rounded : Icons.shield_outlined,
+                    size: 20,
+                    color: iconColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isTagalog ? "SISTEMA NG BABALA SA PANGANIB" : "HAZARD WARNING SYSTEM",
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: iconColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isHazard ? Colors.red.shade100 : Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isHazard ? Colors.red.shade300 : Colors.green.shade300,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      "ACTIVE",
-                      style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: isHazard ? Colors.red : Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          isHazard ? "WARNING" : "ACTIVE",
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isHazard ? Colors.red.shade900 : Colors.green.shade800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Dynamic Body Content
+              if (isHazard) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: navService.hazardSeverity == HazardSeverity.critical
+                            ? Colors.red.shade100
+                            : Colors.orange.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        navService.hazardSeverity == HazardSeverity.critical
+                            ? Icons.report_problem_rounded
+                            : Icons.warning_amber_rounded,
+                        color: navService.hazardSeverity == HazardSeverity.critical
+                            ? Colors.red.shade800
+                            : Colors.orange.shade800,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            navService.activeHazardName.isNotEmpty
+                                ? navService.activeHazardName
+                                : "Hazard Detected",
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: navService.hazardSeverity == HazardSeverity.critical
+                                  ? Colors.red.shade900
+                                  : Colors.orange.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            navService.activeHazardMessage.isNotEmpty
+                                ? navService.activeHazardMessage
+                                : "Caution! An obstacle has been detected in your navigation path.",
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              color: navService.hazardSeverity == HazardSeverity.critical
+                                  ? Colors.red.shade800
+                                  : Colors.orange.shade800,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            isTagalog ? "Subukan ang babala kapag may natukoy na peligro:" : "Simulate live hazard detection during navigation:",
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC2626),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => _triggerHazardAlert('knife'),
-                icon: const Icon(Icons.content_cut_rounded, size: 16),
-                label: const Text("🔪 Knife"),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEA580C),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => _triggerHazardAlert('fire'),
-                icon: const Icon(Icons.local_fire_department_rounded, size: 16),
-                label: const Text("🔥 Fire"),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB91C1C),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => _triggerHazardAlert('car'),
-                icon: const Icon(Icons.directions_car_rounded, size: 16),
-                label: const Text("🚗 Vehicle"),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD97706),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => _triggerHazardAlert('dog'),
-                icon: const Icon(Icons.pets_rounded, size: 16),
-                label: const Text("🐕 Animal"),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD97706),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => _triggerHazardAlert('stairs'),
-                icon: const Icon(Icons.stairs_rounded, size: 16),
-                label: const Text("🪜 Stairs"),
-              ),
-              if (ActiveNavigationService().isHazardActive)
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey.shade700,
-                    side: BorderSide(color: Colors.grey.shade400),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: _clearHazardAlert,
-                  icon: const Icon(Icons.check_circle_outline, size: 16),
-                  label: const Text("Clear"),
-                ),
 
+                // ── Directional Avoidance Guidance Strip ──
+                if (navService.avoidanceDirection.isNotEmpty &&
+                    navService.avoidanceDirection != 'center') ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: navService.avoidanceDirection == 'left'
+                            ? [const Color(0xFF1565C0), const Color(0xFF42A5F5)]
+                            : [const Color(0xFF42A5F5), const Color(0xFF1565C0)],
+                        begin: navService.avoidanceDirection == 'left'
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        end: navService.avoidanceDirection == 'left'
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (navService.avoidanceDirection == 'left') ...[
+                          const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                          const SizedBox(width: 8),
+                        ],
+                        Icon(
+                          navService.avoidanceDirection == 'left'
+                              ? Icons.turn_left_rounded
+                              : Icons.turn_right_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isTagalog
+                              ? (navService.avoidanceDirection == 'left'
+                                  ? "LUMIPAT SA KALIWA"
+                                  : "LUMIPAT SA KANAN")
+                              : (navService.avoidanceDirection == 'left'
+                                  ? "MOVE TO YOUR LEFT"
+                                  : "MOVE TO YOUR RIGHT"),
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        if (navService.avoidanceDirection == 'right') ...[
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 22),
+                        ],
+                      ],
+                    ),
+                  ),
+                ] else if (navService.avoidanceDirection == 'center') ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade700,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.pan_tool_rounded, color: Colors.white, size: 22),
+                        const SizedBox(width: 10),
+                        Text(
+                          isTagalog ? "HUMINTO AT TUMABI" : "STOP & STEP ASIDE",
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: navService.hazardSeverity == HazardSeverity.critical
+                          ? Colors.red.shade900
+                          : Colors.orange.shade900,
+                      side: BorderSide(
+                        color: navService.hazardSeverity == HazardSeverity.critical
+                            ? Colors.red.shade300
+                            : Colors.orange.shade300,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: _clearHazardAlert,
+                    icon: const Icon(Icons.check_circle_outline, size: 16),
+                    label: Text(
+                      isTagalog ? "I-dismiss" : "Dismiss Warning",
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.green.shade700,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isTagalog ? "Ligtas ang Daan • AI Monitoring" : "Path Clear • AI Radar Active",
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF002663),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isTagalog
+                                ? "Kasalukuyang sinusuri ang iyong paligid para sa anumang panganib."
+                                : "Real-time AI vision is actively scanning your path for hazards.",
+                            style: GoogleFonts.inter(
+                              fontSize: 11.5,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1903,4 +2390,86 @@ class _NavigationScreenState extends State<NavigationScreen> {
       ],
     );
   }
+}
+
+class _MapCanvasPainter extends CustomPainter {
+  final bool isNavigating;
+  final String? destinationName;
+
+  _MapCanvasPainter({this.isNavigating = false, this.destinationName});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 1. Light Slate Background
+    final bgPaint = Paint()..color = const Color(0xFFE2E8F0);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
+
+    // 2. White Primary Road Grid
+    final roadPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 16
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final secondaryRoadPaint = Paint()
+      ..color = const Color(0xFFF8FAFC)
+      ..strokeWidth = 8
+      ..style = PaintingStyle.stroke;
+
+    final roadPath = Path();
+    roadPath.moveTo(0, size.height * 0.35);
+    roadPath.quadraticBezierTo(size.width * 0.4, size.height * 0.3, size.width, size.height * 0.42);
+
+    roadPath.moveTo(size.width * 0.25, 0);
+    roadPath.lineTo(size.width * 0.35, size.height);
+
+    roadPath.moveTo(size.width * 0.65, 0);
+    roadPath.lineTo(size.width * 0.75, size.height);
+
+    roadPath.moveTo(0, size.height * 0.65);
+    roadPath.lineTo(size.width, size.height * 0.72);
+
+    canvas.drawPath(roadPath, roadPaint);
+    canvas.drawPath(roadPath, secondaryRoadPaint);
+
+    // 3. Route Line (if navigating or place selected)
+    if (isNavigating) {
+      final routePaint = Paint()
+        ..color = const Color(0xFF1D4ED8)
+        ..strokeWidth = 8
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      final routePath = Path();
+      routePath.moveTo(size.width * 0.35, size.height * 0.55);
+      routePath.lineTo(size.width * 0.35, size.height * 0.35);
+      routePath.quadraticBezierTo(size.width * 0.4, size.height * 0.3, size.width * 0.65, size.height * 0.32);
+      routePath.lineTo(size.width * 0.68, size.height * 0.22);
+
+      canvas.drawPath(routePath, routePaint);
+
+      // Destination Pin Marker
+      final destPinPaint = Paint()..color = const Color(0xFFDC2626);
+      canvas.drawCircle(Offset(size.width * 0.68, size.height * 0.22), 12, destPinPaint);
+      final destInner = Paint()..color = Colors.white;
+      canvas.drawCircle(Offset(size.width * 0.68, size.height * 0.22), 5, destInner);
+    }
+
+    // 4. Current Location Pulsing Pin Marker (Blue Dot)
+    final locOffset = Offset(size.width * 0.35, size.height * 0.55);
+    final pulsePaint = Paint()
+      ..color = const Color(0x402563EB)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(locOffset, 22, pulsePaint);
+
+    final bluePin = Paint()..color = const Color(0xFF2563EB);
+    canvas.drawCircle(locOffset, 10, bluePin);
+
+    final whiteCenter = Paint()..color = Colors.white;
+    canvas.drawCircle(locOffset, 4, whiteCenter);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MapCanvasPainter oldDelegate) =>
+      oldDelegate.isNavigating != isNavigating || oldDelegate.destinationName != destinationName;
 }

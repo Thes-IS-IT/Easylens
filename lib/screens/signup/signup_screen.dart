@@ -10,6 +10,7 @@ import '../../services/settings_service.dart';
 import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
 import '../../services/sms_service.dart';
+import '../../services/emergency_contact_service.dart';
 
 import '../../services/storage/cloudflare_r2_service.dart';
 import 'celebration_screen.dart';
@@ -340,7 +341,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _pendingVoiceSelection = selectionName;
       _isAwaitingConfirmation = true;
       _voiceFeedbackText = isTagalog
-          ? "Pinili mo ang $selectionName. Sabihin ang Oo o i-tap ang Continue para kumpirmahin, Baguhin para pumili ulit, o Bumalik."
+          ? "Pinili mo ang $selectionName. Sabihin ang Oo o i-tap ang Ituloy para kumpirmahin, Baguhin para pumili ulit, o Bumalik."
           : "Selected: $selectionName. Say 'Yes' or tap 'Continue' to confirm, or 'Change' to pick again.";
     });
 
@@ -663,8 +664,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
 
       case 18: // Birthday Input
-        if (rawText.trim().isNotEmpty) {
-          setState(() => _birthday = rawText.trim());
+        final formattedBday = formatSpokenBirthday(rawText);
+        if (formattedBday.isNotEmpty) {
+          setState(() => _birthday = formattedBday);
           _triggerVoiceConfirmation(_birthday);
         }
         break;
@@ -1017,8 +1019,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
         print("Warning: syncPreferencesToCloud error: $prefErr");
       }
 
-      // 5. Store/Sync SOS Contact to Firestore (and D1)
+      // 5. Store/Sync SOS Contact to EmergencyContactService & Firestore
       if (_sosName.isNotEmpty || _sosPhone.isNotEmpty) {
+        try {
+          await EmergencyContactService().saveContact(
+            SharedEmergencyContact(
+              name: _sosName.isNotEmpty ? _sosName : "SOS Contact",
+              phone: _sosPhone,
+              relationship: _sosRelationship.isNotEmpty ? _sosRelationship : "Family",
+              isActive: true,
+            ),
+          );
+        } catch (e) {
+          print("Warning: EmergencyContactService save error: $e");
+        }
+
         final sosJson = {
           'name': _sosName,
           'phone': _sosPhone,
@@ -1415,14 +1430,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: _isVoiceActivated
-                              ? (_isAwaitingConfirmation ? Colors.amber.shade50 : Colors.blue.shade50)
-                              : Colors.grey.shade100,
+                          color: AppColors.lightBackground,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: _isVoiceActivated
-                                ? (_isAwaitingConfirmation ? Colors.amber.shade400 : AppColors.primaryButton)
-                                : Colors.grey.shade300,
+                                ? (_isAwaitingConfirmation ? const Color(0xFFE5A63C) : AppColors.primaryButton)
+                                : AppColors.cardBorder.withValues(alpha: 0.3),
                             width: 1.5,
                           ),
                         ),
@@ -1431,15 +1444,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             CircleAvatar(
                               radius: 14,
                               backgroundColor: _isVoiceActivated
-                                  ? (_isAwaitingConfirmation ? Colors.amber : AppColors.primaryButton)
-                                  : Colors.grey,
+                                  ? (_isAwaitingConfirmation ? const Color(0xFFE5A63C) : AppColors.primaryButton)
+                                  : AppColors.cardBorder.withValues(alpha: 0.4),
                               child: Icon(
                                 _isVoiceActivated
                                     ? (_isAwaitingConfirmation
                                         ? Icons.mark_chat_read_rounded
                                         : (_isListening ? Icons.mic : Icons.volume_up))
                                     : Icons.mic_off,
-                                color: Colors.white,
+                                color: AppColors.primaryButtonText,
                                 size: 14,
                               ),
                             ),
@@ -1458,7 +1471,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: _isVoiceActivated ? AppColors.primaryText : Colors.grey.shade700,
+                                  color: AppColors.primaryText,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../services/settings_service.dart';
+import '../../../constants/colors.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/esp32_service.dart';
 import '../../notifications/notifications_screen.dart';
@@ -137,7 +137,7 @@ class PairingWizard extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF002663),
+              color: AppColors.primaryText,
             ),
           ),
           const SizedBox(height: 16),
@@ -145,7 +145,7 @@ class PairingWizard extends StatelessWidget {
             'Pair your glasses to unlock a new dimension of augmented reality. Once connected, your lightweight smart glasses will work seamlessly with your Buddy hardware to project real-time information, interactive filters, and custom AR elements directly into your field of view.',
             style: GoogleFonts.inter(
               fontSize: 13,
-              color: Colors.grey.shade600,
+              color: AppColors.textMuted,
               height: 1.5,
             ),
           ),
@@ -158,9 +158,9 @@ class PairingWizard extends StatelessWidget {
               height: 220,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey.shade200,
+                color: AppColors.lightBackground,
                 height: 220,
-                child: const Icon(Icons.image_not_supported, size: 48),
+                child: Icon(Icons.image_not_supported, size: 48, color: AppColors.textMuted),
               ),
             ),
           ),
@@ -172,12 +172,13 @@ class PairingWizard extends StatelessWidget {
                   height: 52,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF002663),
-                      side: const BorderSide(color: Color(0xFF002663), width: 1.5),
+                      foregroundColor: AppColors.primaryText,
+                      backgroundColor: AppColors.lightBackground,
+                      side: BorderSide(color: AppColors.cardBorder, width: 1.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                     ),
                     onPressed: onInitializeCamera,
-                    icon: const Icon(Icons.camera_alt_outlined, size: 20),
+                    icon: Icon(Icons.camera_alt_outlined, size: 20, color: AppColors.primaryText),
                     label: Text(
                       'Use Camera',
                       style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
@@ -191,8 +192,8 @@ class PairingWizard extends StatelessWidget {
                   height: 52,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF002663),
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.primaryButton,
+                      foregroundColor: AppColors.primaryButtonText,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                       elevation: 0,
                     ),

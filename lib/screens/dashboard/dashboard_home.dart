@@ -339,7 +339,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                                 children: [
                                   const TextSpan(text: ' '),
                                   TextSpan(
-                                    text: widget.displayName,
+                                    text: settings.userDisplayName.isNotEmpty ? settings.userDisplayName : widget.displayName,
                                     style: GoogleFonts.inter(
                                       fontSize: 26,
                                       fontWeight: FontWeight.w900,

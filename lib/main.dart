@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'constants/colors.dart';
 import 'services/firebase_service.dart';
 import 'services/settings_service.dart';
 import 'services/rag_service.dart';
@@ -34,9 +35,9 @@ void main() async {
   final firebaseService = FirebaseService();
   await firebaseService.initialize();
 
-  // Initialize localized Gemma offline model engine in background to prevent startup freeze S01
-  RagService().initializeGemma().catchError((e) {
-    print("Gemma initialization warning: $e");
+  // Load RAG knowledge base on boot; Gemma LLM model warms up lazily when AI Assistant is opened
+  RagService().loadKnowledgeBase().catchError((e) {
+    print("RAG knowledge base load warning: $e");
   });
 
   // Initialize notification service (loads persisted notifications + daily Buddy follow-up)
@@ -59,16 +60,92 @@ class EasyLensApp extends StatelessWidget {
     return AnimatedBuilder(
       animation: settingsService,
       builder: (context, child) {
+        final primaryColor = AppColors.primaryButton;
+        final primaryTextColor = AppColors.primaryText;
+        final bgColor = AppColors.primaryBackground;
+
         return MaterialApp(
           title: 'EasyLens',
           debugShowCheckedModeBanner: false,
           navigatorKey: navigatorKey,
           theme: ThemeData(
             useMaterial3: true,
-            primaryColor: const Color(0xFF002663),
+            primaryColor: primaryColor,
+            scaffoldBackgroundColor: bgColor,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF002663),
-              primary: const Color(0xFF002663),
+              seedColor: primaryColor,
+              primary: primaryColor,
+              onPrimary: AppColors.primaryButtonText,
+              surface: bgColor,
+              onSurface: primaryTextColor,
+            ),
+            checkboxTheme: CheckboxThemeData(
+              fillColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return primaryColor;
+                }
+                return Colors.transparent;
+              }),
+              checkColor: WidgetStateProperty.all(AppColors.primaryButtonText),
+              side: BorderSide(color: primaryColor, width: 2),
+            ),
+            radioTheme: RadioThemeData(
+              fillColor: WidgetStateProperty.all(primaryColor),
+            ),
+            switchTheme: SwitchThemeData(
+              thumbColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.primaryButtonText;
+                }
+                return AppColors.textMuted;
+              }),
+              trackColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return primaryColor;
+                }
+                return AppColors.unselectedBorder;
+              }),
+            ),
+            sliderTheme: SliderThemeData(
+              activeTrackColor: primaryColor,
+              thumbColor: primaryColor,
+              inactiveTrackColor: AppColors.unselectedBorder,
+            ),
+            progressIndicatorTheme: ProgressIndicatorThemeData(
+              color: primaryColor,
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: primaryColor, width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.unselectedBorder),
+              ),
+              hintStyle: TextStyle(color: AppColors.textMuted),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: AppColors.primaryButtonText,
+              ),
+            ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: primaryTextColor,
+                side: BorderSide(color: primaryColor, width: 1.5),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: primaryColor,
+              ),
+            ),
+            textSelectionTheme: TextSelectionThemeData(
+              cursorColor: primaryColor,
+              selectionColor: primaryColor.withValues(alpha: 0.3),
+              selectionHandleColor: primaryColor,
             ),
           ),
           home: const WelcomeScreen(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../constants/colors.dart';
 import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
@@ -16,7 +17,7 @@ class StepMobilityAids extends StatelessWidget {
     required this.onChanged,
   });
 
-  List<String> _aidKeys = [
+  final List<String> _aidKeys = [
     'mobility_white_cane',
     'mobility_guide_dog',
     'mobility_smart_glasses',
@@ -62,11 +63,11 @@ class StepMobilityAids extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF002663) : Colors.white,
+                    color: isSelected ? AppColors.primaryButton : AppColors.lightBackground,
                     borderRadius: BorderRadius.circular(16.0),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFF002663) : const Color(0xFFE2E8F0),
-                      width: 1.5,
+                      color: isSelected ? AppColors.primaryButton : AppColors.cardBorder.withValues(alpha: 0.4),
+                      width: isSelected ? 2.0 : 1.5,
                     ),
                   ),
                   child: Center(
@@ -74,7 +75,7 @@ class StepMobilityAids extends StatelessWidget {
                       label,
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.bold,
-                        color: isSelected ? Colors.white : const Color(0xFF002663),
+                        color: isSelected ? AppColors.primaryButtonText : AppColors.primaryText,
                       ),
                     ),
                   ),

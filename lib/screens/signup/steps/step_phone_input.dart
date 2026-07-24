@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
-import 'voice_input_widget.dart';
 
 // STEP 10: Phone Input
 class StepPhoneInput extends StatefulWidget {
@@ -147,16 +146,6 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
                 decoration: InputDecoration(
                   labelText: SignupL10n.t('phone_hint', widget.language),
                   labelStyle: GoogleFonts.inter(color: AppColors.primaryText),
-                  suffixIcon: VoiceMicIconButton(
-                    controller: _controller,
-                    onChanged: (val) {
-                      if (_errorText != null) {
-                        setState(() => _errorText = null);
-                      }
-                      widget.onPhoneChanged(val);
-                    },
-                    isPhone: true,
-                  ),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
                       color: _errorText != null ? Colors.red.shade300 : AppColors.unselectedBorder,
@@ -201,25 +190,6 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
                     SignupL10n.t('phone_send_code', widget.language),
                     style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryText,
-              side: BorderSide(color: AppColors.cardBorder, width: 1.5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28.0),
-              ),
-            ),
-            onPressed: _isLoading ? null : widget.onChangeMethod,
-            child: Text(
-              SignupL10n.t('phone_change_method', widget.language),
-              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
           ),
         ),
       ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/danger_warning_service.dart';
 
@@ -41,6 +42,14 @@ class _CriticalDangerOverlayState extends State<CriticalDangerOverlay>
 
     _pulseAnimation = Tween<double>(begin: 0.96, end: 1.04).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _triggerStrongWarningVibration();
+  }
+
+  void _triggerStrongWarningVibration() {
+    DangerWarningService().triggerStrongHazardVibration(
+      isCritical: widget.severity == HazardSeverity.critical,
     );
   }
 
@@ -134,6 +143,35 @@ class _CriticalDangerOverlayState extends State<CriticalDangerOverlay>
             ),
 
             const SizedBox(height: 14),
+
+            // High Visibility Red AVOID Warning Pill for Critical Hazards
+            if (isCritical) ...[
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.do_not_disturb_on_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      "STOP & AVOID AREA IMMEDIATELY",
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             // Warning Description Box
             Container(

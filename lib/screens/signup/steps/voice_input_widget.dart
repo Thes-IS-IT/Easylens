@@ -30,10 +30,115 @@ String formatSpokenEmail(String input) {
   return text;
 }
 
+/// Helper to parse spoken date into MM / DD / YYYY format (e.g. "January 6, 2005" -> "01 / 06 / 2005")
+String formatSpokenBirthday(String input) {
+  String text = input.trim().toLowerCase();
+  if (text.isEmpty) return text;
+
+  final months = {
+    'january': 1, 'jan': 1, 'enero': 1,
+    'february': 2, 'feb': 2, 'pabrero': 2, 'pebrero': 2,
+    'march': 3, 'mar': 3, 'marso': 3,
+    'april': 4, 'apr': 4, 'abril': 4,
+    'may': 5, 'mayo': 5,
+    'june': 6, 'jun': 6, 'hunyo': 6,
+    'july': 7, 'jul': 7, 'hulyo': 7,
+    'august': 8, 'aug': 8, 'agosto': 8,
+    'september': 9, 'sep': 9, 'sept': 9, 'setyembre': 9,
+    'october': 10, 'oct': 10, 'oktubre': 10,
+    'november': 11, 'nov': 11, 'nobyembre': 11,
+    'december': 12, 'dec': 12, 'disyembre': 12,
+  };
+
+  final wordNumbers = {
+    'first': 1, '1st': 1, 'one': 1, 'una': 1,
+    'second': 2, '2nd': 2, 'two': 2, 'pangalawa': 2,
+    'third': 3, '3rd': 3, 'three': 3, 'pangatlo': 3,
+    'fourth': 4, '4th': 4, 'four': 4,
+    'fifth': 5, '5th': 5, 'five': 5,
+    'sixth': 6, '6th': 6, 'six': 6,
+    'seventh': 7, '7th': 7, 'seven': 7,
+    'eighth': 8, '8th': 8, 'eight': 8,
+    'ninth': 9, '9th': 9, 'nine': 9,
+    'tenth': 10, '10th': 10, 'ten': 10,
+    'eleventh': 11, '11th': 11, 'eleven': 11,
+    'twelfth': 12, '12th': 12, 'twelve': 12,
+    'thirteenth': 13, '13th': 13, 'thirteen': 13,
+    'fourteenth': 14, '14th': 14, 'fourteen': 14,
+    'fifteenth': 15, '15th': 15, 'fifteen': 15,
+    'sixteenth': 16, '16th': 16, 'sixteen': 16,
+    'seventeenth': 17, '17th': 17, 'seventeen': 17,
+    'eighteenth': 18, '18th': 18, 'eighteen': 18,
+    'nineteenth': 19, '19th': 19, 'nineteen': 19,
+    'twentieth': 20, '20th': 20, 'twenty': 20,
+    'twenty first': 21, '21st': 21, 'twenty-first': 21,
+    'twenty second': 22, '22nd': 22, 'twenty-second': 22,
+    'twenty third': 23, '23rd': 23, 'twenty-third': 23,
+    'twenty fourth': 24, '24th': 24, 'twenty-fourth': 24,
+    'twenty fifth': 25, '25th': 25, 'twenty-fifth': 25,
+    'twenty sixth': 26, '26th': 26, 'twenty-sixth': 26,
+    'twenty seventh': 27, '27th': 27, 'twenty-seventh': 27,
+    'twenty eighth': 28, '28th': 28, 'twenty-eighth': 28,
+    'twenty ninth': 29, '29th': 29, 'twenty-ninth': 29,
+    'thirtieth': 30, '30th': 30, 'thirty': 30,
+    'thirty first': 31, '31st': 31, 'thirty-first': 31,
+  };
+
+  int? month;
+  months.forEach((key, val) {
+    if (text.contains(key)) {
+      month = val;
+    }
+  });
+
+  final yearMatch = RegExp(r'\b(19\d{2}|20\d{2})\b').firstMatch(text);
+  int? year = yearMatch != null ? int.tryParse(yearMatch.group(0)!) : null;
+
+  int? day;
+  final dayMatches = RegExp(r'\b([0-3]?[0-9])(st|nd|rd|th)?\b').allMatches(text);
+  for (var m in dayMatches) {
+    final numVal = int.tryParse(m.group(1)!);
+    if (numVal != null && numVal >= 1 && numVal <= 31 && numVal != year && numVal != month) {
+      day = numVal;
+      break;
+    }
+  }
+
+  if (day == null) {
+    wordNumbers.forEach((key, val) {
+      if (text.contains(key) && val >= 1 && val <= 31 && val != month) {
+        day = val;
+      }
+    });
+  }
+
+  if (month != null && day != null && year != null) {
+    final mStr = month.toString().padLeft(2, '0');
+    final dStr = day.toString().padLeft(2, '0');
+    return '$mStr / $dStr / $year';
+  }
+
+  final allDigits = text.replaceAll(RegExp(r'\D+'), ' ').trim().split(RegExp(r'\s+'));
+  if (allDigits.length >= 3) {
+    final m = int.tryParse(allDigits[0]);
+    final d = int.tryParse(allDigits[1]);
+    final y = int.tryParse(allDigits[2]);
+    if (m != null && d != null && y != null && m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 1900) {
+      return '${m.toString().padLeft(2, '0')} / ${d.toString().padLeft(2, '0')} / $y';
+    }
+  }
+
+  return input;
+}
+
 /// Helper to sanitize spoken input based on expected input type
-String formatSpokenText(String input, {TextInputType? keyboardType, bool isEmail = false, bool isPhone = false, bool isCode = false}) {
+String formatSpokenText(String input, {TextInputType? keyboardType, bool isEmail = false, bool isPhone = false, bool isCode = false, bool isBirthday = false}) {
   String text = input.trim();
   if (text.isEmpty) return text;
+
+  if (isBirthday) {
+    return formatSpokenBirthday(text);
+  }
 
   if (isEmail || keyboardType == TextInputType.emailAddress) {
     return formatSpokenEmail(text);

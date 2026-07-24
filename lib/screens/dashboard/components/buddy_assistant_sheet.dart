@@ -669,12 +669,16 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                     decoration: BoxDecoration(
                       color: isDefault ? const Color(0xFFF1F5F9) : AppColors.primaryBackground,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.unselectedBorder),
+                      border: Border.all(
+                        color: isDefault
+                            ? const Color(0xFFCBD5E1)
+                            : AppColors.unselectedBorder,
+                        width: 1.5,
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
                       controller: _textController,
-                      style: GoogleFonts.inter(color: AppColors.primaryText),
+                      style: GoogleFonts.inter(color: AppColors.primaryText, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: (() {
                           final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
@@ -682,8 +686,14 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                           if (_isListening) return isFilipino ? 'Magsalita na…' : 'Speak now…';
                           return isFilipino ? 'Tanungin si Buddy ng kahit ano…' : 'Ask Buddy anything…';
                         })(),
-                        hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
+                        hintStyle: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 14),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       onTap: () {
                         // Immediately stop active voice/speech listeners when keyboard gets focus S01

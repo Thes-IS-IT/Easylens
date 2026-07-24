@@ -32,9 +32,9 @@ class StepTermsPrivacy extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.lightBackground,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.cardBorder.withOpacity(0.25)),
+            border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.04),

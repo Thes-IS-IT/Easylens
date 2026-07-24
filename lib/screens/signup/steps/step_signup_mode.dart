@@ -34,10 +34,10 @@ class StepSignupMode extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isVoiceMode ? AppColors.primaryButton.withOpacity(0.08) : Colors.white,
+              color: isVoiceMode ? AppColors.primaryButton.withValues(alpha: 0.12) : AppColors.lightBackground,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isVoiceMode ? AppColors.primaryButton : AppColors.cardBorder.withOpacity(0.4),
+                color: isVoiceMode ? AppColors.primaryButton : AppColors.cardBorder.withValues(alpha: 0.4),
                 width: isVoiceMode ? 2.5 : 1.5,
               ),
               boxShadow: [
@@ -110,10 +110,10 @@ class StepSignupMode extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: !isVoiceMode ? AppColors.primaryButton.withOpacity(0.08) : Colors.white,
+              color: !isVoiceMode ? AppColors.primaryButton.withValues(alpha: 0.12) : AppColors.lightBackground,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: !isVoiceMode ? AppColors.primaryButton : AppColors.cardBorder.withOpacity(0.4),
+                color: !isVoiceMode ? AppColors.primaryButton : AppColors.cardBorder.withValues(alpha: 0.4),
                 width: !isVoiceMode ? 2.5 : 1.5,
               ),
               boxShadow: [

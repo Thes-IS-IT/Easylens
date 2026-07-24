@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../../services/esp32_service.dart';
+import '../../widgets/screen_tutorial_card.dart';
 
 // Pairing flow state machine
 enum _DeviceState { dashboard, enterIp, scanning, connected, deviceSettings }
@@ -51,6 +52,16 @@ class _DevicesScreenState extends State<DevicesScreen>
     )..forward();
 
     if (_esp32.isConnected) _state = _DeviceState.connected;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScreenTutorialCard.showIfNeeded(
+        context,
+        tutorialKey: 'devices',
+        titleKey: 'tutorial_devices_title',
+        descriptionKey: 'tutorial_devices_desc',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+      );
+    });
   }
 
   void _rebuild() {

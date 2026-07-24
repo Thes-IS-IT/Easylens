@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../constants/colors.dart';
 import '../../../l10n/signup_strings.dart';
 import 'step_helpers.dart';
 
@@ -230,8 +229,59 @@ class StepContrastTheme extends StatelessWidget {
     }
   }
 
+  Color _getOptionTextColor(String name, bool isSelected, bool isLightBg) {
+    switch (name) {
+      case 'Default':
+        if (isLightBg) {
+          return isSelected ? const Color(0xFF2563EB) : const Color(0xFF475569);
+        } else {
+          return isSelected ? const Color(0xFF60A5FA) : const Color(0xFF94A3B8);
+        }
+
+      case 'Black on White':
+        if (isLightBg) {
+          return isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B);
+        } else {
+          return isSelected ? Colors.white : const Color(0xFFCBD5E1);
+        }
+
+      case 'White on Black':
+        if (isLightBg) {
+          return isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B);
+        } else {
+          return isSelected ? Colors.white : const Color(0xFFCBD5E1);
+        }
+
+      case 'Green on Black':
+        if (isLightBg) {
+          return isSelected ? const Color(0xFF15803D) : const Color(0xFF16A34A);
+        } else {
+          return isSelected ? const Color(0xFF4ADE80) : const Color(0xFF2EC03A);
+        }
+
+      case 'Yellow on Black':
+        if (isLightBg) {
+          return isSelected ? const Color(0xFFB45309) : const Color(0xFFD97706);
+        } else {
+          return isSelected ? const Color(0xFFFACC15) : const Color(0xFFE2E600);
+        }
+
+      case 'Cyan on Black':
+        if (isLightBg) {
+          return isSelected ? const Color(0xFF0369A1) : const Color(0xFF0284C7);
+        } else {
+          return isSelected ? const Color(0xFF22D3EE) : const Color(0xFF25C5CF);
+        }
+
+      default:
+        return isLightBg ? const Color(0xFF0F172A) : Colors.white;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isLightBg = selectedTheme == 'Default' || selectedTheme == 'Black on White';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -265,8 +315,8 @@ class StepContrastTheme extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                      color: isSelected ? const Color(0xFF002663) : const Color(0xFF1E293B),
+                      fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                      color: _getOptionTextColor(name, isSelected, isLightBg),
                       height: 1.25,
                     ),
                   ),

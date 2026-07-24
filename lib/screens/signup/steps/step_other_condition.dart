@@ -63,9 +63,6 @@ class _StepOtherConditionState extends State<StepOtherCondition> {
           decoration: InputDecoration(
             hintText: SignupL10n.t('other_condition_hint', widget.language),
             hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
-            suffixIcon: VoiceMicIconButton(
-              controller: _controller,
-            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
               borderSide: BorderSide(color: AppColors.unselectedBorder),
