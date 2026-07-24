@@ -41,7 +41,6 @@ class _LoginScreenState extends State<LoginScreen>
 
   // Mascot zoom animation on successful login
   late Animation<double> _mascotZoomScale;
-  late Animation<Alignment> _mascotCenterAlignment;
   late Animation<double> _formFadeOut;
 
   // Staggered entrance animations
@@ -239,15 +238,6 @@ class _LoginScreenState extends State<LoginScreen>
       CurvedAnimation(
         parent: _mascotZoomController,
         curve: Curves.easeInCubic,
-      ),
-    );
-    _mascotCenterAlignment = AlignmentTween(
-      begin: const Alignment(-0.72, -0.42),
-      end: Alignment.center,
-    ).animate(
-      CurvedAnimation(
-        parent: _mascotZoomController,
-        curve: Curves.easeInOutCubic,
       ),
     );
     _formFadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
@@ -462,7 +452,9 @@ class _LoginScreenState extends State<LoginScreen>
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 0),
-          child: Column(
+          child: FadeTransition(
+            opacity: _formFadeOut,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -610,7 +602,8 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildPremiumTextField({
@@ -1174,21 +1167,15 @@ class _LoginScreenState extends State<LoginScreen>
           if (_loginSuccess)
             Positioned.fill(
               child: IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: _mascotZoomController,
-                  builder: (context, _) {
-                    return Align(
-                      alignment: _mascotCenterAlignment.value,
-                      child: Transform.scale(
-                        scale: _mascotZoomScale.value,
-                        child: Image.asset(
-                          'assets/Mascots/01 Happy.gif',
-                          height: 140,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    );
-                  },
+                child: Center(
+                  child: ScaleTransition(
+                    scale: _mascotZoomScale,
+                    child: Image.asset(
+                      'assets/Mascots/01 Happy.gif',
+                      height: 160,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
             ),
