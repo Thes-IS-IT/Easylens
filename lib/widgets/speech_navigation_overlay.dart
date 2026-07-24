@@ -536,131 +536,43 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
     // ── 5. DIRECT APP SCREEN NAVIGATION COMMANDS (CHECKED FIRST BEFORE MAP SEARCH) ──
 
-    // 1. Settings & Preferences
-    if (cleanText.contains("settings") ||
-        cleanText.contains("setting") ||
-        cleanText.contains("preference") ||
-        cleanText.contains("preferensya") ||
-        cleanText.contains("mga setting") ||
-        cleanText.contains("buksan ang setting")) {
-      _pushAndRecord(const SettingsScreen(), "Settings");
-      return isFilipino ? "Binubuksan ang mga setting" : "Navigating to settings";
+    // 1. Card 1: Talk to Buddy (Local AI)
+    if (cleanText.contains("talk to buddy") ||
+        cleanText.contains("talk to buddy local ai") ||
+        cleanText.contains("buddy") ||
+        cleanText.contains("chat") ||
+        cleanText.contains("kausap")) {
+      SpeechNavigationNotifier.openBuddyNotifier.value = true;
+      Future.delayed(const Duration(milliseconds: 50), () {
+        SpeechNavigationNotifier.openBuddyNotifier.value = null;
+      });
+      return isFilipino ? "Binubuksan ang chatbot ni Buddy" : "Opening Buddy chatbot";
     }
 
-    // 2. Devices & Glasses / Hardware Settings
-    if (cleanText.contains("device") ||
-        cleanText.contains("devices") ||
-        cleanText.contains("glasses") ||
-        cleanText.contains("salamin") ||
-        cleanText.contains("hardware screen")) {
-      _pushAndRecord(const DevicesScreen(), "Glasses Settings");
-      return isFilipino ? "Binubuksan ang screen ng salamin" : "Navigating to devices screen";
-    }
-
-    // 3. Profile Details
-    if (cleanText.contains("profile") ||
-        cleanText.contains("account details") ||
-        cleanText.contains("detalye ng profile") ||
-        cleanText.contains("aking profile")) {
-      _pushAndRecord(const ProfileDetailsScreen(), "Profile Details");
-      return isFilipino ? "Binubuksan ang profile" : "Opening profile details";
-    }
-
-    // 4. Change Password & Security
-    if (cleanText.contains("password") ||
-        cleanText.contains("change password") ||
-        cleanText.contains("palitan ang password") ||
-        cleanText.contains("security")) {
-      _pushAndRecord(const ChangePasswordScreen(), "Change Password");
-      return isFilipino ? "Binubuksan ang palitan ng password" : "Opening change password";
-    }
-
-    // 5. Units / Measurement
-    if (cleanText.contains("units") ||
-        cleanText.contains("unit") ||
-        cleanText.contains("yunit") ||
-        cleanText.contains("measurement")) {
-      _pushAndRecord(const UnitsScreen(), "Units Settings");
-      return isFilipino ? "Binubuksan ang mga yunit" : "Opening units setting";
-    }
-
-    // 6. Customize Home Screen
-    if (cleanText.contains("customize home") ||
-        cleanText.contains("customize") ||
-        cleanText.contains("home customizer") ||
-        cleanText.contains("isaayos ang home")) {
-      _pushAndRecord(const CustomizeHomeScreen(), "Customize Home Screen");
-      return isFilipino ? "Inaayos ang home screen" : "Opening home screen customizer";
-    }
-
-    // 7. Face Registration / Registered Faces
-    if (cleanText.contains("face registration") ||
-        cleanText.contains("registered faces") ||
-        cleanText.contains("register face") ||
-        cleanText.contains("mukha") ||
-        cleanText.contains("pagrehistro ng mukha")) {
-      _pushAndRecord(const FaceRegistrationScreen(), "Face Registration");
-      return isFilipino ? "Binubuksan ang pagrehistro ng mukha" : "Opening face registration";
-    }
-
-    // 8. Help & User Guide
-    if (cleanText.contains("help guide") ||
-        cleanText.contains("help") ||
-        cleanText.contains("user guide") ||
-        cleanText.contains("gabay") ||
-        cleanText.contains("tulong")) {
-      _pushAndRecord(const HelpGuideScreen(), "Help Guide");
-      return isFilipino ? "Binubuksan ang gabay sa tulong" : "Opening help guide";
-    }
-
-    // 9. Notifications
-    if (cleanText.contains("notifications") ||
-        cleanText.contains("notification") ||
-        cleanText.contains("abiso") ||
-        cleanText.contains("mga abiso")) {
-      _pushAndRecord(const NotificationsScreen(), "Notifications");
-      return isFilipino ? "Binubuksan ang mga abiso" : "Navigating to notifications";
-    }
-
-    // 10. Contacts
-    if (cleanText.contains("contacts") ||
-        cleanText.contains("contact") ||
-        cleanText.contains("mga kontak") ||
-        cleanText.contains("kontak")) {
-      _pushAndRecord(const ContactsScreen(), "Contacts");
-      return isFilipino ? "Binubuksan ang mga contact" : "Navigating to contacts";
-    }
-
-    // 11. Emergency SOS
-    if (cleanText.contains("emergency") ||
-        cleanText.contains("sos") ||
-        cleanText.contains("saklolo")) {
-      _pushAndRecord(const EmergencyScreen(), "Emergency SOS");
-      return isFilipino ? "Binubuksan ang emergency" : "Navigating to emergency";
-    }
-
-    // 12. Dashboard / Home Tab
-    if (cleanText.contains("home") ||
-        cleanText.contains("dashboard") ||
-        cleanText.contains("umpisa") ||
-        cleanText.contains("simula")) {
-      SpeechNavigationNotifier.changeTab(0);
-      navigatorKey.currentState?.popUntil((route) => route.isFirst);
-      return isFilipino ? "Papunta sa dashboard" : "Navigating to dashboard";
-    }
-
-    // 13. Camera / EasyLens Tab
-    if (cleanText.contains("camera") ||
-        cleanText.contains("easylens") ||
+    // 2. Card 2: EasyLens Camera
+    if (cleanText.contains("easylens") ||
         cleanText.contains("easy lens") ||
+        cleanText.contains("camera") ||
         cleanText.contains("kamera")) {
       SpeechNavigationNotifier.changeTab(2);
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
       return isFilipino ? "Binubuksan ang camera" : "Navigating to EasyLens camera";
     }
 
-    // 14. Text Scanner (OCR)
-    if (cleanText.contains("text scanner") ||
+    // 3. Card 3: Register Face
+    if (cleanText.contains("register face") ||
+        cleanText.contains("face registration") ||
+        cleanText.contains("registered faces") ||
+        cleanText.contains("mukha") ||
+        cleanText.contains("pagrehistro ng mukha")) {
+      _pushAndRecord(const FaceRegistrationScreen(), "Face Registration");
+      return isFilipino ? "Binubuksan ang pagrehistro ng mukha" : "Opening face registration";
+    }
+
+    // 4. Card 4: Nearby Text (OCR / Text Scanner)
+    if (cleanText.contains("nearby text") ||
+        cleanText.contains("text scanner") ||
+        cleanText.contains("text") ||
         cleanText.contains("ocr") ||
         cleanText.contains("read text") ||
         cleanText.contains("basa")) {
@@ -673,7 +585,123 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Binubuksan ang text scanner" : "Opening text scanner";
     }
 
-    // 15. Object Detector
+    // 5. Card 5: Audio Navigation (Maps / GPS)
+    if (cleanText.contains("audio navigation") ||
+        cleanText.contains("navigation") ||
+        cleanText.contains("map") ||
+        cleanText.contains("maps") ||
+        cleanText.contains("mapa") ||
+        cleanText.contains("nabigasyon")) {
+      SpeechNavigationNotifier.changeTab(1);
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      return isFilipino ? "Papunta sa mapa" : "Navigating to map";
+    }
+
+    // 6. Card 6: SOS Emergency
+    if (cleanText.contains("sos emergency") ||
+        cleanText.contains("emergency") ||
+        cleanText.contains("sos") ||
+        cleanText.contains("saklolo")) {
+      _pushAndRecord(const EmergencyScreen(), "Emergency SOS");
+      return isFilipino ? "Binubuksan ang emergency" : "Navigating to emergency";
+    }
+
+    // 7. Settings & Preferences
+    if (cleanText.contains("settings") ||
+        cleanText.contains("setting") ||
+        cleanText.contains("preference") ||
+        cleanText.contains("preferensya") ||
+        cleanText.contains("mga setting") ||
+        cleanText.contains("buksan ang setting")) {
+      _pushAndRecord(const SettingsScreen(), "Settings");
+      return isFilipino ? "Binubuksan ang mga setting" : "Navigating to settings";
+    }
+
+    // 8. Devices & Glasses / Hardware Settings
+    if (cleanText.contains("device") ||
+        cleanText.contains("devices") ||
+        cleanText.contains("glasses") ||
+        cleanText.contains("salamin") ||
+        cleanText.contains("hardware screen")) {
+      _pushAndRecord(const DevicesScreen(), "Glasses Settings");
+      return isFilipino ? "Binubuksan ang screen ng salamin" : "Navigating to devices screen";
+    }
+
+    // 9. Profile Details
+    if (cleanText.contains("profile") ||
+        cleanText.contains("account details") ||
+        cleanText.contains("detalye ng profile") ||
+        cleanText.contains("aking profile")) {
+      _pushAndRecord(const ProfileDetailsScreen(), "Profile Details");
+      return isFilipino ? "Binubuksan ang profile" : "Opening profile details";
+    }
+
+    // 10. Change Password & Security
+    if (cleanText.contains("password") ||
+        cleanText.contains("change password") ||
+        cleanText.contains("palitan ang password") ||
+        cleanText.contains("security")) {
+      _pushAndRecord(const ChangePasswordScreen(), "Change Password");
+      return isFilipino ? "Binubuksan ang palitan ng password" : "Opening change password";
+    }
+
+    // 11. Units / Measurement
+    if (cleanText.contains("units") ||
+        cleanText.contains("unit") ||
+        cleanText.contains("yunit") ||
+        cleanText.contains("measurement")) {
+      _pushAndRecord(const UnitsScreen(), "Units Settings");
+      return isFilipino ? "Binubuksan ang mga yunit" : "Opening units setting";
+    }
+
+    // 12. Customize Home Screen
+    if (cleanText.contains("customize home") ||
+        cleanText.contains("customize") ||
+        cleanText.contains("home customizer") ||
+        cleanText.contains("isaayos ang home")) {
+      _pushAndRecord(const CustomizeHomeScreen(), "Customize Home Screen");
+      return isFilipino ? "Inaayos ang home screen" : "Opening home screen customizer";
+    }
+
+    // 13. Help & User Guide
+    if (cleanText.contains("help guide") ||
+        cleanText.contains("help") ||
+        cleanText.contains("user guide") ||
+        cleanText.contains("gabay") ||
+        cleanText.contains("tulong")) {
+      _pushAndRecord(const HelpGuideScreen(), "Help Guide");
+      return isFilipino ? "Binubuksan ang gabay sa tulong" : "Opening help guide";
+    }
+
+    // 14. Notifications
+    if (cleanText.contains("notifications") ||
+        cleanText.contains("notification") ||
+        cleanText.contains("abiso") ||
+        cleanText.contains("mga abiso")) {
+      _pushAndRecord(const NotificationsScreen(), "Notifications");
+      return isFilipino ? "Binubuksan ang mga abiso" : "Navigating to notifications";
+    }
+
+    // 15. Contacts
+    if (cleanText.contains("contacts") ||
+        cleanText.contains("contact") ||
+        cleanText.contains("mga kontak") ||
+        cleanText.contains("kontak")) {
+      _pushAndRecord(const ContactsScreen(), "Contacts");
+      return isFilipino ? "Binubuksan ang mga contact" : "Navigating to contacts";
+    }
+
+    // 16. Dashboard / Home Tab
+    if (cleanText.contains("home") ||
+        cleanText.contains("dashboard") ||
+        cleanText.contains("umpisa") ||
+        cleanText.contains("simula")) {
+      SpeechNavigationNotifier.changeTab(0);
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      return isFilipino ? "Papunta sa dashboard" : "Navigating to dashboard";
+    }
+
+    // 17. Object Detector
     if (cleanText.contains("object detector") ||
         cleanText.contains("object detection") ||
         cleanText.contains("bagay")) {
@@ -681,21 +709,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Binubuksan ang object detector" : "Opening object detector";
     }
 
-    // 16. Explicit Map Tab command (without specific place query)
-    if (cleanText == "map" ||
-        cleanText == "maps" ||
-        cleanText == "mapa" ||
-        cleanText == "go to map" ||
-        cleanText == "go to maps" ||
-        cleanText == "open map" ||
-        cleanText == "open maps" ||
-        cleanText == "navigation tab") {
-      SpeechNavigationNotifier.changeTab(1);
-      navigatorKey.currentState?.popUntil((route) => route.isFirst);
-      return isFilipino ? "Papunta sa mapa" : "Navigating to map";
-    }
-
-    // 17. Go Back
+    // 18. Go Back
     if (cleanText.contains("go back") ||
         cleanText.contains("back") ||
         cleanText.contains("bumalik") ||
@@ -705,7 +719,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       return isFilipino ? "Bumabalik" : "Going back";
     }
 
-    // 18. Logout
+    // 19. Logout
     if (cleanText.contains("logout") ||
         cleanText.contains("log out") ||
         cleanText.contains("umalis")) {
@@ -715,15 +729,6 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
         (route) => false,
       );
       return isFilipino ? "Umalis sa account" : "Logging out";
-    }
-
-    // 19. Buddy Chatbot
-    if (cleanText.contains("buddy") || cleanText.contains("chat") || cleanText.contains("kausap")) {
-      SpeechNavigationNotifier.openBuddyNotifier.value = true;
-      Future.delayed(const Duration(milliseconds: 50), () {
-        SpeechNavigationNotifier.openBuddyNotifier.value = null;
-      });
-      return isFilipino ? "Binubuksan ang chatbot ni Buddy" : "Opening Buddy chatbot";
     }
 
     // 20. Hardware Controls (click scenery, faces, bluetooth, audio, wifi, etc.)
@@ -752,11 +757,11 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       SpeechNavigationNotifier.triggerHardwareControl("gemini");
       return isFilipino ? "Binabago ang katayuan ng Gemini AI" : "Toggling Gemini AI";
     }
-    if (target.contains("local ai") || target.contains("offline ai")) {
+    if (target.contains("offline ai")) {
       SpeechNavigationNotifier.triggerHardwareControl("local_ai");
       return isFilipino ? "Binabago ang katayuan ng Local AI" : "Toggling Local AI";
     }
-    if (target.contains("audio") || target.contains("speaker")) {
+    if (target.contains("speaker")) {
       SpeechNavigationNotifier.triggerHardwareControl("audio");
       return isFilipino ? "Binabago ang audio output" : "Toggling audio output";
     }
