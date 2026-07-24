@@ -339,7 +339,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     : () {
                                         SoundService.playPop();
                                         Navigator.of(context).push(
-                                          AppRoute.splitDoor(const SignUpScreen()),
+                                          AppRoute.to(const SignUpScreen()),
                                         );
                                       },
                                 child: Text(
