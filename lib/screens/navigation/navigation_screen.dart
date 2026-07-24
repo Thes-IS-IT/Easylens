@@ -1388,27 +1388,30 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final textColor = AppColors.primaryText;
 
     return Container(
-      color: Colors.black.withValues(alpha: 0.65),
+      width: double.infinity,
+      height: double.infinity,
+      color: Colors.black.withValues(alpha: 0.75),
       child: Center(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: AppColors.cardBorder,
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+        child: SingleChildScrollView(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: AppColors.cardBorder,
+                width: 2,
               ),
-            ],
-          ),
-          child: Column(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Header Mascot or Icon
@@ -1541,8 +1544,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ── MAP MARKERS GENERATION ──
   Set<Marker> _getMapMarkers() {
@@ -1588,6 +1592,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   // ── DRAGGABLE BOTTOM SHEET OVERLAY ──
   Widget _buildDraggableCardOverlay() {
+    if (_pendingPlaceToConfirm != null) return const SizedBox.shrink();
+
     double initialSize = 0.45;
     double minSize = 0.35;
     double maxSize = 0.85;
