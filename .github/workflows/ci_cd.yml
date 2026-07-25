@@ -49,56 +49,7 @@ jobs:
         run: flutter test
 
   # -------------------------------------------------------------
-  # Job 2: Docker Build, Verify & Publish to GitHub Packages (GHCR)
-  # -------------------------------------------------------------
-  docker_build_and_publish:
-    name: 🐳 Docker Build, Verify & Publish to GHCR
-    needs: analyze_and_test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry (GHCR)
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Docker Image Locally for Health Check
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: easylens-web:test
-          load: true
-
-      - name: Test Docker Container Health
-        run: |
-          docker run -d -p 8080:80 --name test-easylens easylens-web:test
-          sleep 5
-          curl -f http://localhost:8080/ || exit 1
-          docker stop test-easylens
-
-      - name: Build & Push Docker Package to GHCR
-        if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-
-  # -------------------------------------------------------------
-  # Job 3: Android APK Automated Build Artifact
+  # Job 2: Native Android Release APK Build
   # -------------------------------------------------------------
   build_android:
     name: 📱 Build Android APK
@@ -126,7 +77,7 @@ jobs:
       - name: Create Mock .env File
         run: touch .env
 
-      - name: Build Android APK
+      - name: Build Android Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK Artifact
@@ -134,4 +85,59 @@ jobs:
         with:
           name: easylens-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: warn
+          if-no-files-found: error
+
+  # -------------------------------------------------------------
+  # Job 3: Docker Build, Verify & Publish to GitHub Packages (GHCR)
+  # -------------------------------------------------------------
+  docker_build_and_publish:
+    name: 🐳 Docker Build, Verify & Publish to GHCR
+    needs: build_android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Compiled Android APK Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: easylens-release-apk
+          path: build/app/outputs/flutter-apk/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker Image Locally for Health Check
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: easylens-mobile:test
+          load: true
+
+      - name: Test Docker Container Health
+        run: |
+          docker run -d -p 8080:80 --name test-easylens easylens-mobile:test
+          sleep 5
+          curl -f http://localhost:8080/ || exit 1
+          docker stop test-easylens
+
+      - name: Build & Push Docker Package to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
