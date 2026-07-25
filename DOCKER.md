@@ -1,29 +1,27 @@
 # 🐳 EasyLens Docker & Containerization Guide
 
-Welcome to the **EasyLens Docker Setup & Deployment Guide**. This document explains how the EasyLens Mobile Application (Android APK) is containerized, compiled, tested, and packaged for automatic distribution via Docker and GitHub Container Registry (GHCR).
+Welcome to the **EasyLens Docker Setup & Deployment Guide**. This document explains how the EasyLens container image is built, tested, and published automatically as a Docker Package to **GitHub Container Registry (GHCR)**.
 
 ---
 
 ## 📐 Architecture Overview
 
-The container setup uses a **Multi-Stage Dockerfile** targeting mobile app builds:
+The container setup uses a lightweight, high-performance NGINX production server:
 
 ```mermaid
 graph TD
-    A[Source Code] --> B[Stage 1: Android Build Stage]
-    B -->|flutter analyze & test| C[Run Automated Verification]
-    C -->|flutter build apk --release| D[Compiled Android APK]
-    D --> E[Stage 2: NGINX Alpine APK Download Server]
-    E --> F[Expose Port 80 / 8080]
+    A[Source Code] --> B[Job 1: Static Analysis & Unit Tests]
+    B --> C[Job 2: Docker Build & Verification]
+    C -->|Container Healthcheck OK| D[Publish Package to GHCR]
+    D --> E[ghcr.io/thes-is-it/easylens:latest]
 ```
 
 ### Key Components
 
-- **`Dockerfile`**: 2-stage build environment (`ubuntu:22.04` + OpenJDK 17 + Android SDK + Flutter Stable ➡️ `nginx:1.25-alpine`).
-- **`nginx.conf`**: NGINX configuration serving the Android APK download portal (`easylens-release.apk`).
-- **`download_landing.html`**: Clean mobile landing page with direct download button for `easylens-release.apk`.
+- **`Dockerfile`**: Lightweight NGINX container serving the application portal (`nginx:1.25-alpine`).
+- **`nginx.conf`**: Optimized NGINX server configuration with Gzip compression and asset caching headers.
 - **`docker-compose.yml`**: One-command local container orchestration.
-- **`.dockerignore`**: Excludes native OS folders, local build caches, and large binary models (`model.bin`).
+- **`.dockerignore`**: Excludes build caches, native OS folders, and large binary models (`model.bin`).
 
 ---
 
@@ -34,7 +32,7 @@ graph TD
 
 ### 1. Using Docker Compose (Recommended)
 
-To build and launch the containerized application with a single command:
+To build and launch the containerized application locally with a single command:
 
 ```bash
 docker compose up --build
@@ -52,11 +50,9 @@ docker compose down
 
 ### 2. Using Docker CLI Manually
 
-If you prefer building and running using standard Docker CLI commands:
-
 #### A. Build the Docker Image
 ```bash
-docker build -t easylens-web:latest .
+docker build -t easylens:latest .
 ```
 
 #### B. Run the Container
@@ -65,7 +61,7 @@ docker run -d \
   --name easylens_app \
   -p 8080:80 \
   --restart always \
-  easylens-web:latest
+  easylens:latest
 ```
 
 #### C. Test Container Health
@@ -73,29 +69,17 @@ docker run -d \
 curl -f http://localhost:8080/
 ```
 
-#### D. View Container Logs
-```bash
-docker logs -f easylens_app
-```
-
-#### E. Stop & Remove Container
-```bash
-docker stop easylens_app && docker rm easylens_app
-```
-
 ---
 
-## 📦 Pulling Pre-Built Image from GitHub Packages (GHCR)
+## 📦 Pulling Pre-Built Package Image from GitHub Packages (GHCR)
 
-Every code update pushed to `main` is automatically compiled and published to **GitHub Container Registry (GHCR)**. You can pull and run the pre-built image without needing Flutter installed locally.
+On every push to `main`, GitHub Actions compiles and publishes the official Docker package image directly to **GitHub Container Registry (GHCR)**. You can pull and run the package without building locally:
 
-### 1. Pull the Image
 ```bash
+# Pull the latest Docker package
 docker pull ghcr.io/thes-is-it/easylens:latest
-```
 
-### 2. Run the Container
-```bash
+# Run the containerized app
 docker run -d \
   --name easylens_live \
   -p 8080:80 \
@@ -107,30 +91,12 @@ docker run -d \
 
 ## 🔄 Automated CI/CD Workflow (`.github/workflows/ci_cd.yml`)
 
-Whenever a commit is pushed to `main` or a Pull Request is opened:
-
 1. **`analyze_and_test`**:
-   - Executes static analysis (`flutter analyze --no-fatal-warnings --no-fatal-infos`).
-   - Executes unit tests (`flutter test`).
+   - Runs static code analysis (`flutter analyze --no-fatal-warnings --no-fatal-infos`).
+   - Executes all unit tests (`flutter test`).
 2. **`docker_build_and_publish`**:
-   - Compiles multi-stage Docker image.
-   - Spins up a test container and runs live `curl` health verification.
-   - Publishes image package to `ghcr.io/thes-is-it/easylens:latest`.
-3. **`build_android`**:
-   - Builds the production Android release APK (`easylens-release-apk`).
-
----
-
-## 🛠️ Environment Configuration
-
-By default, Docker container build steps create a mock `.env` file for compile safety. To supply live production variables during deployment:
-
-```bash
-docker run -d \
-  -p 8080:80 \
-  --env-file .env \
-  ghcr.io/thes-is-it/easylens:latest
-```
+   - Builds Docker image and verifies container health (`curl http://localhost:8080/`).
+   - Publishes Docker Package to **GitHub Packages** (`ghcr.io/thes-is-it/easylens:latest`).
 
 ---
 

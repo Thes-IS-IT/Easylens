@@ -1,4 +1,4 @@
-name: EasyLens Automated CI/CD & Docker Pipeline
+name: EasyLens Automated CI/CD & Docker Package Pipeline
 
 on:
   push:
@@ -49,60 +49,15 @@ jobs:
         run: flutter test
 
   # -------------------------------------------------------------
-  # Job 2: Native Android Release APK Build
+  # Job 2: Docker Build, Health Verification & GHCR Package Publish
   # -------------------------------------------------------------
-  build_android:
-    name: 📱 Build Android APK
+  docker_build_and_publish:
+    name: 🐳 Docker Build, Verify & Publish Package to GHCR
     needs: analyze_and_test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Create Mock .env File
-        run: touch .env
-
-      - name: Build Android Release APK
-        run: flutter build apk --release --no-tree-shake-icons
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: easylens-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-
-  # -------------------------------------------------------------
-  # Job 3: Docker Build, Verify & Publish to GitHub Packages (GHCR)
-  # -------------------------------------------------------------
-  docker_build_and_publish:
-    name: 🐳 Docker Build, Verify & Publish to GHCR
-    needs: build_android
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Download Compiled Android APK Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: easylens-release-apk
-          path: build/app/outputs/flutter-apk/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -121,17 +76,17 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          tags: easylens-mobile:test
+          tags: easylens:test
           load: true
 
       - name: Test Docker Container Health
         run: |
-          docker run -d -p 8080:80 --name test-easylens easylens-mobile:test
-          sleep 5
+          docker run -d -p 8080:80 --name test-easylens easylens:test
+          sleep 3
           curl -f http://localhost:8080/ || exit 1
           docker stop test-easylens
 
-      - name: Build & Push Docker Package to GHCR
+      - name: Build & Push Docker Package Image to GHCR
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
