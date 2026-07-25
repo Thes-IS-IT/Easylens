@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  easylens-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: easylens_web_app
+    ports:
+      - "8080:80"
+    restart: always
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
