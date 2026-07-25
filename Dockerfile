@@ -1,18 +1,35 @@
 # =========================================================
-# Stage 1: Build Environment using Official Flutter Image
+# Stage 1: Build Environment with Flutter SDK
 # =========================================================
-FROM cirrusci/flutter:stable AS build-stage
+FROM ubuntu:22.04 AS build-stage
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/sdks/flutter/bin:${PATH}"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    unzip \
+    ca-certificates \
+    xz-utils \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone official Flutter stable repository
+RUN git clone --depth 1 -b stable https://github.com/flutter/flutter.git /sdks/flutter && \
+    flutter config --no-analytics && \
+    flutter doctor -v
 
 WORKDIR /app
 
 # Copy pubspec files first to leverage Docker layer caching
 COPY pubspec.yaml pubspec.lock ./
 
-# Disable analytics & fetch dependencies
-RUN flutter config --no-analytics && \
-    flutter pub get
+# Fetch dependencies
+RUN flutter pub get
 
-# Copy source code
+# Copy full application code
 COPY . .
 
 # Create dummy env file for build step if not present

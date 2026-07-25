@@ -19,7 +19,7 @@ graph TD
 
 ### Key Components
 
-- **`Dockerfile`**: 2-stage build environment (`cirrusci/flutter:stable` ➡️ `nginx:1.25-alpine`).
+- **`Dockerfile`**: 2-stage build environment (`ubuntu:22.04` + Flutter Stable SDK ➡️ `nginx:1.25-alpine`).
 - **`nginx.conf`**: Custom NGINX configuration for Single Page Application (SPA) routing, Gzip compression, and asset caching.
 - **`docker-compose.yml`**: One-command local container orchestration.
 - **`.dockerignore`**: Excludes native OS folders, local build caches, and large binary models (`model.bin`).
