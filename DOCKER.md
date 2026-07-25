@@ -1,26 +1,27 @@
 # 🐳 EasyLens Docker & Containerization Guide
 
-Welcome to the **EasyLens Docker Setup & Deployment Guide**. This document explains how the EasyLens web application is containerized, built, tested, and deployed automatically via Docker and GitHub Container Registry (GHCR).
+Welcome to the **EasyLens Docker Setup & Deployment Guide**. This document explains how the EasyLens Mobile Application (Android APK) is containerized, compiled, tested, and packaged for automatic distribution via Docker and GitHub Container Registry (GHCR).
 
 ---
 
 ## 📐 Architecture Overview
 
-The container setup uses a **Multi-Stage Dockerfile** to maintain extreme portability, fast builds, and high security:
+The container setup uses a **Multi-Stage Dockerfile** targeting mobile app builds:
 
 ```mermaid
 graph TD
-    A[Source Code] --> B[Stage 1: Flutter Build Stage]
+    A[Source Code] --> B[Stage 1: Android Build Stage]
     B -->|flutter analyze & test| C[Run Automated Verification]
-    C -->|flutter build web --release| D[Compiled Web Assets]
-    D --> E[Stage 2: NGINX Alpine Production Container]
+    C -->|flutter build apk --release| D[Compiled Android APK]
+    D --> E[Stage 2: NGINX Alpine APK Download Server]
     E --> F[Expose Port 80 / 8080]
 ```
 
 ### Key Components
 
-- **`Dockerfile`**: 2-stage build environment (`ubuntu:22.04` + Flutter Stable SDK ➡️ `nginx:1.25-alpine`).
-- **`nginx.conf`**: Custom NGINX configuration for Single Page Application (SPA) routing, Gzip compression, and asset caching.
+- **`Dockerfile`**: 2-stage build environment (`ubuntu:22.04` + OpenJDK 17 + Android SDK + Flutter Stable ➡️ `nginx:1.25-alpine`).
+- **`nginx.conf`**: NGINX configuration serving the Android APK download portal (`easylens-release.apk`).
+- **`download_landing.html`**: Clean mobile landing page with direct download button for `easylens-release.apk`.
 - **`docker-compose.yml`**: One-command local container orchestration.
 - **`.dockerignore`**: Excludes native OS folders, local build caches, and large binary models (`model.bin`).
 

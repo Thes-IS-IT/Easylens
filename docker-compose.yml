@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  easylens-web:
+  easylens-mobile:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: easylens_web_app
+    container_name: easylens_mobile_server
     ports:
       - "8080:80"
     restart: always
