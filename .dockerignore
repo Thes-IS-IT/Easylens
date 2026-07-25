@@ -5,7 +5,6 @@
 .dart_tool/
 .gradle/
 build/
-android/
 ios/
 macos/
 linux/
