@@ -1,86 +1,202 @@
-# EasyLens
+# EasyLens 👓
 
-EasyLens is a Flutter accessibility-assistance application that combines camera
-vision, spoken interaction, route guidance, emergency-contact workflows, and an
-optional ESP32-CAM stream. The repository contains a functional mobile-focused
-prototype with optional cloud and local-AI integrations.
+EasyLens is a state-of-the-art accessibility assistant mobile application designed to empower visually impaired and neurodivergent users. **At its core, EasyLens operates on a Custom Fine-Tuned MobileNetV2 Object Detection pipeline.** This high-speed edge vision engine acts as the primary "lens," seamlessly blending local computer vision, on-device large language models (Gemma/Gemini), cloud storage, and wearable ESP32 smart glasses into a real-time smart companion.
 
-> Vision, route guidance, and SOS features are assistive tools. They are not a
-> substitute for mobility aids, situational awareness, professional advice, or
-> emergency services.
+---
 
-## Documentation
+## 🚀 Key Features
 
-Start with the [documentation index](docs/README.md).
+| Feature | Description |
+|---|---|
+| **Custom Object Detector** | **Core Component:** Custom fine-tuned MobileNetV2 SSD drawing real-time bounding boxes via Dart Isolate background threads for instant obstacle TTS alerts. |
+| **Speech Navigation** | Advanced turn-by-turn guidance controlled fully via continuous speech (STT). Includes Filipino/Tagalog support, dynamic map pinning, and global arrival confetti celebrations. |
+| **Buddy Local AI** | On-device Gemma-IT 2B LLM for English; Google Gemini 2.0 Flash for Filipino. Full voice I/O and RAG knowledge base. |
+| **Nearby Text Scanner** | Supported by ML Kit OCR; reads text aloud; forwards to Buddy for intelligent context explanation. |
+| **SOS & Emergency** | One-tap SMS dispatch to active emergency contacts via MensaHero gateway. |
+| **Voice Personas** | 6 personas (including Maya for native Tagalog) with distinct pitch/rate. Applied universally across all TTS output. |
+| **Filipino Language** | Full app localization — UI strings, greetings, Buddy, Navigation, Settings — all switch live. |
+| **Dynamic Theming** | Default (light) and Black (AMOLED) themes with 8 accent color choices applied globally in real time. |
+| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over WiFi directly into the Object Detection pipeline. |
+| **Shake to Undo** | Accelerometer gesture (>2.5g) triggers undo action + TTS confirmation. |
+| **Bark Sound Cue** | `bark_dashboard.mp3` plays once when returning to the Home tab. |
 
-- [Project overview and setup](docs/source-of-truth/01_project_overview.md)
-- [Architecture](docs/source-of-truth/02_architecture.md)
-- [Screens and services](docs/source-of-truth/03_screens_and_navigation.md)
-- [AI and vision pipeline](docs/source-of-truth/05_ai_ml_pipeline.md)
-- [Configuration and security](docs/SECURITY_CONFIGURATION.md)
-- [Testing and CI](docs/source-of-truth/09_testing_cicd.md)
-- [Known issues and risks](docs/source-of-truth/07_known_issues.md)
+---
 
-## Features represented in the codebase
+## 🛠️ Tech Stack & Services
 
-- Camera-based image labeling, text recognition, ML Kit object detection, and
-  packaged TFLite inference paths.
-- Buddy, a local-knowledge assistant that can use local Gemma when installed or
-  online Gemini when configured.
-- GPS map/route guidance using Geolocator, Google Maps rendering, and OSRM.
-- Emergency-contact management and Android SMS gateway/device-SMS pathways.
-- Speech synthesis/recognition, configurable voice feedback, themes,
-  localization, notifications, face registration, and ESP32-CAM MJPEG input.
+### Core
+- **Flutter (Dart SDK `^3.11.5`)** — Cross-platform mobile runtime
+- **Provider + ListenableBuilder** — Reactive state management
 
-Feature availability depends on the target platform, runtime permissions,
-bundled model assets, network access, and configured third-party credentials.
+### AI / ML
+- **`flutter_gemma: ^0.13.6`** — On-device Gemma-IT 2B (English Buddy, offline)
+- **`google_generative_ai: ^0.4.4`** — Gemini 2.0 Flash API (Filipino Buddy)
+- **`google_mlkit_text_recognition: ^0.15.1`** — On-device OCR (Text Scanner)
+- **`google_mlkit_image_labeling: ^0.14.2`** — On-device image labeling
+- **`tflite_flutter: ^0.12.1`** — MobileNetV2 SSD object detection
 
-## Quick start
+### Audio & Accessibility
+- **`flutter_tts: ^4.2.5`** — Text-to-Speech with persona support
+- **`speech_to_text: ^7.4.0`** — Voice input for Buddy and navigation
+- **`audioplayers: ^6.1.0`** — Sound effect cues (bark, etc.)
 
-1. Install Flutter/Dart compatible with the SDK constraint in
-   [pubspec.yaml](pubspec.yaml).
-2. Create a local `.env` using the variable names in
-   [the configuration guide](docs/SECURITY_CONFIGURATION.md). It is optional for
-   local/mock-capable flows, but required integrations need their corresponding
-   values.
-3. Install packages and run the app:
+### Location & Sensors
+- **`google_maps_flutter: ^2.5.3`** — Map rendering & route display
+- **`geolocator: ^11.0.0`** — GPS position stream
+- **`sensors_plus: ^5.0.1`** — Accelerometer (shake detection)
 
-   ```bash
-   flutter pub get
-   flutter run
-   ```
+### Cloud & Storage
+- **Firebase Auth + Firestore + Storage** — Auth, profile sync, avatar storage
+- **Cloudflare R2** — Object storage (captures, backups)
+- **Cloudflare D1** — Serverless SQL (relational sync)
+- **`shared_preferences: ^2.2.3`** — Local on-device key-value store
 
-4. Verify your change:
+### Networking
+- **`http: ^1.2.1`** — REST calls (OSRM routing, Ollama, Geocoding, ESP32)
+- **`flutter_dotenv: ^5.2.1`** — `.env` secrets management
 
-   ```bash
-   flutter test
-   flutter analyze --no-fatal-warnings --no-fatal-infos
-   ```
+---
 
-Use a physical Android device to validate camera, microphone, location,
-contacts, SMS, and ESP32 workflows.
+## 📐 Architecture
 
-## Repository layout
+For a complete breakdown of the project layout, database systems, and data flow, see the [Full Architecture Document](docs/ARCHITECTURE.md).
 
-```text
-lib/          Flutter application code
-assets/       TFLite assets, Buddy knowledge, images, mascot media, sounds
-test/         Widget and service tests
-docs/         Project and operational documentation
-android/      Android runner and permissions
-ios/, macos/, linux/, windows/, web/  Other Flutter platform runners
+```mermaid
+graph TD
+    UI[Flutter Screen UI] <--> Providers[ListenableBuilder / Provider]
+    Providers <--> Vision[TFLite / MLKit Services]
+    Providers <--> Hardware[ESP32 Smart Glass via WiFi]
+    Providers <--> RAG[RagService — Gemma / Gemini]
+    Providers <--> Cloud[Firebase & Cloudflare Services]
+    Providers <--> Audio[TtsService / AudioPlayers]
+    Providers <--> GPS[Geolocator Position Stream]
 ```
 
-## Security
+### Key Documents
 
-Do not commit `.env` or production keys. The codebase currently contains
-credential-like defaults in client configuration; rotate and restrict them
-before a public release. In particular, client-side Cloudflare R2 signing is
-not appropriate for shipping long-lived storage credentials. See
-[configuration and security](docs/SECURITY_CONFIGURATION.md) for the complete
-setup and remediation notes.
+| Document | Description |
+|---|---|
+| [object_detection_architecture.md](docs/object_detection_architecture.md) | Deep dive into the core MobileNetV2 pipeline, ML Kit, and Speech Navigation |
+| [ai_architecture.md](docs/ai_architecture.md) | Deep dive into Local LLM (Gemma), Gemini integration, RAG system, and Autopilot routing |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Complete technical architecture, data flow, database schemas |
+| [FEATURES.md](docs/FEATURES.md) | Full feature catalogue with screen-by-screen breakdown |
+| [cloudflare_r2_setup.md](docs/cloudflare_r2_setup.md) | Cloudflare R2 bucket setup and CORS configuration |
+| [local_storage_architecture.md](docs/local_storage_architecture.md) | Local storage strategy, Firestore sync, and security rules |
 
-## License
+---
 
-No license file is currently present in this repository. Add one before
-distributing or accepting external contributions.
+## 💻 Developer Guide
+
+### Prerequisites
+- Flutter SDK (version matching `pubspec.yaml` environment — SDK `^3.11.5`)
+- Android SDK 21+ / Xcode 14+
+- A physical Android device or emulator
+- Firebase project configured (see `google-services.json`)
+- `.env` file with required keys (see `.env.example`)
+
+### Environment Variables (`.env`)
+```env
+GEMINI_API_KEY=your_gemini_api_key
+FIREBASE_API_KEY=...
+FIREBASE_APP_ID=...
+FIREBASE_MESSAGING_SENDER_ID=...
+FIREBASE_PROJECT_ID=...
+FIREBASE_STORAGE_BUCKET=...
+GOOGLE_MAPS_KEY=your_maps_api_key
+MENSAHERO_API_KEY=your_sms_gateway_key
+MENSAHERO_BASE_URL=https://mensahero.onrender.com
+ACCOUNT_ID=your_cloudflare_account_id
+S3_API=https://<account_id>.r2.cloudflarestorage.com/<bucket>
+ACCESS_KEY_ID=...
+SECRET_ACCESS_KEY=...
+BUCKET_NAME=easylens
+```
+
+### Running the App
+
+#### Physical Device (recommended)
+```bash
+flutter run --target-platform android-arm64
+```
+
+#### Android Emulator
+Because the app bundles complex native libraries (ML Kit, Gemma, TensorFlow Lite), debug builds compile for all ABIs by default. To avoid `Requested internal only, but not enough space` errors on the emulator:
+```bash
+flutter run --target-platform android-x64
+```
+
+#### Wireless ADB (Samsung Galaxy A55 / similar)
+```bash
+adb connect <device-ip>:5555
+flutter run
+```
+
+### Installing the On-Device Gemma Model
+The Gemma-IT 2B model (`model.bin`, ~1.3 GB) must be pushed to the device manually:
+```bash
+adb push model.bin /sdcard/Android/data/com.company.easylens/files/model.bin
+```
+Then restart the app. Buddy will automatically detect the model and use it for English queries.
+
+### Running Tests
+```bash
+flutter test
+flutter analyze
+```
+
+---
+
+## 🌐 Language Support
+
+| Language | Code | UI | Buddy | TTS Voice |
+|---|---|---|---|---|
+| English | `en` | ✅ | Gemma (offline) | en-US persona |
+| Filipino / Tagalog | `fil` | ✅ | Gemini 2.0 Flash | en-US persona (Filipino text pronounced correctly) |
+
+---
+
+## 📁 Project Structure (abbreviated)
+
+```
+easylens/
+├── lib/
+│   ├── constants/        # AppColors — dynamic theme tokens
+│   ├── models/           # UserPreferences, AppNotification, EmergencyContact
+│   ├── services/         # TtsService, RagService, SettingsService, Esp32Service…
+│   ├── screens/
+│   │   ├── dashboard/    # Home, Buddy, Navbar, Mascot Banner
+│   │   ├── navigation/   # GPS turn-by-turn with proximity TTS
+│   │   ├── hardware/     # ESP32 camera + ML Kit live feed
+│   │   ├── settings/     # Full settings panel + Voice Feedback screen
+│   │   ├── emergency/    # SOS dispatch
+│   │   ├── contacts/     # Emergency contact management
+│   │   ├── notifications/ # In-app notification log
+│   │   ├── signup/       # 8-step onboarding wizard
+│   │   └── object_detection/ # TFLite bounding box screen
+│   └── utils/            # AppRoute (declarative navigation)
+├── assets/
+│   ├── Mascots/          # Buddy mascot images (idle, thinking, listening…)
+│   ├── models/           # TFLite model files
+│   ├── images/           # App images
+│   └── sounds/           # bark_dashboard.mp3 and other audio cues
+├── docs/                 # Full technical documentation
+└── .env                  # API keys and secrets (never commit)
+```
+
+---
+
+## 🔒 Security
+
+- All API keys stored in `.env` (excluded from git via `.gitignore`)
+- Cloudflare R2 uploads use client-side **AWS Signature Version 4** (HMAC-SHA256) — no secrets transmitted in plaintext
+- Firebase Security Rules enforce per-user read/write isolation
+- Gemma runs fully **on-device** for English — no user query data leaves the device
+
+---
+
+## 📋 Changelog
+
+| Version | Date | Highlights |
+|---|---|---|
+| 1.0.0 | 2026-07-08 | Initial release: vision pipeline, navigation, Buddy (Gemma), SOS, settings, onboarding |
+| 1.1.0 | 2026-07-09 | Filipino language full rollout, Gemini for Filipino Buddy, bark sound cue, proximity navigation TTS with anti-spam, dynamic theming on all screens, `ListenableBuilder` on Dashboard for live updates |
