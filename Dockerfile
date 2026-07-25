@@ -1,7 +1,7 @@
 # =========================================================
 # Stage 1: Build Environment using Official Flutter Image
 # =========================================================
-FROM ghcr.io/cirrusci/flutter:3.27.0 AS build-stage
+FROM ghcr.io/cirrusci/flutter:stable AS build-stage
 
 WORKDIR /app
 
