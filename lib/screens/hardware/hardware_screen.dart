@@ -267,12 +267,12 @@ class _HardwareScreenState extends State<HardwareScreen> {
       'speech': 'Traffic light detected. Slow down and check the signal.'
     },
     {
-      'title': 'Elevator Detected',
-      'desc': 'Elevator or lift located in front of you.',
+      'title': 'Door Detected',
+      'desc': 'You are approaching a door.',
       'bg': Color(0xFFE0F7FA),
-      'icon': Icons.elevator_rounded,
+      'icon': Icons.door_front_door_outlined,
       'iconColor': Colors.teal,
-      'speech': 'Slow down. Elevator detected ahead.'
+      'speech': 'You are approaching a door.'
     },
     {
       'title': 'CRITICAL: VEHICLE TOO CLOSE!',
@@ -1472,9 +1472,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
         });
       }
     } else if (isHazard && largestArea > 0.02) {
-      // SLOW DOWN — structural hazard (wall, pothole, step, etc.) detected early
+      // SLOW DOWN — structural hazard (wall, pothole, step, door, etc.) detected early
       final String guidance;
-      if (isCentered) {
+      final bool isDoor = refinedLabel.toLowerCase().contains('door');
+      if (isDoor) {
+        guidance = isTagalog
+            ? 'Papalapit ka sa isang pintuan.'
+            : 'You are approaching a door.';
+      } else if (isCentered) {
         guidance = isTagalog
             ? 'Magdahan-dahan. May harang na $displayLabel sa iyong harap.'
             : 'Slow down. $displayLabel hazard detected ahead.';
@@ -1521,11 +1526,13 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
       if (mounted) {
         setState(() {
-          _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+          _activeTitle = isDoor
+              ? (isTagalog ? 'May Pintuan sa Harap' : 'Door Ahead')
+              : (isTagalog ? 'Dahan-dahan' : 'Slow Down');
           _activeDescription = guidance;
-          _statusCardBg = const Color(0xFFFFFDE7);
-          _statusIcon = Icons.speed;
-          _statusIconColor = Colors.yellow[800]!;
+          _statusCardBg = isDoor ? const Color(0xFFE0F7FA) : const Color(0xFFFFFDE7);
+          _statusIcon = isDoor ? Icons.door_front_door_outlined : Icons.speed;
+          _statusIconColor = isDoor ? Colors.teal : Colors.yellow[800]!;
         });
       }
     } else if ((isCentered && largestArea > 0.03) || (!isCentered && largestArea > 0.06)) {
@@ -1796,9 +1803,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
           });
         }
       } else if (isHazard && largestArea > 0.02) {
-        // SLOW DOWN — structural hazard (wall, pothole, step, etc.) detected early
+        // SLOW DOWN — structural hazard (wall, pothole, step, door, etc.) detected early
         final String guidance;
-        if (targetLabel.contains('traffic light')) {
+        final bool isDoor = targetLabel.contains('door') || refinedLabel.toLowerCase().contains('door');
+        if (isDoor) {
+          guidance = isTagalog
+              ? 'Papalapit ka sa isang pintuan.'
+              : 'You are approaching a door.';
+        } else if (targetLabel.contains('traffic light')) {
           guidance = isTagalog
               ? 'Magdahan-dahan. May traffic light sa iyong harap.'
               : 'Slow down. Traffic light detected ahead.';
@@ -1846,11 +1858,13 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
         if (mounted) {
           setState(() {
-            _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
+            _activeTitle = isDoor
+                ? (isTagalog ? 'May Pintuan sa Harap' : 'Door Ahead')
+                : (isTagalog ? 'Dahan-dahan' : 'Slow Down');
             _activeDescription = guidance;
-            _statusCardBg = const Color(0xFFFFFDE7);
-            _statusIcon = Icons.speed;
-            _statusIconColor = Colors.yellow[800]!;
+            _statusCardBg = isDoor ? const Color(0xFFE0F7FA) : const Color(0xFFFFFDE7);
+            _statusIcon = isDoor ? Icons.door_front_door_outlined : Icons.speed;
+            _statusIconColor = isDoor ? Colors.teal : Colors.yellow[800]!;
           });
         }
       } else if ((isCentered && largestArea > 0.03) || (!isCentered && largestArea > 0.06)) {
@@ -1974,22 +1988,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
   String _refineLabel(String rawLabel) {
     final label = rawLabel.replaceAll('_', ' ').toLowerCase();
-    if (label.contains('metal')) {
-      return 'elevator door';
-    }
-    if (label.contains('hair drier') || label.contains('hairdryer')) {
-      return 'hair drier';
-    }
-    if (label.contains('musical instrument') || 
-        label.contains('piano') || 
-        label.contains('musical keyboard') ||
-        label.contains('electronic keyboard')) {
-      return 'laptop or keyboard';
-    }
-    if (label.contains('wall') || label.contains('partition') || label.contains('divider') || label.contains('pattern')) {
-      return 'wall';
-    }
-    if (label.contains('door') || label.contains('doorway') || label.contains('entrance')) {
+    if (label.contains('door') || 
+        label.contains('doorway') || 
+        label.contains('entrance') || 
+        label.contains('exit') || 
+        label.contains('elevator') || 
+        label.contains('lift') || 
+        label.contains('metal') || 
+        label.contains('gate')) {
       return 'door';
     }
     if (label.contains('chair') || label.contains('stool') || label.contains('sofa') || label.contains('couch') || label.contains('armchair')) {
@@ -2134,9 +2140,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
             _lastHazardDetectionTime = DateTime.now();
           }
 
-          if (topLabel.contains('elevator') || topLabel.contains('lift')) {
-            selectedSim = _hazardSimulations[15]; // Elevator
-          } else if (topLabel.contains('traffic light') || topLabel.contains('traffic signal') || topLabel.contains('light signal')) {
+          if (topLabel.contains('traffic light') || topLabel.contains('traffic signal') || topLabel.contains('light signal')) {
             selectedSim = _hazardSimulations[14]; // Traffic Light
           } else if (topLabel.contains('fire') || topLabel.contains('smoke') || topLabel.contains('flame')) {
             selectedSim = _hazardSimulations[10]; // Fire
@@ -2167,15 +2171,15 @@ class _HardwareScreenState extends State<HardwareScreen> {
             selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
           } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
             selectedSim = _hazardSimulations[12]; // Person Detected
-          } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway') || topLabel.contains('exit')) {
+          } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway') || topLabel.contains('exit') || topLabel.contains('elevator') || topLabel.contains('lift')) {
             final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
             selectedSim = {
               'title': isTagalog ? 'May Pintuan sa Harap' : 'Door Ahead',
-              'desc': isTagalog ? 'Papalapit ka sa pintuan o pasukan.' : 'You are approaching a door or entrance ahead.',
+              'desc': isTagalog ? 'Papalapit ka sa isang pintuan.' : 'You are approaching a door.',
               'bg': const Color(0xFFE0F7FA), // Soft cyan non-critical notice
               'icon': Icons.door_front_door_outlined,
               'iconColor': Colors.teal,
-              'speech': isTagalog ? 'Papalapit ka sa pintuan.' : 'You are approaching a door.'
+              'speech': isTagalog ? 'Papalapit ka sa isang pintuan.' : 'You are approaching a door.'
             };
           } else if (topLabel.contains('window') || topLabel.contains('glass window') || topLabel.contains('pane')) {
             final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');

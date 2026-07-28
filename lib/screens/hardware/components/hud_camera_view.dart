@@ -49,9 +49,6 @@ class HudCameraView extends StatelessWidget {
 
   String _refineLabel(String rawLabel) {
     final label = rawLabel.replaceAll('_', ' ').toLowerCase();
-    if (label.contains('metal')) {
-      return 'elevator door';
-    }
     if (label.contains('hair drier') || label.contains('hairdryer')) {
       return 'hair drier';
     }
@@ -64,7 +61,7 @@ class HudCameraView extends StatelessWidget {
     if (label.contains('wall') || label.contains('partition') || label.contains('divider') || label.contains('pattern')) {
       return 'wall';
     }
-    if (label.contains('door') || label.contains('doorway') || label.contains('entrance') || label.contains('exit')) {
+    if (label.contains('door') || label.contains('doorway') || label.contains('entrance') || label.contains('exit') || label.contains('elevator') || label.contains('lift') || label.contains('metal') || label.contains('gate')) {
       return 'door';
     }
     if (label.contains('window') || label.contains('glass window') || label.contains('pane')) {

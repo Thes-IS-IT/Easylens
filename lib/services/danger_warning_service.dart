@@ -119,8 +119,8 @@ class DangerWarningService {
     'curb', 'ramp', 'slope', 'drain', 'sewer', 'ditch', 'gutter', 'pavement crack', 'gravel', 'mud'
   };
 
-  static final Set<String> _elevatorKeywords = {
-    'elevator', 'lift', 'escalator'
+  static final Set<String> _doorKeywords = {
+    'door', 'doorway', 'entrance', 'exit', 'elevator', 'lift', 'escalator', 'gate'
   };
 
   /// Evaluates an object label string and returns its hazard severity level
@@ -187,8 +187,8 @@ class DangerWarningService {
       if (cleanLabel.contains(kw)) return HazardSeverity.caution;
     }
 
-    // Check Elevator (Caution)
-    for (final kw in _elevatorKeywords) {
+    // Check Door (Caution)
+    for (final kw in _doorKeywords) {
       if (cleanLabel.contains(kw)) return HazardSeverity.caution;
     }
 
@@ -369,16 +369,16 @@ class DangerWarningService {
       }
     }
 
-    // 13. Elevator check (Caution)
-    for (final kw in _elevatorKeywords) {
+    // 13. Door check (Caution)
+    for (final kw in _doorKeywords) {
       if (cleanLabel.contains(kw)) {
         return DangerHazardInfo(
-          label: capitalized,
+          label: 'Door',
           severity: HazardSeverity.caution,
-          icon: Icons.elevator_rounded,
-          title: 'ELEVATOR APPROACHING',
-          messageEn: "Caution: Approaching elevator door ahead. Locate the call buttons and wait for it to open before stepping inside.",
-          messageTl: "Mag-ingat: May elevator o hagdanang de-motor sa iyong tapat. Hintayin itong bumukas bago pumasok.",
+          icon: Icons.door_front_door_outlined,
+          title: 'DOOR APPROACHING',
+          messageEn: "Caution: You are approaching a door.",
+          messageTl: "Mag-ingat: Papalapit ka sa isang pintuan.",
         );
       }
     }

@@ -89,6 +89,10 @@ class TranslationService {
       'tutorial_labeling_title': 'Visual Object Scanner',
       'tutorial_labeling_desc': 'Scan surrounding areas to describe objects, recognize printed text, identify nearby materials, and announce obstacles!',
       'tutorial_got_it': 'Got it!',
+      'door_ahead': 'Door Ahead',
+      'approaching_door': 'You are approaching a door.',
+      'caution_approaching_door': 'Caution: You are approaching a door.',
+      'door_approaching_title': 'DOOR APPROACHING',
     },
     'fil': {
       'settings': 'Mga Setting',
@@ -179,6 +183,10 @@ class TranslationService {
       'tutorial_labeling_title': 'Visual Object Scanner',
       'tutorial_labeling_desc': 'I-scan ang iyong paligid para makilala ang mga bagay, basahin ang mga nakasulat na teksto, at malaman ang mga harang.',
       'tutorial_got_it': 'Naintindihan ko!',
+      'door_ahead': 'May Pintuan sa Harap',
+      'approaching_door': 'Papalapit ka sa isang pintuan.',
+      'caution_approaching_door': 'Mag-ingat: Papalapit ka sa isang pintuan.',
+      'door_approaching_title': 'PAPALAPIT SA PINTUAN',
     }
   };
 
