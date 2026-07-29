@@ -57,7 +57,7 @@ class StepUploadPhoto extends StatelessWidget {
                 leading: const Icon(Icons.photo_library),
                 title: Text(SignupL10n.t('photo_gallery', language)),
                 onTap: () {
-                  Navigator.of(context).pop();
+                  Navigator.of(bc).pop();
                   _pickImage(context, ImageSource.gallery);
                 },
               ),
@@ -65,7 +65,7 @@ class StepUploadPhoto extends StatelessWidget {
                 leading: const Icon(Icons.photo_camera),
                 title: Text(SignupL10n.t('photo_camera', language)),
                 onTap: () {
-                  Navigator.of(context).pop();
+                  Navigator.of(bc).pop();
                   _pickImage(context, ImageSource.camera);
                 },
               ),

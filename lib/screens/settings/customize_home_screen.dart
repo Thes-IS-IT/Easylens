@@ -22,6 +22,7 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
   final Map<String, String> _cardNames = {
     'buddy': 'Talk to Buddy (Local LLM)',
     'easylens': 'EasyLens Sensor',
+    'faces': 'Register Face',
     'text': 'Nearby Text',
     'objects': 'Nearby Objects',
     'navigation': 'Audio Navigation',
@@ -31,6 +32,7 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
   final Map<String, IconData> _cardIcons = {
     'buddy': Icons.chat_bubble_outline,
     'easylens': Icons.visibility,
+    'faces': Icons.face_retouching_natural,
     'text': Icons.notes,
     'objects': Icons.zoom_in,
     'navigation': Icons.near_me,
@@ -70,6 +72,7 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
   Widget build(BuildContext context) {
     final lang = _settingsService.selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('filipino') || lang.toLowerCase().contains('tagalog');
+    final isDark = _settingsService.isDarkMode;
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -86,9 +89,10 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                   width: 95,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
+                    border: isDark ? Border.all(color: const Color(0xFF333333)) : null,
+                    boxShadow: isDark ? null : [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.06),
                         blurRadius: 8,
@@ -99,12 +103,12 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.chevron_left, color: Color(0xFF002663), size: 24),
+                      Icon(Icons.chevron_left, color: AppColors.primaryText, size: 24),
                       const SizedBox(width: 4),
                       Text(
                         TranslationService.translate('back', lang),
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF002663),
+                          color: AppColors.primaryText,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -122,7 +126,7 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF002663),
+                  color: AppColors.primaryText,
                 ),
               ),
               const SizedBox(height: 8),
@@ -133,7 +137,7 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                     : 'Drag cards to reorder them. Toggle switches to show or hide dashboard card options.',
                 style: GoogleFonts.inter(
                   fontSize: 13,
-                  color: const Color(0xFF64748B),
+                  color: AppColors.textMuted,
                   height: 1.45,
                 ),
               ),
@@ -165,10 +169,10 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                       key: ValueKey(key),
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
+                        border: Border.all(color: isDark ? const Color(0xFF333333) : const Color(0xFFE2E8F0)),
+                        boxShadow: isDark ? null : [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.02),
                             blurRadius: 8,
@@ -181,11 +185,17 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                         leading: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.drag_indicator, color: Color(0xFF94A3B8)),
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: Icon(Icons.drag_indicator, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                              ),
+                            ),
                             const SizedBox(width: 12),
                             CircleAvatar(
-                              backgroundColor: const Color(0xFFEFF6FF),
-                              child: Icon(icon, color: const Color(0xFF2563EB)),
+                              backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                              child: Icon(icon, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
                             ),
                           ],
                         ),
@@ -194,15 +204,15 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                           style: GoogleFonts.inter(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
-                            color: Colors.black,
+                            color: AppColors.primaryText,
                           ),
                         ),
                         trailing: Switch(
                           value: isEnabled,
-                          activeColor: Colors.white,
-                          activeTrackColor: const Color(0xFF48BB78),
+                          activeColor: isDark ? AppColors.primaryButtonText : Colors.white,
+                          activeTrackColor: AppColors.primaryButton,
                           inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                          inactiveTrackColor: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
                           onChanged: (val) {
                             setState(() {
                               if (val) {

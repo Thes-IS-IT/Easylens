@@ -133,11 +133,12 @@ class _SurveyScreenState extends State<SurveyScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = SettingsService();
-    final isDefault = settings.selectedContrastTheme == 'Default';
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
 
-    final headerTextColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
-    final contentTextColor = isDefault ? Colors.black : AppColors.primaryText;
-    final secondaryTextColor = const Color(0xFF64748B);
+    final headerTextColor = AppColors.primaryText;
+    final contentTextColor = isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText);
+    final secondaryTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -192,12 +193,12 @@ class _SurveyScreenState extends State<SurveyScreen> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: isSelected 
-                            ? const Color(0xFFE8F5E9)
+                            ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFE8F5E9))
                             : Colors.transparent,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isSelected 
-                              ? const Color(0xFF4CAF50) 
+                              ? AppColors.primaryButton 
                               : Colors.transparent,
                           width: 2,
                         ),
@@ -238,13 +239,13 @@ class _SurveyScreenState extends State<SurveyScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
                         color: isSelected 
-                            ? const Color(0xFFEFF6FF) 
-                            : (isDefault ? Colors.white : AppColors.primaryBackground),
+                            ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF)) 
+                            : (isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground)),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected 
-                              ? const Color(0xFF2563EB) 
-                              : (isDefault ? const Color(0xFFE2E8F0) : AppColors.cardBorder),
+                              ? AppColors.primaryButton 
+                              : (isDark ? const Color(0xFF333333) : (isDefault ? const Color(0xFFE2E8F0) : AppColors.cardBorder)),
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -252,7 +253,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                         children: [
                           Icon(
                             subj['icon'] as IconData,
-                            color: isSelected ? const Color(0xFF2563EB) : secondaryTextColor,
+                            color: isSelected ? AppColors.primaryButton : secondaryTextColor,
                             size: 20,
                           ),
                           const SizedBox(width: 12),
@@ -261,7 +262,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                              color: isSelected ? const Color(0xFF2563EB) : contentTextColor,
+                              color: isSelected ? AppColors.primaryButton : contentTextColor,
                             ),
                           ),
                         ],
@@ -293,23 +294,23 @@ class _SurveyScreenState extends State<SurveyScreen> {
                   hintText: 'Enter your comments or suggestions here...',
                   hintStyle: GoogleFonts.inter(color: secondaryTextColor, fontSize: 13),
                   filled: true,
-                  fillColor: isDefault ? Colors.white : AppColors.primaryBackground,
+                  fillColor: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(
-                      color: isDefault ? const Color(0xFFE2E8F0) : AppColors.cardBorder,
+                      color: isDark ? const Color(0xFF333333) : (isDefault ? const Color(0xFFE2E8F0) : AppColors.cardBorder),
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(
-                      color: isDefault ? const Color(0xFFE2E8F0) : AppColors.cardBorder,
+                      color: isDark ? const Color(0xFF333333) : (isDefault ? const Color(0xFFE2E8F0) : AppColors.cardBorder),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF2563EB),
+                    borderSide: BorderSide(
+                      color: AppColors.primaryButton,
                       width: 2,
                     ),
                   ),
@@ -324,19 +325,19 @@ class _SurveyScreenState extends State<SurveyScreen> {
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submitFeedback,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF002663),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade300,
+                    backgroundColor: AppColors.primaryButton,
+                    foregroundColor: AppColors.primaryButtonText,
+                    disabledBackgroundColor: Colors.grey.shade800,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(26),
                     ),
                   ),
                   child: _isSubmitting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: AppColors.primaryButtonText,
                             strokeWidth: 2.5,
                           ),
                         )

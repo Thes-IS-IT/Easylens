@@ -257,11 +257,13 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
     return ListenableBuilder(
       listenable: SettingsService(),
       builder: (context, _) {
-        final isDefault = SettingsService().selectedContrastTheme == 'Default';
-        final headerColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
-        final tileTextColor = isDefault ? Colors.black : AppColors.primaryText;
-        final cardColor = AppColors.primaryBackground;
-        final inputFill = isDefault ? const Color(0xFFF8FAFC) : const Color(0xFF1A1A1A);
+        final settings = SettingsService();
+        final isDark = settings.isDarkMode;
+        final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+        final headerColor = AppColors.primaryText;
+        final tileTextColor = isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText);
+        final cardColor = isDark ? const Color(0xFF141414) : AppColors.primaryBackground;
+        final inputFill = isDark ? const Color(0xFF1E1E1E) : (isDefault ? const Color(0xFFF8FAFC) : const Color(0xFF1A1A1A));
 
         return Scaffold(
           backgroundColor: AppColors.lightBackground,
@@ -281,9 +283,9 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                             height: 44,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(
-                              color: isDefault ? Colors.white : AppColors.primaryBackground,
+                              color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
                               borderRadius: BorderRadius.circular(22),
-                              border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                              border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
                               boxShadow: isDefault
                                   ? [
                                       BoxShadow(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'firebase_service.dart';
 
 class SharedEmergencyContact {
   final String name;
@@ -32,37 +33,34 @@ class SharedEmergencyContact {
 }
 
 class EmergencyContactService extends ChangeNotifier {
-  static const _prefsKey = 'easylens_emergency_contacts';
-
   static final EmergencyContactService _instance =
       EmergencyContactService._internal();
   factory EmergencyContactService() => _instance;
   EmergencyContactService._internal();
 
-  /// Clear all stored emergency contacts (used on logout/reset)
+  /// Scopes prefs key per authenticated user UID to prevent cross-account contact leakage.
+  String _getUserPrefsKey() {
+    final uid = FirebaseService().currentUser?.uid;
+    if (uid != null && uid.isNotEmpty) {
+      return 'easylens_emergency_contacts_$uid';
+    }
+    return 'easylens_emergency_contacts_guest';
+  }
+
+  /// Clear stored emergency contacts for the current user session (used on logout/reset).
   Future<void> clearContacts() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_prefsKey);
+    await prefs.remove(_getUserPrefsKey());
     notifyListeners();
   }
 
-  /// Retrieve all emergency contacts. If none are stored, seeds a default contact.
+  /// Retrieve all emergency contacts for the active user. If none exist, returns empty list.
+  /// NEVER seeds default fake phone numbers or fallbacks.
   Future<List<SharedEmergencyContact>> getContacts() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getStringList(_prefsKey);
-    if (raw == null) {
-      // Seed default contact on first run
-      final defaultContact = SharedEmergencyContact(
-        name: 'SOS Contact 1',
-        phone: '+63 912 345 6789',
-        relationship: 'Family',
-        isActive: true,
-      );
-      await prefs.setStringList(
-        _prefsKey,
-        [jsonEncode(defaultContact.toJson())],
-      );
-      return [defaultContact];
+    final raw = prefs.getStringList(_getUserPrefsKey());
+    if (raw == null || raw.isEmpty) {
+      return [];
     }
     return raw.map((s) {
       try {
@@ -76,7 +74,8 @@ class EmergencyContactService extends ChangeNotifier {
   /// Save or update an emergency contact profile.
   Future<void> saveContact(SharedEmergencyContact contact) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getStringList(_prefsKey);
+    final key = _getUserPrefsKey();
+    final raw = prefs.getStringList(key);
     List<SharedEmergencyContact> contacts = [];
     if (raw != null) {
       contacts = raw.map((s) {
@@ -90,7 +89,7 @@ class EmergencyContactService extends ChangeNotifier {
     contacts.removeWhere((c) => c.phone == contact.phone);
     contacts.add(contact);
     await prefs.setStringList(
-      _prefsKey,
+      key,
       contacts.map((c) => jsonEncode(c.toJson())).toList(),
     );
     notifyListeners();
@@ -99,11 +98,12 @@ class EmergencyContactService extends ChangeNotifier {
   /// Update an existing emergency contact profile, locating them by their original phone number.
   Future<void> updateContact(String originalPhone, SharedEmergencyContact newContact) async {
     final prefs = await SharedPreferences.getInstance();
+    final key = _getUserPrefsKey();
     final contacts = await getContacts();
     contacts.removeWhere((c) => c.phone == originalPhone);
     contacts.add(newContact);
     await prefs.setStringList(
-      _prefsKey,
+      key,
       contacts.map((c) => jsonEncode(c.toJson())).toList(),
     );
     notifyListeners();
@@ -112,10 +112,11 @@ class EmergencyContactService extends ChangeNotifier {
   /// Delete a single emergency contact by phone number.
   Future<void> deleteContact(String phone) async {
     final prefs = await SharedPreferences.getInstance();
+    final key = _getUserPrefsKey();
     final contacts = await getContacts();
     contacts.removeWhere((c) => c.phone == phone);
     await prefs.setStringList(
-      _prefsKey,
+      key,
       contacts.map((c) => jsonEncode(c.toJson())).toList(),
     );
     notifyListeners();

@@ -19,11 +19,13 @@ class HeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = SettingsService().selectedContrastTheme;
-    final isDefault = theme == 'Default';
+    final settings = SettingsService();
+    final theme = settings.selectedContrastTheme;
+    final isDark = settings.isDarkMode;
+    final isDefault = theme == 'Default' && !isDark;
     
-    final pillBg = isDefault ? Colors.white : AppColors.primaryBackground;
-    final iconColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
+    final pillBg = isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground);
+    final iconColor = isDark ? Colors.white : (isDefault ? const Color(0xFF002663) : AppColors.primaryText);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -55,7 +57,7 @@ class HeaderBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: pillBg,
             borderRadius: BorderRadius.circular(30),
-            border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+            border: isDark ? Border.all(color: const Color(0xFF333333), width: 1.5) : (isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5)),
             boxShadow: isDefault ? [
               BoxShadow(
                 color: Colors.black.withOpacity(0.04),

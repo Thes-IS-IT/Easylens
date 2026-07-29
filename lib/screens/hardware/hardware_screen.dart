@@ -1222,23 +1222,20 @@ class _HardwareScreenState extends State<HardwareScreen> {
     final criticalKeywords = [
       'fire', 'flame', 'smoke', 'lighter', 'torch', 'burning', 'explosion',
       'knife', 'blade', 'dagger', 'scissors', 'cutter', 'machete', 'sword',
-      'gun', 'weapon', 'pistol', 'rifle'
+      'gun', 'weapon', 'pistol', 'rifle',
+      'car', 'bus', 'truck', 'vehicle', 'jeepney', 'tricycle', 'motorcycle', 'van', 'automobile'
     ];
     final hazardKeywords = [
       'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
       'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush',
-      'elevator', 'lift', 'escalator', 'metal'
-    ];
-    final vehicleKeywords = [
-      'car', 'bus', 'truck', 'vehicle', 'jeepney', 'tricycle', 'motorcycle', 'van', 'automobile'
+      'elevator', 'lift', 'escalator', 'metal', 'chair', 'table', 'sofa', 'bench', 'desk'
     ];
 
     final isCriticalDanger = criticalKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
     final isHazard = hazardKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
-    final isVehicle = vehicleKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
     final isPerson = refinedLabel.toLowerCase() == 'person';
 
-    if (isCriticalDanger || (isVehicle && (largestArea > 0.08 || (isCentered && largestArea > 0.05)))) {
+    if (isCriticalDanger) {
       // CRITICAL RED WARNING: Fire, Knife, Weapon, or Vehicle detected!
       final isFire = refinedLabel.toLowerCase().contains('fire') || refinedLabel.toLowerCase().contains('flame') || refinedLabel.toLowerCase().contains('smoke');
       final guidance = isTagalog

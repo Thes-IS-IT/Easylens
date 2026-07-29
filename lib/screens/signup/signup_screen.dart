@@ -92,6 +92,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     SettingsService().removeListener(_onThemeChanged);
     _sttTimeoutTimer?.cancel();
     SttService().stopListening((_) {});
+    TtsService().stop();
     super.dispose();
   }
 
@@ -110,13 +111,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _startListeningForStep();
       return;
     }
-
-    _isSpeakingPrompt = true;
     _lastSpokenStep = _currentStep;
-
-    // Reset confirmation state when arriving on a new step
-    _isAwaitingConfirmation = false;
-    _pendingVoiceSelection = '';
 
     // Ensure STT mic is stopped while assistant speaks
     SttService().stopListening((_) {});
@@ -129,103 +124,94 @@ class _SignUpScreenState extends State<SignUpScreen> {
     switch (_currentStep) {
       case 1:
         prompt = isTagalog
-            ? "Hakbang 1 sa 19. Piliin ang iyong wika. Sabihin ang English o Filipino."
-            : "Step 1 of 19. Choose your language. Say English or Filipino.";
+            ? "Hakbang 1 sa 17. Piliin ang iyong wika. Sabihin ang English o Filipino."
+            : "Step 1 of 17. Choose your language. Say English or Filipino.";
         break;
       case 2:
         prompt = isTagalog
-            ? "Hakbang 2 sa 19. Paraan ng Pagpaparehistro. Paano mo gustong mag-set up? Sabihin ang Boses para sa boses, o Manwal para sa pindot."
-            : "Step 2 of 19. Registration Method. How would you like to set up your account? Say Voice for voice commands, or Manual for touch controls.";
+            ? "Hakbang 2 sa 17. Paraan ng Pagpaparehistro. Paano mo gustong mag-set up? Sabihin ang Boses para sa boses, o Manwal para sa pindot."
+            : "Step 2 of 17. Registration Method. How would you like to set up your account? Say Voice for voice commands, or Manual for touch controls.";
         break;
       case 3:
         prompt = isTagalog
-            ? "Hakbang 3 sa 19. Para kanino ito? Sabihin ang Para sa akin o Para sa iba."
-            : "Step 3 of 19. Who is this for? Say Myself or Someone else.";
+            ? "Hakbang 3 sa 17. Para kanino ito? Sabihin ang Para sa akin o Para sa iba."
+            : "Step 3 of 17. Who is this for? Say Myself or Someone else.";
         break;
       case 4:
         prompt = isTagalog
-            ? "Hakbang 4 sa 19. Piliin ang iyong mga kondisyon sa paningin. Maaaring sabihin ang: Cataracts, Glaucoma, Macular Degeneration, Low Vision, Diabetic Retinopathy, Retinitis Pigmentosa, Color Blindness, Hemianopia, o Elderly para sa mga nakakatanda. Sabihin ang Ituloy kapag tapos na."
-            : "Step 4 of 19. Select your vision conditions. You can say: Cataracts, Glaucoma, Macular Degeneration, Low Vision, Diabetic Retinopathy, Retinitis Pigmentosa, Color Blindness, Hemianopia, or Elderly. Say Continue when finished.";
+            ? "Hakbang 4 sa 17. Piliin ang iyong mga kondisyon sa paningin. Maaaring sabihin ang: Cataracts, Glaucoma, Macular Degeneration, Low Vision, Diabetic Retinopathy, Retinitis Pigmentosa, Color Blindness, Hemianopia, o Elderly para sa mga nakakatanda. Sabihin ang Ituloy kapag tapos na."
+            : "Step 4 of 17. Select your vision conditions. You can say: Cataracts, Glaucoma, Macular Degeneration, Low Vision, Diabetic Retinopathy, Retinitis Pigmentosa, Color Blindness, Hemianopia, or Elderly. Say Continue when finished.";
         break;
       case 5:
         prompt = isTagalog
-            ? "Hakbang 5 sa 19. Tema ng Kontras. Pumili ng kulay ng interface. Sabihin ang Default, Black on White, White on Black, Green on Black, Yellow on Black, o Cyan on Black."
-            : "Step 5 of 19. Contrast Theme. Select the color interface. Say Default, Black on White, White on Black, Green on Black, Yellow on Black, or Cyan on Black.";
+            ? "Hakbang 5 sa 17. Tema ng Kontras. Pumili ng kulay ng interface. Sabihin ang Default, Black on White, White on Black, Green on Black, Yellow on Black, o Cyan on Black."
+            : "Step 5 of 17. Contrast Theme. Select the color interface. Say Default, Black on White, White on Black, Green on Black, Yellow on Black, or Cyan on Black.";
         break;
       case 6:
         prompt = isTagalog
-            ? "Hakbang 6 sa 19. Gabay sa Aksesibilidad. Sabihin ang Boses on, Boses off, Vibrate on, o Vibrate off."
-            : "Step 6 of 19. Helpful Cues. Say Voice guide on, Voice guide off, Vibration on, or Vibration off.";
+            ? "Hakbang 6 sa 17. Gabay sa Aksesibilidad. Sabihin ang Boses on, Boses off, Vibrate on, o Vibrate off."
+            : "Step 6 of 17. Helpful Cues. Say Voice guide on, Voice guide off, Vibration on, or Vibration off.";
         break;
       case 7:
         prompt = isTagalog
-            ? "Hakbang 7 sa 19. Pumili ng boses ng assistant. Sabihin ang Max, Aria, Nova, Echo, Bella, o Leo."
-            : "Step 7 of 19. Choose a Voice Persona. Say Max, Aria, Nova, Echo, Bella, or Leo.";
+            ? "Hakbang 7 sa 17. Pumili ng boses ng assistant. Sabihin ang Max, Aria, Nova, Echo, Bella, o Leo."
+            : "Step 7 of 17. Choose a Voice Persona. Say Max, Aria, Nova, Echo, Bella, or Leo.";
         break;
       case 8:
         prompt = isTagalog
-            ? "Hakbang 8 sa 19. Kagamitan sa paglalakad. Sabihin ang Tungkod, Aso, Smart Glasses, Salamin, Wheelchair, Walker, o Wala."
-            : "Step 8 of 19. Walking Tools and Mobility Aids. Say White Cane, Guide Dog, Smart Glasses, Eyeglasses, Wheelchair, Walker, or None.";
+            ? "Hakbang 8 sa 17. Kagamitan sa paglalakad. Sabihin ang Tungkod, Aso, Smart Glasses, Salamin, Wheelchair, Walker, o Wala."
+            : "Step 8 of 17. Walking Tools and Mobility Aids. Say White Cane, Guide Dog, Smart Glasses, Eyeglasses, Wheelchair, Walker, or None.";
         break;
       case 9:
         prompt = isTagalog
-            ? "Hakbang 9 sa 19. Gumawa ng Account. Sabihin ang Email para magpatuloy."
-            : "Step 9 of 19. Create Account. Say Email to proceed.";
+            ? "Hakbang 9 sa 17. Sabihin o i-type ang iyong email address."
+            : "Step 9 of 17. Speak or enter your email address.";
         break;
       case 10:
         prompt = isTagalog
-            ? "Hakbang 10 sa 19. Sabihin o i-type ang iyong email address."
-            : "Step 10 of 19. Speak or enter your email address.";
+            ? "Hakbang 10 sa 17. Pumili ng password. Sabihin o i-type ang iyong password."
+            : "Step 10 of 17. Choose a password. Speak or enter your password.";
         break;
       case 11:
         prompt = isTagalog
-            ? "Hakbang 11 sa 19. Sabihin o i-type ang iyong numero ng telepono."
-            : "Step 11 of 19. Speak or enter your phone number.";
+            ? "Hakbang 11 sa 17. Pahintulot. Payagan ang camera, mikropono, at lokasyon. Sabihin ang Ituloy o Agree."
+            : "Step 11 of 17. Enable Permissions. Allow camera, microphone, and location access. Say Continue or Agree.";
         break;
       case 12:
         prompt = isTagalog
-            ? "Hakbang 12 sa 19. Pumili ng password. Sabihin o i-type ang iyong password."
-            : "Step 12 of 19. Choose a password. Speak or enter your password.";
+            ? "Hakbang 12 sa 17. Mga Tuntunin at Privacy. Sabihin ang Sumasang-ayon ako."
+            : "Step 12 of 17. Terms and Privacy Policy. Say Agree to accept.";
         break;
       case 13:
         prompt = isTagalog
-            ? "Hakbang 13 sa 19. Pahintulot. Payagan ang camera, mikropono, at lokasyon. Sabihin ang Ituloy o Agree."
-            : "Step 13 of 19. Enable Permissions. Allow camera, microphone, and location access. Say Continue or Agree.";
+            ? "Hakbang 13 sa 17. Larawan ng Profile. Sabihin ang Gallery, Camera, o Laktawan."
+            : "Step 13 of 17. Profile Photo. Say Gallery, Camera, or Skip.";
         break;
       case 14:
         prompt = isTagalog
-            ? "Hakbang 14 sa 19. Mga Tuntunin at Privacy. Sabihin ang Sumasang-ayon ako."
-            : "Step 14 of 19. Terms and Privacy Policy. Say Agree to accept.";
+            ? "Hakbang 14 sa 17. Kumpirmahin ang Larawan. Sabihin ang Ituloy o Baguhin."
+            : "Step 14 of 17. Photo Confirmation. Say Continue or Reupload.";
         break;
       case 15:
         prompt = isTagalog
-            ? "Hakbang 15 sa 19. Larawan ng Profile. Sabihin ang Gallery, Camera, o Laktawan."
-            : "Step 15 of 19. Profile Photo. Say Gallery, Camera, or Skip.";
+            ? "Hakbang 15 sa 17. Ano ang pangalan mo? Sabihin o i-type ang iyong pangalan."
+            : "Step 15 of 17. What should I call you? Speak or enter your name.";
         break;
       case 16:
         prompt = isTagalog
-            ? "Hakbang 16 sa 19. Kumpirmahin ang Larawan. Sabihin ang Ituloy o Baguhin."
-            : "Step 16 of 19. Photo Confirmation. Say Continue or Reupload.";
+            ? "Hakbang 16 sa 17. Kaarawan. Sabihin o i-type ang taon ng iyong kaarawan."
+            : "Step 16 of 17. Birthday. Speak or enter your birth year or birthday.";
         break;
       case 17:
         prompt = isTagalog
-            ? "Hakbang 17 sa 19. Ano ang pangalan mo? Sabihin o i-type ang iyong pangalan."
-            : "Step 17 of 19. What should I call you? Speak or enter your name.";
-        break;
-      case 18:
-        prompt = isTagalog
-            ? "Hakbang 18 sa 19. Kaarawan. Sabihin o i-type ang taon ng iyong kaarawan."
-            : "Step 18 of 19. Birthday. Speak or enter your birth year or birthday.";
-        break;
-      case 19:
-        prompt = isTagalog
-            ? "Hakbang 19 sa 19. Emergency SOS Contact. Sabihin o i-type ang pangalan at numero, o sabihin ang Tapusin."
-            : "Step 19 of 19. Emergency SOS Contact. Speak or enter contact details, or say Finish setting up.";
+            ? "Hakbang 17 sa 17. Emergency SOS Contact. Sabihin o i-type ang pangalan at numero, o sabihin ang Tapusin."
+            : "Step 17 of 17. Emergency SOS Contact. Speak or enter contact details, or say Finish setting up.";
         break;
       default:
-        prompt = "Step $_currentStep of 19.";
+        prompt = "Step $_currentStep of 17.";
     }
 
+    if (!mounted) return;
     setState(() {
       _voiceFeedbackText = prompt;
     });
@@ -238,8 +224,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // 2. Await complete TTS speech output
     await TtsService().speakAwait(prompt);
 
+    if (!mounted) return;
     // 3. Pause 400ms after TTS finishes to allow speaker echo to decay completely
     await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
     _isSpeakingPrompt = false;
 
     // 4. NOW enable microphone for user's turn
@@ -257,9 +245,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       'yes', 'yeah', 'yep', 'confirm', 'oo', 'opopo', 'opo', 'correct', 'tama',
       'no', 'nope', 'change', 'different', 'hindi', 'baguhin', 'mali', 'palitan'
     ];
-    if (commonCmds.any((cmd) => text.contains(cmd))) return true;
-
-    switch (_currentStep) {
+    if (commonCmds.any((cmd) => text.contains(cmd))) return true;    switch (_currentStep) {
       case 1:
         return text.contains('english') || text.contains('inggles') || text.contains('filipino') || text.contains('tagalog') || text.contains('pinoy');
       case 2:
@@ -277,24 +263,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 8:
         return text.contains('cane') || text.contains('tungkod') || text.contains('dog') || text.contains('aso') || text.contains('glasses') || text.contains('salamin') || text.contains('wheelchair') || text.contains('walker') || text.contains('none') || text.contains('wala');
       case 9:
-        return text.contains('google') || text.contains('email') || text.contains('phone') || text.contains('telepono') || text.contains('numero');
-      case 10:
         return text.trim().length >= 3;
-      case 11:
-        return text.replaceAll(RegExp(r'\D'), '').length >= 10;
-      case 12:
+      case 10:
         return text.length >= 4;
-      case 13:
+      case 11:
         return text.contains('continue') || text.contains('agree') || text.contains('ituloy') || text.contains('sumasang');
-      case 14:
+      case 12:
         return text.contains('agree') || text.contains('sumasang') || text.contains('oo');
-      case 15:
+      case 13:
         return text.contains('skip') || text.contains('camera') || text.contains('gallery') || text.contains('laktawan');
-      case 16:
+      case 14:
         return text.contains('continue') || text.contains('reupload') || text.contains('baguhin') || text.contains('ituloy');
+      case 15:
+      case 16:
       case 17:
-      case 18:
-      case 19:
         return text.length >= 2;
       default:
         return false;
@@ -320,15 +302,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           setState(() {
             _isListening = listening;
           });
-          // Automatically keep microphone active if STT times out while Voice Mode is enabled
-          if (!listening && _isVoiceActivated && !_isSpeakingPrompt && !_isProcessingCommand) {
-            _sttTimeoutTimer?.cancel();
-            _sttTimeoutTimer = Timer(const Duration(milliseconds: 400), () {
-              if (mounted && _isVoiceActivated && !_isSpeakingPrompt && !_isProcessingCommand) {
-                _startListeningForStep();
-              }
-            });
-          }
         }
       },
     );
@@ -370,96 +343,57 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _handleVoiceCommand(String rawText) {
     final text = rawText.toLowerCase().trim();
-    if (text.isEmpty) return;
-
     final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
         _selectedLanguage.toLowerCase().contains('tagalog');
 
-    // Voice Back Trigger Check
-    final backKeywords = [
-      'back', 'go back', 'previous', 'bumalik', 'pabalik', 'balik',
-      'nakaraan', 'u-turn', 'kabilang hakbang', 'kanselain', 'cancel'
-    ];
-
-    if (backKeywords.any((k) => text.contains(k))) {
-      setState(() {
-        _isAwaitingConfirmation = false;
-        _pendingVoiceSelection = '';
-      });
-      TtsService().speak(isTagalog ? "Bumabalik sa nakaraang hakbang." : "Going back to previous step.");
+    // 1. GLOBAL INTERRUPT: "Back" / "Go back"
+    if (text == 'back' || text == 'go back' || text == 'previous' || text == 'bumalik' || text == 'pabalik' || text == 'u-turn' || text == 'balik') {
       _prevStep();
       return;
     }
 
-    // 1. Validation phase (Awaiting Confirmation)
+    // 2. CONFIRMATION HANDLER
     if (_isAwaitingConfirmation) {
       final confirmCmds = ['yes', 'yeah', 'yep', 'next', 'confirm', 'proceed', 'sige', 'oo', 'opopo', 'opo', 'continue', 'go', 'okay', 'correct', 'tama', 'ituloy'];
-      final cancelCmds = ['no', 'nope', 'change', 'different', 'ulit', 'hindi', 'baguhin', 'mali', 'palitan'];
+      final cancelCmds = ['no', 'nope', 'change', 'wrong', 'mali', 'hindi', 'baguhin', 'ulitin', 'reenter'];
 
-      if (confirmCmds.any((cmd) => text.contains(cmd))) {
-        setState(() {
-          _isAwaitingConfirmation = false;
-        });
+      if (confirmCmds.any((c) => text.contains(c))) {
+        _isAwaitingConfirmation = false;
         TtsService().speak(isTagalog ? "Kumpirmado." : "Confirmed.");
         _nextStep();
         return;
-      } else if (cancelCmds.any((cmd) => text.contains(cmd))) {
-        setState(() {
-          _isAwaitingConfirmation = false;
-          _pendingVoiceSelection = '';
-        });
-        _isSpeakingPrompt = true;
-        SttService().stopListening((_) {});
-        final cancelText = isTagalog ? "Kanselado. Paki-sabay ulit ang iyong pili." : "Selection cancelled. Please speak your choice again.";
+      } else if (cancelCmds.any((c) => text.contains(c))) {
+        _isAwaitingConfirmation = false;
+        final cancelText = isTagalog ? "Sige, paki-ulit ang iyong sinabi." : "Okay, please repeat your input.";
         TtsService().speakAwait(cancelText).then((_) async {
-          await Future.delayed(const Duration(milliseconds: 400));
-          _isSpeakingPrompt = false;
-          if (mounted && _isVoiceActivated) {
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (mounted) {
             _startListeningForStep();
           }
         });
         return;
       }
-      return;
     }
 
-    // 2. Global Navigation Commands
-    final nextKeywords = ['next', 'continue', 'proceed', 'ituloy', 'sunod', 'sumunod', 'ipagpatuloy', 'sige'];
-    final repeatKeywords = ['repeat', 'read', 're-read', 'ulit', 'paki-ulit', 'ulitin', 'sabihin ulit'];
-
-    if (nextKeywords.any((k) => text.contains(k))) {
-      _nextStep();
-      return;
-    }
-    if (repeatKeywords.any((k) => text.contains(k))) {
-      _lastSpokenStep = null;
-      _speakStepPromptAndListen();
-      return;
-    }
-
-    // 3. Step-Specific Voice Matching
+    // 3. STEP-BY-STEP INTENT PARSING
     switch (_currentStep) {
       case 1: // Language
         if (text.contains('english') || text.contains('inggles')) {
-          setState(() {
-            _selectedLanguage = 'English';
-          });
+          setState(() => _selectedLanguage = 'English');
           SettingsService().updateSettings(selectedLanguage: 'English');
           _triggerVoiceConfirmation('English');
         } else if (text.contains('filipino') || text.contains('tagalog') || text.contains('pinoy')) {
-          setState(() {
-            _selectedLanguage = 'Filipino';
-          });
-          SettingsService().updateSettings(selectedLanguage: 'Filipino');
+          setState(() => _selectedLanguage = 'Tagalog');
+          SettingsService().updateSettings(selectedLanguage: 'Tagalog');
           _triggerVoiceConfirmation('Filipino');
         }
         break;
 
-      case 2: // Registration Method Selection (Voice vs Manual)
-        if (text.contains('voice') || text.contains('boses') || text.contains('salita') || text.contains('one') || text.contains('isa')) {
+      case 2: // Signup Mode
+        if (text.contains('voice') || text.contains('boses') || text.contains('salita') || text.contains('isa')) {
           setState(() => _isVoiceActivated = true);
           _triggerVoiceConfirmation('Voice Command Fillup');
-        } else if (text.contains('manual') || text.contains('touch') || text.contains('pindot') || text.contains('kamay') || text.contains('two') || text.contains('dalawa')) {
+        } else if (text.contains('manual') || text.contains('pindot') || text.contains('kamay') || text.contains('dalawa')) {
           setState(() => _isVoiceActivated = false);
           TtsService().speak(isTagalog ? "Manwal na pagpuno ang napili. Naka-off ang boses." : "Manual Form Fillup selected. Speech assistance muted.");
           SttService().stopListening((_) {});
@@ -468,86 +402,69 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
 
       case 3: // Persona
-        if (text.contains('myself') || text.contains('me') || text.contains('akin') || text.contains('sarili') || text.contains('ako') || text.contains('isa')) {
+        if (text.contains('myself') || text.contains('me') || text.contains('akin') || text.contains('sarili') || text.contains('ako')) {
           setState(() => _isForMyself = true);
-          _triggerVoiceConfirmation(isTagalog ? 'Para sa akin' : 'Myself');
-        } else if (text.contains('someone') || text.contains('else') || text.contains('iba') || text.contains('other') || text.contains('person') || text.contains('dalawa')) {
+          _triggerVoiceConfirmation('Myself');
+        } else if (text.contains('someone') || text.contains('else') || text.contains('iba')) {
           setState(() => _isForMyself = false);
-          _triggerVoiceConfirmation(isTagalog ? 'Para sa iba' : 'Someone Else');
+          _triggerVoiceConfirmation('Someone else');
         }
         break;
 
       case 4: // Conditions
-        if (text.contains('cataract') || text.contains('katarata')) {
-          if (!_selectedConditions.contains('Cataracts')) _selectedConditions.add('Cataracts');
-          _triggerVoiceConfirmation(isTagalog ? 'Katarata (Cataracts)' : 'Cataracts');
-        } else if (text.contains('glaucoma') || text.contains('glaokoma')) {
-          if (!_selectedConditions.contains('Glaucoma')) _selectedConditions.add('Glaucoma');
-          _triggerVoiceConfirmation('Glaucoma');
-        } else if (text.contains('macular')) {
-          if (!_selectedConditions.contains('Macular Degeneration')) _selectedConditions.add('Macular Degeneration');
-          _triggerVoiceConfirmation('Macular Degeneration');
-        } else if (text.contains('low vision') || text.contains('malabo')) {
-          if (!_selectedConditions.contains('Low Vision')) _selectedConditions.add('Low Vision');
-          _triggerVoiceConfirmation(isTagalog ? 'Malabo ang Paningin (Low Vision)' : 'Low Vision');
-        } else if (text.contains('diabetic')) {
-          if (!_selectedConditions.contains('Diabetic Retinopathy')) _selectedConditions.add('Diabetic Retinopathy');
-          _triggerVoiceConfirmation('Diabetic Retinopathy');
-        } else if (text.contains('retinitis')) {
-          if (!_selectedConditions.contains('Retinitis Pigmentosa')) _selectedConditions.add('Retinitis Pigmentosa');
-          _triggerVoiceConfirmation('Retinitis Pigmentosa');
-        } else if (text.contains('color') || text.contains('bulag sa kulay')) {
-          if (!_selectedConditions.contains('Color Blindness')) _selectedConditions.add('Color Blindness');
-          _triggerVoiceConfirmation(isTagalog ? 'Bulag sa Kulay (Color Blindness)' : 'Color Blindness');
-        } else if (text.contains('hemianopia')) {
-          if (!_selectedConditions.contains('Hemianopia')) _selectedConditions.add('Hemianopia');
-          _triggerVoiceConfirmation('Hemianopia');
-        } else if (text.contains('elderly') || text.contains('matanda') || text.contains('nakakatanda') || text.contains('senior')) {
-          if (!_selectedConditions.contains('Elderly')) _selectedConditions.add('Elderly');
-          _triggerVoiceConfirmation(isTagalog ? 'Nakakatanda (Elderly)' : 'Elderly');
-        } else if (text.contains('blind')) {
-          if (!_selectedConditions.contains('Blindness')) _selectedConditions.add('Blindness');
-          _triggerVoiceConfirmation('Blindness');
-        } else if (text.contains('done') || text.contains('tapos') || text.contains('next') || text.contains('ituloy') || text.contains('sige')) {
-          _nextStep();
+        if (text.contains('done') || text.contains('tapos') || text.contains('ituloy') || text.contains('continue')) {
+          _triggerVoiceConfirmation(_selectedConditions.isEmpty ? 'No conditions' : _selectedConditions.join(', '));
+        } else {
+          final conds = <String>[];
+          if (text.contains('cataract')) conds.add('Cataracts');
+          if (text.contains('glaucoma')) conds.add('Glaucoma');
+          if (text.contains('macular')) conds.add('Macular Degeneration');
+          if (text.contains('low vision') || text.contains('malabo')) conds.add('Low Vision');
+          if (text.contains('diabetic')) conds.add('Diabetic Retinopathy');
+          if (text.contains('retinitis')) conds.add('Retinitis Pigmentosa');
+          if (text.contains('color')) conds.add('Color Blindness');
+          if (text.contains('hemianopia')) conds.add('Hemianopia');
+          if (text.contains('elderly') || text.contains('matanda')) conds.add('Elderly');
+          if (conds.isNotEmpty) {
+            setState(() {
+              for (var c in conds) {
+                if (!_selectedConditions.contains(c)) _selectedConditions.add(c);
+              }
+            });
+            _triggerVoiceConfirmation(_selectedConditions.join(', '));
+          }
         }
         break;
 
       case 5: // Contrast Theme
-        if (text.contains('default') || text.contains('orihinal') || text.contains('navy') || text.contains('una')) {
+        if (text.contains('default')) {
           setState(() => _selectedContrastTheme = 'Default');
-          SettingsService().updateSettings(selectedContrastTheme: 'Default');
-          _triggerVoiceConfirmation('Default');
-        } else if (text.contains('black on white') || text.contains('itim sa puti') || (text.contains('black') && text.contains('white'))) {
+          _triggerVoiceConfirmation('Default Theme');
+        } else if (text.contains('black on white')) {
           setState(() => _selectedContrastTheme = 'Black on White');
-          SettingsService().updateSettings(selectedContrastTheme: 'Black on White');
-          _triggerVoiceConfirmation('Black on White');
-        } else if (text.contains('white on black') || text.contains('puti sa itim') || (text.contains('white') && text.contains('black'))) {
+          _triggerVoiceConfirmation('Black on White Theme');
+        } else if (text.contains('white on black')) {
           setState(() => _selectedContrastTheme = 'White on Black');
-          SettingsService().updateSettings(selectedContrastTheme: 'White on Black');
-          _triggerVoiceConfirmation('White on Black');
-        } else if (text.contains('green on black') || text.contains('luntian') || text.contains('berde') || text.contains('green')) {
+          _triggerVoiceConfirmation('White on Black Theme');
+        } else if (text.contains('green')) {
           setState(() => _selectedContrastTheme = 'Green on Black');
-          SettingsService().updateSettings(selectedContrastTheme: 'Green on Black');
-          _triggerVoiceConfirmation('Green on Black');
-        } else if (text.contains('yellow on black') || text.contains('dilaw') || text.contains('yellow')) {
+          _triggerVoiceConfirmation('Green on Black Theme');
+        } else if (text.contains('yellow') || text.contains('dilaw')) {
           setState(() => _selectedContrastTheme = 'Yellow on Black');
-          SettingsService().updateSettings(selectedContrastTheme: 'Yellow on Black');
-          _triggerVoiceConfirmation('Yellow on Black');
-        } else if (text.contains('cyan on black') || text.contains('cyan') || text.contains('bughaw')) {
+          _triggerVoiceConfirmation('Yellow on Black Theme');
+        } else if (text.contains('cyan')) {
           setState(() => _selectedContrastTheme = 'Cyan on Black');
-          SettingsService().updateSettings(selectedContrastTheme: 'Cyan on Black');
-          _triggerVoiceConfirmation('Cyan on Black');
+          _triggerVoiceConfirmation('Cyan on Black Theme');
         }
         break;
 
-      case 6: // Accessibility Cues
-        if (text.contains('voice on') || text.contains('voice guide on')) {
+      case 6: // Accessibility
+        if (text.contains('voice on') || text.contains('boses on')) {
           setState(() => _voiceFeedback = true);
-          _triggerVoiceConfirmation('Voice Guides On');
-        } else if (text.contains('voice off')) {
+          _triggerVoiceConfirmation('Voice On');
+        } else if (text.contains('voice off') || text.contains('boses off')) {
           setState(() => _voiceFeedback = false);
-          _triggerVoiceConfirmation('Voice Guides Off');
+          _triggerVoiceConfirmation('Voice Off');
         } else if (text.contains('vibration on') || text.contains('haptic on') || text.contains('vibrate on')) {
           setState(() => _hapticFeedback = true);
           _triggerVoiceConfirmation('Vibration On');
@@ -558,30 +475,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
 
       case 7: // Voice Persona
-        if (text.contains('aria')) {
-          setState(() => _selectedVoicePersona = 'Aria (Calm)');
-          SettingsService().updateSettings(selectedVoicePersona: 'Aria (Calm)');
-          _triggerVoiceConfirmation('Aria Voice');
-        } else if (text.contains('max')) {
-          setState(() => _selectedVoicePersona = 'Max (Clear)');
-          SettingsService().updateSettings(selectedVoicePersona: 'Max (Clear)');
-          _triggerVoiceConfirmation('Max Voice');
-        } else if (text.contains('nova')) {
-          setState(() => _selectedVoicePersona = 'Nova (Energetic)');
-          SettingsService().updateSettings(selectedVoicePersona: 'Nova (Energetic)');
-          _triggerVoiceConfirmation('Nova Voice');
-        } else if (text.contains('echo')) {
-          setState(() => _selectedVoicePersona = 'Echo (Deep)');
-          SettingsService().updateSettings(selectedVoicePersona: 'Echo (Deep)');
-          _triggerVoiceConfirmation('Echo Voice');
-        } else if (text.contains('bella')) {
-          setState(() => _selectedVoicePersona = 'Bella (Slow)');
-          SettingsService().updateSettings(selectedVoicePersona: 'Bella (Slow)');
-          _triggerVoiceConfirmation('Bella Voice');
-        } else if (text.contains('leo')) {
-          setState(() => _selectedVoicePersona = 'Leo (Child)');
-          SettingsService().updateSettings(selectedVoicePersona: 'Leo (Child)');
-          _triggerVoiceConfirmation('Leo Voice');
+        final personas = ['Max', 'Aria', 'Nova', 'Echo', 'Bella', 'Leo'];
+        for (var p in personas) {
+          if (text.contains(p.toLowerCase())) {
+            setState(() => _selectedVoicePersona = p);
+            _triggerVoiceConfirmation('$p Persona');
+            break;
+          }
         }
         break;
 
@@ -595,7 +495,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         } else if (text.contains('smart glasses')) {
           setState(() => _selectedMobilityAid = 'Smart Glasses');
           _triggerVoiceConfirmation('Smart Glasses');
-        } else if (text.contains('eyeglasses') || text.contains('salamin')) {
+        } else if (text.contains('glasses') || text.contains('salamin')) {
           setState(() => _selectedMobilityAid = 'Eyeglasses');
           _triggerVoiceConfirmation('Eyeglasses');
         } else if (text.contains('wheelchair')) {
@@ -610,26 +510,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         break;
 
-      case 9: // Account Creation Method
-        if (text.contains('google')) {
-          setState(() => _authMethod = 'Google');
-          _triggerVoiceConfirmation('Google Sign In');
-        } else if (text.contains('email')) {
-          setState(() {
-            _authMethod = 'Email';
-            _currentStep = 10;
-          });
-          _speakStepPromptAndListen();
-        } else if (text.contains('phone')) {
-          setState(() {
-            _authMethod = 'Phone';
-            _currentStep = 11;
-          });
-          _speakStepPromptAndListen();
-        }
-        break;
-
-      case 10: // Email Input
+      case 9: // Email Input
         final formattedEmail = formatSpokenEmail(text);
         if (formattedEmail.isNotEmpty) {
           setState(() => _email = formattedEmail);
@@ -637,39 +518,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         break;
 
-      case 11: // Phone Input
-        final digits = text.replaceAll(RegExp(r'\D'), '');
-        if (digits.length == 11) {
-          setState(() => _phone = digits);
-          _triggerVoiceConfirmation(digits);
-        } else if (digits.isNotEmpty) {
-          final isTagalog = _selectedLanguage.toLowerCase().contains('tagalog') || _selectedLanguage.toLowerCase().contains('filipino');
-          TtsService().speak(isTagalog
-              ? 'Ang numero ng telepono ay dapat eksaktong 11 digits. Nagsimula sa zero, hal. zero-siyam-isa-dalawa-tatlo-apat-lima-anim-pito-walo-siyam.'
-              : 'Phone number must be exactly 11 digits starting with zero, e.g. 0-9-1-2-3-4-5-6-7-8-9.');
-        }
-        break;
-
-      case 12: // Password Input
+      case 10: // Password Input
         if (text.length >= 4) {
           setState(() => _password = rawText);
           _triggerVoiceConfirmation("your password");
         }
         break;
 
-      case 13: // Permissions
+      case 11: // Permissions
         _triggerVoiceConfirmation("Permissions enabled");
         break;
 
-      case 14: // Terms Privacy
+      case 12: // Terms Privacy
         if (text.contains('agree') || text.contains('sumasang')) {
           _triggerVoiceConfirmation("Agreed to terms");
         }
         break;
 
-      case 15: // Photo Upload
+      case 13: // Photo Upload
         if (text.contains('skip') || text.contains('laktawan')) {
-          setState(() => _currentStep = 17);
+          setState(() => _currentStep = 15);
           _speakStepPromptAndListen();
         } else if (text.contains('camera')) {
           _triggerVoiceConfirmation("Camera Photo");
@@ -678,18 +546,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         break;
 
-      case 16: // Photo Confirmation
+      case 14: // Photo Confirmation
         _triggerVoiceConfirmation("Photo confirmed");
         break;
 
-      case 17: // Name Input
+      case 15: // Name Input
         if (rawText.trim().isNotEmpty) {
           setState(() => _name = rawText.trim());
           _triggerVoiceConfirmation(_name);
         }
         break;
 
-      case 18: // Birthday Input
+      case 16: // Birthday Input
         final formattedBday = formatSpokenBirthday(rawText);
         if (formattedBday.isNotEmpty) {
           setState(() => _birthday = formattedBday);
@@ -697,7 +565,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         break;
 
-      case 19: // SOS Contact
+      case 17: // SOS Contact
         if (text.contains('finish') || text.contains('tapos') || text.contains('done')) {
           _handleRegister();
         } else if (rawText.trim().isNotEmpty) {
@@ -713,8 +581,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _lastSpokenStep = null;
     _isAwaitingConfirmation = false;
     // Input validation & exception handling per step
-    if (_currentStep == 10) {
-      // Step 10: Email Step
+    if (_currentStep == 9) {
+      // Step 9: Email Step
       try {
         final emailClean = _email.trim();
         final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
@@ -781,21 +649,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       
       // Clear error message if validation succeeds
       setState(() => _errorMessage = null);
-    } else if (_currentStep == 11) {
-      // Step 11: Phone Step
-      if (_phone.trim().length != 11) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(SignupL10n.t('error_phone', _selectedLanguage)),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        return;
-      }
-    } else if (_currentStep == 12 && _authMethod != 'Google' && _authMethod != 'Apple') {
-      // Step 12: Password Step (Only for Email/Phone)
+    } else if (_currentStep == 10) {
+      // Step 10: Password Step
       if (_password.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -807,19 +662,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
         return;
       }
-      if (_password.length < 6) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(SignupL10n.t('error_password_short', _selectedLanguage)),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        return;
-      }
-    } else if (_currentStep == 17) {
-      // Step 17: Name Step
+    } else if (_currentStep == 15) {
+      // Step 15: Name Step
       if (_name.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -834,17 +678,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     setState(() {
-      if (_currentStep == 9) {
-        if (_authMethod == 'Email') {
-          _currentStep = 10;
-        } else if (_authMethod == 'Phone') {
-          _currentStep = 11;
-        } else {
-          _currentStep = 13;
-        }
-      } else if (_currentStep == 10 || _currentStep == 11) {
-        _currentStep = 12;
-      } else if (_currentStep < 19) {
+      if (_currentStep < 17) {
         _currentStep++;
       }
     });
@@ -854,6 +688,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _prevStep() {
     SoundService.playTab();
+    TtsService().stop();
+    SttService().stopListening((_) {});
+    _sttTimeoutTimer?.cancel();
     _lastSpokenStep = null;
     _isAwaitingConfirmation = false;
     _pendingVoiceSelection = '';
@@ -865,27 +702,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _isVerifyingCode = false);
     } else if (_currentStep > 1) {
       setState(() {
-        if (_currentStep == 12) {
-          if (_authMethod == 'Email') {
-            _currentStep = 10;
-          } else if (_authMethod == 'Phone') {
-            _currentStep = 11;
-          } else {
-            _currentStep = 9;
-          }
-        } else if (_currentStep == 13) {
-          if (_authMethod == 'Google' || _authMethod == 'Apple') {
-            _currentStep = 9;
-          } else {
-            _currentStep = 12;
-          }
-        } else {
-          _currentStep--;
+        _currentStep--;
+        if (_currentStep == 14 && _pickedImage == null) {
+          _currentStep = 13; // Skip photo confirmation when going back if no photo was uploaded
         }
       });
       _speakStepPromptAndListen();
     } else {
-      Navigator.of(context).pop();
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -997,49 +823,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
         _selectedLanguage.toLowerCase().contains('tagalog');
 
-    // Validate phone number when using Phone auth
-    if (_authMethod == 'Phone') {
-      if (_phone.trim().length != 11) {
-        final phoneMsg = isTagalog
-            ? 'Ang numero ng telepono ay dapat eksaktong 11 digits (hal. 09123456789). Mangyaring bumalik at itama ang numero.'
-            : 'Phone number must be exactly 11 digits (e.g. 09123456789). Please go back and fix your phone number.';
-        setState(() {
-          _isLoading = false;
-          _errorMessage = phoneMsg;
-          _currentStep = 11;
-        });
-        TtsService().speak(phoneMsg);
-        return;
-      }
+    // Validate email format and password
+    if (regEmail.isEmpty || !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(regEmail)) {
+      final invalidMsg = isTagalog
+          ? 'Maling email address format. Mangyaring ipasok ang iyong totoong email.'
+          : 'Invalid email address format. Please enter a valid email address.';
+      setState(() {
+        _isLoading = false;
+        _errorMessage = invalidMsg;
+        _currentStep = 9;
+      });
+      TtsService().speak(invalidMsg);
+      return;
     }
 
-    // Validate email format and password if using Email auth
-    if (_authMethod == 'Email') {
-      if (regEmail.isEmpty || !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(regEmail)) {
-        final invalidMsg = isTagalog
-            ? 'Maling email address format. Mangyaring ipasok ang iyong totoong email.'
-            : 'Invalid email address format. Please enter a valid email address.';
-        setState(() {
-          _isLoading = false;
-          _errorMessage = invalidMsg;
-          _currentStep = 10;
-        });
-        TtsService().speak(invalidMsg);
-        return;
-      }
-
-      if (regPassword.length < 6) {
-        final passMsg = isTagalog
-            ? 'Masyadong maikli ang password. Dapat ay may 6 o higit pang karakter.'
-            : 'Password is too short. Please use at least 6 characters.';
-        setState(() {
-          _isLoading = false;
-          _errorMessage = passMsg;
-          _currentStep = 12;
-        });
-        TtsService().speak(passMsg);
-        return;
-      }
+    if (regPassword.length < 6) {
+      final passMsg = isTagalog
+          ? 'Masyadong maikli ang password. Dapat ay may 6 o higit pang karakter.'
+          : 'Password is too short. Please use at least 6 characters.';
+      setState(() {
+        _isLoading = false;
+        _errorMessage = passMsg;
+        _currentStep = 10;
+      });
+      TtsService().speak(passMsg);
+      return;
     }
 
     // Final safety-net: re-validate SOS contact phone before account creation
@@ -1050,7 +858,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() {
         _isLoading = false;
         _errorMessage = sosPhoneMsg;
-        _currentStep = 19;
+        _currentStep = 17;
       });
       TtsService().speak(sosPhoneMsg);
       return;
@@ -1182,9 +990,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _isLoading = false;
           _errorMessage = friendlyMsg;
           if (errStr.contains('email-already-in-use')) {
-            _currentStep = 10; // Jump back to Email input step so user can change email
+            _currentStep = 9; // Jump back to Email input step so user can change email
           } else if (errStr.contains('weak-password')) {
-            _currentStep = 12; // Jump back to Password step
+            _currentStep = 10; // Jump back to Password step
           }
         });
 
@@ -1205,13 +1013,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return false;
     }
     final stepsWithCustomActions = [
-      9,  // Create Account (inline list buttons)
-      10, // Email input (inline buttons)
-      11, // Phone input (inline buttons)
-      14, // Terms & Privacy (inline buttons)
-      15, // Upload Photo (inline buttons)
-      16, // Photo Confirmation (inline buttons)
-      19, // SOS Contact (inline Finish setup button)
+      9,  // Email input (inline buttons)
+      12, // Terms & Privacy (inline buttons)
+      13, // Upload Photo (inline buttons)
+      14, // Photo Confirmation (inline buttons)
+      17, // SOS Contact (inline Finish setup button)
     ];
     return !stepsWithCustomActions.contains(_currentStep);
   }
@@ -1346,102 +1152,96 @@ class _SignUpScreenState extends State<SignUpScreen> {
           },
         );
       case 9:
-        return StepCreateAccount(
-          language: _selectedLanguage,
-          onSelectedMethod: (method) async {
-            setState(() {
-              _authMethod = 'Email';
-              _currentStep = 10;
-            });
-            _speakStepPromptAndListen();
-          },
-        );
-      case 10:
         return StepEmailInput(
           email: _email,
           language: _selectedLanguage,
           onEmailChanged: (val) => setState(() => _email = val),
           onContinue: _nextStep,
-          onChangeMethod: () {
-            setState(() => _currentStep = 9);
-            _speakStepPromptAndListen();
-          },
+          onChangeMethod: () {},
         );
-      case 11:
-        return StepPhoneInput(
-          phone: _phone,
-          language: _selectedLanguage,
-          onPhoneChanged: (val) => setState(() => _phone = val),
-          onSendCode: _sendVerificationSmsPhone,
-          onChangeMethod: () {
-            setState(() => _currentStep = 9);
-            _speakStepPromptAndListen();
-          },
-        );
-      case 12:
+      case 10:
         return StepCreatePassword(
           password: _password,
           language: _selectedLanguage,
           onPasswordChanged: (val) => setState(() => _password = val),
         );
-      case 13:
+      case 11:
         return StepPermissions(
           language: _selectedLanguage,
           onContinue: () {
-            setState(() => _currentStep = 14);
+            setState(() => _currentStep = 12);
             _speakStepPromptAndListen();
           },
         );
-      case 14:
+      case 12:
         return StepTermsPrivacy(
           language: _selectedLanguage,
           onAgree: () {
-            setState(() => _currentStep = 15);
+            setState(() => _currentStep = 13);
             _speakStepPromptAndListen();
           },
           onReadDocument: () => setState(() => _showTermsDocument = true),
         );
-      case 15:
+      case 13:
         return StepUploadPhoto(
           language: _selectedLanguage,
           onPhotoPicked: (file) {
             setState(() {
               _pickedImage = file;
-              _currentStep = 16;
+              _currentStep = 14;
             });
             _speakStepPromptAndListen();
           },
           onCancel: () {
-            setState(() => _currentStep = 17);
+            setState(() => _currentStep = 15);
             _speakStepPromptAndListen();
           },
         );
-      case 16:
+      case 14:
+        if (_pickedImage == null) {
+          return StepUploadPhoto(
+            language: _selectedLanguage,
+            onPhotoPicked: (file) {
+              setState(() {
+                _pickedImage = file;
+                _currentStep = 14;
+              });
+              _speakStepPromptAndListen();
+            },
+            onCancel: () {
+              setState(() => _currentStep = 15);
+              _speakStepPromptAndListen();
+            },
+          );
+        }
         return StepPhotoConfirmation(
           pickedImage: _pickedImage!,
           language: _selectedLanguage,
           onReupload: () {
-            setState(() => _currentStep = 15);
+            setState(() {
+              _pickedImage = null;
+              _currentStep = 13;
+            });
             _speakStepPromptAndListen();
           },
           onContinue: () {
-            setState(() => _currentStep = 17);
+            setState(() => _currentStep = 15);
             _speakStepPromptAndListen();
           },
         );
-      case 17:
+      case 15:
         return StepNameInput(
           name: _name,
           language: _selectedLanguage,
           onNameChanged: (val) => setState(() => _name = val),
         );
-      case 18:
+      case 16:
         return StepBirthdayInput(
           birthday: _birthday,
           language: _selectedLanguage,
           onBirthdayChanged: (val) => setState(() => _birthday = val),
         );
-      case 19:
+      case 17:
         return StepSosContact(
           name: _sosName,
           phone: _sosPhone,
@@ -1462,69 +1262,75 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final isTagalog = _selectedLanguage.toLowerCase().contains('filipino') ||
         _selectedLanguage.toLowerCase().contains('tagalog');
 
-    return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: _isLoading
-              ? Center(child: CircularProgressIndicator(color: AppColors.primaryButton))
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _prevStep();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.primaryBackground,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: AppColors.primaryButton))
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
 
-                    // Top Appbar Header Row (Back Pill + Step Count)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Pill-shaped back button
-                        GestureDetector(
-                          onTap: _prevStep,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.lightBackground,
-                              borderRadius: BorderRadius.circular(25),
-                              border: Border.all(color: AppColors.cardBorder.withOpacity(0.3)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.arrow_back_ios_new, size: 14, color: AppColors.primaryText),
-                                const SizedBox(width: 6),
-                                Text(
-                                  SignupL10n.t('back', _selectedLanguage),
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primaryText,
+                      // Top Appbar Header Row (Back Pill + Step Count)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Pill-shaped back button
+                          GestureDetector(
+                            onTap: _prevStep,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: AppColors.lightBackground,
+                                borderRadius: BorderRadius.circular(25),
+                                border: Border.all(color: AppColors.cardBorder.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.arrow_back_ios_new, size: 14, color: AppColors.primaryText),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    SignupL10n.t('back', _selectedLanguage),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primaryText,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // Step Indicator Pill (e.g. 1 of 19)
-                        if (_shouldShowStepIndicator())
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppColors.lightBackground,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '$_currentStep of 19',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryText,
+                                ],
                               ),
                             ),
                           ),
-                      ],
-                    ),
+
+                          // Step Indicator Pill (e.g. 1 of 17)
+                          if (_shouldShowStepIndicator())
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.lightBackground,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '$_currentStep of 17',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryText,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
 
                     const SizedBox(height: 14),
 
@@ -1690,6 +1496,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ],
                   ],
                 ),
+          ),
         ),
       ),
     );

@@ -568,7 +568,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSectionTitle(String title) {
     final settings = SettingsService();
-    final isDefault = settings.selectedContrastTheme == 'Default';
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
     return Padding(
       padding: const EdgeInsets.only(left: 4.0, bottom: 8.0, top: 24.0),
       child: Text(
@@ -576,7 +577,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: GoogleFonts.inter(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: isDefault ? const Color(0xFF64748B) : AppColors.primaryText,
+          color: isDark ? AppColors.primaryText : (isDefault ? const Color(0xFF64748B) : AppColors.primaryText),
           letterSpacing: 0.5,
         ),
       ),
@@ -585,13 +586,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildCardContainer({required List<Widget> children}) {
     final settings = SettingsService();
-    final isDefault = settings.selectedContrastTheme == 'Default';
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.primaryBackground,
+        color: isDark ? const Color(0xFF141414) : AppColors.primaryBackground,
         borderRadius: BorderRadius.circular(20.0),
-        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+        border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
         boxShadow: isDefault ? [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),
@@ -614,10 +616,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, _) {
         final settings = SettingsService();
         final lang = settings.selectedLanguage;
-        final isDefault = settings.selectedContrastTheme == 'Default';
-        final headerTextColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
-        final iconColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
-        final tileTextColor = isDefault ? Colors.black : AppColors.primaryText;
+        final isDark = settings.isDarkMode;
+        final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+        final headerTextColor = AppColors.primaryText;
+        final iconColor = isDark ? AppColors.primaryText : (isDefault ? const Color(0xFF002663) : AppColors.primaryText);
+        final tileTextColor = isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText);
 
         final currentUnitText = settings.selectedUnit == 'Metric'
             ? TranslationService.translate('metric', lang)
@@ -639,9 +642,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: isDefault ? Colors.white : AppColors.primaryBackground,
+                        color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
                         borderRadius: BorderRadius.circular(22),
-                        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                        border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
                         boxShadow: isDefault ? [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.06),
@@ -865,57 +868,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
 
-              // 7. SECURITY Section
-              _buildSectionTitle(TranslationService.translate('security', lang)),
-              _buildCardContainer(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                TranslationService.translate('face_id', lang),
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: tileTextColor,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                TranslationService.translate('face_id_subtitle', lang),
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: const Color(0xFF64748B),
-                                  height: 1.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Switch(
-                          value: _faceIdUnlock,
-                          onChanged: (val) {
-                            setState(() => _faceIdUnlock = val);
-                            _saveSettings();
-                          },
-                          activeColor: Colors.white,
-                          activeTrackColor: const Color(0xFF48BB78),
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFCBD5E1),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
               // 8. APPEARANCE Section
               _buildSectionTitle(TranslationService.translate('appearance', lang)),
               _buildCardContainer(
@@ -1065,7 +1017,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: isDark ? Colors.white : tileTextColor,
                         ),
                       ),
                     ),
@@ -1399,14 +1351,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     style: GoogleFonts.inter(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black,
+                                      color: tileTextColor,
                                     ),
                                   ),
                                   Text(
                                     TranslationService.translate('how_to_use_subtitle', lang),
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
-                                      color: const Color(0xFF64748B),
+                                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
                                     ),
                                   ),
                                 ],
@@ -1419,7 +1371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           height: 38,
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFFE2E8F0)),
+                              side: BorderSide(color: isDark ? const Color(0xFF333333) : const Color(0xFFE2E8F0)),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(19),
                               ),
@@ -1433,14 +1385,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             icon: Text(
                               TranslationService.translate('open_help', lang),
                               style: GoogleFonts.inter(
-                                color: const Color(0xFF3B82F6),
+                                color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
                             ),
-                            label: const Icon(
+                            label: Icon(
                               Icons.arrow_forward,
-                              color: Color(0xFF3B82F6),
+                              color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                               size: 16,
                             ),
                           ),
@@ -1482,20 +1434,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         style: GoogleFonts.inter(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 24,
-                                          color: Colors.black,
+                                          color: tileTextColor,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
+                                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Text(
                                           'v.1.0.0',
                                           style: GoogleFonts.inter(
-                                            color: const Color(0xFF64748B),
+                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -1508,7 +1460,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     TranslationService.translate('about_desc', lang),
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
-                                      color: const Color(0xFF64748B),
+                                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
                                       height: 1.3,
                                     ),
                                   ),
@@ -1523,18 +1475,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.language_outlined, color: Color(0xFF2563EB), size: 16),
+                                            Icon(Icons.language_outlined, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 16),
                                             const SizedBox(width: 4),
                                             Text(
                                               'buddy.cloud',
                                               style: GoogleFonts.inter(
-                                                color: const Color(0xFF2563EB),
+                                                color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                             const SizedBox(width: 4),
-                                            const Icon(Icons.open_in_new_rounded, color: Color(0xFF2563EB), size: 12),
+                                            Icon(Icons.open_in_new_rounded, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 12),
                                           ],
                                         ),
                                       ),
@@ -1543,18 +1495,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFEFF6FF),
+                                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              const Icon(Icons.people_outline, color: Color(0xFF2563EB), size: 14),
+                                              Icon(Icons.people_outline, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 14),
                                               const SizedBox(width: 4),
                                               Text(
                                                 'Contributors',
                                                 style: GoogleFonts.inter(
-                                                  color: const Color(0xFF2563EB),
+                                                  color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -1577,34 +1529,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           margin: const EdgeInsets.only(bottom: 12.0),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.4 : 0.2), width: 1.5),
                           ),
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                             leading: Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Color(0xFFEFF6FF),
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
                               ),
-                              child: const Icon(Icons.cloud_download_outlined, color: Color(0xFF2563EB), size: 24),
+                              child: Icon(Icons.cloud_download_outlined, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 24),
                             ),
                             title: Text(
                               TranslationService.translate('check_updates', lang),
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 15),
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor, fontSize: 15),
                             ),
                             subtitle: Text(
                               TranslationService.translate('updates_subtitle', lang),
-                              style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.inter(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
                             ),
                             trailing: _isCheckingUpdates 
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 20, 
                                     height: 20, 
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B82F6)),
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6)),
                                   )
-                                : const Icon(Icons.refresh, color: Color(0xFF94A3B8)),
+                                : Icon(Icons.refresh, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
                             onTap: _checkForUpdates,
                           ),
                         ),
@@ -1613,28 +1566,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           margin: const EdgeInsets.only(bottom: 12.0),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.4 : 0.2), width: 1.5),
                           ),
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                             leading: Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Color(0xFFEFF6FF),
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
                               ),
-                              child: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 24),
+                              child: Icon(Icons.facebook, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1877F2), size: 24),
                             ),
                             title: Text(
                               TranslationService.translate('community', lang),
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 15),
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor, fontSize: 15),
                             ),
                             subtitle: Text(
                               TranslationService.translate('community_subtitle', lang),
-                              style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.inter(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
                             ),
-                            trailing: const Icon(Icons.open_in_new, color: Color(0xFF94A3B8), size: 18),
+                            trailing: Icon(Icons.open_in_new, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8), size: 18),
                             onTap: () => _openURL('https://www.facebook.com/profile.php?id=61566090583740'),
                           ),
                         ),
@@ -1643,28 +1597,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           margin: const EdgeInsets.only(bottom: 16.0),
                           decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                            border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.4 : 0.3), width: 1.5),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                             leading: Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Color(0xFFEFF6FF),
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
                               ),
-                              child: const Icon(Icons.edit_outlined, color: Color(0xFF2563EB), size: 24),
+                              child: Icon(Icons.edit_outlined, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 24),
                             ),
                             title: Text(
                               TranslationService.translate('send_feedback', lang),
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 15),
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor, fontSize: 15),
                             ),
                             subtitle: Text(
                               TranslationService.translate('feedback_subtitle', lang),
-                              style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                              style: GoogleFonts.inter(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
                             ),
-                            trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8), size: 20),
+                            trailing: Icon(Icons.chevron_right, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8), size: 20),
                             onTap: () {
                               Navigator.of(context).push(
                                 AppRoute.to(SurveyScreen()),
@@ -1677,8 +1632,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           padding: const EdgeInsets.all(16.0),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.4 : 0.2), width: 1.5),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1686,18 +1642,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
+                                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.shield_outlined, color: Color(0xFF2563EB), size: 14),
+                                    Icon(Icons.shield_outlined, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 14),
                                     const SizedBox(width: 6),
                                     Text(
                                       TranslationService.translate('privacy_notice', lang),
                                       style: GoogleFonts.inter(
-                                        color: const Color(0xFF2563EB),
+                                        color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -1710,7 +1666,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 TranslationService.translate('privacy_desc', lang),
                                 style: GoogleFonts.inter(
                                   fontSize: 11,
-                                  color: const Color(0xFF64748B),
+                                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
                                   height: 1.4,
                                 ),
                               ),

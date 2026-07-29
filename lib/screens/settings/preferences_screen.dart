@@ -67,8 +67,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     required ValueChanged<bool> onChanged,
     Color? titleColor,
   }) {
-    final isDefault = SettingsService().selectedContrastTheme == 'Default';
-    final resolvedColor = titleColor ?? (isDefault ? Colors.black : AppColors.primaryText);
+    final settings = SettingsService();
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+    final resolvedColor = titleColor ?? (isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText));
+    final secondaryTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       child: Row(
@@ -92,7 +96,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                     subtitle,
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: const Color(0xFF64748B),
+                      color: secondaryTextColor,
                       height: 1.3,
                     ),
                   ),
@@ -104,10 +108,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.white,
-            activeTrackColor: const Color(0xFF48BB78),
+            activeColor: isDark ? AppColors.primaryButtonText : Colors.white,
+            activeTrackColor: AppColors.primaryButton,
             inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFFCBD5E1),
+            inactiveTrackColor: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
           ),
         ],
       ),
@@ -120,8 +124,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     required ValueChanged<double> onChanged,
     Color? titleColor,
   }) {
-    final isDefault = SettingsService().selectedContrastTheme == 'Default';
-    final resolvedColor = titleColor ?? (isDefault ? Colors.black : AppColors.primaryText);
+    final settings = SettingsService();
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+    final resolvedColor = titleColor ?? (isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText));
+    final trackColor = AppColors.primaryButton;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       child: Column(
@@ -138,10 +146,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           const SizedBox(height: 8),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: const Color(0xFF3B82F6),
-              inactiveTrackColor: const Color(0xFFE2E8F0),
-              thumbColor: const Color(0xFF3B82F6),
-              overlayColor: const Color(0xFF3B82F6).withOpacity(0.1),
+              activeTrackColor: trackColor,
+              inactiveTrackColor: isDark ? const Color(0xFF333333) : const Color(0xFFE2E8F0),
+              thumbColor: trackColor,
+              overlayColor: trackColor.withOpacity(0.15),
               trackHeight: 4,
             ),
             child: Slider(
@@ -159,10 +167,13 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     return ListenableBuilder(
       listenable: SettingsService(),
       builder: (context, _) {
-        final isDefault = SettingsService().selectedContrastTheme == 'Default';
-        final headerColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
-        final tileTextColor = isDefault ? Colors.black : AppColors.primaryText;
-        final cardColor = AppColors.primaryBackground;
+        final settings = SettingsService();
+        final isDark = settings.isDarkMode;
+        final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+        final headerColor = AppColors.primaryText;
+        final tileTextColor = isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText);
+        final secondaryTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+        final cardColor = isDark ? const Color(0xFF141414) : AppColors.primaryBackground;
         final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
             SettingsService().selectedLanguage.toLowerCase().contains('filipino');
 
@@ -182,9 +193,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                       height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: isDefault ? Colors.white : AppColors.primaryBackground,
+                        color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
                         borderRadius: BorderRadius.circular(22),
-                        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                        border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
                         boxShadow: isDefault ? [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.06),
@@ -232,7 +243,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: BorderRadius.circular(24.0),
-                      border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                      border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
                       boxShadow: isDefault ? [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.03),
@@ -253,7 +264,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           },
                           titleColor: tileTextColor,
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
                         _buildSwitchRow(
                           title: 'Navigation Voice Assistant',
                           subtitle: 'Keep speech enabled specifically for route navigation instructions.',
@@ -261,7 +272,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           onChanged: (val) => setState(() => _navigationAssistant = val),
                           titleColor: tileTextColor,
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
                         _buildSwitchRow(
                           title: 'Haptic Feedback',
                           subtitle: isFilipino
@@ -274,7 +285,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           },
                           titleColor: tileTextColor,
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
                         _buildSliderRow(
                           title: 'Speech Rate',
                           value: _speechRate,
@@ -284,7 +295,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           },
                           titleColor: tileTextColor,
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
                         _buildSliderRow(
                           title: 'Pitch',
                           value: _pitch,
@@ -294,7 +305,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           },
                           titleColor: tileTextColor,
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
                         ListTile(
                           shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.only(
@@ -308,9 +319,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           ),
                           subtitle: Text(
                             _selectedVoicePersona,
-                            style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                            style: GoogleFonts.inter(fontSize: 12, color: secondaryTextColor),
                           ),
-                          trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                          trailing: Icon(Icons.chevron_right, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
                           onTap: () async {
                             await Navigator.of(context).push(
                               AppRoute.to(const VoiceFeedbackScreen()),

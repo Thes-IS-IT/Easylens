@@ -322,7 +322,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               _navigateTo(const FaceRegistrationScreen(), "Face Registration");
             },
           ),
-          const NavigationScreen(),
+          NavigationScreen(isActive: _currentIndex == 1),
           HardwareScreen(isActive: _currentIndex == 2),
         ];
 

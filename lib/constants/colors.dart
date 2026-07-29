@@ -4,6 +4,7 @@ import '../services/settings_service.dart';
 class AppColors {
   // Get active contrast theme
   static String get _theme => SettingsService().selectedContrastTheme;
+  static bool get _isDark => SettingsService().isDarkMode;
 
   // Primary Theme Colors
   static Color get primaryText {
@@ -20,7 +21,7 @@ class AppColors {
         return const Color(0xFF00D2C4); // Cyan
       case 'Default':
       default:
-        return const Color(0xFF002663); // Deep Blue text
+        return _isDark ? Colors.white : const Color(0xFF002663); // White in Dark mode, Deep Blue in Light mode
     }
   }
 
@@ -38,7 +39,7 @@ class AppColors {
         return const Color(0xFF00D2C4);
       case 'Default':
       default:
-        return const Color(0xFF002663); // Deep Blue buttons
+        return _isDark ? Colors.white : const Color(0xFF002663);
     }
   }
 
@@ -50,9 +51,10 @@ class AppColors {
       case 'Cyan on Black':
         return Colors.black;
       case 'Black on White':
+        return Colors.white;
       case 'Default':
       default:
-        return Colors.white;
+        return _isDark ? Colors.black : Colors.white;
     }
   }
 
@@ -67,7 +69,7 @@ class AppColors {
         return Colors.black;
       case 'Default':
       default:
-        return const Color(0xFFFFFFFF); // Pure White
+        return _isDark ? const Color(0xFF121212) : const Color(0xFFFFFFFF);
     }
   }
   
@@ -83,7 +85,7 @@ class AppColors {
         return Colors.black;
       case 'Default':
       default:
-        return const Color(0xFF00205B); // Deep navy splash
+        return _isDark ? const Color(0xFF121212) : const Color(0xFF00205B);
     }
   }
 
@@ -101,7 +103,7 @@ class AppColors {
         return const Color(0xFF00D2C4);
       case 'Default':
       default:
-        return const Color(0xFFE5A63C); // Golden mascot letters
+        return const Color(0xFFE5A63C);
     }
   }
 
@@ -120,7 +122,7 @@ class AppColors {
         return const Color(0xFF00D2C4);
       case 'Default':
       default:
-        return const Color(0xFF002663);
+        return _isDark ? const Color(0xFF333333) : const Color(0xFF002663);
     }
   }
 
@@ -135,7 +137,7 @@ class AppColors {
         return const Color(0xFF333333);
       case 'Default':
       default:
-        return const Color(0xFFCCCCCC);
+        return _isDark ? const Color(0xFF333333) : const Color(0xFFCCCCCC);
     }
   }
 
@@ -150,7 +152,7 @@ class AppColors {
         return const Color(0xFF121212);
       case 'Default':
       default:
-        return const Color(0xFFF8F9FA); // Off-white
+        return _isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA);
     }
   }
 
@@ -165,7 +167,7 @@ class AppColors {
         return const Color(0xFF999999);
       case 'Default':
       default:
-        return const Color(0xFF666666);
+        return _isDark ? const Color(0xFFA0AEC0) : const Color(0xFF666666);
     }
   }
 

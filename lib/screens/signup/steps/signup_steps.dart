@@ -8,7 +8,6 @@ export 'step_accessibility.dart';
 export 'step_language.dart';
 export 'step_voice_persona.dart';
 export 'step_mobility_aids.dart';
-export 'step_create_account.dart';
 export 'step_email_input.dart';
 export 'step_phone_input.dart';
 export 'step_verification_code.dart';

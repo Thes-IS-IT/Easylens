@@ -35,11 +35,23 @@ class _UnitsScreenState extends State<UnitsScreen> {
     required String title,
     required String subtitle,
   }) {
+    final settings = SettingsService();
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
     final isSelected = _selectedUnit == title;
-    final cardColor = isSelected ? const Color(0xFF002663) : Colors.white;
-    final titleColor = isSelected ? Colors.white : Colors.black;
-    final subtitleColor = isSelected ? const Color(0xFFE2E8F0) : const Color(0xFF64748B);
-    final borderColor = isSelected ? Colors.transparent : const Color(0xFF002663);
+
+    final cardColor = isSelected
+        ? AppColors.primaryButton
+        : (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final titleColor = isSelected
+        ? AppColors.primaryButtonText
+        : (isDark ? AppColors.primaryText : (isDefault ? Colors.black : AppColors.primaryText));
+    final subtitleColor = isSelected
+        ? AppColors.primaryButtonText.withOpacity(0.85)
+        : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B));
+    final borderColor = isSelected
+        ? AppColors.primaryButton
+        : AppColors.cardBorder.withOpacity(isDark ? 0.6 : 0.3);
 
     return GestureDetector(
       onTap: () {
@@ -52,14 +64,14 @@ class _UnitsScreenState extends State<UnitsScreen> {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(20.0),
-          border: isSelected ? null : Border.all(color: borderColor, width: 1.5),
-          boxShadow: [
+          border: Border.all(color: borderColor, width: 1.5),
+          boxShadow: isDefault ? [
             BoxShadow(
               color: Colors.black.withOpacity(0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
-          ],
+          ] : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -87,7 +99,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
             ),
             Icon(
               isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: isSelected ? Colors.white : const Color(0xFF002663),
+              color: isSelected ? AppColors.primaryButtonText : AppColors.primaryText,
               size: 26,
             ),
           ],
@@ -98,6 +110,12 @@ class _UnitsScreenState extends State<UnitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = SettingsService();
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+    final headerTextColor = AppColors.primaryText;
+    final secondaryTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
@@ -113,25 +131,26 @@ class _UnitsScreenState extends State<UnitsScreen> {
                   width: 95,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
+                    border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : 0.3), width: 1.5),
+                    boxShadow: isDefault ? [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.06),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       )
-                    ],
+                    ] : null,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.chevron_left, color: Color(0xFF002663), size: 24),
+                      Icon(Icons.chevron_left, color: headerTextColor, size: 24),
                       const SizedBox(width: 4),
                       Text(
                         'Back',
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF002663),
+                          color: headerTextColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -149,7 +168,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF002663),
+                  color: headerTextColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -158,9 +177,9 @@ class _UnitsScreenState extends State<UnitsScreen> {
               Text(
                 'Select measurement unit preference for distance announcements.',
                 style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: const Color(0xFF64748B),
-                  height: 1.4,
+                  fontSize: 13,
+                  color: secondaryTextColor,
+                  height: 1.45,
                 ),
               ),
               

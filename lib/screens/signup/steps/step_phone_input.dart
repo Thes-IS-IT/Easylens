@@ -120,16 +120,24 @@ class _StepPhoneInputState extends State<StepPhoneInput> {
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.unselectedBorder),
-                borderRadius: BorderRadius.circular(12.0),
+                color: AppColors.lightBackground,
+                border: Border.all(color: AppColors.cardBorder.withOpacity(0.4)),
+                borderRadius: BorderRadius.circular(16.0),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.flag, size: 20),
+                  const Text('🇵🇭', style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 8),
-                  Text('+63', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                  Text(
+                    '+63',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.primaryText,
+                    ),
+                  ),
                 ],
               ),
             ),

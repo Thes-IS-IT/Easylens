@@ -29,6 +29,7 @@ class SettingsService extends ChangeNotifier {
   bool shakeToUndo = true;
   bool speechNavigation = false;
   bool get voiceNavigationEnabled => speechNavigation;
+  bool get isDarkMode => appearanceTheme == 'Black' || (selectedContrastTheme != 'Default' && selectedContrastTheme != 'Black on White');
   double speechRate = 0.5;
   double speechPitch = 0.5;
   List<String> homeScreenCards = ['buddy', 'easylens', 'faces', 'text', 'navigation', 'sos'];

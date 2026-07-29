@@ -23,13 +23,13 @@ import '../../widgets/screen_tutorial_card.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:camera/camera.dart';
 import '../../services/danger_warning_service.dart';
 import '../../widgets/critical_danger_overlay.dart';
 import '../../services/navigation_voice_assistant.dart';
 
 class NavigationScreen extends StatefulWidget {
-  const NavigationScreen({super.key});
+  final bool isActive;
+  const NavigationScreen({super.key, this.isActive = true});
 
   @override
   State<NavigationScreen> createState() => _NavigationScreenState();
@@ -221,10 +221,48 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
+  Map<String, String> _calculateDistanceAndTime(LatLng destination) {
+    final distMeters = Geolocator.distanceBetween(
+      _currentLocation.latitude,
+      _currentLocation.longitude,
+      destination.latitude,
+      destination.longitude,
+    );
+    final double kmVal = distMeters / 1000.0;
+    
+    int estMinutes = (kmVal * 12.0).round();
+    if (estMinutes < 1) estMinutes = 1;
+
+    String distStr;
+    if (kmVal < 0.1) {
+      distStr = "${distMeters.round()} m";
+    } else {
+      distStr = "${kmVal.toStringAsFixed(1)} km";
+    }
+
+    String timeStr = "$estMinutes min";
+    if (estMinutes >= 60) {
+      final hours = estMinutes ~/ 60;
+      final mins = estMinutes % 60;
+      timeStr = mins > 0 ? "$hours hr $mins min" : "$hours hr";
+    }
+
+    return {
+      'dist': distStr,
+      'time': timeStr,
+    };
+  }
+
   void _requestNavigationConfirmation(Map<String, dynamic> place) {
     final lang = SettingsService().selectedLanguage;
     final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     
+    if (place['latLng'] is LatLng) {
+      final calc = _calculateDistanceAndTime(place['latLng'] as LatLng);
+      place['dist'] = calc['dist']!;
+      place['time'] = calc['time']!;
+    }
+
     setState(() {
       _pendingPlaceToConfirm = place;
     });
@@ -261,73 +299,56 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
 
-  // Camera Covered Detection variables for Audio Navigation
-  CameraController? _navCameraController;
-  bool _isNavCameraCovered = false;
-  DateTime _lastNavCameraVibrateTime = DateTime.now();
+  final _firebaseService = FirebaseService();
 
-  Future<void> _initializeNavCamera() async {
+  Future<void> _loadRecentNavigations() async {
     try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty && mounted) {
-        final controller = CameraController(
-          cameras[0],
-          ResolutionPreset.low,
-          enableAudio: false,
-          imageFormatGroup: Platform.isAndroid
-              ? ImageFormatGroup.yuv420
-              : ImageFormatGroup.bgra8888,
-        );
-        await controller.initialize();
-        if (!mounted) {
-          controller.dispose();
-          return;
+      final user = _firebaseService.currentUser;
+      final rawRecents = await _firebaseService.getRecentNavigations(user?.uid);
+      if (rawRecents.isNotEmpty && mounted) {
+        final List<Map<String, dynamic>> parsed = [];
+        for (final item in rawRecents) {
+          double lat = 0.0;
+          double lng = 0.0;
+          if (item['latLng'] is LatLng) {
+            final l = item['latLng'] as LatLng;
+            lat = l.latitude;
+            lng = l.longitude;
+          } else if (item['latitude'] != null && item['longitude'] != null) {
+            lat = (item['latitude'] as num).toDouble();
+            lng = (item['longitude'] as num).toDouble();
+          }
+
+          if (lat != 0.0 && lng != 0.0) {
+            final calc = _calculateDistanceAndTime(LatLng(lat, lng));
+            parsed.add({
+              'name': item['name'] ?? 'Recent Location',
+              'address': item['address'] ?? '',
+              'dist': calc['dist']!,
+              'time': calc['time']!,
+              'latLng': LatLng(lat, lng),
+              'steps': item['steps'] ?? [
+                'Head toward ${item['name']}',
+                'Turn right onto closest main road',
+                'Follow directional signs',
+                'Arrive at ${item['name']}'
+              ],
+            });
+          }
         }
-        controller.startImageStream(_onNavCameraFrameReceived);
-        _navCameraController = controller;
+
+        if (parsed.isNotEmpty) {
+          setState(() {
+            final Set<String> recentNames = parsed.map((e) => e['name'].toString().toLowerCase()).toSet();
+            final remainingDefaults = _allPlaces.where((p) => !recentNames.contains(p['name'].toString().toLowerCase())).toList();
+            _searchResults = [...parsed, ...remainingDefaults];
+            SpeechNavigationNotifier.activeSearchResults = _searchResults;
+          });
+        }
       }
     } catch (e) {
-      debugPrint('[NavCamera] Camera init error: $e');
+      debugPrint("Error loading recent navigations: $e");
     }
-  }
-
-  void _onNavCameraFrameReceived(CameraImage image) {
-    if (!mounted) return;
-    try {
-      final yBytes = image.planes[0].bytes;
-      int sampleCount = 300;
-      int step = yBytes.length ~/ sampleCount;
-      if (step < 1) step = 1;
-      int sum = 0;
-      int count = 0;
-      for (int i = 0; i < yBytes.length; i += step) {
-        sum += yBytes[i];
-        count++;
-      }
-      final avgLuminance = count > 0 ? sum / count : 128.0;
-      final isCovered = avgLuminance < 15.0;
-
-      if (isCovered) {
-        final now = DateTime.now();
-        if (!_isNavCameraCovered || now.difference(_lastNavCameraVibrateTime).inMilliseconds > 2000) {
-          _lastNavCameraVibrateTime = now;
-          _isNavCameraCovered = true;
-
-          // Trigger physical hardware vibration on phone when camera is covered
-          DangerWarningService().triggerStrongHazardVibration(isCritical: true);
-
-          // Audio prompt announcement
-          final lang = SettingsService().selectedLanguage;
-          final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-          final warningMsg = isTagalog
-              ? "Nakatakip ang camera! Pakiusap alisin ang takip sa camera para sa audio navigation."
-              : "Camera is covered! Please uncover the camera to assist your visual navigation.";
-          TtsService().speak(warningMsg);
-        }
-      } else {
-        _isNavCameraCovered = false;
-      }
-    } catch (_) {}
   }
 
   @override
@@ -336,7 +357,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _searchResults = List.from(_allPlaces);
     SpeechNavigationNotifier.activeSearchResults = _searchResults;
     _initializeLocationTracking();
-    _initializeNavCamera();
+    _loadRecentNavigations();
     SpeechNavigationNotifier.searchPlaceNotifier.addListener(_onVoiceSearchRequested);
     SpeechNavigationNotifier.selectResultNotifier.addListener(_onVoiceSelectRequested);
     SpeechNavigationNotifier.confirmPlaceNotifier.addListener(_onVoiceConfirmRequested);
@@ -379,10 +400,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _searchController.dispose();
     _mapController?.dispose();
     _positionStreamSubscription?.cancel();
-    if (_navCameraController != null && _navCameraController!.value.isStreamingImages) {
-      _navCameraController!.stopImageStream();
-    }
-    _navCameraController?.dispose();
     super.dispose();
   }
 
@@ -806,6 +823,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     mappedPlaces.addAll(localResults);
 
     final apiKey = dotenv.env['GOOGLE_MAPS_KEY'] ?? '';
+
     if (apiKey.isNotEmpty) {
       try {
         // 2. Fetch from Google Places Text Search API
@@ -813,7 +831,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           'https://maps.googleapis.com/maps/api/place/textsearch/json'
           '?query=${Uri.encodeComponent(query)}'
           '&location=${_currentLocation.latitude},${_currentLocation.longitude}'
-          '&radius=50000'
+          '&radius=100000'
           '&key=$apiKey'
         );
         final response = await http.get(requestUrl);
@@ -822,8 +840,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
           if (data['status'] == 'OK' && data['results'] != null) {
             final List<dynamic> results = data['results'];
             for (final res in results) {
-              final lat = res['geometry']['location']['lat'] as double;
-              final lng = res['geometry']['location']['lng'] as double;
+              final lat = (res['geometry']['location']['lat'] as num).toDouble();
+              final lng = (res['geometry']['location']['lng'] as num).toDouble();
               final name = res['name'] as String;
               final formattedAddress = res['formatted_address'] ?? res['vicinity'] ?? '';
               
@@ -832,28 +850,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 continue;
               }
 
-              // Calculate distance dynamically from user's current GPS location
-              final distMeters = Geolocator.distanceBetween(
-                _currentLocation.latitude,
-                _currentLocation.longitude,
-                lat,
-                lng,
-              );
-              final double kmVal = distMeters / 1000.0;
-              final String distStr = "${kmVal.toStringAsFixed(1)} km";
-              // Estimate walk time at 5 km/h
-              final int estMinutes = (kmVal * 12.0).round().clamp(1, 120);
+              final calc = _calculateDistanceAndTime(LatLng(lat, lng));
 
               mappedPlaces.add({
                 'name': name,
                 'address': formattedAddress,
-                'dist': distStr,
-                'time': '$estMinutes min',
+                'dist': calc['dist']!,
+                'time': calc['time']!,
                 'latLng': LatLng(lat, lng),
                 'steps': [
                   'Head toward $name',
                   'Turn right onto closest main road',
-                  'Follow directional signs S01',
+                  'Follow directional signs',
                   'Arrive at $name'
                 ]
               });
@@ -861,70 +869,58 @@ class _NavigationScreenState extends State<NavigationScreen> {
           }
         }
       } catch (e) {
-        print("Google Places API search error: $e");
+        debugPrint("Google Places API search error: $e");
       }
     }
 
-    // 3. Guarantee at least 6 results for every keyword (pad with dynamic mock locations based on query if needed)
-    if (mappedPlaces.length < 6) {
-      final List<String> mockNames = [
-        "Nepo Center",
-        "Angeles Heritage Park",
-        "HAU Main Gate Cafeteria",
-        "Angeles Medical Plaza",
-        "Pampanga Trade Center",
-        "Villa Gloria Lounge",
-        "Clark Air Base Memorial",
-        "Nepo Quad Plaza",
-      ];
-
-      final rand = Random();
-      for (final mockName in mockNames) {
-        if (mappedPlaces.length >= 6) break;
-        // Skip duplicate names
-        if (mappedPlaces.any((p) => p['name'].toString().toLowerCase().contains(mockName.toLowerCase()))) {
-          continue;
-        }
-
-        // Generate coordinates close to the user's current location (within 1-3km)
-        final double offsetLat = (rand.nextDouble() - 0.5) * 0.03;
-        final double offsetLng = (rand.nextDouble() - 0.5) * 0.03;
-        final double lat = _currentLocation.latitude + offsetLat;
-        final double lng = _currentLocation.longitude + offsetLng;
-
-        final distMeters = Geolocator.distanceBetween(
-          _currentLocation.latitude,
-          _currentLocation.longitude,
-          lat,
-          lng,
+    // 3. Fallback to OpenStreetMap (Nominatim) search if Google Places returns no results
+    if (mappedPlaces.isEmpty) {
+      try {
+        final osmUrl = Uri.parse(
+          'https://nominatim.openstreetmap.org/search'
+          '?q=${Uri.encodeComponent(query)}'
+          '&format=json'
+          '&addressdetails=1'
+          '&limit=10'
         );
-        final double kmVal = distMeters / 1000.0;
-        final String distStr = "${kmVal.toStringAsFixed(1)} km";
-        final int estMinutes = (kmVal * 12.0).round().clamp(1, 120);
-
-        // Prepend search query keyword to make it contextually relevant to the user's input
-        final String finalName = "${query[0].toUpperCase()}${query.substring(1)} - $mockName";
-
-        final lang = SettingsService().selectedLanguage;
-        final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-        mappedPlaces.add({
-          'name': finalName,
-          'address': 'Near Holy Angel Avenue, Angeles City',
-          'dist': distStr,
-          'time': '$estMinutes min',
-          'latLng': LatLng(lat, lng),
-          'steps': isFilipino ? [
-            'Tumungo patungong $finalName',
-            'Kumanan sa pinakamalapit na pangunahing daan',
-            'Sundin ang mga palatandaan sa direksyon S01',
-            'Dumating sa $finalName'
-          ] : [
-            'Head toward $finalName',
-            'Turn right onto closest main road',
-            'Follow directional signs S01',
-            'Arrive at $finalName'
-          ]
+        final response = await http.get(osmUrl, headers: {
+          'User-Agent': 'EasyLensApp/1.0 (contact@easylens.com)'
         });
+        if (response.statusCode == 200) {
+          final List<dynamic> results = jsonDecode(response.body);
+          for (final res in results) {
+            final lat = double.tryParse(res['lat'].toString()) ?? 0.0;
+            final lng = double.tryParse(res['lon'].toString()) ?? 0.0;
+            if (lat == 0.0 && lng == 0.0) continue;
+
+            final name = (res['name'] != null && res['name'].toString().isNotEmpty)
+                ? res['name'].toString()
+                : (res['display_name'] ?? '').toString().split(',')[0];
+            final formattedAddress = (res['display_name'] ?? '').toString();
+
+            if (mappedPlaces.any((p) => p['name'] == name || (p['latLng'] as LatLng).latitude == lat)) {
+              continue;
+            }
+
+            final calc = _calculateDistanceAndTime(LatLng(lat, lng));
+
+            mappedPlaces.add({
+              'name': name,
+              'address': formattedAddress,
+              'dist': calc['dist']!,
+              'time': calc['time']!,
+              'latLng': LatLng(lat, lng),
+              'steps': [
+                'Head toward $name',
+                'Turn right onto closest main road',
+                'Follow directional signs',
+                'Arrive at $name'
+              ]
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint("Nominatim search error: $e");
       }
     }
 
@@ -951,9 +947,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _fetchRoadRoute();
 
     // Save recent navigation data locally and to Firestore
-    final firebaseService = FirebaseService();
-    final user = firebaseService.currentUser;
-    if (user != null) {
+    final user = _firebaseService.currentUser;
+    if (place['latLng'] is LatLng) {
       final latLng = place['latLng'] as LatLng;
       final navData = {
         'name': place['name'],
@@ -963,7 +958,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         'latitude': latLng.latitude,
         'longitude': latLng.longitude,
       };
-      firebaseService.saveRecentNavigation(user.uid, navData);
+      _firebaseService.saveRecentNavigation(user?.uid ?? 'guest', navData);
+      _loadRecentNavigations();
     }
 
     // Animate map camera to focus on selected location
@@ -1409,8 +1405,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final place = _pendingPlaceToConfirm!;
     final name = place['name'] as String;
     final address = place['address'] as String? ?? '';
-    final dist = place['dist'] as String? ?? '';
-    final time = place['time'] as String? ?? '';
+    
+    String dist = place['dist'] as String? ?? '';
+    String time = place['time'] as String? ?? '';
+    if (place['latLng'] is LatLng) {
+      final calc = _calculateDistanceAndTime(place['latLng'] as LatLng);
+      dist = calc['dist']!;
+      time = calc['time']!;
+    }
 
     final bgColor = AppColors.primaryBackground;
     final textColor = AppColors.primaryText;
@@ -1776,6 +1778,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
           separatorBuilder: (_, __) => Divider(height: 16, color: AppColors.cardBorder.withValues(alpha: 0.2)),
           itemBuilder: (context, index) {
             final place = _searchResults[index];
+            String placeDist = place['dist'] as String;
+            String placeTime = place['time'] as String;
+            if (place['latLng'] is LatLng) {
+              final calc = _calculateDistanceAndTime(place['latLng'] as LatLng);
+              placeDist = calc['dist']!;
+              placeTime = calc['time']!;
+            }
+
             return Theme(
               data: Theme.of(context).copyWith(
                 splashColor: Colors.transparent,
@@ -1803,7 +1813,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
                 ),
                 trailing: Text(
-                  '${_formatDistance(place['dist'] as String, SettingsService().selectedUnit)} • ${place['time']}',
+                  '${_formatDistance(placeDist, SettingsService().selectedUnit)} • $placeTime',
                   style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryText),
                 ),
                 onTap: () => _requestNavigationConfirmation(place),
@@ -1882,71 +1892,52 @@ class _NavigationScreenState extends State<NavigationScreen> {
         ),
         const SizedBox(height: 32),
 
-        // Custom Slider with Red Pin Indicator matching first image
-        Stack(
-          alignment: Alignment.centerLeft,
-          children: [
-            Container(
-              height: 6,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final double currentProgress = (_currentStepIndex + 1) / steps.length;
-                return Container(
+        // Custom Slider with Red Pin Indicator
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final double currentProgress = (_currentStepIndex + 1) / steps.length;
+            return Stack(
+              alignment: Alignment.centerLeft,
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 6,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                Container(
                   height: 6,
                   width: constraints.maxWidth * currentProgress,
                   decoration: BoxDecoration(
                     color: Colors.blue.shade700,
                     borderRadius: BorderRadius.circular(3),
                   ),
-                );
-              },
-            ),
-            // Custom arrow tip on filled line and red location pin at end
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final double currentProgress = (_currentStepIndex + 1) / steps.length;
-                return Positioned(
+                ),
+                Positioned(
                   left: (constraints.maxWidth * currentProgress) - 10,
                   child: Icon(Icons.arrow_right_alt, color: Colors.blue.shade800, size: 24),
-                );
-              },
-            ),
-            const Positioned(
-              right: 0,
-              child: Icon(
-                Icons.location_on,
-                color: Colors.red,
-                size: 26,
-              ),
-            ),
-          ],
+                ),
+                const Positioned(
+                  right: 0,
+                  child: Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 26,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 24),
 
         // ── HAZARD WARNING SYSTEM PANEL ──
         _buildHazardTestPanel(),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.blue.shade50,
-              child: Icon(Icons.share, color: Colors.blue.shade700),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              TranslationService.translate('Share location', lang),
-              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
-            )
-          ],
-        ),
-        const SizedBox(height: 24),
+
 
         Row(
           children: [

@@ -121,23 +121,28 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
   }
 
   Widget _buildPersonaCard(VoicePersona vp) {
+    final settings = SettingsService();
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
     final isSelected = _selectedPersonaId == vp.id;
     final isPlaying = _currentlyPlayingId == vp.id;
     
-    final isFilipinoLanguage = SettingsService().selectedLanguage == 'Tagalog';
+    final isFilipinoLanguage = settings.selectedLanguage == 'Tagalog';
     final isFilipinoPersona = vp.id == 'maya';
     final isDisabled = (isFilipinoLanguage && !isFilipinoPersona) || (!isFilipinoLanguage && isFilipinoPersona);
     
     final cardColor = isDisabled 
         ? AppColors.lightBackground.withOpacity(0.5) 
-        : (isSelected ? AppColors.primaryButton : AppColors.lightBackground);
+        : (isSelected ? AppColors.primaryButton : (isDark ? const Color(0xFF1E1E1E) : Colors.white));
     final titleColor = isDisabled 
         ? AppColors.textMuted 
-        : (isSelected ? AppColors.primaryButtonText : AppColors.primaryText);
+        : (isSelected ? AppColors.primaryButtonText : (isDark ? AppColors.primaryText : (isDefault ? Colors.black : AppColors.primaryText)));
     final subtitleColor = isDisabled 
         ? AppColors.textMuted.withOpacity(0.5) 
-        : (isSelected ? AppColors.primaryButtonText.withOpacity(0.8) : AppColors.textMuted);
-    final borderColor = isSelected || isDisabled ? Colors.transparent : AppColors.cardBorder.withOpacity(0.3);
+        : (isSelected ? AppColors.primaryButtonText.withOpacity(0.85) : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)));
+    final borderColor = isSelected 
+        ? AppColors.primaryButton 
+        : AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 0.3));
 
     return Opacity(
       opacity: isDisabled ? 0.6 : 1.0,
@@ -146,8 +151,8 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16.0),
-          border: isSelected ? null : Border.all(color: borderColor, width: 1.5),
-          boxShadow: isDisabled ? null : [
+          border: Border.all(color: borderColor, width: 1.5),
+          boxShadow: (isDisabled || !isDefault) ? null : [
             BoxShadow(
               color: AppColors.shadowColor,
               blurRadius: 10,
@@ -200,10 +205,13 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
     return ListenableBuilder(
       listenable: SettingsService(),
       builder: (context, _) {
-        final isDefault = SettingsService().selectedContrastTheme == 'Default';
-        final headerColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
-        final tileTextColor = isDefault ? Colors.black : AppColors.primaryText;
-        final cardColor = AppColors.primaryBackground;
+        final settings = SettingsService();
+        final isDark = settings.isDarkMode;
+        final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+        final headerColor = AppColors.primaryText;
+        final tileTextColor = isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText);
+        final secondaryTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+        final cardColor = isDark ? const Color(0xFF141414) : AppColors.primaryBackground;
 
         return Scaffold(
           backgroundColor: AppColors.lightBackground,
@@ -221,9 +229,9 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
                       height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: isDefault ? Colors.white : AppColors.primaryBackground,
+                        color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
                         borderRadius: BorderRadius.circular(22),
-                        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                        border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
                         boxShadow: isDefault ? [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.06),
@@ -272,7 +280,7 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: BorderRadius.circular(24.0),
-                      border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                      border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
                       boxShadow: isDefault ? [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.02),
@@ -304,7 +312,7 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: const Color(0xFF64748B),
+                            color: secondaryTextColor,
                             height: 1.4,
                           ),
                         ),
@@ -322,7 +330,7 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF64748B),
+                        color: isDark ? AppColors.primaryText : (isDefault ? const Color(0xFF64748B) : AppColors.primaryText),
                         letterSpacing: 0.5,
                       ),
                     ),

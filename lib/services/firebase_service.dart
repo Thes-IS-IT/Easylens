@@ -519,6 +519,26 @@ class FirebaseService {
     }
   }
 
+  /// Fetches emergency contacts from Cloud Firestore for the logged-in user and populates local storage.
+  Future<void> fetchContactsFromCloud(String userId) async {
+    if (!_firebaseInitialized) return;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('contacts')
+          .get();
+
+      for (var doc in snap.docs) {
+        final data = doc.data();
+        final contact = SharedEmergencyContact.fromJson(data);
+        await EmergencyContactService().saveContact(contact);
+      }
+    } catch (e) {
+      print('Firestore contact fetch error: $e');
+    }
+  }
+
   // Save recent navigation data to local storage and Firestore
   Future<void> saveRecentNavigation(String userId, Map<String, dynamic> navData) async {
     // 1. Save to SharedPreferences locally
@@ -566,5 +586,55 @@ class FirebaseService {
         print('Firestore navigation history sync error: $e');
       }
     }
+  }
+
+  // Get recent navigation history from local storage and Firestore
+  Future<List<Map<String, dynamic>>> getRecentNavigations(String? userId) async {
+    final List<Map<String, dynamic>> results = [];
+    final Set<String> seenNames = {};
+
+    // 1. Load from local SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> recentList = prefs.getStringList('recent_navigation') ?? [];
+      for (final item in recentList) {
+        try {
+          final Map<String, dynamic> decoded = Map<String, dynamic>.from(jsonDecode(item));
+          final name = decoded['name'] as String? ?? '';
+          if (name.isNotEmpty && !seenNames.contains(name.toLowerCase())) {
+            seenNames.add(name.toLowerCase());
+            results.add(decoded);
+          }
+        } catch (_) {}
+      }
+    } catch (e) {
+      print('Local recent navigation read error: $e');
+    }
+
+    // 2. Load from Firestore if user logged in
+    if (_firebaseInitialized && userId != null && userId.isNotEmpty) {
+      try {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('recent_navigation')
+            .orderBy('timestamp', descending: true)
+            .limit(10)
+            .get();
+
+        for (final doc in querySnapshot.docs) {
+          final data = doc.data();
+          final name = data['name'] as String? ?? '';
+          if (name.isNotEmpty && !seenNames.contains(name.toLowerCase())) {
+            seenNames.add(name.toLowerCase());
+            results.add(Map<String, dynamic>.from(data));
+          }
+        }
+      } catch (e) {
+        print('Firestore recent navigation read error: $e');
+      }
+    }
+
+    return results;
   }
 }

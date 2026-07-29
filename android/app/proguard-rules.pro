@@ -25,3 +25,10 @@
 # Preserve Flutter Platform Views
 -keep class io.flutter.plugin.platform.** { *; }
 -dontwarn io.flutter.plugin.platform.**
+
+# Preserve Apache / OkHttp / Google API Client transport used by Maps SDK
+-keep class com.google.api.client.** { *; }
+-dontwarn com.google.api.client.**
+-dontwarn org.apache.http.**
+-dontwarn android.net.http.**
+

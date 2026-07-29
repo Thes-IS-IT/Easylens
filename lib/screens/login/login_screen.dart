@@ -338,6 +338,7 @@ class _LoginScreenState extends State<LoginScreen>
             _isLoading = false;
           });
           _mascotZoomController.forward();
+          await _firebaseService.fetchContactsFromCloud(user.uid);
           await Future.delayed(const Duration(milliseconds: 550));
         if (mounted) {
             // Returning user — mark all tutorials as seen so they don't see them again
@@ -408,6 +409,7 @@ class _LoginScreenState extends State<LoginScreen>
           _isLoading = false;
         });
         _mascotZoomController.forward();
+        await _firebaseService.fetchContactsFromCloud(user.uid);
         await Future.delayed(const Duration(milliseconds: 550));
         if (mounted) {
           // Returning Google user — mark all tutorials as seen

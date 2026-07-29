@@ -51,17 +51,21 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     required ValueChanged<bool> onChanged,
   }) {
     final settings = SettingsService();
-    final isDefault = settings.selectedContrastTheme == 'Default';
-    final textColor = isDefault ? Colors.black : AppColors.primaryText;
-    final secondaryTextColor = const Color(0xFF64748B);
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+    final textColor = isDark ? AppColors.primaryText : (isDefault ? Colors.black : AppColors.primaryText);
+    final secondaryTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final subCardBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC);
+    final cardBorder = Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : 0.3), width: 1.5);
+    final activeColor = AppColors.primaryButton;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: subCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+        border: cardBorder,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,10 +86,10 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               Switch(
                 value: value,
                 onChanged: onChanged,
-                activeColor: Colors.white,
-                activeTrackColor: const Color(0xFF48BB78),
+                activeColor: isDark ? AppColors.primaryButtonText : Colors.white,
+                activeTrackColor: activeColor,
                 inactiveThumbColor: Colors.white,
-                inactiveTrackColor: const Color(0xFFCBD5E1),
+                inactiveTrackColor: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
               ),
             ],
           ),
@@ -104,7 +108,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: value ? const Color(0xFF48BB78) : const Color(0xFF64748B),
+              color: value ? activeColor : secondaryTextColor,
             ),
           ),
         ],
@@ -115,9 +119,15 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   @override
   Widget build(BuildContext context) {
     final settings = SettingsService();
-    final isDefault = settings.selectedContrastTheme == 'Default';
-    final headerTextColor = isDefault ? const Color(0xFF002663) : AppColors.primaryText;
-    final textColor = isDefault ? Colors.black : AppColors.primaryText;
+    final isDark = settings.isDarkMode;
+    final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
+    final headerTextColor = AppColors.primaryText;
+    final textColor = isDark ? AppColors.primaryText : (isDefault ? Colors.black : AppColors.primaryText);
+    final cardBg = isDark ? const Color(0xFF141414) : Colors.white;
+    final subCardBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC);
+    final secondaryTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
+    final cardBorder = Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : 0.3), width: 1.5);
+    final activeColor = AppColors.primaryButton;
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -135,7 +145,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: isDefault ? [
                       BoxShadow(
@@ -144,7 +154,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                         offset: const Offset(0, 3),
                       )
                     ] : null,
-                    border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                    border: cardBorder,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -176,12 +186,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               ),
               const SizedBox(height: 24),
 
-              // White Content Box
+              // Dynamic Content Box
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20.0),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(24.0),
                   boxShadow: isDefault ? [
                     BoxShadow(
@@ -190,7 +200,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       offset: const Offset(0, 4),
                     )
                   ] : null,
-                  border: isDefault ? null : Border.all(color: AppColors.cardBorder, width: 1.5),
+                  border: cardBorder,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,7 +226,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                                 'Get a daily Buddy follow-up plus near-due alerts for obstacles, battery, and connections.',
                                 style: GoogleFonts.inter(
                                   fontSize: 11,
-                                  color: const Color(0xFF64748B),
+                                  color: secondaryTextColor,
                                   height: 1.3,
                                 ),
                               ),
@@ -242,9 +252,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                             _saveNotificationSettings();
                           },
                           activeColor: Colors.white,
-                          activeTrackColor: const Color(0xFF48BB78),
+                          activeTrackColor: activeColor,
                           inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                          inactiveTrackColor: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
                         ),
                       ],
                     ),
@@ -255,8 +265,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: subCardBg,
                         borderRadius: BorderRadius.circular(16),
+                        border: cardBorder,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,7 +285,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                             'Buddy sends your daily follow-up at 8:00 PM. Obstacle, battery, and connection alerts use the same time.',
                             style: GoogleFonts.inter(
                               fontSize: 12,
-                              color: const Color(0xFF64748B),
+                              color: secondaryTextColor,
                               height: 1.4,
                             ),
                           ),

@@ -258,6 +258,7 @@ class _VoiceMicIconButtonState extends State<VoiceMicIconButton> with SingleTick
 
     await SttService().startListening(
       onResult: (rawText, isFinal) {
+        if (!mounted) return;
         _resetSilenceTimer();
 
         final formatted = formatSpokenText(
@@ -402,6 +403,7 @@ class _VoiceMicBigButtonState extends State<VoiceMicBigButton> with SingleTicker
 
     await SttService().startListening(
       onResult: (rawText, isFinal) {
+        if (!mounted) return;
         _resetSilenceTimer();
 
         final formatted = formatSpokenText(rawText, keyboardType: widget.keyboardType);
