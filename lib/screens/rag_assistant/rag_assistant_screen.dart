@@ -7,6 +7,8 @@ import '../../services/tts_service.dart';
 import '../../services/stt_service.dart';
 import '../../widgets/chat_history_viewer.dart';
 import '../../widgets/screen_tutorial_card.dart';
+import '../../services/chat_history_service.dart';
+import '../../services/journal_service.dart';
 
 class ChatMessage {
   final String text;
@@ -43,15 +45,7 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
   void initState() {
     super.initState();
     _ragService.initializeGemma();
-    
-    // Add initial greeting message from Buddy
-    _messages.add(
-      ChatMessage(
-        text: "Hello there! I'm Buddy, your EasyLens vision assistant. How can I help you explore today? Ask me about my features, safety guidelines, or Firebase support!",
-        isUser: false,
-        timestamp: DateTime.now(),
-      ),
-    );
+    _loadSavedHistory();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScreenTutorialCard.showIfNeeded(
@@ -62,6 +56,42 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
         mascotAsset: 'assets/Mascots/06 Thinking.gif',
       );
     });
+  }
+
+  Future<void> _loadSavedHistory() async {
+    final saved = await ChatHistoryService().loadMessages();
+    if (saved.isNotEmpty && mounted) {
+      setState(() {
+        _messages.clear();
+        for (var item in saved) {
+          _messages.add(
+            ChatMessage(
+              text: item['text'] as String? ?? '',
+              isUser: item['isUser'] as bool? ?? false,
+              timestamp: DateTime.tryParse(item['timestamp'] as String? ?? '') ?? DateTime.now(),
+            ),
+          );
+        }
+      });
+      _scrollToBottom();
+    } else {
+      _messages.add(
+        ChatMessage(
+          text: "Hello there! I'm Buddy, your EasyLens vision assistant. How can I help you explore today? Ask me about my features, safety guidelines, or Firebase support!",
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+    }
+  }
+
+  void _persistChatMessages() {
+    final serialized = _messages.map((m) => {
+      'text': m.text,
+      'isUser': m.isUser,
+      'timestamp': m.timestamp.toIso8601String(),
+    }).toList();
+    ChatHistoryService().saveMessages(serialized);
   }
 
   @override
@@ -139,7 +169,12 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
       print("[Chat] Stream error: $e");
     }
 
-    // In case stream was empty or failed completely
+    _persistChatMessages();
+    if (fullReply.isNotEmpty) {
+      JournalService().appendToDailyJournal(text, fullReply);
+      JournalService().generateAndAddInsight(text, fullReply);
+    }
+
     if (!hasAddedBuddyMessage) {
       setState(() {
         _isBuddyThinking = false;

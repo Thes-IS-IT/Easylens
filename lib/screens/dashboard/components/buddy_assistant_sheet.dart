@@ -9,6 +9,8 @@ import '../../../services/rag_service.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/settings_service.dart';
 import '../../../widgets/chat_history_viewer.dart';
+import '../../../services/chat_history_service.dart';
+import '../../../services/journal_service.dart';
 
 class BuddyAssistantSheet extends StatefulWidget {
   final Function(String) onNavigate;
@@ -64,8 +66,16 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
   }
 
   Future<void> _initializeAssistant() async {
-    // Read welcome message aloud only — mic must be tapped manually by the user S01
-    await _speakText(_messages.first['text']);
+    final saved = await ChatHistoryService().loadMessages();
+    if (saved.isNotEmpty && mounted) {
+      setState(() {
+        _messages.clear();
+        _messages.addAll(saved);
+      });
+      _scrollToBottom();
+    } else {
+      await _speakText(_messages.first['text']);
+    }
   }
 
   @override
@@ -225,6 +235,11 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       _scrollToBottom();
     }
 
+    // Save chat history to local disk for bi-directional memory across sessions
+    ChatHistoryService().saveMessages(_messages);
+    JournalService().appendToDailyJournal(text, response);
+    JournalService().generateAndAddInsight(text, response);
+
     // Speak response concurrently (do not await so navigation is instantaneous)
     _speakText(response);
 
@@ -272,7 +287,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
       if (query.contains('contact') || query.contains('phonebook') || query.contains('directory') || query.contains('tawagan') || query.contains('contacts')) return 'contacts';
       if (query.contains('emergency') || query.contains('sos') || query.contains('saklolo') || query.contains('tulong')) return 'emergency';
       if (query.contains('home') || query.contains('dashboard') || query.contains('welcome') || query.contains('umpisa')) return 'home';
-      if (query.contains('navig') || query.contains('gps') || query.contains('map') || query.contains('direction') || query.contains('audio nav')) return 'nav';
+      if (query.contains('navig') || query.contains('gps') || query.contains('map') || query.contains('direction') || query.contains('audio nav') || RegExp(r'\b(nav|nab)\b').hasMatch(query)) return 'nav';
       if (query.contains('hardware') || query.contains('sensor') || query.contains('camera') || query.contains('cam') || query.contains('lens')) return 'hardware';
       if (query.contains('text') || query.contains('ocr') || query.contains('scan text') || query.contains('basa')) return 'text';
       if (query.contains('object') || query.contains('detect') || query.contains('scan object') || query.contains('bagay')) return 'objects';

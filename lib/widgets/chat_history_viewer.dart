@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/colors.dart';
 import '../services/journal_service.dart';
 import '../services/settings_service.dart';
+import '../services/chat_history_service.dart';
 
 class ChatHistoryViewer {
   static void showHistorySheet(BuildContext context) {
@@ -48,21 +49,43 @@ class ChatHistoryViewer {
                     children: [
                       // Header
                       Padding(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "Buddy's Chat Memory",
-                              style: GoogleFonts.inter(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryText,
+                            Expanded(
+                              child: Text(
+                                "Buddy's Chat Memory",
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryText,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            IconButton(
-                              icon: Icon(Icons.close, color: AppColors.primaryText),
-                              onPressed: () => Navigator.of(context).pop(),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: "Clear Memory",
+                                  onPressed: () async {
+                                    await JournalService().clearAllJournals();
+                                    await ChatHistoryService().clearHistory();
+                                    setModalState(() {});
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("All chat memory cleared!")),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.delete_outline, size: 22, color: Colors.red),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.close, color: AppColors.primaryText),
+                                  onPressed: () => Navigator.of(context).pop(),
+                                ),
+                              ],
                             ),
                           ],
                         ),

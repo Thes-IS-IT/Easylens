@@ -21,6 +21,9 @@ import '../../services/translation_service.dart';
 import '../../widgets/speech_navigation_overlay.dart';
 import '../../widgets/screen_tutorial_card.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:camera/camera.dart';
 import '../../services/danger_warning_service.dart';
 import '../../widgets/critical_danger_overlay.dart';
 import '../../services/navigation_voice_assistant.dart';
@@ -258,12 +261,82 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
 
+  // Camera Covered Detection variables for Audio Navigation
+  CameraController? _navCameraController;
+  bool _isNavCameraCovered = false;
+  DateTime _lastNavCameraVibrateTime = DateTime.now();
+
+  Future<void> _initializeNavCamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isNotEmpty && mounted) {
+        final controller = CameraController(
+          cameras[0],
+          ResolutionPreset.low,
+          enableAudio: false,
+          imageFormatGroup: Platform.isAndroid
+              ? ImageFormatGroup.yuv420
+              : ImageFormatGroup.bgra8888,
+        );
+        await controller.initialize();
+        if (!mounted) {
+          controller.dispose();
+          return;
+        }
+        controller.startImageStream(_onNavCameraFrameReceived);
+        _navCameraController = controller;
+      }
+    } catch (e) {
+      debugPrint('[NavCamera] Camera init error: $e');
+    }
+  }
+
+  void _onNavCameraFrameReceived(CameraImage image) {
+    if (!mounted) return;
+    try {
+      final yBytes = image.planes[0].bytes;
+      int sampleCount = 300;
+      int step = yBytes.length ~/ sampleCount;
+      if (step < 1) step = 1;
+      int sum = 0;
+      int count = 0;
+      for (int i = 0; i < yBytes.length; i += step) {
+        sum += yBytes[i];
+        count++;
+      }
+      final avgLuminance = count > 0 ? sum / count : 128.0;
+      final isCovered = avgLuminance < 15.0;
+
+      if (isCovered) {
+        final now = DateTime.now();
+        if (!_isNavCameraCovered || now.difference(_lastNavCameraVibrateTime).inMilliseconds > 2000) {
+          _lastNavCameraVibrateTime = now;
+          _isNavCameraCovered = true;
+
+          // Trigger physical hardware vibration on phone when camera is covered
+          DangerWarningService().triggerStrongHazardVibration(isCritical: true);
+
+          // Audio prompt announcement
+          final lang = SettingsService().selectedLanguage;
+          final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+          final warningMsg = isTagalog
+              ? "Nakatakip ang camera! Pakiusap alisin ang takip sa camera para sa audio navigation."
+              : "Camera is covered! Please uncover the camera to assist your visual navigation.";
+          TtsService().speak(warningMsg);
+        }
+      } else {
+        _isNavCameraCovered = false;
+      }
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
     _searchResults = List.from(_allPlaces);
     SpeechNavigationNotifier.activeSearchResults = _searchResults;
     _initializeLocationTracking();
+    _initializeNavCamera();
     SpeechNavigationNotifier.searchPlaceNotifier.addListener(_onVoiceSearchRequested);
     SpeechNavigationNotifier.selectResultNotifier.addListener(_onVoiceSelectRequested);
     SpeechNavigationNotifier.confirmPlaceNotifier.addListener(_onVoiceConfirmRequested);
@@ -306,6 +379,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _searchController.dispose();
     _mapController?.dispose();
     _positionStreamSubscription?.cancel();
+    if (_navCameraController != null && _navCameraController!.value.isStreamingImages) {
+      _navCameraController!.stopImageStream();
+    }
+    _navCameraController?.dispose();
     super.dispose();
   }
 
@@ -2358,7 +2435,7 @@ class _MapCanvasPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // 1. Light Slate Background
-    final bgPaint = Paint()..color = const Color(0xFFE2E8F0);
+    final bgPaint = Paint()..color = const Color(0xFFF1F5F9);
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
     // 2. White Primary Road Grid

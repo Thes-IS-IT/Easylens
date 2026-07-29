@@ -55,10 +55,28 @@ class JournalService {
 - **Buddy**: $cleanBuddyResponse
 ''';
 
-      await file.writeAsString(logEntry, mode: FileMode.append);
+      await file.writeAsString(logEntry, mode: FileMode.append, flush: true);
       print('[Journal] Appended conversation log to ${file.path}');
     } catch (e) {
       print('[Journal] Error appending to journal: $e');
+    }
+  }
+
+  /// Clears all daily journal files from local disk.
+  Future<void> clearAllJournals() async {
+    try {
+      final dirPath = await _journalsDirectoryPath;
+      final dir = Directory(dirPath);
+      if (await dir.exists()) {
+        final files = await dir.list().toList();
+        for (var entity in files) {
+          if (entity is File && entity.path.endsWith('.md')) {
+            await entity.delete();
+          }
+        }
+      }
+    } catch (e) {
+      print('[Journal] Error clearing all journals: $e');
     }
   }
 
@@ -80,17 +98,28 @@ Example: "- I learned that Arron needs help finding sharp objects and prefers ha
 Return ONLY the bullet point and nothing else.
 ''';
 
-      final insight = await RagService.executeWithApiKeyFallback((apiKey, modelName) async {
-        final model = GenerativeModel(
-          model: modelName,
-          apiKey: apiKey,
-        );
-        final response = await model.generateContent([Content.text(prompt)]);
-        return response.text?.trim() ?? '';
-      });
-      
-      if (insight.startsWith('-')) {
-        await _insertInsightIntoTodayFile(insight);
+      try {
+        final insight = await RagService.executeWithApiKeyFallback((apiKey, modelName) async {
+          final model = GenerativeModel(
+            model: modelName,
+            apiKey: apiKey,
+          );
+          final response = await model.generateContent([Content.text(prompt)]);
+          return response.text?.trim() ?? '';
+        });
+        
+        if (insight.startsWith('-')) {
+          await _insertInsightIntoTodayFile(insight);
+        } else if (insight.isNotEmpty) {
+          await _insertInsightIntoTodayFile('- $insight');
+        }
+      } catch (geminiErr) {
+        // Fallback for Local LLM / offline mode when online Gemini API is unavailable
+        final cleanMsg = userMessage.trim();
+        if (cleanMsg.isNotEmpty) {
+          final summary = cleanMsg.length > 40 ? '${cleanMsg.substring(0, 40)}...' : cleanMsg;
+          await _insertInsightIntoTodayFile('- I assisted the user with: "$summary"');
+        }
       }
     } catch (e) {
       print('[Journal] Error generating insight: $e');

@@ -614,7 +614,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
         cleanText.contains("map") ||
         cleanText.contains("maps") ||
         cleanText.contains("mapa") ||
-        cleanText.contains("nabigasyon")) {
+        cleanText.contains("nabigasyon") ||
+        RegExp(r'\b(nav|nab)\b').hasMatch(cleanText)) {
       SpeechNavigationNotifier.changeTab(1);
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
       return isFilipino ? "Papunta sa mapa" : "Navigating to map";
@@ -837,6 +838,18 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     }
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
+      if (searchQuery == "nav" ||
+          searchQuery == "nab" ||
+          searchQuery == "map" ||
+          searchQuery == "maps" ||
+          searchQuery == "mapa" ||
+          searchQuery == "navigation" ||
+          searchQuery == "nabigasyon") {
+        SpeechNavigationNotifier.changeTab(1);
+        navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        return isFilipino ? "Papunta sa mapa" : "Navigating to map";
+      }
+
       SpeechNavigationNotifier.changeTab(1);
       navigatorKey.currentState?.popUntil((route) => route.isFirst);
       SpeechNavigationNotifier.searchPlace(searchQuery);
@@ -893,7 +906,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       "search for", "search", "find", "hanapin", "maghanap", "hanap", "pumunta", "dalhin",
       "got to", "go to", "get to", "gu to", "open", "take me",
       "home", "dashboard", "umpisa", "simula", "bahay",
-      "map", "maps", "navigation", "mapa", "nabigasyon", "boses",
+      "map", "maps", "navigation", "mapa", "nabigasyon", "boses", "nav", "nab",
       "camera", "easylens", "easy lens", "kamera", "kamara", "larawan",
       "settings", "setting", "seting", "mga setting", "buksan ang setting", "preferensya", "kaayusan",
       "notifications", "notification", "abiso", "mga abiso", "patalastas",

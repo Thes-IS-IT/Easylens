@@ -55,8 +55,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settings = SettingsService();
     _selectedLanguage = settings.selectedLanguage.toLowerCase().contains('tagalog') ? 'Filipino' : 'English';
     _faceIdUnlock = settings.faceIdUnlock;
-    _selectedAppearance = settings.appearanceTheme;
-    _selectedAccentColorIndex = settings.accentColorIndex;
+    // Sync _selectedAppearance & _selectedAccentColorIndex from selectedContrastTheme if contrast theme was set in signup
+    if (settings.selectedContrastTheme != 'Default') {
+      if (settings.selectedContrastTheme == 'Black on White') {
+        _selectedAppearance = 'White';
+        _selectedAccentColorIndex = 0;
+      } else if (settings.selectedContrastTheme == 'Green on Black') {
+        _selectedAppearance = 'Black';
+        _selectedAccentColorIndex = 0;
+      } else if (settings.selectedContrastTheme == 'Yellow on Black') {
+        _selectedAppearance = 'Black';
+        _selectedAccentColorIndex = 1;
+      } else if (settings.selectedContrastTheme == 'White on Black') {
+        _selectedAppearance = 'Black';
+        _selectedAccentColorIndex = 2;
+      } else if (settings.selectedContrastTheme == 'Cyan on Black') {
+        _selectedAppearance = 'Black';
+        _selectedAccentColorIndex = 3;
+      }
+    } else {
+      _selectedAppearance = settings.appearanceTheme;
+      _selectedAccentColorIndex = settings.accentColorIndex;
+    }
     _shakeToUndo = settings.shakeToUndo;
     _speechNavigation = settings.speechNavigation;
     _useLocalAI = settings.useLocalAI;

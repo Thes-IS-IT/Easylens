@@ -987,7 +987,9 @@ class RagService {
     
     if (!yieldedAnything || printable.length < 5 || isError) {
       if (useLocal) {
-        yield generateSmartLocalResponse(rawQuestion);
+        final localResp = generateSmartLocalResponse(rawQuestion);
+        yield localResp;
+        _logToJournal(rawQuestion, localResp);
       } else {
         yield "Gemini API Connection error. Please check your network or API keys in Settings.";
       }
@@ -999,11 +1001,14 @@ class RagService {
   Future<String> askBuddyLocalOnly(String question) async {
     final lang = SettingsService().selectedLanguage;
     if (_isOffTopicForVisualAssistance(question)) {
-      return _getOffTopicRejectionMessage(lang);
+      final msg = _getOffTopicRejectionMessage(lang);
+      _logToJournal(question, msg);
+      return msg;
     }
 
     final quick = getQuickCuratedAnswer(question);
     if (quick != null) {
+      _logToJournal(question, quick);
       return quick;
     }
     final lowerQ = question.toLowerCase();
@@ -1030,15 +1035,19 @@ class RagService {
       location: dynContext['location']!,
     );
 
+    String localResult = '';
     final modelPath = await _getLocalModelPath();
     if (modelPath != null) {
       try {
-        return await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
+        localResult = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
       } catch (_) {
-        return generateSmartLocalResponse(question);
+        localResult = generateSmartLocalResponse(question);
       }
+    } else {
+      localResult = generateSmartLocalResponse(question);
     }
-    return generateSmartLocalResponse(question);
+    _logToJournal(question, localResult);
+    return localResult;
   }
 
   String? getQuickCuratedAnswer(String question) {
