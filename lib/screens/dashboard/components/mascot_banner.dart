@@ -103,17 +103,11 @@ class _MascotBannerState extends State<MascotBanner> {
             ? const Color(0xFF3B82F6) 
             : AppColors.primaryButton;
             
-        final bubbleBg = isDefault 
-            ? Colors.white 
-            : (theme == 'Black on White' ? Colors.black : Colors.white);
+        final bubbleBg = Colors.white;
             
-        final headerColor = isDefault || theme != 'Black on White'
-            ? const Color(0xFF002663) 
-            : Colors.white;
+        final headerColor = const Color(0xFF002663);
             
-        final subtextColor = isDefault || theme != 'Black on White'
-            ? const Color(0xFF334155) 
-            : Colors.white70;
+        final subtextColor = const Color(0xFF334155);
 
         final bannerBorder = isDefault
             ? null
