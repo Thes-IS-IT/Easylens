@@ -178,92 +178,93 @@ class _MascotBannerState extends State<MascotBanner> {
                 ),
               ],
 
-              // 3. Floating Speech Bubble Card with Tail
+              // 2. Rotated Speech Bubble Pointer (positioned relative to dog size)
               Positioned(
-                left: widget.mascotLeft + widget.mascotWidth - 28, // Offset right after the mascot head S01
-                right: 16,
-                top: 14,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // Speech Bubble Triangle Tail
-                    Positioned(
-                      left: -8,
-                      top: 18,
-                      child: CustomPaint(
-                        size: const Size(10, 14),
-                        painter: _BubbleTailPainter(
-                          color: bubbleBg,
-                          borderColor: isDefault ? null : AppColors.cardBorder,
-                        ),
+                left: widget.mascotLeft + widget.mascotWidth - 10,
+                top: widget.bannerHeight / 2 - 6,
+                child: RotationTransition(
+                  turns: const AlwaysStoppedAnimation(45 / 360),
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: bubbleBg,
+                      border: isDefault ? null : Border(
+                        left: BorderSide(color: AppColors.cardBorder, width: 1.5),
+                        bottom: BorderSide(color: AppColors.cardBorder, width: 1.5),
                       ),
                     ),
-                    // Speech Bubble Body
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: bubbleBg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: bubbleBorder,
-                        boxShadow: isDefault ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
-                          )
-                        ] : null,
-                      ),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _isExpanded = !_isExpanded;
-                          });
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Buddy',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.bold,
-                                color: headerColor,
-                                fontSize: 17,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            AnimatedCrossFade(
-                              duration: const Duration(milliseconds: 200),
-                              crossFadeState: _isExpanded
-                                  ? CrossFadeState.showSecond
-                                  : CrossFadeState.showFirst,
-                              firstChild: Text(
-                                activeMessage,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
-                                  color: subtextColor,
-                                  fontSize: 12.5,
-                                  height: 1.25,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              secondChild: Text(
-                                activeMessage,
-                                style: GoogleFonts.inter(
-                                  color: subtextColor,
-                                  fontSize: 12.5,
-                                  height: 1.3,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
+                  ),
+                ),
+              ),
+
+              // 3. Speech Bubble Card (positioned relative to dog size)
+              Positioned(
+                left: widget.mascotLeft + widget.mascotWidth - 4,
+                right: 24,
+                top: 12,
+                bottom: 12,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: bubbleBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: bubbleBorder,
+                    boxShadow: isDefault ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      )
+                    ] : null,
+                  ),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isExpanded = !_isExpanded;
+                      });
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Buddy',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            color: headerColor,
+                            fontSize: 17,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 2),
+                        AnimatedCrossFade(
+                          duration: const Duration(milliseconds: 200),
+                          crossFadeState: _isExpanded
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          firstChild: Text(
+                            activeMessage,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              color: subtextColor,
+                              fontSize: 13,
+                              height: 1.3,
+                            ),
+                          ),
+                          secondChild: Text(
+                            activeMessage,
+                            style: GoogleFonts.inter(
+                              color: subtextColor,
+                              fontSize: 13,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
 
@@ -284,33 +285,4 @@ class _MascotBannerState extends State<MascotBanner> {
       },
     );
   }
-}
-
-class _BubbleTailPainter extends CustomPainter {
-  final Color color;
-  final Color? borderColor;
-
-  _BubbleTailPainter({required this.color, this.borderColor});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color..style = PaintingStyle.fill;
-    final path = Path();
-    path.moveTo(size.width, 0);
-    path.lineTo(0, size.height / 2);
-    path.lineTo(size.width, size.height);
-    path.close();
-    canvas.drawPath(path, paint);
-
-    if (borderColor != null) {
-      final borderPaint = Paint()
-        ..color = borderColor!
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5;
-      canvas.drawPath(path, borderPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
