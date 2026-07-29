@@ -103,7 +103,11 @@ class _MascotBannerState extends State<MascotBanner> {
             ? const Color(0xFF3B82F6) 
             : AppColors.primaryButton;
             
-        final bubbleBg = Colors.white;
+        final isWhiteBanner = bannerColor == Colors.white || theme == 'Black on White';
+
+        final bubbleBg = isWhiteBanner 
+            ? const Color(0xFFF1F5F9) 
+            : Colors.white;
             
         final headerColor = const Color(0xFF002663);
             
@@ -112,13 +116,13 @@ class _MascotBannerState extends State<MascotBanner> {
         final bannerBorder = isDefault
             ? null
             : Border(
-                top: BorderSide(color: AppColors.cardBorder, width: 1.5),
-                bottom: BorderSide(color: AppColors.cardBorder, width: 1.5),
+                top: BorderSide(color: isWhiteBanner ? Colors.grey.shade300 : AppColors.cardBorder, width: 1.5),
+                bottom: BorderSide(color: isWhiteBanner ? Colors.grey.shade300 : AppColors.cardBorder, width: 1.5),
               );
 
         final bubbleBorder = isDefault
             ? null
-            : Border.all(color: AppColors.cardBorder, width: 1.5);
+            : Border.all(color: isWhiteBanner ? Colors.grey.shade400 : AppColors.cardBorder, width: 1.5);
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
