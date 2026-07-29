@@ -97,7 +97,7 @@ class _MascotBannerState extends State<MascotBanner> {
         : _sweetMessagesEn[_activeMessageIndex];
 
     final bannerColor = isDefault 
-        ? AppColors.primaryButton 
+        ? const Color(0xFF3B82F6) 
         : AppColors.primaryButton;
         
     final bubbleBg = isDefault 
