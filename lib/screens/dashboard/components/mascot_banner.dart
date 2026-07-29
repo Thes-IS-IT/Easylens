@@ -86,170 +86,231 @@ class _MascotBannerState extends State<MascotBanner> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = SettingsService();
-    final theme = settings.selectedContrastTheme;
-    final isDefault = theme == 'Default';
-    final isBlack = settings.appearanceTheme == 'Black';
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, child) {
+        final settings = SettingsService();
+        final theme = settings.selectedContrastTheme;
+        final isDefault = theme == 'Default';
+        final isBlack = settings.appearanceTheme == 'Black';
 
-    final isFilipino = settings.selectedLanguage.toLowerCase().contains('tagalog') || settings.selectedLanguage.toLowerCase().contains('filipino');
-    final activeMessage = isFilipino 
-        ? _sweetMessagesTl[_activeMessageIndex] 
-        : _sweetMessagesEn[_activeMessageIndex];
+        final isFilipino = settings.selectedLanguage.toLowerCase().contains('tagalog') || settings.selectedLanguage.toLowerCase().contains('filipino');
+        final activeMessage = isFilipino 
+            ? _sweetMessagesTl[_activeMessageIndex] 
+            : _sweetMessagesEn[_activeMessageIndex];
 
-    final bannerColor = isDefault 
-        ? const Color(0xFF3B82F6) 
-        : AppColors.primaryButton;
-        
-    final bubbleBg = isDefault 
-        ? Colors.white 
-        : (theme == 'Black on White' ? Colors.black : Colors.white);
-        
-    final headerColor = isDefault || theme != 'Black on White'
-        ? const Color(0xFF002663) 
-        : Colors.white;
-        
-    final subtextColor = isDefault || theme != 'Black on White'
-        ? const Color(0xFF334155) 
-        : Colors.white70;
+        final bannerColor = isDefault 
+            ? const Color(0xFF3B82F6) 
+            : AppColors.primaryButton;
+            
+        final bubbleBg = isDefault 
+            ? Colors.white 
+            : (theme == 'Black on White' ? Colors.black : Colors.white);
+            
+        final headerColor = isDefault || theme != 'Black on White'
+            ? const Color(0xFF002663) 
+            : Colors.white;
+            
+        final subtextColor = isDefault || theme != 'Black on White'
+            ? const Color(0xFF334155) 
+            : Colors.white70;
 
-    final bannerBorder = isDefault
-        ? null
-        : Border(
-            top: BorderSide(color: AppColors.cardBorder, width: 1.5),
-            bottom: BorderSide(color: AppColors.cardBorder, width: 1.5),
-          );
+        final bannerBorder = isDefault
+            ? null
+            : Border(
+                top: BorderSide(color: AppColors.cardBorder, width: 1.5),
+                bottom: BorderSide(color: AppColors.cardBorder, width: 1.5),
+              );
 
-    final bubbleBorder = isDefault
-        ? null
-        : Border.all(color: AppColors.cardBorder, width: 1.5);
+        final bubbleBorder = isDefault
+            ? null
+            : Border.all(color: AppColors.cardBorder, width: 1.5);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
-      height: _isExpanded ? widget.bannerHeight + 40 : widget.bannerHeight,
-      width: double.infinity,
-      child: Stack(
-        clipBehavior: Clip.none, // Allows the mascot top overflow to be visible S01
-        children: [
-          // 1. The Blue Banner Container (stretches full-bleed, flat rect S01)
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              decoration: BoxDecoration(
-                color: bannerColor,
-                border: bannerBorder,
-              ),
-            ),
-          ),
-          
-          // 2. Rotated Speech Bubble Pointer (positioned relative to dog size)
-          Positioned(
-            left: widget.mascotLeft + widget.mascotWidth - 10,
-            top: widget.bannerHeight / 2 - 6,
-            child: RotationTransition(
-              turns: const AlwaysStoppedAnimation(45 / 360),
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: bubbleBg,
-                  border: isDefault ? null : Border(
-                    left: BorderSide(color: AppColors.cardBorder, width: 1.5),
-                    bottom: BorderSide(color: AppColors.cardBorder, width: 1.5),
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          height: _isExpanded ? widget.bannerHeight + 40 : widget.bannerHeight,
+          width: double.infinity,
+          child: Stack(
+            clipBehavior: Clip.none, // Allows the mascot top overflow to be visible S01
+            children: [
+              // 1. The Blue Banner Container (stretches full-bleed, flat rect S01)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  decoration: BoxDecoration(
+                    color: bannerColor,
+                    border: bannerBorder,
                   ),
                 ),
               ),
-            ),
-          ),
-          
-          // 3. Speech Bubble Card (positioned relative to dog size)
-          Positioned(
-            left: widget.mascotLeft + widget.mascotWidth - 4,
-            right: 24,
-            top: 12,
-            bottom: 12,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: bubbleBg,
-                borderRadius: BorderRadius.circular(16),
-                border: bubbleBorder,
-                boxShadow: isDefault ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  )
-                ] : null,
-              ),
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Buddy',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold,
-                        color: headerColor,
-                        fontSize: 17,
-                      ),
+
+              // 2. Decorative subtle circles for visual interest (Default only)
+              if (isDefault) ...[
+                Positioned(
+                  right: -30,
+                  top: -30,
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.08),
                     ),
-                    const SizedBox(height: 2),
-                    AnimatedCrossFade(
-                      duration: const Duration(milliseconds: 200),
-                      crossFadeState: _isExpanded
-                          ? CrossFadeState.showSecond
-                          : CrossFadeState.showFirst,
-                      firstChild: Text(
-                        activeMessage,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          color: subtextColor,
-                          fontSize: 13,
-                          height: 1.3,
+                  ),
+                ),
+                Positioned(
+                  left: 100,
+                  bottom: -40,
+                  child: Container(
+                    width: 110,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+                ),
+              ],
+
+              // 3. Floating Speech Bubble Card with Tail
+              Positioned(
+                left: widget.mascotLeft + widget.mascotWidth - 28, // Offset right after the mascot head S01
+                right: 16,
+                top: 14,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Speech Bubble Triangle Tail
+                    Positioned(
+                      left: -8,
+                      top: 18,
+                      child: CustomPaint(
+                        size: const Size(10, 14),
+                        painter: _BubbleTailPainter(
+                          color: bubbleBg,
+                          borderColor: isDefault ? null : AppColors.cardBorder,
                         ),
                       ),
-                      secondChild: Text(
-                        activeMessage,
-                        style: GoogleFonts.inter(
-                          color: subtextColor,
-                          fontSize: 13,
-                          height: 1.3,
+                    ),
+                    // Speech Bubble Body
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: bubbleBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: bubbleBorder,
+                        boxShadow: isDefault ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          )
+                        ] : null,
+                      ),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Buddy',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                                color: headerColor,
+                                fontSize: 17,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            AnimatedCrossFade(
+                              duration: const Duration(milliseconds: 200),
+                              crossFadeState: _isExpanded
+                                  ? CrossFadeState.showSecond
+                                  : CrossFadeState.showFirst,
+                              firstChild: Text(
+                                activeMessage,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  color: subtextColor,
+                                  fontSize: 12.5,
+                                  height: 1.25,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              secondChild: Text(
+                                activeMessage,
+                                style: GoogleFonts.inter(
+                                  color: subtextColor,
+                                  fontSize: 12.5,
+                                  height: 1.3,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
+
+              // 4. Mascot Image (positioned in the left offset, overlapping top boundary S01)
+              Positioned(
+                left: widget.mascotLeft,
+                top: widget.mascotTop,
+                bottom: widget.mascotBottom,
+                width: widget.mascotWidth,
+                child: Image.asset(
+                  widget.mascotAsset,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ],
           ),
-          
-          // 4. Mascot Image (positioned in the left offset, overlapping top boundary S01)
-          Positioned(
-            left: widget.mascotLeft,
-            top: widget.mascotTop,
-            bottom: widget.mascotBottom,
-            width: widget.mascotWidth,
-            child: Image.asset(
-              widget.mascotAsset,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
+}
+
+class _BubbleTailPainter extends CustomPainter {
+  final Color color;
+  final Color? borderColor;
+
+  _BubbleTailPainter({required this.color, this.borderColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..style = PaintingStyle.fill;
+    final path = Path();
+    path.moveTo(size.width, 0);
+    path.lineTo(0, size.height / 2);
+    path.lineTo(size.width, size.height);
+    path.close();
+    canvas.drawPath(path, paint);
+
+    if (borderColor != null) {
+      final borderPaint = Paint()
+        ..color = borderColor!
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      canvas.drawPath(path, borderPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
