@@ -394,7 +394,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
                         ],
 
                         // Spacing so floating navbar does not cover content
-                        const SizedBox(height: 110),
+                        const SizedBox(height: 160),
                       ],
                     ),
                   ),
@@ -1081,16 +1081,15 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
         color: AppColors.primaryBackground,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDefault ? const Color(0xFF8B5CF6) : AppColors.cardBorder,
+          color: AppColors.cardBorder,
           width: 2,
         ),
         boxShadow: [
-          if (isDefault)
-            BoxShadow(
-              color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
+          BoxShadow(
+            color: AppColors.primaryButton.withValues(alpha: 0.15),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
       child: Column(
@@ -1101,12 +1100,12 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                  color: AppColors.primaryButton.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.auto_awesome_rounded,
-                  color: Color(0xFF8B5CF6),
+                  color: AppColors.primaryButton,
                   size: 22,
                 ),
               ),
@@ -1142,12 +1141,12 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(
+                SizedBox(
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryButton),
                   ),
                 ),
                 const SizedBox(width: 12),

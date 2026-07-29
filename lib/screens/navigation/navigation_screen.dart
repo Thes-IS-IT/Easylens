@@ -1840,7 +1840,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             width: 50,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFF002663).withOpacity(0.8),
+              color: AppColors.cardBorder.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1849,31 +1849,30 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
         Text(
           _getDynamicETA(_selectedPlace!['time'] as String),
-          style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
+          style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primaryText),
         ),
         const SizedBox(height: 4),
         Text(
           '${_formatDistance(_selectedPlace!['dist'] as String, SettingsService().selectedUnit)} • ${_selectedPlace!['time']}',
-          style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
+          style: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w600),
         ),
-        const Divider(height: 32),
+        Divider(height: 32, color: AppColors.cardBorder.withValues(alpha: 0.3)),
 
         Text(
           isFilipino ? 'Papunta sa ${_selectedPlace!['address']}' : 'To ${_selectedPlace!['address']}',
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade600),
+          style: GoogleFonts.inter(fontSize: 14, color: AppColors.primaryText.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Custom Arrow Upward matching first photo
             Container(
               padding: const EdgeInsets.all(8),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_upward_rounded,
                 size: 48,
-                color: Colors.black,
+                color: AppColors.primaryButton,
               ),
             ),
             const SizedBox(width: 16),
@@ -1883,7 +1882,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: AppColors.primaryText,
                   height: 1.2,
                 ),
               ),
@@ -1904,7 +1903,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   height: 6,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: AppColors.cardBorder.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -1912,13 +1911,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   height: 6,
                   width: constraints.maxWidth * currentProgress,
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade700,
+                    color: AppColors.primaryButton,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
                 Positioned(
                   left: (constraints.maxWidth * currentProgress) - 10,
-                  child: Icon(Icons.arrow_right_alt, color: Colors.blue.shade800, size: 24),
+                  child: Icon(Icons.arrow_right_alt, color: AppColors.primaryButton, size: 24),
                 ),
                 const Positioned(
                   right: 0,
@@ -1937,8 +1936,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
         // ── HAZARD WARNING SYSTEM PANEL ──
         _buildHazardTestPanel(),
 
-
-
         Row(
           children: [
             Expanded(
@@ -1946,7 +1943,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade400,
+                    backgroundColor: Colors.red.shade500,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
@@ -1965,8 +1962,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF002663),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primaryButton,
+                    foregroundColor: AppColors.primaryButtonText,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                   ),
@@ -1991,24 +1988,25 @@ class _NavigationScreenState extends State<NavigationScreen> {
         final navService = ActiveNavigationService();
         final isHazard = navService.isHazardActive;
         final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
+        final isDark = SettingsService().isDarkMode || SettingsService().selectedContrastTheme != 'Default';
 
         final Color cardBg = isHazard
             ? (navService.hazardSeverity == HazardSeverity.critical
-                ? Colors.red.shade50
-                : Colors.orange.shade50)
-            : Colors.grey.shade50;
+                ? (isDark ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.red.shade50)
+                : (isDark ? Colors.orange.shade900.withValues(alpha: 0.3) : Colors.orange.shade50))
+            : (isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade50);
 
         final Color borderColor = isHazard
             ? (navService.hazardSeverity == HazardSeverity.critical
-                ? Colors.red.shade300
-                : Colors.orange.shade300)
-            : Colors.grey.shade200;
+                ? Colors.red.shade400
+                : Colors.orange.shade400)
+            : AppColors.cardBorder.withValues(alpha: 0.4);
 
         final Color iconColor = isHazard
             ? (navService.hazardSeverity == HazardSeverity.critical
-                ? Colors.red.shade700
-                : Colors.orange.shade700)
-            : const Color(0xFF002663);
+                ? Colors.red.shade400
+                : Colors.orange.shade400)
+            : AppColors.primaryButton;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 20),
@@ -2055,10 +2053,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isHazard ? Colors.red.shade100 : Colors.green.shade50,
+                      color: isHazard ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.green.shade900.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isHazard ? Colors.red.shade300 : Colors.green.shade300,
+                        color: isHazard ? Colors.red.shade400 : Colors.green.shade400,
                       ),
                     ),
                     child: Row(
@@ -2078,7 +2076,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                           style: GoogleFonts.inter(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isHazard ? Colors.red.shade900 : Colors.green.shade800,
+                            color: isHazard ? Colors.red.shade400 : Colors.green.shade400,
                           ),
                         ),
                       ],
@@ -2097,8 +2095,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: navService.hazardSeverity == HazardSeverity.critical
-                            ? Colors.red.shade100
-                            : Colors.orange.shade100,
+                            ? Colors.red.shade900.withValues(alpha: 0.4)
+                            : Colors.orange.shade900.withValues(alpha: 0.4),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -2106,8 +2104,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
                             ? Icons.report_problem_rounded
                             : Icons.warning_amber_rounded,
                         color: navService.hazardSeverity == HazardSeverity.critical
-                            ? Colors.red.shade800
-                            : Colors.orange.shade800,
+                            ? Colors.red.shade300
+                            : Colors.orange.shade300,
                         size: 22,
                       ),
                     ),
@@ -2124,8 +2122,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: navService.hazardSeverity == HazardSeverity.critical
-                                  ? Colors.red.shade900
-                                  : Colors.orange.shade900,
+                                  ? Colors.red.shade300
+                                  : Colors.orange.shade300,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -2280,7 +2278,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF002663),
+                              color: AppColors.primaryText,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -2290,7 +2288,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                                 : "Real-time AI vision is actively scanning your path for hazards.",
                             style: GoogleFonts.inter(
                               fontSize: 11.5,
-                              color: Colors.grey.shade600,
+                              color: AppColors.textMuted,
                             ),
                           ),
                         ],

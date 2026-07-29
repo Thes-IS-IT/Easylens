@@ -97,20 +97,20 @@ class _MascotBannerState extends State<MascotBanner> {
         : _sweetMessagesEn[_activeMessageIndex];
 
     final bannerColor = isDefault 
-        ? const Color(0xFF3B82F6) 
-        : (isBlack ? AppColors.primaryBackground : Colors.black);
+        ? AppColors.primaryButton 
+        : AppColors.primaryButton;
         
     final bubbleBg = isDefault 
         ? Colors.white 
-        : AppColors.primaryBackground;
+        : (theme == 'Black on White' ? Colors.black : Colors.white);
         
-    final headerColor = isDefault 
+    final headerColor = isDefault || theme != 'Black on White'
         ? const Color(0xFF002663) 
-        : AppColors.primaryText;
+        : Colors.white;
         
-    final subtextColor = isDefault 
-        ? const Color(0xFF4A5568) 
-        : AppColors.primaryText;
+    final subtextColor = isDefault || theme != 'Black on White'
+        ? const Color(0xFF334155) 
+        : Colors.white70;
 
     final bannerBorder = isDefault
         ? null
