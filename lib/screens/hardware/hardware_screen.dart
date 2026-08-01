@@ -801,14 +801,29 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
     if (nv21Bytes != null && imgWidth != null && imgHeight != null && imgWidth > 0 && imgHeight > 0) {
       try {
-        final cropLeft = bbox.left.toInt().clamp(0, imgWidth - 1);
-        final cropTop = bbox.top.toInt().clamp(0, imgHeight - 1);
-        final cropRight = bbox.right.toInt().clamp(cropLeft + 1, imgWidth);
-        final cropBottom = bbox.bottom.toInt().clamp(cropTop + 1, imgHeight);
-        final cropW = cropRight - cropLeft;
-        final cropH = cropBottom - cropTop;
+        final rotation = _getImageRotation();
+        int cropLeft = 0;
+        int cropTop = 0;
+        int cropW = 0;
+        int cropH = 0;
 
-        if (cropW > 8 && cropH > 8) {
+        if (rotation == InputImageRotation.rotation90deg) {
+          final scaleX = imageSize.height > 0 ? imgWidth / imageSize.height : 1.0;
+          final scaleY = imageSize.width > 0 ? imgHeight / imageSize.width : 1.0;
+          cropLeft = (bbox.top * scaleX).toInt().clamp(0, imgWidth - 1);
+          cropTop = ((imageSize.width - bbox.right) * scaleY).toInt().clamp(0, imgHeight - 1);
+          cropW = (bbox.height * scaleX).toInt().clamp(1, imgWidth - cropLeft);
+          cropH = (bbox.width * scaleY).toInt().clamp(1, imgHeight - cropTop);
+        } else {
+          final scaleX = imageSize.width > 0 ? imgWidth / imageSize.width : 1.0;
+          final scaleY = imageSize.height > 0 ? imgHeight / imageSize.height : 1.0;
+          cropLeft = (bbox.left * scaleX).toInt().clamp(0, imgWidth - 1);
+          cropTop = (bbox.top * scaleY).toInt().clamp(0, imgHeight - 1);
+          cropW = (bbox.width * scaleX).toInt().clamp(1, imgWidth - cropLeft);
+          cropH = (bbox.height * scaleY).toInt().clamp(1, imgHeight - cropTop);
+        }
+
+        if (cropW > 4 && cropH > 4) {
           final faceImg = img.Image(width: cropW, height: cropH);
           final frameSize = imgWidth * imgHeight;
           for (int y = 0; y < cropH; y++) {
@@ -1035,7 +1050,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
                 imgHeight: _latestHeight,
               );
               String? matchedName;
-              double bestDistance = 0.28; // Optimal biometric matching threshold
+              double bestDistance = 0.40; // Optimal portrait face matching threshold
 
               for (final prof in _registeredFaces) {
                 if (assignedNamesInFrame.contains(prof.name)) continue; // 1 assignment per person per frame
