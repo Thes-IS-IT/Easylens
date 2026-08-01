@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image/image.dart' as img;
 import '../../services/face_registration_service.dart';
 import '../../constants/colors.dart';
 import '../dashboard/components/custom_navbar.dart';
@@ -133,7 +135,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
     }
   }
 
-  List<double> _extractFaceFeatures(Face face, Size imageSize) {
+  List<double> _extractFaceFeatures(Face face, Size imageSize, {Uint8List? rawBytes}) {
     final bbox = face.boundingBox;
     final width = bbox.width > 0 ? bbox.width : 1.0;
     final height = bbox.height > 0 ? bbox.height : 1.0;
@@ -178,7 +180,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       }
     }
 
-    return [
+    final features = <double>[
       eyeDist,
       eyeNoseDist,
       mouthWidth,
@@ -187,6 +189,37 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       nosePosY,
       mouthPosY,
     ];
+
+    if (rawBytes != null && rawBytes.isNotEmpty) {
+      try {
+        final decoded = img.decodeImage(rawBytes);
+        if (decoded != null) {
+          final cropLeft = bbox.left.toInt().clamp(0, decoded.width - 1);
+          final cropTop = bbox.top.toInt().clamp(0, decoded.height - 1);
+          final cropW = bbox.width.toInt().clamp(1, decoded.width - cropLeft);
+          final cropH = bbox.height.toInt().clamp(1, decoded.height - cropTop);
+          final cropped = img.copyCrop(decoded, x: cropLeft, y: cropTop, width: cropW, height: cropH);
+          final resized = img.copyResize(cropped, width: 8, height: 8);
+          
+          double sum = 0.0;
+          final grid = <double>[];
+          for (int y = 0; y < 8; y++) {
+            for (int x = 0; x < 8; x++) {
+              final p = resized.getPixel(x, y);
+              final luma = 0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
+              grid.add(luma);
+              sum += luma;
+            }
+          }
+          final avg = (sum / 64.0).clamp(1.0, 255.0);
+          for (final val in grid) {
+            features.add(val / (avg * 2.5));
+          }
+        }
+      } catch (_) {}
+    }
+
+    return features;
   }
 
   // ── Save profile ──────────────────────────────────────────────────────
@@ -201,7 +234,11 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
 
     List<double>? features;
     if (_detectedFaces.isNotEmpty) {
-      features = _extractFaceFeatures(_detectedFaces.first, _imageSize);
+      Uint8List? rawBytes;
+      if (_pickedImage != null && await _pickedImage!.exists()) {
+        rawBytes = await _pickedImage!.readAsBytes();
+      }
+      features = _extractFaceFeatures(_detectedFaces.first, _imageSize, rawBytes: rawBytes);
     }
 
     final profile = FaceProfile(

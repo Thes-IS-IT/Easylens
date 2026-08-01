@@ -744,7 +744,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     );
   }
 
-  List<double> _extractFaceFeatures(Face face, Size imageSize) {
+  List<double> _extractFaceFeatures(Face face, Size imageSize, {Uint8List? nv21Bytes, int? imgWidth, int? imgHeight, Uint8List? imageFileBytes}) {
     final bbox = face.boundingBox;
     final width = bbox.width > 0 ? bbox.width : 1.0;
     final height = bbox.height > 0 ? bbox.height : 1.0;
@@ -789,7 +789,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
       }
     }
 
-    return [
+    final features = <double>[
       eyeDist,
       eyeNoseDist,
       mouthWidth,
@@ -798,16 +798,86 @@ class _HardwareScreenState extends State<HardwareScreen> {
       nosePosY,
       mouthPosY,
     ];
+
+    if (nv21Bytes != null && imgWidth != null && imgHeight != null && imgWidth > 0 && imgHeight > 0) {
+      try {
+        final cropLeft = bbox.left.toInt().clamp(0, imgWidth - 1);
+        final cropTop = bbox.top.toInt().clamp(0, imgHeight - 1);
+        final cropRight = bbox.right.toInt().clamp(cropLeft + 1, imgWidth);
+        final cropBottom = bbox.bottom.toInt().clamp(cropTop + 1, imgHeight);
+        final cropW = cropRight - cropLeft;
+        final cropH = cropBottom - cropTop;
+
+        if (cropW > 8 && cropH > 8) {
+          final faceImg = img.Image(width: cropW, height: cropH);
+          final frameSize = imgWidth * imgHeight;
+          for (int y = 0; y < cropH; y++) {
+            final srcY = cropTop + y;
+            for (int x = 0; x < cropW; x++) {
+              final srcX = cropLeft + x;
+              final yIndex = srcY * imgWidth + srcX;
+              if (yIndex < frameSize) {
+                final luma = nv21Bytes[yIndex] & 0xFF;
+                faceImg.setPixelRgb(x, y, luma, luma, luma);
+              }
+            }
+          }
+          final resized = img.copyResize(faceImg, width: 8, height: 8);
+          double sum = 0.0;
+          final grid = <double>[];
+          for (int y = 0; y < 8; y++) {
+            for (int x = 0; x < 8; x++) {
+              final p = resized.getPixel(x, y);
+              final luma = p.r.toDouble();
+              grid.add(luma);
+              sum += luma;
+            }
+          }
+          final avg = (sum / 64.0).clamp(1.0, 255.0);
+          for (final val in grid) {
+            features.add(val / (avg * 2.5));
+          }
+        }
+      } catch (_) {}
+    } else if (imageFileBytes != null && imageFileBytes.isNotEmpty) {
+      try {
+        final decoded = img.decodeImage(imageFileBytes);
+        if (decoded != null) {
+          final cropLeft = bbox.left.toInt().clamp(0, decoded.width - 1);
+          final cropTop = bbox.top.toInt().clamp(0, decoded.height - 1);
+          final cropW = bbox.width.toInt().clamp(1, decoded.width - cropLeft);
+          final cropH = bbox.height.toInt().clamp(1, decoded.height - cropTop);
+          final cropped = img.copyCrop(decoded, x: cropLeft, y: cropTop, width: cropW, height: cropH);
+          final resized = img.copyResize(cropped, width: 8, height: 8);
+
+          double sum = 0.0;
+          final grid = <double>[];
+          for (int y = 0; y < 8; y++) {
+            for (int x = 0; x < 8; x++) {
+              final p = resized.getPixel(x, y);
+              final luma = 0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
+              grid.add(luma);
+              sum += luma;
+            }
+          }
+          final avg = (sum / 64.0).clamp(1.0, 255.0);
+          for (final val in grid) {
+            features.add(val / (avg * 2.5));
+          }
+        }
+      } catch (_) {}
+    }
+
+    return features;
   }
 
   double _compareFaceFeatures(List<double> v1, List<double> v2) {
     final len = math.min(v1.length, v2.length);
     if (len < 5) return double.infinity;
-    final weights = [3.0, 3.0, 2.0, 2.0, 2.0, 2.0, 2.0];
     double weightedSumSq = 0.0;
     double totalWeight = 0.0;
     for (int i = 0; i < len; i++) {
-      final w = i < weights.length ? weights[i] : 1.0;
+      final w = i < 7 ? 2.0 : 3.5;
       final diff = v1[i] - v2[i];
       weightedSumSq += w * diff * diff;
       totalWeight += w;
@@ -830,12 +900,13 @@ class _HardwareScreenState extends State<HardwareScreen> {
     try {
       for (int i = 0; i < profiles.length; i++) {
         final prof = profiles[i];
-        if ((prof.faceFeatures == null || prof.faceFeatures!.isEmpty || prof.faceFeatures!.length != 7) &&
+        if ((prof.faceFeatures == null || prof.faceFeatures!.isEmpty || prof.faceFeatures!.length != 71) &&
             prof.imageLocalPath != null) {
           try {
             final file = File(prof.imageLocalPath!);
             if (await file.exists()) {
-              final decodedImage = await decodeImageFromList(await file.readAsBytes());
+              final fileBytes = await file.readAsBytes();
+              final decodedImage = await decodeImageFromList(fileBytes);
               final imgSize = Size(
                 decodedImage.width.toDouble(),
                 decodedImage.height.toDouble(),
@@ -843,7 +914,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
               final inputImage = InputImage.fromFile(file);
               final faces = await accurateDetector.processImage(inputImage);
               if (faces.isNotEmpty) {
-                final feats = _extractFaceFeatures(faces.first, imgSize);
+                final feats = _extractFaceFeatures(faces.first, imgSize, imageFileBytes: fileBytes);
                 final updatedProf = FaceProfile(
                   id: prof.id,
                   name: prof.name,
@@ -956,7 +1027,13 @@ class _HardwareScreenState extends State<HardwareScreen> {
             if (matchedPrevId != null) {
               _faceIdToNameMap[id] = _faceIdToNameMap[matchedPrevId]!;
             } else if (isPrimaryFace && _registeredFaces.isNotEmpty) {
-              final detectedFeats = _extractFaceFeatures(face, imageSize);
+              final detectedFeats = _extractFaceFeatures(
+                face, 
+                imageSize, 
+                nv21Bytes: _latestNv21Bytes, 
+                imgWidth: _latestWidth, 
+                imgHeight: _latestHeight,
+              );
               String? matchedName;
               double bestDistance = 0.28; // Optimal biometric matching threshold
 
