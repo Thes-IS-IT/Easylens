@@ -179,16 +179,17 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
       // 3. Sync Emergency SOS Contact to Cloud Firestore & EmergencyContactService
       if (sosName.isNotEmpty || sosPhone.isNotEmpty) {
+        final normPhone = EmergencyContactService.normalizePhoneNumber(sosPhone);
         final sosJson = {
-          'name': sosName,
-          'phone': sosPhone,
-          'relationship': sosRel,
+          'name': sosName.isNotEmpty ? sosName : "SOS Contact",
+          'phone': normPhone,
+          'relationship': sosRel.isNotEmpty ? sosRel : "Family",
         };
         await _firebaseService.syncContactToCloud(user.uid, sosJson);
         await EmergencyContactService().saveContact(
           SharedEmergencyContact(
             name: sosName.isNotEmpty ? sosName : "SOS Contact",
-            phone: sosPhone,
+            phone: normPhone,
             relationship: sosRel.isNotEmpty ? sosRel : "Family",
             isActive: true,
           ),
@@ -270,62 +271,74 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
           body: SafeArea(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 1. Floating Pill Back Button
-                        GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          child: Container(
-                            height: 44,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
-                              boxShadow: isDefault
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.06),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 3),
-                                      )
-                                    ]
-                                  : null,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.chevron_left, color: headerColor, size: 24),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Back',
-                                  style: GoogleFonts.inter(
-                                    color: headerColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Sticky Header Bar (Back Button + Title)
+                      Container(
+                        color: AppColors.lightBackground,
+                        padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () => Navigator.of(context).pop(),
+                              child: Container(
+                                height: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
+                                  boxShadow: isDefault
+                                      ? [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.06),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3),
+                                          )
+                                        ]
+                                      : null,
                                 ),
-                              ],
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.chevron_left, color: headerColor, size: 24),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Back',
+                                      style: GoogleFonts.inter(
+                                        color: headerColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Profile Details',
+                              style: GoogleFonts.inter(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w900,
+                                color: headerColor,
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
 
-                        const SizedBox(height: 24),
-
-                        // 2. Title Header
-                        Text(
-                          'Profile Details',
-                          style: GoogleFonts.inter(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w900,
-                            color: headerColor,
-                          ),
-                        ),
+                      // Scrollable Content
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
 
                         const SizedBox(height: 24),
 
@@ -579,6 +592,9 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                       ],
                     ),
                   ),
+                ),
+              ],
+            ),
           ),
         );
       },

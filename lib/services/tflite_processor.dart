@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
+import 'package:image/image.dart' as img;
 
 class TfliteProcessor {
   Interpreter? _interpreter;
@@ -129,6 +130,31 @@ class TfliteProcessor {
         rgb[outIdx + 1] = g;
         rgb[outIdx + 2] = b;
       }
+    }
+    return rgb;
+  }
+
+  /// Converts JPG image bytes (e.g. from ESP32-CAM stream) to a 300×300 RGB Uint8List.
+  Uint8List prepareInputFromJpg(Uint8List jpgBytes) {
+    final int targetSize = _inputSize; // 300
+    final rgb = Uint8List(targetSize * targetSize * 3);
+    try {
+      final img.Image? decoded = img.decodeJpg(jpgBytes);
+      if (decoded == null) return rgb;
+
+      final img.Image resized = img.copyResize(decoded, width: targetSize, height: targetSize);
+
+      int idx = 0;
+      for (int y = 0; y < targetSize; y++) {
+        for (int x = 0; x < targetSize; x++) {
+          final pixel = resized.getPixel(x, y);
+          rgb[idx++] = pixel.r.toInt();
+          rgb[idx++] = pixel.g.toInt();
+          rgb[idx++] = pixel.b.toInt();
+        }
+      }
+    } catch (e) {
+      print('[SSD] Error decoding JPG input: $e');
     }
     return rgb;
   }

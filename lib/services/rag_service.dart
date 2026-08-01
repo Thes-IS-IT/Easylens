@@ -1035,17 +1035,7 @@ class RagService {
       location: dynContext['location']!,
     );
 
-    String localResult = '';
-    final modelPath = await _getLocalModelPath();
-    if (modelPath != null) {
-      try {
-        localResult = await _queryGemmaOffline(userPrompt, systemInstruction: systemPrompt);
-      } catch (_) {
-        localResult = generateSmartLocalResponse(question);
-      }
-    } else {
-      localResult = generateSmartLocalResponse(question);
-    }
+    final localResult = generateSmartLocalResponse(question);
     _logToJournal(question, localResult);
     return localResult;
   }
@@ -1110,6 +1100,28 @@ class RagService {
     return null;
   }
 
+  String _translateLabelsToTagalog(String rawLabels) {
+    String text = rawLabels.toLowerCase();
+    text = text.replaceAll('laptop or computer screen', 'laptop o computer screen');
+    text = text.replaceAll('laptop or keyboard', 'laptop o keyboard');
+    text = text.replaceAll('cup or tableware', 'baso o kagamitan sa kainan');
+    text = text.replaceAll('suitcase', 'maleta o bag');
+    text = text.replaceAll('tv', 'telebisyon');
+    text = text.replaceAll('television', 'telebisyon');
+    text = text.replaceAll('chair', 'upuan');
+    text = text.replaceAll('couch', 'sofa');
+    text = text.replaceAll('table', 'mesa');
+    text = text.replaceAll('desk', 'lamesa');
+    text = text.replaceAll('door', 'pinto');
+    text = text.replaceAll('window', 'bintana');
+    text = text.replaceAll('person', 'tao');
+    text = text.replaceAll('bottle', 'bote');
+    text = text.replaceAll('car', 'sasakyan');
+    text = text.replaceAll('stair', 'hagdan');
+    text = text.replaceAll('wall', 'pader');
+    return text;
+  }
+
   String generateSmartLocalResponse(String question, {String? visionContext}) {
     // Extract actual user question and environment labels if passed in prompt template
     String userQuestion = question;
@@ -1144,7 +1156,25 @@ class RagService {
         : "None";
 
     final lang = SettingsService().selectedLanguage;
-    final isUserFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    final isTagalogQuestion = lowerQ.contains("ano") ||
+        lowerQ.contains("paano") ||
+        lowerQ.contains("bakit") ||
+        lowerQ.contains("saan") ||
+        lowerQ.contains("sino") ||
+        lowerQ.contains("kamusta") ||
+        lowerQ.contains("kumusta") ||
+        lowerQ.contains("salamat") ||
+        lowerQ.contains("tulong") ||
+        lowerQ.contains("harap") ||
+        lowerQ.contains("nakikita") ||
+        lowerQ.contains("ilarawan") ||
+        lowerQ.contains("tingin") ||
+        lowerQ.contains("meron") ||
+        lowerQ.contains("mayroon") ||
+        lowerQ.contains("nasaan");
+    final isUserFilipino = lang.toLowerCase().contains('tagalog') ||
+        lang.toLowerCase().contains('filipino') ||
+        isTagalogQuestion;
 
     final cleanQ = lowerQ.replaceAll(RegExp(r'[^\w\s]'), '').trim();
 
@@ -1163,9 +1193,12 @@ class RagService {
 
     if (isVisionQuery || (extractedLabels != null && extractedLabels.isNotEmpty && question.startsWith("You are Buddy"))) {
       if (extractedLabels != null && extractedLabels.trim().isNotEmpty && extractedLabels != "None") {
+        final formattedLabels = isUserFilipino
+            ? _translateLabelsToTagalog(extractedLabels)
+            : extractedLabels;
         return isUserFilipino
-            ? "Nakikita ko ang $extractedLabels sa iyong harapan. Paano pa kita matutulungan?"
-            : "I see $extractedLabels in front of you. How else can I help?";
+            ? "Nakikita ko ang $formattedLabels sa iyong harapan. Paano pa kita matutulungan?"
+            : "I see $formattedLabels in front of you. How else can I help?";
       } else {
         return isUserFilipino
             ? "Wala akong makitang malinaw na bagay sa iyong harapan sa ngayon."

@@ -947,11 +947,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       // 5. Store/Sync SOS Contact to EmergencyContactService & Firestore
       if (_sosName.isNotEmpty || _sosPhone.isNotEmpty) {
+        final normSosPhone = EmergencyContactService.normalizePhoneNumber(_sosPhone);
         try {
           await EmergencyContactService().saveContact(
             SharedEmergencyContact(
               name: _sosName.isNotEmpty ? _sosName : "SOS Contact",
-              phone: _sosPhone,
+              phone: normSosPhone,
               relationship: _sosRelationship.isNotEmpty ? _sosRelationship : "Family",
               isActive: true,
             ),
@@ -961,9 +962,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
 
         final sosJson = {
-          'name': _sosName,
-          'phone': _sosPhone,
-          'relationship': _sosRelationship,
+          'name': _sosName.isNotEmpty ? _sosName : "SOS Contact",
+          'phone': normSosPhone,
+          'relationship': _sosRelationship.isNotEmpty ? _sosRelationship : "Family",
         };
         try {
           await _firebaseService.syncContactToCloud(user.uid, sosJson);

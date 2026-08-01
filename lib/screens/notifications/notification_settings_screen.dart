@@ -132,172 +132,135 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Back Button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: isDefault ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      )
-                    ] : null,
-                    border: cardBorder,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.chevron_left, color: headerTextColor, size: 24),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Back',
-                        style: GoogleFonts.inter(
-                          color: headerTextColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Title
-              Text(
-                'Notifications',
-                style: GoogleFonts.inter(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: headerTextColor,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Dynamic Content Box
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20.0),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(24.0),
-                  boxShadow: isDefault ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    )
-                  ] : null,
-                  border: cardBorder,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Notifications Main Switch
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Notifications',
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: textColor,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Get a daily Buddy follow-up plus near-due alerts for obstacles, battery, and connections.',
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  color: secondaryTextColor,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Switch(
-                          value: _allNotifications,
-                          onChanged: (val) {
-                            setState(() {
-                              _allNotifications = val;
-                              if (!val) {
-                                _buddyFollowUp = false;
-                                _obstacleAlerts = false;
-                                _batteryAlerts = false;
-                                _connectionAlerts = false;
-                              } else {
-                                _buddyFollowUp = true;
-                                _obstacleAlerts = true;
-                              }
-                            });
-                            _saveNotificationSettings();
-                          },
-                          activeColor: Colors.white,
-                          activeTrackColor: activeColor,
-                          inactiveThumbColor: Colors.white,
-                          inactiveTrackColor: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Reminder Time info
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Sticky Header Bar (Back Button + Title)
+            Container(
+              color: AppColors.lightBackground,
+              padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: subCardBg,
-                        borderRadius: BorderRadius.circular(16),
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: isDefault ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          )
+                        ] : null,
                         border: cardBorder,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          Icon(Icons.chevron_left, color: headerTextColor, size: 24),
+                          const SizedBox(width: 4),
                           Text(
-                            'Reminder time',
+                            'Back',
                             style: GoogleFonts.inter(
+                              color: headerTextColor,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Buddy sends your daily follow-up at 8:00 PM. Obstacle, battery, and connection alerts use the same time.',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: secondaryTextColor,
-                              height: 1.4,
+                              fontSize: 16,
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Notification Settings',
+                    style: GoogleFonts.inter(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900,
+                      color: headerTextColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 2. Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    
+                    // Main Master Switch Card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(24),
+                        border: cardBorder,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Allow Notifications',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                              Switch(
+                                value: _allNotifications,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _allNotifications = val;
+                                    if (!val) {
+                                      _buddyFollowUp = false;
+                                      _obstacleAlerts = false;
+                                      _batteryAlerts = false;
+                                      _connectionAlerts = false;
+                                    }
+                                  });
+                                  _saveNotificationSettings();
+                                },
+                                activeColor: isDark ? AppColors.primaryButtonText : Colors.white,
+                                activeTrackColor: activeColor,
+                                inactiveThumbColor: Colors.white,
+                                inactiveTrackColor: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Get a daily Buddy follow-up plus near-due alerts for obstacles, battery, and connections.',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: secondaryTextColor,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
 
                     // Buddy follow-up switch
                     _buildToggleTile(
                       title: 'Buddy follow-up',
-                      description: 'Send one daily follow-up. If you haven\'t navigated today, Buddy nudges you. If you have, Buddy sends a light reinforcement check-in.',
+                      description: 'Send one daily follow-up. If you haven\'t navigated today, Buddy nudges you.',
                       value: _buddyFollowUp,
                       onChanged: !_allNotifications ? (_) {} : (val) {
                         setState(() => _buddyFollowUp = val);
@@ -340,8 +303,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

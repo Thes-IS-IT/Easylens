@@ -249,6 +249,52 @@ class HudCameraView extends StatelessWidget {
                               ),
                             );
                           })
+                      else if (detectedObjectsList.isNotEmpty)
+                        ...detectedObjectsList.map((obj) {
+                            final r = obj.boundingBox;
+                            final double imgWidth = faceImageSize != Size.zero ? faceImageSize.width : 640.0;
+                            final double imgHeight = faceImageSize != Size.zero ? faceImageSize.height : 480.0;
+                            
+                            double left = ((1.0 - (r.bottom / imgHeight)) * constraints.maxWidth).clamp(0.0, constraints.maxWidth);
+                            double top = ((r.left / imgWidth) * constraints.maxHeight).clamp(0.0, constraints.maxHeight);
+                            double width = (((r.bottom - r.top) / imgHeight) * constraints.maxWidth).clamp(0.0, constraints.maxWidth - left);
+                            double height = (((r.right - r.left) / imgWidth) * constraints.maxHeight).clamp(0.0, constraints.maxHeight - top);
+                            
+                            final rawLabel = obj.labels.isNotEmpty ? obj.labels.first.text : 'Object';
+                            final label = _refineLabel(rawLabel);
+                            final displayLabel = '${label[0].toUpperCase()}${label.substring(1)} (Tracked)';
+
+                            return AnimatedPositioned(
+                              key: ValueKey(obj.trackingId?.toString() ?? (label + r.left.toString())),
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOutCubic,
+                              left: left,
+                              top: top,
+                              width: width.clamp(0.0, constraints.maxWidth - left),
+                              height: height.clamp(0.0, constraints.maxHeight - top),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: const Color(0xFFF59E0B), width: 2.5),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Container(
+                                    color: const Color(0xFFF59E0B),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    child: Text(
+                                      displayLabel,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          })
                     ] else if (selectedHudMode == HudMode.navigation) ...[
                       if (detectedObjectsList.isNotEmpty)
                         ...detectedObjectsList.map((obj) {

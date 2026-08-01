@@ -19,7 +19,7 @@ class NavigationVoiceAssistant {
         : "What destination would you like to search for?";
 
     await TtsService().speakAwait(prompt);
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 500));
 
     String recognizedQuery = "";
     final completer = Completer<String>();
@@ -27,6 +27,7 @@ class NavigationVoiceAssistant {
     await SttService().startListening(
       onListeningStateChanged: (_) {},
       onResult: (text, isFinal) {
+        if (TtsService().isSpeaking || TtsService().isSelfEcho(text)) return;
         if (text.trim().isNotEmpty) {
           recognizedQuery = text.trim();
           if (isFinal && !completer.isCompleted) {

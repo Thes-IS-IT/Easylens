@@ -70,6 +70,16 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   Future<void> _importContactFromPhone() async {
     final messenger = ScaffoldMessenger.of(context);
+    if (_contacts.length >= 3) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Maximum limit of 3 emergency contacts reached. Please delete an existing contact first.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     try {
       try {
         await fc.FlutterContacts.permissions.request(fc.PermissionType.read);
@@ -96,34 +106,36 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ? displayName
             : ('$firstName $lastName').trim();
 
-        String phone = '';
+        String rawPhone = '';
         if (fullContact.phones.isNotEmpty) {
           final numStr = fullContact.phones.firstWhere(
             (p) => p.number.trim().isNotEmpty,
             orElse: () => fullContact!.phones.first,
           ).number;
-          phone = _sanitizePhone(numStr);
+          rawPhone = numStr;
         }
 
-        if (phone.isEmpty && name.isNotEmpty) {
+        if (rawPhone.isEmpty && name.isNotEmpty) {
           try {
             final allContacts = await fc.FlutterContacts.getAll(
               properties: {fc.ContactProperty.phone, fc.ContactProperty.name},
             );
             for (final c in allContacts) {
               if ((c.displayName ?? '').toLowerCase() == name.toLowerCase() && c.phones.isNotEmpty) {
-                phone = _sanitizePhone(c.phones.first.number);
+                rawPhone = c.phones.first.number;
                 break;
               }
             }
           } catch (_) {}
         }
 
-        if (phone.isEmpty) {
+        final normPhone = EmergencyContactService.normalizePhoneNumber(rawPhone);
+
+        if (normPhone.isEmpty || !EmergencyContactService.isValidPHPhoneNumber(normPhone)) {
           if (mounted) {
             messenger.showSnackBar(
               const SnackBar(
-                content: Text('Selected contact does not have a valid phone number.'),
+                content: Text('Selected contact does not have a valid 11-digit Philippine mobile number.'),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -133,12 +145,23 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
         final newShared = SharedEmergencyContact(
           name: name.isNotEmpty ? name : 'Imported Contact',
-          phone: phone,
+          phone: normPhone,
           relationship: 'Friend',
           isActive: true,
         );
 
-        await EmergencyContactService().saveContact(newShared);
+        final saved = await EmergencyContactService().saveContact(newShared);
+        if (!saved) {
+          if (mounted) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Maximum limit of 3 emergency contacts reached.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
 
         final user = FirebaseService().currentUser;
         if (user != null) {
@@ -152,7 +175,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         if (mounted) {
           messenger.showSnackBar(
             SnackBar(
-              content: Text('Imported contact: $name ($phone)'),
+              content: Text('Imported contact: $name ($normPhone)'),
               backgroundColor: Colors.green,
             ),
           );
@@ -195,9 +218,22 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   void _showAddContactModal() {
+    if (_contacts.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum limit of 3 emergency contacts reached. Please delete an existing contact first.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final relationshipController = TextEditingController();
+
+    String? nameError;
+    String? phoneError;
 
     showGeneralDialog(
       context: context,
@@ -225,209 +261,261 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   topLeft: Radius.circular(30),
                   topRight: Radius.circular(30),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 36.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Form Header block
-                      Row(
+                child: StatefulBuilder(
+                  builder: (context, setModalState) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 36.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF002663),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.person_add_alt_1,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          // Form Header block
+                          Row(
                             children: [
-                              Text(
-                                'Add Contact',
-                                style: GoogleFonts.inter(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF002663),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.person_add_alt_1,
+                                  color: Colors.white,
+                                  size: 24,
                                 ),
                               ),
-                              Text(
-                                'Emergency contact details',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: const Color(0xFF64748B),
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Add Contact',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Emergency contact details',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Full Name input
+                          Text(
+                            'FULL NAME',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: nameController,
+                            decoration: InputDecoration(
+                              hintText: 'Enter name',
+                              errorText: nameError,
+                              prefixIcon: const Icon(Icons.person_outline),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                            onChanged: (_) {
+                              if (nameError != null) {
+                                setModalState(() => nameError = null);
+                              }
+                            },
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Phone Number input
+                          Text(
+                            'PHONE NUMBER',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: phoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: 'Enter number (e.g. 09171234567)',
+                              errorText: phoneError,
+                              prefixIcon: const Icon(Icons.phone_outlined),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                            onChanged: (_) {
+                              if (phoneError != null) {
+                                setModalState(() => phoneError = null);
+                              }
+                            },
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Relationship input
+                          Text(
+                            'RELATIONSHIP (E.G. FAMILY)',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: relationshipController,
+                            decoration: InputDecoration(
+                              hintText: 'Enter relationship',
+                              prefixIcon: const Icon(Icons.favorite_border),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 32),
+                          
+                          // Action buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                    ),
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: Text(
+                                      'Cancel',
+                                      style: GoogleFonts.inter(
+                                        color: const Color(0xFF64748B),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryButton,
+                                      foregroundColor: AppColors.primaryButtonText,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                    ),
+                                    onPressed: () async {
+                                      final rawName = nameController.text.trim();
+                                      final rawPhone = phoneController.text.trim();
+
+                                      String? nErr;
+                                      String? pErr;
+
+                                      if (rawName.isEmpty) {
+                                        nErr = 'Please enter full name';
+                                      }
+                                      if (rawPhone.isEmpty) {
+                                        pErr = 'Please enter phone number';
+                                      } else if (!EmergencyContactService.isValidPHPhoneNumber(rawPhone)) {
+                                        pErr = 'Please enter a valid 11-digit Philippine number (e.g. 09171234567)';
+                                      }
+
+                                      if (nErr != null || pErr != null) {
+                                        setModalState(() {
+                                          nameError = nErr;
+                                          phoneError = pErr;
+                                        });
+                                        return;
+                                      }
+
+                                      final phone = EmergencyContactService.normalizePhoneNumber(rawPhone);
+                                      final rel = relationshipController.text.trim().isNotEmpty
+                                          ? relationshipController.text.trim()
+                                          : 'Family';
+
+                                      final contact = SharedEmergencyContact(
+                                        name: rawName,
+                                        phone: phone,
+                                        relationship: rel,
+                                        isActive: true,
+                                      );
+
+                                      final saved = await EmergencyContactService().saveContact(contact);
+
+                                      if (!saved) {
+                                        setModalState(() {
+                                          phoneError = 'Maximum limit of 3 emergency contacts reached.';
+                                        });
+                                        return;
+                                      }
+
+                                      final user = FirebaseService().currentUser;
+                                      if (user != null) {
+                                        try {
+                                          await FirebaseService().syncContactToCloud(user.uid, contact.toJson());
+                                        } catch (_) {}
+                                      }
+
+                                      await _loadContacts();
+                                      if (context.mounted) {
+                                        Navigator.of(context).pop();
+                                      }
+                                    },
+                                    child: Text(
+                                      'Add Contact',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ],
                       ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Full Name input
-                      Text(
-                        'FULL NAME',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF64748B),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: nameController,
-                        decoration: InputDecoration(
-                          hintText: 'Enter name',
-                          prefixIcon: const Icon(Icons.person_outline),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Phone Number input
-                      Text(
-                        'PHONE NUMBER',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF64748B),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          hintText: 'Enter number',
-                          prefixIcon: const Icon(Icons.phone_outlined),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Relationship input
-                      Text(
-                        'RELATIONSHIP (E.G. FAMILY)',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF64748B),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: relationshipController,
-                        decoration: InputDecoration(
-                          hintText: 'Enter relationship',
-                          prefixIcon: const Icon(Icons.favorite_border),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      // Action buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 48,
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                ),
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: Text(
-                                  'Cancel',
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFF64748B),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: SizedBox(
-                              height: 48,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryButton,
-                                  foregroundColor: AppColors.primaryButtonText,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  if (nameController.text.trim().isNotEmpty &&
-                                      phoneController.text.trim().isNotEmpty) {
-                                    final name = nameController.text.trim();
-                                    final rawPhone = phoneController.text.trim();
-                                    final phone = SmsService().formatPhoneNumber(rawPhone);
-                                    final rel = relationshipController.text.trim();
-                                    await EmergencyContactService().saveContact(
-                                      SharedEmergencyContact(
-                                        name: name,
-                                        phone: phone,
-                                        relationship: rel,
-                                        isActive: true,
-                                      ),
-                                    );
-                                    await _loadContacts();
-                                    if (context.mounted) {
-                                      Navigator.of(context).pop();
-                                    }
-                                  }
-                                },
-                                child: Text(
-                                  'Add Contact',
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -442,6 +530,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
     final phoneController = TextEditingController(text: c.phone);
     final relationshipController = TextEditingController(text: c.relationship);
     final originalPhone = c.phone;
+
+    String? nameError;
+    String? phoneError;
 
     showGeneralDialog(
       context: context,
@@ -469,205 +560,263 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   topLeft: Radius.circular(30),
                   topRight: Radius.circular(30),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 36.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                child: StatefulBuilder(
+                  builder: (context, setModalState) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 36.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF002663),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.edit_outlined,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Row(
                             children: [
-                              Text(
-                                'Edit Contact',
-                                style: GoogleFonts.inter(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF002663),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.edit_outlined,
+                                  color: Colors.white,
+                                  size: 24,
                                 ),
                               ),
-                              Text(
-                                'Update emergency contact details',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: const Color(0xFF64748B),
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Edit Contact',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Update emergency contact details',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
+                          Text(
+                            'FULL NAME',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: nameController,
+                            decoration: InputDecoration(
+                              hintText: 'Enter name',
+                              errorText: nameError,
+                              prefixIcon: const Icon(Icons.person_outline),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                            onChanged: (_) {
+                              if (nameError != null) {
+                                setModalState(() => nameError = null);
+                              }
+                            },
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          Text(
+                            'PHONE NUMBER',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: phoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: 'Enter number (e.g. 09171234567)',
+                              errorText: phoneError,
+                              prefixIcon: const Icon(Icons.phone_outlined),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                            onChanged: (_) {
+                              if (phoneError != null) {
+                                setModalState(() => phoneError = null);
+                              }
+                            },
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          Text(
+                            'RELATIONSHIP (E.G. FAMILY)',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF64748B),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: relationshipController,
+                            decoration: InputDecoration(
+                              hintText: 'Enter relationship',
+                              prefixIcon: const Icon(Icons.favorite_border),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 32),
+                          
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                    ),
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: Text(
+                                      'Cancel',
+                                      style: GoogleFonts.inter(
+                                        color: const Color(0xFF64748B),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryButton,
+                                      foregroundColor: AppColors.primaryButtonText,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                    ),
+                                    onPressed: () async {
+                                      final rawName = nameController.text.trim();
+                                      final rawPhone = phoneController.text.trim();
+
+                                      String? nErr;
+                                      String? pErr;
+
+                                      if (rawName.isEmpty) {
+                                        nErr = 'Please enter full name';
+                                      }
+                                      if (rawPhone.isEmpty) {
+                                        pErr = 'Please enter phone number';
+                                      } else if (!EmergencyContactService.isValidPHPhoneNumber(rawPhone)) {
+                                        pErr = 'Please enter a valid 11-digit Philippine number (e.g. 09171234567)';
+                                      }
+
+                                      if (nErr != null || pErr != null) {
+                                        setModalState(() {
+                                          nameError = nErr;
+                                          phoneError = pErr;
+                                        });
+                                        return;
+                                      }
+
+                                      final newPhone = EmergencyContactService.normalizePhoneNumber(rawPhone);
+                                      final rel = relationshipController.text.trim().isNotEmpty
+                                          ? relationshipController.text.trim()
+                                          : 'Family';
+
+                                      final updatedContact = SharedEmergencyContact(
+                                        name: rawName,
+                                        phone: newPhone,
+                                        relationship: rel,
+                                        isActive: c.isActive,
+                                      );
+
+                                      // If phone changed, delete old phone from cloud first
+                                      final normOriginal = EmergencyContactService.normalizePhoneNumber(originalPhone);
+                                      if (normOriginal != newPhone) {
+                                        final user = FirebaseService().currentUser;
+                                        if (user != null) {
+                                          try {
+                                            await FirebaseService().deleteContactFromCloud(user.uid, originalPhone);
+                                          } catch (_) {}
+                                        }
+                                      }
+
+                                      await EmergencyContactService().updateContact(
+                                        originalPhone,
+                                        updatedContact,
+                                      );
+
+                                      final user = FirebaseService().currentUser;
+                                      if (user != null) {
+                                        try {
+                                          await FirebaseService().syncContactToCloud(user.uid, updatedContact.toJson());
+                                        } catch (_) {}
+                                      }
+
+                                      await _loadContacts();
+                                      if (context.mounted) {
+                                        Navigator.of(context).pop();
+                                      }
+                                    },
+                                    child: Text(
+                                      'Save Changes',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ],
                       ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      Text(
-                        'FULL NAME',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF64748B),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: nameController,
-                        decoration: InputDecoration(
-                          hintText: 'Enter name',
-                          prefixIcon: const Icon(Icons.person_outline),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      Text(
-                        'PHONE NUMBER',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF64748B),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          hintText: 'Enter number',
-                          prefixIcon: const Icon(Icons.phone_outlined),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      Text(
-                        'RELATIONSHIP (E.G. FAMILY)',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF64748B),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: relationshipController,
-                        decoration: InputDecoration(
-                          hintText: 'Enter relationship',
-                          prefixIcon: const Icon(Icons.favorite_border),
-                          filled: true,
-                          fillColor: const Color(0xFFF8FAFC),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 48,
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                ),
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: Text(
-                                  'Cancel',
-                                  style: GoogleFonts.inter(
-                                    color: const Color(0xFF64748B),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: SizedBox(
-                              height: 48,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryButton,
-                                  foregroundColor: AppColors.primaryButtonText,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  if (nameController.text.trim().isNotEmpty &&
-                                      phoneController.text.trim().isNotEmpty) {
-                                    final name = nameController.text.trim();
-                                    final rawPhone = phoneController.text.trim();
-                                    final phone = SmsService().formatPhoneNumber(rawPhone);
-                                    final rel = relationshipController.text.trim();
-                                    await EmergencyContactService().updateContact(
-                                      originalPhone,
-                                      SharedEmergencyContact(
-                                        name: name,
-                                        phone: phone,
-                                        relationship: rel,
-                                        isActive: c.isActive,
-                                      ),
-                                    );
-                                    await _loadContacts();
-                                    if (context.mounted) {
-                                      Navigator.of(context).pop();
-                                    }
-                                  }
-                                },
-                                child: Text(
-                                  'Save Changes',
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),

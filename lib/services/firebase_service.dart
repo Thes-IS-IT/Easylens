@@ -501,21 +501,45 @@ class FirebaseService {
   Future<void> syncContactToCloud(String userId, Map<String, dynamic> contactJson) async {
     if (_firebaseInitialized) {
       try {
-        final contactId = (contactJson['phone'] as String? ?? 'contact')
-            .replaceAll(RegExp(r'\s+'), '');
+        final rawPhone = contactJson['phone'] as String? ?? '';
+        final normalizedPhone = EmergencyContactService.normalizePhoneNumber(rawPhone);
+        final updatedJson = Map<String, dynamic>.from(contactJson)..['phone'] = normalizedPhone;
+        final contactId = normalizedPhone.replaceAll(RegExp(r'\s+'), '');
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
             .collection('contacts')
             .doc(contactId)
-            .set(contactJson);
-        print('Firestore: Contact saved for $userId.');
+            .set(updatedJson);
+        print('Firestore: Contact saved for $userId ($contactId).');
       } catch (e) {
         print('Firestore contact sync error: $e');
       }
     } else {
       await Future.delayed(const Duration(milliseconds: 100));
       print('Mock: Contact saved locally.');
+    }
+  }
+
+  /// Deletes an emergency contact document from Cloud Firestore.
+  Future<void> deleteContactFromCloud(String userId, String phone) async {
+    if (_firebaseInitialized) {
+      try {
+        final normalizedPhone = EmergencyContactService.normalizePhoneNumber(phone);
+        final contactId = normalizedPhone.replaceAll(RegExp(r'\s+'), '');
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('contacts')
+            .doc(contactId)
+            .delete();
+        print('Firestore: Contact deleted for $userId ($contactId).');
+      } catch (e) {
+        print('Firestore contact delete error: $e');
+      }
+    } else {
+      await Future.delayed(const Duration(milliseconds: 100));
+      print('Mock: Contact deleted locally.');
     }
   }
 
@@ -529,11 +553,13 @@ class FirebaseService {
           .collection('contacts')
           .get();
 
+      List<SharedEmergencyContact> cloudContacts = [];
       for (var doc in snap.docs) {
         final data = doc.data();
         final contact = SharedEmergencyContact.fromJson(data);
-        await EmergencyContactService().saveContact(contact);
+        cloudContacts.add(contact);
       }
+      await EmergencyContactService().setContacts(cloudContacts);
     } catch (e) {
       print('Firestore contact fetch error: $e');
     }

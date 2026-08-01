@@ -1,5 +1,6 @@
 import 'package:speech_to_text/speech_to_text.dart';
 import 'settings_service.dart';
+import 'tts_service.dart';
 
 class SttService {
   static final SttService _instance = SttService._internal();
@@ -12,6 +13,8 @@ class SttService {
   }
 
   SttService._internal();
+
+  bool get isTtsSpeaking => TtsService().isSpeaking;
 
   Future<bool> initializeStt() async {
     if (_isInitialized) return true;
@@ -47,6 +50,13 @@ class SttService {
   }) async {
     _currentListeningStateCallback = onListeningStateChanged;
 
+    // Do not start listening if TTS engine is currently speaking or in decay period
+    if (TtsService().isSpeaking) {
+      print('[STT] TTS is currently speaking. Deferring microphone listening.');
+      onListeningStateChanged(false);
+      return;
+    }
+
     final hasPermissions = await initializeStt();
     if (!hasPermissions) {
       onListeningStateChanged(false);
@@ -69,6 +79,12 @@ class SttService {
       listenFor: const Duration(seconds: 60),
       listenOptions: SpeechListenOptions(cancelOnError: false, partialResults: true),
       onResult: (result) {
+        // Double check TTS status and self-echo filter before processing result
+        if (TtsService().isSpeaking || TtsService().isSelfEcho(result.recognizedWords)) {
+          print('[STT] Ignored self-voice echo input: "${result.recognizedWords}"');
+          return;
+        }
+
         if (result.recognizedWords.trim().isNotEmpty) {
           onResult(result.recognizedWords, result.finalResult);
         }

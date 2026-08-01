@@ -629,62 +629,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return Scaffold(
           backgroundColor: AppColors.lightBackground,
           body: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Floating Pill Back Button
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      height: 44,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
-                        boxShadow: isDefault ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          )
-                        ] : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min, // Wrap content tightly S01
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chevron_left, color: isDefault ? const Color(0xFF002663) : AppColors.primaryText, size: 24),
-                          const SizedBox(width: 4),
-                          Text(
-                            TranslationService.translate('back', lang),
-                            style: GoogleFonts.inter(
-                              color: isDefault ? const Color(0xFF002663) : AppColors.primaryText,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Sticky Header Bar (Back Button + Title)
+                Container(
+                  color: AppColors.lightBackground,
+                  padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          height: 44,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
+                            boxShadow: isDefault ? [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              )
+                            ] : null,
                           ),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.chevron_left, color: isDefault ? const Color(0xFF002663) : AppColors.primaryText, size: 24),
+                              const SizedBox(width: 4),
+                              Text(
+                                TranslationService.translate('back', lang),
+                                style: GoogleFonts.inter(
+                                  color: isDefault ? const Color(0xFF002663) : AppColors.primaryText,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      Text(
+                        TranslationService.translate('settings', lang),
+                        style: GoogleFonts.inter(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: headerTextColor,
+                        ),
+                      ),
+                    ],
                   ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // 2. Settings Header
-                  Text(
-                    TranslationService.translate('settings', lang),
-                    style: GoogleFonts.inter(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: headerTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                ),
 
+                // 2. Scrollable Settings List
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
               // 3. PROFILE Section
               _buildSectionTitle(TranslationService.translate('profile', lang)),
               _buildCardContainer(
@@ -1731,7 +1741,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+),
+);
       },
     );
   }

@@ -1639,6 +1639,66 @@ class _HardwareScreenState extends State<HardwareScreen> {
     }
   }
 
+  /// Runs TFLite SSD MobileNet inference on JPEG camera bytes from ESP32 stream for Object Detection Mode.
+  Future<void> _detectAndProcessTfliteOnlyFromJpg(Uint8List jpgBytes) async {
+    if (!_tfliteProcessor.isReady || !mounted) return;
+    try {
+      final rgbInput = _tfliteProcessor.prepareInputFromJpg(jpgBytes);
+      final results = _tfliteProcessor.runInference(rgbInput);
+      if (!mounted) return;
+      
+      final validResults = results.where((r) => r.confidence > 0.30 && r.label != '???' && r.label.isNotEmpty).toList();
+      setState(() {
+        _tfliteDetections = validResults;
+      });
+
+      final now = DateTime.now();
+      if (validResults.isNotEmpty) {
+        final detectedNames = validResults
+            .take(3)
+            .map((r) => _refineLabel(r.label))
+            .join(", ");
+        final alertKey = 'detection_list_tflite_esp32';
+        final lastSpoken = _lastSpokenMap[alertKey];
+        final isDifferent = detectedNames != _lastSpokenObjectText;
+        final cooldownElapsed = lastSpoken == null ||
+            now.difference(lastSpoken).inSeconds >= (isDifferent ? 12 : 30);
+        if (cooldownElapsed && detectedNames.isNotEmpty) {
+          _lastSpokenMap[alertKey] = now;
+          _lastSpokenObjectText = detectedNames;
+          final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+          final phrase = isTagalog ? "Nakakita ako ng $detectedNames" : "I see $detectedNames";
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak(phrase);
+          }
+        }
+        if (mounted) {
+          final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+          setState(() {
+            _activeTitle = isTagalog ? "May Nakitang Bagay" : "Objects Detected";
+            _activeDescription = isTagalog ? "Nakakita ng: $detectedNames" : "Detected: $detectedNames";
+            _statusCardBg = const Color(0xFFE6FFFA);
+            _statusIcon = Icons.search;
+            _statusIconColor = const Color(0xFF38A169);
+          });
+        }
+      } else {
+        if (mounted) {
+          final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+          setState(() {
+            _activeTitle = isTagalog ? "Naghahanap ng Bagay" : "Scanning Objects";
+            _activeDescription = isTagalog ? "Naghahanap ng mga bagay sa paligid..." : "Searching for objects in view...";
+            _statusCardBg = const Color(0xFFF1F8E9);
+            _statusIcon = Icons.radar_outlined;
+            _statusIconColor = const Color(0xFF81C784);
+          });
+        }
+      }
+    } catch (e) {
+      print('[TFLite ESP32 ObjectDetection] Error: $e');
+    }
+  }
+
   /// Processes ML Kit Object Detector results for walking navigation warnings.
   Future<void> _processObjectResults(List<DetectedObject> objects, Size imageSize) async {
     if (!mounted) return;
@@ -1809,43 +1869,22 @@ class _HardwareScreenState extends State<HardwareScreen> {
               : 'You are approaching a door.';
         } else if (targetLabel.contains('traffic light')) {
           guidance = isTagalog
-              ? 'Magdahan-dahan. May traffic light sa iyong harap.'
-              : 'Slow down. Traffic light detected ahead.';
-        } else if (targetLabel.contains('traffic sign') || targetLabel.contains('stop sign')) {
+              ? 'May ilaw ng trapiko sa iyong tapat.'
+              : 'Traffic light detected ahead. Slow down and check the signal.';
+        } else if (targetLabel.contains('fire') || targetLabel.contains('smoke')) {
           guidance = isTagalog
-              ? 'Magdahan-dahan. May traffic sign sa iyong harap.'
-              : 'Slow down. Traffic sign detected ahead.';
-        } else if (isCentered) {
-          guidance = isTagalog
-              ? 'Magdahan-dahan. May harang na $refinedLabel sa iyong harap. Mangyaring tumabi.'
-              : 'Slow down. $refinedLabel hazard detected ahead. Please step aside.';
-        } else if (direction == 'left') {
-          guidance = isTagalog
-              ? 'Magdahan-dahan. May harang na $refinedLabel sa iyong kaliwa. Mangyaring lumipat sa kanan.'
-              : 'Slow down. $refinedLabel hazard detected on your left. Please move to the right.';
+              ? 'Babala sa sunog! May usok o apoy na natuklasan sa malapit.'
+              : 'Fire hazard! Fire or heavy smoke detected nearby. Move away immediately.';
         } else {
           guidance = isTagalog
-              ? 'Magdahan-dahan. May harang na $refinedLabel sa iyong kanan. Mangyaring lumipat sa kaliwa.'
-              : 'Slow down. $refinedLabel hazard detected on your right. Please move to the left.';
+              ? 'May $targetLabel sa iyong daan. Mag-ingat.'
+              : 'May encounter $targetLabel ahead. Slow down.';
         }
-
-        _triggerHapticAlert(isCritical: false);
 
         final isDifferent = guidance != _lastGuidanceText;
         final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
-        
-        bool shouldSpeak = false;
-        if (isDifferent) {
-          if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
-            shouldSpeak = true;
-          }
-        } else {
-          if (elapsed.inSeconds >= 10) {
-            shouldSpeak = true;
-          }
-        }
 
-        if (shouldSpeak) {
+        if (isDifferent || elapsed.inSeconds >= 12) {
           _lastGuidanceText = guidance;
           _lastGuidanceTime = now;
           if (!_isContinuousVoiceEnabled) {
@@ -1855,11 +1894,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
         if (mounted) {
           setState(() {
-            _activeTitle = isDoor
+            _activeTitle = isDoor 
                 ? (isTagalog ? 'May Pintuan sa Harap' : 'Door Ahead')
                 : (isTagalog ? 'Dahan-dahan' : 'Slow Down');
             _activeDescription = guidance;
-            _statusCardBg = isDoor ? const Color(0xFFE0F7FA) : const Color(0xFFFFFDE7);
+            _statusCardBg = const Color(0xFFFFFDE7);
             _statusIcon = isDoor ? Icons.door_front_door_outlined : Icons.speed;
             _statusIconColor = isDoor ? Colors.teal : Colors.yellow[800]!;
           });
@@ -1924,6 +1963,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   void _clearPath(bool isTagalog) {
+    if (_selectedHudMode != HudMode.navigation) return;
     _lastGuidanceText = "";
     if (_wasPathBlocked) {
       _wasPathBlocked = false;
@@ -2380,7 +2420,20 @@ class _HardwareScreenState extends State<HardwareScreen> {
           final faces = await _faceDetector!.processImage(inputImage);
           await _processFaceResults(faces, imageSize);
         }
-      } else if (_selectedHudMode == HudMode.objectDetection || _selectedHudMode == HudMode.navigation) {
+      } else if (_selectedHudMode == HudMode.objectDetection) {
+        if (nowMs - _lastObjectDetectionTime > 350) {
+          _lastObjectDetectionTime = nowMs;
+          await _detectAndProcessTfliteOnlyFromJpg(frameBytes);
+        }
+        if (_imageLabeler != null) {
+          final List<ImageLabel> labels = await _imageLabeler!.processImage(inputImage);
+          if (mounted) {
+            setState(() {
+              _latestMLKitLabels = labels.take(5).map((l) => _refineLabel(l.label)).toList();
+            });
+          }
+        }
+      } else if (_selectedHudMode == HudMode.navigation) {
         if (nowMs - _lastObjectDetectionTime > 400 && _objectDetector != null) {
           _lastObjectDetectionTime = nowMs;
           final objects = await _objectDetector!.processImage(inputImage);
@@ -2603,6 +2656,25 @@ class _HardwareScreenState extends State<HardwareScreen> {
       await SttService().stopListening((_) {});
 
       final question = _continuousVoiceText.trim().toLowerCase();
+      final isTagalogQuestion = question.contains("ano") ||
+          question.contains("paano") ||
+          question.contains("bakit") ||
+          question.contains("saan") ||
+          question.contains("sino") ||
+          question.contains("kamusta") ||
+          question.contains("kumusta") ||
+          question.contains("salamat") ||
+          question.contains("tulong") ||
+          question.contains("harap") ||
+          question.contains("nakikita") ||
+          question.contains("ilarawan") ||
+          question.contains("tingin") ||
+          question.contains("meron") ||
+          question.contains("mayroon") ||
+          question.contains("nasaan");
+      final isFilipino = lang.toLowerCase().contains('tagalog') ||
+          lang.toLowerCase().contains('filipino') ||
+          isTagalogQuestion;
       
       setState(() {
         _voiceState = "thinking";
@@ -2613,18 +2685,34 @@ class _HardwareScreenState extends State<HardwareScreen> {
         _statusIconColor = Colors.orange;
       });
 
-      final detections = _detectedObjectsList;
-      final mlKitLabels = _latestMLKitLabels.join(", ");
-      final detectedItems = [
-        if (detections.isNotEmpty)
-          detections.map((d) {
-            final label = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
-            final refined = _refineLabel(label);
-            return refined;
-          }).join(", "),
-        if (mlKitLabels.isNotEmpty)
-          "general surroundings: $mlKitLabels"
-      ].join("; ");
+      final List<String> allDetectedLabels = [];
+      if (_tfliteDetections.isNotEmpty) {
+        for (final r in _tfliteDetections) {
+          final label = _refineLabel(r.label);
+          if (label.isNotEmpty && label != '???' && !allDetectedLabels.contains(label)) {
+            allDetectedLabels.add(label);
+          }
+        }
+      }
+      if (_detectedObjectsList.isNotEmpty) {
+        for (final d in _detectedObjectsList) {
+          final rawLabel = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
+          final label = _refineLabel(rawLabel);
+          if (label.isNotEmpty && label != 'object' && !allDetectedLabels.contains(label)) {
+            allDetectedLabels.add(label);
+          }
+        }
+      }
+      if (_latestMLKitLabels.isNotEmpty) {
+        for (final l in _latestMLKitLabels) {
+          final label = _refineLabel(l);
+          if (label.isNotEmpty && !allDetectedLabels.contains(label)) {
+            allDetectedLabels.add(label);
+          }
+        }
+      }
+
+      final detectedItems = allDetectedLabels.join(", ");
 
       String response = "";
       bool handledByVoiceCommand = false;
@@ -2849,7 +2937,7 @@ Answer the user's question directly based on the provided camera image and histo
         }
       }
 
-      if (mounted && _isContinuousVoiceEnabled) {
+      if (mounted) {
         setState(() {
           _voiceState = "speaking";
           _activeTitle = isFilipino ? "Nagsasalita si Buddy" : "Buddy Speaking";

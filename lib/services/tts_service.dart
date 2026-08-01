@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,6 +17,22 @@ class TtsService {
   List<Map<String, String>> _deviceVoices = [];
   bool _voicesLoaded = false;
 
+  /// Notifier for real-time TTS speaking state. True while TTS is actively speaking
+  /// or within post-speech acoustic decay window.
+  final ValueNotifier<bool> isSpeakingNotifier = ValueNotifier<bool>(false);
+
+  /// Helper getter for current TTS speaking state.
+  bool get isSpeaking => isSpeakingNotifier.value;
+
+  /// Cache of recently spoken text for self-echo deduplication.
+  final List<String> _recentlySpokenPhrases = [];
+  List<String> get recentlySpokenPhrases => List.unmodifiable(_recentlySpokenPhrases);
+
+  String _lastSpokenText = "";
+  String get lastSpokenText => _lastSpokenText;
+
+  Timer? _decayTimer;
+
   factory TtsService() => _instance;
 
   TtsService._internal() {
@@ -23,6 +40,75 @@ class TtsService {
   }
 
   bool _isLoadingVoices = false;
+
+  void _onSpeechStarted(String text) {
+    _decayTimer?.cancel();
+    final clean = text.toLowerCase().trim();
+    if (clean.isNotEmpty) {
+      _lastSpokenText = text;
+      if (!_recentlySpokenPhrases.contains(clean)) {
+        _recentlySpokenPhrases.add(clean);
+        if (_recentlySpokenPhrases.length > 25) {
+          _recentlySpokenPhrases.removeAt(0);
+        }
+        // Auto-expire phrase after 12 seconds
+        Timer(const Duration(seconds: 12), () {
+          _recentlySpokenPhrases.remove(clean);
+        });
+      }
+    }
+    if (!isSpeakingNotifier.value) {
+      isSpeakingNotifier.value = true;
+      print('[TTS] Speech started: "$text". STT muted.');
+    }
+  }
+
+  void _onSpeechFinished() {
+    _decayTimer?.cancel();
+    // 500ms post-speech decay timer for acoustic echo clearance before unmuting STT mic
+    _decayTimer = Timer(const Duration(milliseconds: 500), () {
+      if (isSpeakingNotifier.value) {
+        isSpeakingNotifier.value = false;
+        print('[TTS] Speech completed & acoustic decay period passed. STT unmuted.');
+      }
+    });
+  }
+
+  /// Checks if [recognizedInput] matches or overlaps with recent TTS speech,
+  /// preventing self-voice loop commands.
+  bool isSelfEcho(String recognizedInput) {
+    final candidate = recognizedInput.toLowerCase().trim();
+    if (candidate.isEmpty) return true;
+
+    // Check last spoken text
+    final lastClean = _lastSpokenText.toLowerCase().trim();
+    if (lastClean.isNotEmpty) {
+      if (candidate == lastClean || candidate.contains(lastClean) || lastClean.contains(candidate)) {
+        return true;
+      }
+    }
+
+    // Check against history of recently spoken phrases
+    for (final phrase in _recentlySpokenPhrases) {
+      if (phrase.isEmpty) continue;
+      if (candidate == phrase || candidate.contains(phrase) || phrase.contains(candidate)) {
+        return true;
+      }
+
+      // Word overlap heuristic for longer phrases (>= 2 words)
+      final candidateWords = candidate.split(RegExp(r'\s+')).where((w) => w.length > 2).toSet();
+      final phraseWords = phrase.split(RegExp(r'\s+')).where((w) => w.length > 2).toSet();
+
+      if (candidateWords.length >= 2 && phraseWords.length >= 2) {
+        final common = candidateWords.intersection(phraseWords);
+        if (common.length / candidateWords.length > 0.5) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
 
   void _initializeTts() async {
     await _flutterTts.setSharedInstance(true);
@@ -32,26 +118,42 @@ class TtsService {
         [
           IosTextToSpeechAudioCategoryOptions.mixWithOthers,
           IosTextToSpeechAudioCategoryOptions.defaultToSpeaker,
+          IosTextToSpeechAudioCategoryOptions.duckOthers,
         ],
         IosTextToSpeechAudioMode.voicePrompt,
       );
     }
 
     _flutterTts.setStartHandler(() {
+      _onSpeechStarted(_lastSpokenText);
       if (!_voicesLoaded && !_isLoadingVoices && Platform.isAndroid) {
         _loadDeviceVoices();
       }
     });
 
     _flutterTts.setCompletionHandler(() {
+      _onSpeechFinished();
       if (!_voicesLoaded && !_isLoadingVoices && Platform.isAndroid) {
         _loadDeviceVoices();
       }
     });
 
+    _flutterTts.setCancelHandler(() {
+      _onSpeechFinished();
+    });
+
     _flutterTts.setErrorHandler((_) {
+      _onSpeechFinished();
       if (!_voicesLoaded && !_isLoadingVoices && Platform.isAndroid) {
         _loadDeviceVoices();
+      }
+    });
+
+    _elevenPlayer.onPlayerStateChanged.listen((state) {
+      if (state == PlayerState.playing) {
+        _onSpeechStarted(_lastSpokenText);
+      } else if (state == PlayerState.completed || state == PlayerState.stopped) {
+        _onSpeechFinished();
       }
     });
 
@@ -93,6 +195,8 @@ class TtsService {
     await _settingsService.loadSettingsFromLocal();
     if (!_settingsService.voiceFeedback) return;
 
+    _onSpeechStarted(text);
+
     try {
       await _flutterTts.stop();
     } catch (_) {}
@@ -120,6 +224,8 @@ class TtsService {
     await _settingsService.loadSettingsFromLocal();
     if (!_settingsService.voiceFeedback) return;
 
+    _onSpeechStarted(text);
+
     try {
       await _flutterTts.stop();
     } catch (_) {}
@@ -142,12 +248,15 @@ class TtsService {
 
     final completer = Completer<void>();
     _flutterTts.setCompletionHandler(() {
+      _onSpeechFinished();
       if (!completer.isCompleted) completer.complete();
     });
     _flutterTts.setCancelHandler(() {
+      _onSpeechFinished();
       if (!completer.isCompleted) completer.complete();
     });
     _flutterTts.setErrorHandler((_) {
+      _onSpeechFinished();
       if (!completer.isCompleted) completer.complete();
     });
 
@@ -156,6 +265,7 @@ class TtsService {
       Duration(milliseconds: (text.length * 80) + 2000),
       onTimeout: () {
         print("[TTS] speakAwait timed out.");
+        _onSpeechFinished();
       },
     );
   }
@@ -165,6 +275,7 @@ class TtsService {
     try {
       await _elevenPlayer.stop();
     } catch (_) {}
+    _onSpeechFinished();
   }
 
   /// Returns the TTS language/locale code.

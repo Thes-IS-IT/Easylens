@@ -105,6 +105,32 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
   bool _isInitialGreeting = false;
 
+  @override
+  void initState() {
+    super.initState();
+    TtsService().isSpeakingNotifier.addListener(_onTtsSpeakingChanged);
+  }
+
+  void _onTtsSpeakingChanged() {
+    if (!mounted || !_isLoopActive) return;
+
+    if (TtsService().isSpeaking) {
+      // TTS announcement started - pause STT immediately so mic doesn't pick up speaker output
+      if (_isListening) {
+        SttService().stopListening((_) {});
+        setState(() {
+          _isListening = false;
+        });
+      }
+    } else {
+      // TTS announcement completed & acoustic decay period passed
+      // Resume STT loop if speech navigation is active and not currently processing
+      if (mounted && _isLoopActive && !_isProcessing) {
+        _runSpeechNavigationLoop();
+      }
+    }
+  }
+
   Future<void> _pushAndRecord(Widget screen, String description) async {
     final prev = RagService.currentScreen;
     RagService.recordNavigation(description, actionDescription: "Speech command navigated to $description");
@@ -114,6 +140,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
   @override
   void dispose() {
+    TtsService().isSpeakingNotifier.removeListener(_onTtsSpeakingChanged);
     _silenceTimer?.cancel();
     _clearBannerTimer?.cancel();
     super.dispose();
@@ -130,6 +157,9 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
   bool _isProcessing = false;
 
   bool _isSelfEcho(String text) {
+    if (TtsService().isSpeaking) return true;
+    if (TtsService().isSelfEcho(text)) return true;
+
     final clean = text.toLowerCase().trim();
     if (clean.isEmpty) return true;
     final selfPhrases = [
@@ -201,14 +231,14 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
   }
 
   void _runSpeechNavigationLoop() async {
-    if (!mounted || !_isLoopActive || _isProcessing) return;
+    if (!mounted || !_isLoopActive || _isProcessing || TtsService().isSpeaking) return;
 
     try {
       // Guarantee previous listening handlers are stopped before restarting mic
       await SttService().stopListening((_) {});
       await Future.delayed(const Duration(milliseconds: 200));
 
-      if (!mounted || !_isLoopActive || _isProcessing) return;
+      if (!mounted || !_isLoopActive || _isProcessing || TtsService().isSpeaking) return;
 
       setState(() {
         _isListening = true;
@@ -224,7 +254,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
           }
         },
         onResult: (text, isFinal) {
-          if (mounted && _isLoopActive && !_isProcessing) {
+          if (mounted && _isLoopActive && !_isProcessing && !TtsService().isSpeaking) {
             if (_isSelfEcho(text)) return;
 
             setState(() {

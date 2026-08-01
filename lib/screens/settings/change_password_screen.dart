@@ -70,62 +70,73 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         return Scaffold(
           backgroundColor: AppColors.lightBackground,
           body: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Floating Pill Back Button
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      height: 44,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
-                        boxShadow: isDefault ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          )
-                        ] : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chevron_left, color: headerColor, size: 24),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Back',
-                            style: GoogleFonts.inter(
-                              color: headerColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Sticky Header Bar (Back Button + Title)
+                Container(
+                  color: AppColors.lightBackground,
+                  padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          height: 44,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
+                            boxShadow: isDefault ? [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              )
+                            ] : null,
                           ),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.chevron_left, color: headerColor, size: 24),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Back',
+                                style: GoogleFonts.inter(
+                                  color: headerColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Password',
+                        style: GoogleFonts.inter(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: headerColor,
+                        ),
+                      ),
+                    ],
                   ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // 2. Title Header
-                  Text(
-                    'Password',
-                    style: GoogleFonts.inter(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: headerColor,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 24),
+                ),
+
+                // 2. Scrollable Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
                   
                   // 3. Form Input Container Card
                   Container(
@@ -234,7 +245,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
             ),
           ),
-        );
+        ],
+      ),
+    ),
+  );
       },
     );
   }
