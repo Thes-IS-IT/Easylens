@@ -437,8 +437,8 @@ class HudCameraView extends StatelessWidget {
                         final idx = entry.key;
                         final face = entry.value;
                         final r = face.boundingBox;
-                        final scaleX = constraints.maxWidth / faceImageSize.height;
-                        final scaleY = constraints.maxHeight / faceImageSize.width;
+                        final scaleX = constraints.maxWidth / faceImageSize.width;
+                        final scaleY = constraints.maxHeight / faceImageSize.height;
                         
                         double left = r.left * scaleX;
                         double top = r.top * scaleY;
