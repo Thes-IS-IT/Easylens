@@ -205,7 +205,9 @@ class HudCameraView extends StatelessWidget {
                       const CameraLoadingOverlay(),
                     if (selectedHudMode == HudMode.objectDetection) ...[
                       if (tfliteDetections.isNotEmpty)
-                        ...tfliteDetections.map((r) {
+                        ...tfliteDetections.asMap().entries.map((entry) {
+                            final idx = entry.key;
+                            final r = entry.value;
                             // SSDResult coordinates are already normalized (0..1)
                             // Rotate coordinates: raw Y (yMin, yMax) maps to screen X (left, width)
                             double left = ((1.0 - r.yMax) * constraints.maxWidth).clamp(0.0, constraints.maxWidth);
@@ -219,8 +221,8 @@ class HudCameraView extends StatelessWidget {
                             final displayLabel = '${label[0].toUpperCase()}${label.substring(1)} (${(r.confidence * 100).toInt()}%)';
 
                             return AnimatedPositioned(
-                              key: ValueKey(r.label + r.xMin.toString() + r.yMin.toString()),
-                              duration: const Duration(milliseconds: 250),
+                              key: ValueKey('${r.label}_${r.classIndex}_$idx'),
+                              duration: const Duration(milliseconds: 200),
                               curve: Curves.easeOutCubic,
                               left: left,
                               top: top,
@@ -250,7 +252,9 @@ class HudCameraView extends StatelessWidget {
                             );
                           })
                       else if (detectedObjectsList.isNotEmpty)
-                        ...detectedObjectsList.map((obj) {
+                        ...detectedObjectsList.asMap().entries.map((entry) {
+                            final idx = entry.key;
+                            final obj = entry.value;
                             final r = obj.boundingBox;
                             final double imgWidth = faceImageSize != Size.zero ? faceImageSize.width : 640.0;
                             final double imgHeight = faceImageSize != Size.zero ? faceImageSize.height : 480.0;
@@ -265,7 +269,7 @@ class HudCameraView extends StatelessWidget {
                             final displayLabel = '${label[0].toUpperCase()}${label.substring(1)} (Tracked)';
 
                             return AnimatedPositioned(
-                              key: ValueKey(obj.trackingId?.toString() ?? (label + r.left.toString())),
+                              key: ValueKey('${obj.trackingId?.toString() ?? (label + r.left.toString())}_$idx'),
                               duration: const Duration(milliseconds: 250),
                               curve: Curves.easeOutCubic,
                               left: left,
@@ -429,7 +433,9 @@ class HudCameraView extends StatelessWidget {
 
                     // Draw face bounding boxes dynamically in Face Recognition mode
                     if (selectedHudMode == HudMode.faceRecognition && faceImageSize != Size.zero)
-                      ...detectedFacesList.map((face) {
+                      ...detectedFacesList.asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final face = entry.value;
                         final r = face.boundingBox;
                         final scaleX = constraints.maxWidth / faceImageSize.height;
                         final scaleY = constraints.maxHeight / faceImageSize.width;
@@ -447,7 +453,7 @@ class HudCameraView extends StatelessWidget {
                         final trackingStr = trackingId != null ? " #:$trackingId" : "";
                         
                         return AnimatedPositioned(
-                          key: ValueKey(face.trackingId ?? face.boundingBox.topLeft.toString()),
+                          key: ValueKey('${face.trackingId ?? face.boundingBox.topLeft.toString()}_$idx'),
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.easeOutCubic,
                           left: left,

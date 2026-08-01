@@ -39,34 +39,49 @@ class FirebaseService {
 
   bool get isFirebaseAvailable => _firebaseInitialized;
 
+  /// Saves session credentials locally so the user remains logged in across restarts.
+  Future<void> saveUserSession(EasyLensUser user) async {
+    _mockUser = user;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_logged_in', true);
+      await prefs.setString('user_uid', user.uid);
+      await prefs.setString('user_email', user.email);
+      await prefs.setString('user_display_name', user.displayName);
+      print('[FirebaseService] User session persisted for ${user.email}');
+    } catch (e) {
+      print("[FirebaseService] Failed to save user session: $e");
+    }
+  }
+
   Future<void> initialize() async {
     try {
       if (Firebase.apps.isNotEmpty) {
         _firebaseInitialized = true;
         print("Firebase already initialized (apps not empty)");
-        return;
-      }
-      final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? '';
-      final appId = dotenv.env['FIREBASE_APP_ID'] ?? '';
-      final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
-      final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
-      final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '';
-
-      if (apiKey.isNotEmpty && appId.isNotEmpty && projectId.isNotEmpty) {
-        await Firebase.initializeApp(
-          options: FirebaseOptions(
-            apiKey: apiKey,
-            appId: appId,
-            projectId: projectId,
-            messagingSenderId: messagingSenderId,
-            storageBucket: storageBucket,
-          ),
-        );
       } else {
-        await Firebase.initializeApp();
+        final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? '';
+        final appId = dotenv.env['FIREBASE_APP_ID'] ?? '';
+        final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
+        final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
+        final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '';
+
+        if (apiKey.isNotEmpty && appId.isNotEmpty && projectId.isNotEmpty) {
+          await Firebase.initializeApp(
+            options: FirebaseOptions(
+              apiKey: apiKey,
+              appId: appId,
+              projectId: projectId,
+              messagingSenderId: messagingSenderId,
+              storageBucket: storageBucket,
+            ),
+          );
+        } else {
+          await Firebase.initializeApp();
+        }
+        _firebaseInitialized = true;
+        print("Firebase successfully initialized with dynamic settings");
       }
-      _firebaseInitialized = true;
-      print("Firebase successfully initialized with dynamic settings");
     } catch (e) {
       if (e.toString().contains("duplicate-app")) {
         _firebaseInitialized = true;
@@ -77,6 +92,24 @@ class FirebaseService {
         _firebaseInitialized = false;
       }
     }
+
+    // Restore persisted local user session
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+      if (isLoggedIn) {
+        final savedUid = prefs.getString('user_uid') ?? "persisted_user_uid";
+        final savedEmail = prefs.getString('user_email') ?? "user@easylens.app";
+        final savedName = prefs.getString('user_display_name') ?? "EasyLens Explorer";
+        _mockUser = EasyLensUser(
+          uid: savedUid,
+          email: savedEmail,
+          displayName: savedName,
+          isForMyself: true,
+        );
+        print('[FirebaseService] Restored user session for $savedEmail');
+      }
+    } catch (_) {}
   }
 
   // Get current user (real or mock)
@@ -91,10 +124,8 @@ class FirebaseService {
           isForMyself: true, // Defaults to true
         );
       }
-      return null;
-    } else {
-      return _mockUser;
     }
+    return _mockUser;
   }
 
   // Check if email already registered
@@ -130,6 +161,8 @@ class FirebaseService {
     final cleanEmail = email.trim();
     final cleanPassword = password.trim();
 
+    EasyLensUser? newUser;
+
     if (_firebaseInitialized) {
       try {
         final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -140,7 +173,7 @@ class FirebaseService {
           try {
             await credential.user!.updateDisplayName(name);
           } catch (_) {}
-          return EasyLensUser(
+          newUser = EasyLensUser(
             uid: credential.user!.uid,
             email: cleanEmail,
             displayName: name,
@@ -154,19 +187,23 @@ class FirebaseService {
     } else {
       // Mock Sign Up
       await Future.delayed(const Duration(milliseconds: 800));
-      _mockUser = EasyLensUser(
+      newUser = EasyLensUser(
         uid: "mock_uid_${DateTime.now().millisecondsSinceEpoch}",
         email: email,
         displayName: name,
         isForMyself: isForMyself,
       );
-      return _mockUser;
     }
-    return null;
+
+    if (newUser != null) {
+      await saveUserSession(newUser);
+    }
+    return newUser;
   }
 
   // Sign in
   Future<EasyLensUser?> signIn(String email, String password) async {
+    EasyLensUser? user;
     if (_firebaseInitialized) {
       try {
         final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -174,7 +211,7 @@ class FirebaseService {
           password: password,
         );
         if (credential.user != null) {
-          return EasyLensUser(
+          user = EasyLensUser(
             uid: credential.user!.uid,
             email: email,
             displayName: credential.user!.displayName ?? "User",
@@ -191,15 +228,18 @@ class FirebaseService {
       if (email.contains("error")) {
         throw Exception("Mock Authentication Failure: Invalid email address.");
       }
-      _mockUser = EasyLensUser(
+      user = EasyLensUser(
         uid: "mock_uid_12345",
         email: email,
         displayName: "EasyLens Explorer",
         isForMyself: true,
       );
-      return _mockUser;
     }
-    return null;
+
+    if (user != null) {
+      await saveUserSession(user);
+    }
+    return user;
   }
 
   // Google Sign In
@@ -235,6 +275,8 @@ class FirebaseService {
         ? googleUser.displayName!.trim()
         : userEmail.split('@')[0];
 
+    EasyLensUser? gUser;
+
     // Attempt 1: Authenticate via Google Auth Credential with Firebase
     try {
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -247,7 +289,7 @@ class FirebaseService {
       final User? user = userCredential.user;
 
       if (user != null) {
-        return EasyLensUser(
+        gUser = EasyLensUser(
           uid: user.uid,
           email: user.email ?? userEmail,
           displayName: user.displayName ?? userDisplayName,
@@ -266,7 +308,7 @@ class FirebaseService {
         );
         if (cred.user != null) {
           await cred.user!.updateDisplayName(userDisplayName);
-          return EasyLensUser(
+          gUser = EasyLensUser(
             uid: cred.user!.uid,
             email: userEmail,
             displayName: userDisplayName,
@@ -281,7 +323,7 @@ class FirebaseService {
               password: customPass,
             );
             if (cred.user != null) {
-              return EasyLensUser(
+              gUser = EasyLensUser(
                 uid: cred.user!.uid,
                 email: userEmail,
                 displayName: cred.user!.displayName ?? userDisplayName,
@@ -291,39 +333,56 @@ class FirebaseService {
           } catch (_) {
             final currentUser = FirebaseAuth.instance.currentUser;
             if (currentUser != null && currentUser.email == userEmail) {
-              return EasyLensUser(
+              gUser = EasyLensUser(
                 uid: currentUser.uid,
                 email: userEmail,
                 displayName: currentUser.displayName ?? userDisplayName,
                 isForMyself: true,
               );
+            } else {
+              gUser = EasyLensUser(
+                uid: "google_${userEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}",
+                email: userEmail,
+                displayName: userDisplayName,
+                isForMyself: true,
+              );
             }
-            return EasyLensUser(
-              uid: "google_${userEmail.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}",
-              email: userEmail,
-              displayName: userDisplayName,
-              isForMyself: true,
-            );
           }
         }
       }
     }
 
-    return null;
+    if (gUser != null) {
+      await saveUserSession(gUser);
+    }
+
+    return gUser;
   }
 
   // Sign out
   Future<void> signOut() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('is_logged_in');
+      await prefs.remove('user_uid');
+      await prefs.remove('user_email');
+      await prefs.remove('user_display_name');
+      await prefs.remove('remember_me');
+      await prefs.remove('saved_email');
+      await prefs.remove('saved_password');
+    } catch (_) {}
+
     try {
       await SettingsService().resetToDefaults();
       await EmergencyContactService().clearContacts();
     } catch (_) {}
 
     if (_firebaseInitialized) {
-      await FirebaseAuth.instance.signOut();
-    } else {
-      _mockUser = null;
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (_) {}
     }
+    _mockUser = null;
   }
 
   /// Creates a temporary Firebase account for [email] with a random password,

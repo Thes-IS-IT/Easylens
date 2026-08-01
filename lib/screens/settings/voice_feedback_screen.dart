@@ -34,7 +34,7 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
     VoicePersona(id: 'nova', name: 'Nova (Bright)', description: 'Energetic and upbeat voice'),
     VoicePersona(id: 'echo', name: 'Echo (Deep)', description: 'Deep and authoritative voice'),
     VoicePersona(id: 'bella', name: 'Bella (Gentle)', description: 'Soft and soothing voice'),
-    VoicePersona(id: 'leo', name: 'Leo (Child)', description: 'Cheerful and youthful child voice'),
+    VoicePersona(id: 'buddy', name: 'Buddy (Child)', description: 'Cheerful and youthful child voice'),
     VoicePersona(id: 'maya', name: 'Maya (Filipino)', description: 'Native Tagalog voice'),
   ];
 

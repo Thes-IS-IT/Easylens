@@ -107,23 +107,23 @@ class TfliteProcessor {
 
     for (int ty = 0; ty < targetSize; ty++) {
       final int sy = (ty * srcHeight) ~/ targetSize;
+      final int rowOffset = sy * srcWidth;
+      final int uvRowOffset = uvStart + (sy >> 1) * srcWidth;
+
       for (int tx = 0; tx < targetSize; tx++) {
         final int sx = (tx * srcWidth) ~/ targetSize;
 
-        // Y plane
-        final int yVal = nv21[sy * srcWidth + sx] & 0xFF;
+        final int yVal = nv21[rowOffset + sx] & 0xFF;
+        final int uvCol = (sx >> 1) << 1;
+        final int uvIdx = uvRowOffset + uvCol;
 
-        // UV plane (interleaved V, U) — NV21 layout
-        final int uvRow = sy >> 1;
-        final int uvCol = (sx >> 1) << 1; // even-aligned
-        final int uvIdx = uvStart + uvRow * srcWidth + uvCol;
-        final int v = (uvIdx < nv21.length ? nv21[uvIdx] : 128) & 0xFF;
-        final int u = (uvIdx + 1 < nv21.length ? nv21[uvIdx + 1] : 128) & 0xFF;
+        final int v = (uvIdx < nv21.length ? nv21[uvIdx] : 128) - 128;
+        final int u = (uvIdx + 1 < nv21.length ? nv21[uvIdx + 1] : 128) - 128;
 
-        // YUV → RGB
-        int r = (yVal + 1.370705 * (v - 128)).round().clamp(0, 255);
-        int g = (yVal - 0.337633 * (u - 128) - 0.698001 * (v - 128)).round().clamp(0, 255);
-        int b = (yVal + 1.732446 * (u - 128)).round().clamp(0, 255);
+        // Fast integer fixed-point YUV to RGB (8-bit shift)
+        final int r = (yVal + ((351 * v) >> 8)).clamp(0, 255);
+        final int g = (yVal - ((86 * u + 179 * v) >> 8)).clamp(0, 255);
+        final int b = (yVal + ((443 * u) >> 8)).clamp(0, 255);
 
         final int outIdx = (ty * targetSize + tx) * 3;
         rgb[outIdx] = r;

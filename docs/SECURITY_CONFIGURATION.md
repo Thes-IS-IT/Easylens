@@ -15,7 +15,8 @@ release builds.
 | MensaHero SMS gateway | `MENSAHERO_API_KEY`, `MENSAHERO_BASE_URL`, `MENSAHERO_DEVICE_NAME` |
 | Cloudflare R2 | `ACCOUNT_ID`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `BUCKET_NAME`, `CLOUDFLARE_R2_PUBLIC_URL` |
 | Cloudflare D1 | `ACCOUNT_ID`, `D1_DTABASE`, `TOKEN_VALUE` |
-| ElevenLabs TTS | `ELEVEN_LABS` |
+| Xiaomi MiMo TTS | `MIMO_API_KEY` |
+| ElevenLabs TTS (Fallback) | `ELEVEN_LABS` |
 
 `D1_DTABASE` is intentionally spelled exactly as the current implementation
 expects. Renaming it requires a code change.
@@ -60,5 +61,6 @@ BUCKET_NAME=easylens
 CLOUDFLARE_R2_PUBLIC_URL=
 D1_DTABASE=
 TOKEN_VALUE=
+MIMO_API_KEY=
 ELEVEN_LABS=
 ```

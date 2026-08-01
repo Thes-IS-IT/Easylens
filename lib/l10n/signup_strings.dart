@@ -61,6 +61,7 @@ class SignupL10n {
       'voice_nova_desc': 'An active, friendly voice full of energy.',
       'voice_echo_desc': 'A deep, clear voice.',
       'voice_bella_desc': 'A calm, slow voice to help you focus.',
+      'voice_buddy_desc': 'A bright, cheerful young voice.',
       'voice_leo_desc': 'A bright, cheerful young voice.',
 
       // ── Step 7: Mobility Aids ────────────────────────────────────────
@@ -236,6 +237,7 @@ class SignupL10n {
       'voice_nova_desc': 'Isang aktibo at palakaibigang boses na puno ng sigla.',
       'voice_echo_desc': 'Isang malalim at malinaw na boses.',
       'voice_bella_desc': 'Isang mahinahon at mabagal na boses para matulungan kang mag-focus.',
+      'voice_buddy_desc': 'Isang masaya at makulay na batang boses.',
       'voice_leo_desc': 'Isang masaya at makulay na batang boses.',
 
       // ── Step 7: Mobility Aids ────────────────────────────────────────

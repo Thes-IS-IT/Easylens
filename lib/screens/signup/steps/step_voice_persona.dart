@@ -32,7 +32,7 @@ class _StepVoicePersonaState extends State<StepVoicePersona> {
     {'name': 'Nova (Bright)', 'desc': SignupL10n.t('voice_nova_desc', lang)},
     {'name': 'Echo (Deep)', 'desc': SignupL10n.t('voice_echo_desc', lang)},
     {'name': 'Bella (Gentle)', 'desc': SignupL10n.t('voice_bella_desc', lang)},
-    {'name': 'Leo (Child)', 'desc': SignupL10n.t('voice_leo_desc', lang)},
+    {'name': 'Buddy (Child)', 'desc': SignupL10n.t('voice_buddy_desc', lang)},
   ];
 
   Future<void> _playVoicePreview(String personaName) async {
@@ -76,10 +76,11 @@ class _StepVoicePersonaState extends State<StepVoicePersona> {
             ? "Ako si Bella. Tutulungan kita nang dahan-dahan at mahinahon."
             : "Hello, I'm Bella. I will help you gently at your own pace.";
         break;
+      case 'Buddy (Child)':
       case 'Leo (Child)':
         sampleText = isTagalog
-            ? "Hi! Ako si Leo! Sabay tayong mag-explore!"
-            : "Hi! I'm Leo! Let's explore together!";
+            ? "Hi! Ako si Buddy! Sabay tayong mag-explore!"
+            : "Hi! I'm Buddy! Let's explore together!";
         break;
       default:
         sampleText = isTagalog

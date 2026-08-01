@@ -45,7 +45,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
     _animationController.forward();
 
-    _timer = Timer(const Duration(seconds: 3), () {
+    _timer = Timer(const Duration(seconds: 3), () async {
       if (mounted) {
         final firebaseService = FirebaseService();
         final user = firebaseService.currentUser;

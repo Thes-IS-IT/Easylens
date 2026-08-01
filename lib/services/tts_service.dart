@@ -13,7 +13,7 @@ class TtsService {
   static final TtsService _instance = TtsService._internal();
   final FlutterTts _flutterTts = FlutterTts();
   final SettingsService _settingsService = SettingsService();
-  final AudioPlayer _elevenPlayer = AudioPlayer();
+  final AudioPlayer _mimoPlayer = AudioPlayer();
   List<Map<String, String>> _deviceVoices = [];
   bool _voicesLoaded = false;
 
@@ -149,7 +149,7 @@ class TtsService {
       }
     });
 
-    _elevenPlayer.onPlayerStateChanged.listen((state) {
+    _mimoPlayer.onPlayerStateChanged.listen((state) {
       if (state == PlayerState.playing) {
         _onSpeechStarted(_lastSpokenText);
       } else if (state == PlayerState.completed || state == PlayerState.stopped) {
@@ -201,12 +201,13 @@ class TtsService {
       await _flutterTts.stop();
     } catch (_) {}
     try {
-      await _elevenPlayer.stop();
+      await _mimoPlayer.stop();
     } catch (_) {}
 
-    // Route Leo (Child) to ElevenLabs custom voice
-    if (_settingsService.selectedVoicePersona == 'Leo (Child)') {
-      unawaited(_speakElevenLabs(text, awaitCompletion: false));
+    // Route Buddy (Child) / Leo (Child) to Xiaomi MiMo TTS custom voice (Chloe)
+    if (_settingsService.selectedVoicePersona == 'Buddy (Child)' ||
+        _settingsService.selectedVoicePersona == 'Leo (Child)') {
+      unawaited(_speakMiMo(text, awaitCompletion: false));
       return;
     }
 
@@ -230,12 +231,13 @@ class TtsService {
       await _flutterTts.stop();
     } catch (_) {}
     try {
-      await _elevenPlayer.stop();
+      await _mimoPlayer.stop();
     } catch (_) {}
 
-    // Route Leo (Child) to ElevenLabs custom voice
-    if (_settingsService.selectedVoicePersona == 'Leo (Child)') {
-      await _speakElevenLabs(text, awaitCompletion: true);
+    // Route Buddy (Child) / Leo (Child) to Xiaomi MiMo TTS custom voice (Chloe)
+    if (_settingsService.selectedVoicePersona == 'Buddy (Child)' ||
+        _settingsService.selectedVoicePersona == 'Leo (Child)') {
+      await _speakMiMo(text, awaitCompletion: true);
       return;
     }
 
@@ -273,7 +275,7 @@ class TtsService {
   Future<void> stop() async {
     await _flutterTts.stop();
     try {
-      await _elevenPlayer.stop();
+      await _mimoPlayer.stop();
     } catch (_) {}
     _onSpeechFinished();
   }
@@ -370,6 +372,7 @@ class TtsService {
       case 'Maya (Filipino)':
         priorityKeys = ['maya', 'fil', 'tl', 'ph', 'female'];
         break;
+      case 'Buddy (Child)':
       case 'Leo (Child)':
         priorityKeys = ['joelle', 'noelle', 'child', 'kid', 'young', 'boy'];
         break;
@@ -454,6 +457,7 @@ class TtsService {
         rate = 0.48;
         await _setDeviceVoiceByPersona(persona, 'female');
         break;
+      case 'Buddy (Child)':
       case 'Leo (Child)':
         pitch = 1.65;
         rate = 0.55;
@@ -480,65 +484,99 @@ class TtsService {
     await _flutterTts.setSpeechRate(rate * rateMultiplier);
   }
 
-  /// Private helper that invokes ElevenLabs TTS for Leo (Child) personality.
+  /// Private helper that invokes Xiaomi MiMo TTS (voice: Chloe) for Buddy (Child) personality.
   /// Falls back to default device voice on network failure or key absence.
-  Future<void> _speakElevenLabs(String text, {bool awaitCompletion = false}) async {
-    final apiKey = dotenv.env['ELEVEN_LABS']?.trim() ?? '';
+  Future<void> _speakMiMo(String text, {bool awaitCompletion = false}) async {
+    final apiKey = dotenv.env['MIMO_API_KEY']?.trim() ?? dotenv.env['ELEVEN_LABS']?.trim() ?? '';
     if (apiKey.isEmpty) {
-      print('[ElevenLabs] API Key is missing. Falling back to device TTS.');
+      print('[Xiaomi MiMo TTS] API Key (MIMO_API_KEY) is missing. Falling back to device TTS.');
       await _fallbackToDeviceVoice(text, awaitCompletion);
       return;
     }
 
     try {
+      final bodyPayload = jsonEncode({
+        'model': 'mimo-v2.5-tts',
+        'messages': [
+          {'role': 'user', 'content': text},
+          {'role': 'assistant', 'content': text}
+        ],
+        'audio': {
+          'format': 'mp3',
+          'voice': 'Chloe',
+        }
+      });
+
+      final headers = {
+        'Authorization': 'Bearer $apiKey',
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
+      };
+
       final response = await http.post(
-        Uri.parse('https://api.elevenlabs.io/v1/text-to-speech/S7IsvAvEoDfui6GSZK3A'),
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-          'accept': 'audio/mpeg',
-        },
-        body: jsonEncode({
-          'text': text,
-          'model_id': 'eleven_multilingual_v2',
-          'voice_settings': {
-            'stability': 0.5,
-            'similarity_boost': 0.75,
-          }
-        }),
+        Uri.parse('https://api.xiaomimimo.com/v1/chat/completions'),
+        headers: headers,
+        body: bodyPayload,
       );
 
       if (response.statusCode == 200) {
-        final directory = await getTemporaryDirectory();
-        final file = File('${directory.path}/elevenlabs_tts.mp3');
-        await file.writeAsBytes(response.bodyBytes);
+        Uint8List? audioBytes;
+        final contentType = response.headers['content-type'] ?? '';
 
-        if (awaitCompletion) {
-          final completer = Completer<void>();
-          StreamSubscription? sub;
-          sub = _elevenPlayer.onPlayerComplete.listen((_) {
-            if (!completer.isCompleted) completer.complete();
-            sub?.cancel();
-          });
-          
-          await _elevenPlayer.play(DeviceFileSource(file.path), volume: 1.0);
-          
-          await completer.future.timeout(
-            Duration(milliseconds: (text.length * 100) + 3000),
-            onTimeout: () {
-              print("[ElevenLabs] Playback timed out.");
-              sub?.cancel();
-            },
-          );
+        if (contentType.contains('audio') || contentType.contains('octet-stream')) {
+          audioBytes = response.bodyBytes;
         } else {
-          await _elevenPlayer.play(DeviceFileSource(file.path), volume: 1.0);
+          try {
+            final jsonRes = jsonDecode(response.body);
+            final messageAudio = jsonRes['choices']?[0]?['message']?['audio'];
+            String? base64Str;
+            if (messageAudio is Map) {
+              base64Str = messageAudio['data']?.toString();
+            } else if (messageAudio is String) {
+              base64Str = messageAudio;
+            }
+            base64Str ??= jsonRes['choices']?[0]?['audio']?['data']?.toString();
+            base64Str ??= jsonRes['audio']?['data']?.toString();
+
+            if (base64Str != null && base64Str.isNotEmpty) {
+              audioBytes = base64Decode(base64Str);
+            }
+          } catch (_) {}
         }
-      } else {
-        print('[ElevenLabs] API Error: ${response.statusCode} - ${response.body}');
-        await _fallbackToDeviceVoice(text, awaitCompletion);
+
+        if (audioBytes != null && audioBytes.isNotEmpty) {
+          final directory = await getTemporaryDirectory();
+          final file = File('${directory.path}/mimo_tts.mp3');
+          await file.writeAsBytes(audioBytes);
+
+          if (awaitCompletion) {
+            final completer = Completer<void>();
+            StreamSubscription? sub;
+            sub = _mimoPlayer.onPlayerComplete.listen((_) {
+              if (!completer.isCompleted) completer.complete();
+              sub?.cancel();
+            });
+
+            await _mimoPlayer.play(DeviceFileSource(file.path), volume: 1.0);
+
+            await completer.future.timeout(
+              Duration(milliseconds: (text.length * 100) + 3000),
+              onTimeout: () {
+                print("[Xiaomi MiMo TTS] Playback timed out.");
+                sub?.cancel();
+              },
+            );
+          } else {
+            await _mimoPlayer.play(DeviceFileSource(file.path), volume: 1.0);
+          }
+          return;
+        }
       }
+
+      print('[Xiaomi MiMo TTS] API Error: ${response.statusCode} - ${response.body}');
+      await _fallbackToDeviceVoice(text, awaitCompletion);
     } catch (e) {
-      print('[ElevenLabs] Exception occurred: $e');
+      print('[Xiaomi MiMo TTS] Exception occurred: $e');
       await _fallbackToDeviceVoice(text, awaitCompletion);
     }
   }

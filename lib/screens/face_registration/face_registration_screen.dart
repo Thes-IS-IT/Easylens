@@ -40,9 +40,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
     super.initState();
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
-        enableLandmarks: false,
-        enableContours: false,
-        enableClassification: false,
+        enableLandmarks: true,
+        enableContours: true,
+        enableClassification: true,
         minFaceSize: 0.10,
         performanceMode: FaceDetectorMode.accurate,
       ),
@@ -133,6 +133,67 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
     }
   }
 
+  List<double> _extractFaceFeatures(Face face, Size imageSize) {
+    final bbox = face.boundingBox;
+    final width = bbox.width > 0 ? bbox.width : 1.0;
+    final height = bbox.height > 0 ? bbox.height : 1.0;
+
+    final leftEye = face.landmarks[FaceLandmarkType.leftEye]?.position;
+    final rightEye = face.landmarks[FaceLandmarkType.rightEye]?.position;
+    final nose = face.landmarks[FaceLandmarkType.noseBase]?.position;
+    final leftMouth = face.landmarks[FaceLandmarkType.leftMouth]?.position;
+    final rightMouth = face.landmarks[FaceLandmarkType.rightMouth]?.position;
+
+    final aspectRatio = width / height;
+
+    double eyeDist = 0.5;
+    double eyeNoseDist = 0.4;
+    double mouthWidth = 0.4;
+    double noseMouthDist = 0.3;
+    double nosePosY = 0.5;
+    double eyePosY = 0.35;
+
+    if (leftEye != null && rightEye != null) {
+      eyeDist = (Offset(leftEye.x.toDouble(), leftEye.y.toDouble()) -
+              Offset(rightEye.x.toDouble(), rightEye.y.toDouble()))
+          .distance / width;
+      eyePosY = ((leftEye.y + rightEye.y) / 2.0 - bbox.top) / height;
+    }
+
+    if (nose != null) {
+      nosePosY = (nose.y - bbox.top) / height;
+      if (leftEye != null && rightEye != null) {
+        final eyeMid = Offset((leftEye.x + rightEye.x) / 2.0, (leftEye.y + rightEye.y) / 2.0);
+        eyeNoseDist = (eyeMid - Offset(nose.x.toDouble(), nose.y.toDouble())).distance / height;
+      }
+    }
+
+    if (leftMouth != null && rightMouth != null) {
+      mouthWidth = (Offset(leftMouth.x.toDouble(), leftMouth.y.toDouble()) -
+              Offset(rightMouth.x.toDouble(), rightMouth.y.toDouble()))
+          .distance / width;
+      if (nose != null) {
+        final mouthMid = Offset((leftMouth.x + rightMouth.x) / 2.0, (leftMouth.y + rightMouth.y) / 2.0);
+        noseMouthDist = (Offset(nose.x.toDouble(), nose.y.toDouble()) - mouthMid).distance / height;
+      }
+    }
+
+    final smileProb = face.smilingProbability ?? 0.5;
+    final eulerY = (face.headEulerAngleY ?? 0.0) / 90.0;
+
+    return [
+      aspectRatio,
+      eyeDist,
+      eyeNoseDist,
+      mouthWidth,
+      noseMouthDist,
+      nosePosY,
+      eyePosY,
+      smileProb,
+      eulerY,
+    ];
+  }
+
   // ── Save profile ──────────────────────────────────────────────────────
   Future<void> _saveProfile() async {
     final name = _nameController.text.trim();
@@ -142,10 +203,17 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       );
       return;
     }
+
+    List<double>? features;
+    if (_detectedFaces.isNotEmpty) {
+      features = _extractFaceFeatures(_detectedFaces.first, _imageSize);
+    }
+
     final profile = FaceProfile(
       id: 'face_${DateTime.now().millisecondsSinceEpoch}',
       name: name,
       imageLocalPath: _pickedImage?.path,
+      faceFeatures: features,
       registeredAt: DateTime.now(),
     );
     await FaceRegistrationService().saveProfile(profile);

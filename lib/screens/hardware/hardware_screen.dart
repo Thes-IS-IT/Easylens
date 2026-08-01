@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
@@ -75,6 +76,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   List<String> _cocoLabels = [];
   final TfliteProcessor _tfliteProcessor = TfliteProcessor();
   List<SSDResult> _tfliteDetections = [];
+  bool _isProcessingObjectDetection = false;
   int _lastLabelerTime = 0;
   final List<String> _conversationHistory = [];
   bool _isContinuousVoiceEnabled = false;
@@ -488,9 +490,9 @@ class _HardwareScreenState extends State<HardwareScreen> {
             await _processCameraImage(nv21Bytes, yBytes, width, height);
           }
         } else if (_selectedHudMode == HudMode.objectDetection) {
-          if (nowMs - _lastObjectDetectionTime > 400) {
+          if (nowMs - _lastObjectDetectionTime > 180 && !_isProcessingObjectDetection) {
             _lastObjectDetectionTime = nowMs;
-            await _detectAndProcessTfliteOnly(nv21Bytes, width, height);
+            unawaited(_detectAndProcessTfliteOnly(nv21Bytes, width, height));
           }
         } else {
           await _processCameraImage(nv21Bytes, yBytes, width, height);
@@ -732,18 +734,135 @@ class _HardwareScreenState extends State<HardwareScreen> {
   void _initFaceDetector() {
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
-        enableLandmarks: false,
-        enableContours: false,
-        enableClassification: false,
-        minFaceSize: 0.12,
+        enableLandmarks: true,
+        enableContours: true,
+        enableClassification: true,
+        minFaceSize: 0.10,
         performanceMode: FaceDetectorMode.fast,
         enableTracking: true,
       ),
     );
   }
 
+  List<double> _extractFaceFeatures(Face face, Size imageSize) {
+    final bbox = face.boundingBox;
+    final width = bbox.width > 0 ? bbox.width : 1.0;
+    final height = bbox.height > 0 ? bbox.height : 1.0;
+
+    final leftEye = face.landmarks[FaceLandmarkType.leftEye]?.position;
+    final rightEye = face.landmarks[FaceLandmarkType.rightEye]?.position;
+    final nose = face.landmarks[FaceLandmarkType.noseBase]?.position;
+    final leftMouth = face.landmarks[FaceLandmarkType.leftMouth]?.position;
+    final rightMouth = face.landmarks[FaceLandmarkType.rightMouth]?.position;
+
+    final aspectRatio = width / height;
+
+    double eyeDist = 0.5;
+    double eyeNoseDist = 0.4;
+    double mouthWidth = 0.4;
+    double noseMouthDist = 0.3;
+    double nosePosY = 0.5;
+    double eyePosY = 0.35;
+
+    if (leftEye != null && rightEye != null) {
+      eyeDist = (Offset(leftEye.x.toDouble(), leftEye.y.toDouble()) -
+              Offset(rightEye.x.toDouble(), rightEye.y.toDouble()))
+          .distance / width;
+      eyePosY = ((leftEye.y + rightEye.y) / 2.0 - bbox.top) / height;
+    }
+
+    if (nose != null) {
+      nosePosY = (nose.y - bbox.top) / height;
+      if (leftEye != null && rightEye != null) {
+        final eyeMid = Offset((leftEye.x + rightEye.x) / 2.0, (leftEye.y + rightEye.y) / 2.0);
+        eyeNoseDist = (eyeMid - Offset(nose.x.toDouble(), nose.y.toDouble())).distance / height;
+      }
+    }
+
+    if (leftMouth != null && rightMouth != null) {
+      mouthWidth = (Offset(leftMouth.x.toDouble(), leftMouth.y.toDouble()) -
+              Offset(rightMouth.x.toDouble(), rightMouth.y.toDouble()))
+          .distance / width;
+      if (nose != null) {
+        final mouthMid = Offset((leftMouth.x + rightMouth.x) / 2.0, (leftMouth.y + rightMouth.y) / 2.0);
+        noseMouthDist = (Offset(nose.x.toDouble(), nose.y.toDouble()) - mouthMid).distance / height;
+      }
+    }
+
+    final smileProb = face.smilingProbability ?? 0.5;
+    final eulerY = (face.headEulerAngleY ?? 0.0) / 90.0;
+
+    return [
+      aspectRatio,
+      eyeDist,
+      eyeNoseDist,
+      mouthWidth,
+      noseMouthDist,
+      nosePosY,
+      eyePosY,
+      smileProb,
+      eulerY,
+    ];
+  }
+
+  double _compareFaceFeatures(List<double> v1, List<double> v2) {
+    final len = math.min(v1.length, v2.length);
+    if (len == 0) return double.infinity;
+    double sumSq = 0.0;
+    for (int i = 0; i < len; i++) {
+      final diff = v1[i] - v2[i];
+      sumSq += diff * diff;
+    }
+    return math.sqrt(sumSq / len);
+  }
+
   Future<void> _loadRegisteredFaces() async {
     final profiles = await FaceRegistrationService().getAllProfiles();
+    final accurateDetector = FaceDetector(
+      options: FaceDetectorOptions(
+        enableLandmarks: true,
+        enableContours: true,
+        enableClassification: true,
+        minFaceSize: 0.05,
+        performanceMode: FaceDetectorMode.accurate,
+      ),
+    );
+
+    try {
+      for (int i = 0; i < profiles.length; i++) {
+        final prof = profiles[i];
+        if ((prof.faceFeatures == null || prof.faceFeatures!.isEmpty) &&
+            prof.imageLocalPath != null) {
+          try {
+            final file = File(prof.imageLocalPath!);
+            if (await file.exists()) {
+              final decodedImage = await decodeImageFromList(await file.readAsBytes());
+              final imgSize = Size(
+                decodedImage.width.toDouble(),
+                decodedImage.height.toDouble(),
+              );
+              final inputImage = InputImage.fromFile(file);
+              final faces = await accurateDetector.processImage(inputImage);
+              if (faces.isNotEmpty) {
+                final feats = _extractFaceFeatures(faces.first, imgSize);
+                final updatedProf = FaceProfile(
+                  id: prof.id,
+                  name: prof.name,
+                  imageLocalPath: prof.imageLocalPath,
+                  faceFeatures: feats,
+                  registeredAt: prof.registeredAt,
+                );
+                await FaceRegistrationService().saveProfile(updatedProf);
+                profiles[i] = updatedProf;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    } finally {
+      await accurateDetector.close();
+    }
+
     if (mounted) {
       setState(() {
         _registeredFaces = profiles;
@@ -770,10 +889,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   /// Throttled face detection on camera frames.
-  /// When a face is detected and registered profiles exist, announces the
-  /// registered person's name via TTS with a 10-second cooldown.
   Future<void> _detectFaceOnFrame(Uint8List bytes, int width, int height) async {
-    if (_faceDetector == null || _registeredFaces.isEmpty) return;
+    if (_faceDetector == null) return;
     try {
       final Size imageSize = Size(width.toDouble(), height.toDouble());
       final inputImageMetadata = InputImageMetadata(
@@ -811,10 +928,6 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final sortedFaces = List<Face>.from(faces)
         ..sort((a, b) => a.boundingBox.center.dx.compareTo(b.boundingBox.center.dx));
 
-      final activeAssignedNames = _faceIdToNameMap.values
-          .where((name) => name != 'Face' && name != 'Unregistered')
-          .toSet();
-
       for (int i = 0; i < sortedFaces.length; i++) {
         final face = sortedFaces[i];
         final id = face.trackingId;
@@ -836,16 +949,22 @@ class _HardwareScreenState extends State<HardwareScreen> {
             if (matchedPrevId != null) {
               _faceIdToNameMap[id] = _faceIdToNameMap[matchedPrevId]!;
             } else {
-              // Assign next unassigned registered profile name if available
-              String? unassignedName;
-              for (final prof in _registeredFaces) {
-                if (!activeAssignedNames.contains(prof.name)) {
-                  unassignedName = prof.name;
-                  activeAssignedNames.add(prof.name);
-                  break;
+              // Real facial feature matching against registered profiles
+              final detectedFeats = _extractFaceFeatures(face, imageSize);
+              String? matchedName;
+              if (_registeredFaces.isNotEmpty) {
+                double bestDistance = double.infinity;
+                for (final prof in _registeredFaces) {
+                  if (prof.faceFeatures != null && prof.faceFeatures!.isNotEmpty) {
+                    final dist = _compareFaceFeatures(detectedFeats, prof.faceFeatures!);
+                    if (dist < 0.45 && dist < bestDistance) {
+                      bestDistance = dist;
+                      matchedName = prof.name;
+                    }
+                  }
                 }
               }
-              _faceIdToNameMap[id] = unassignedName ?? 'Face';
+              _faceIdToNameMap[id] = matchedName ?? 'Unknown Face';
             }
           }
         }
@@ -864,7 +983,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
       for (final face in faces) {
         final id = face.trackingId;
         final name = (id != null) ? _faceIdToNameMap[id] : null;
-        if (name != null && name != 'Face' && name != 'Unregistered') {
+        if (name != null &&
+            name != 'Face' &&
+            name != 'Unregistered' &&
+            name != 'Unknown Face' &&
+            name != 'Person') {
           if (!recognizedNames.contains(name)) {
             recognizedNames.add(name);
           }
@@ -1585,7 +1708,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
   /// Runs TFLite SSD MobileNet inference on NV21 camera bytes for Object Detection Mode.
   /// Sets _tfliteDetections to draw bounding boxes and announces detected items via TTS.
   Future<void> _detectAndProcessTfliteOnly(Uint8List nv21Bytes, int width, int height) async {
-    if (!_tfliteProcessor.isReady || !mounted) return;
+    if (!_tfliteProcessor.isReady || !mounted || _isProcessingObjectDetection) return;
+    _isProcessingObjectDetection = true;
     try {
       final rgbInput = _tfliteProcessor.prepareInputFromNv21(nv21Bytes, width, height);
       final results = _tfliteProcessor.runInference(rgbInput);
@@ -1636,6 +1760,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
       }
     } catch (e) {
       print('[TFLite ObjectDetection] Inference error: $e');
+    } finally {
+      _isProcessingObjectDetection = false;
     }
   }
 

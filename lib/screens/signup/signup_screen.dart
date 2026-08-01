@@ -154,8 +154,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
       case 7:
         prompt = isTagalog
-            ? "Hakbang 7 sa 17. Pumili ng boses ng assistant. Sabihin ang Max, Aria, Nova, Echo, Bella, o Leo."
-            : "Step 7 of 17. Choose a Voice Persona. Say Max, Aria, Nova, Echo, Bella, or Leo.";
+            ? "Hakbang 7 sa 17. Pumili ng boses ng assistant. Sabihin ang Max, Aria, Nova, Echo, Bella, o Buddy."
+            : "Step 7 of 17. Choose a Voice Persona. Say Max, Aria, Nova, Echo, Bella, or Buddy.";
         break;
       case 8:
         prompt = isTagalog
@@ -259,7 +259,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 6:
         return text.contains('voice') || text.contains('boses') || text.contains('vibration') || text.contains('haptic') || text.contains('vibrate');
       case 7:
-        return text.contains('max') || text.contains('aria') || text.contains('nova') || text.contains('echo') || text.contains('bella') || text.contains('leo');
+        return text.contains('max') || text.contains('aria') || text.contains('nova') || text.contains('echo') || text.contains('bella') || text.contains('leo') || text.contains('buddy');
       case 8:
         return text.contains('cane') || text.contains('tungkod') || text.contains('dog') || text.contains('aso') || text.contains('glasses') || text.contains('salamin') || text.contains('wheelchair') || text.contains('walker') || text.contains('none') || text.contains('wala');
       case 9:
@@ -475,10 +475,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         break;
 
       case 7: // Voice Persona
-        final personas = ['Max', 'Aria', 'Nova', 'Echo', 'Bella', 'Leo'];
+        final personas = ['Max', 'Aria', 'Nova', 'Echo', 'Bella', 'Buddy', 'Leo'];
         for (var p in personas) {
           if (text.contains(p.toLowerCase())) {
-            setState(() => _selectedVoicePersona = p);
+            final fullName = (p == 'Buddy' || p == 'Leo') ? 'Buddy (Child)' : '$p (Calm)';
+            setState(() => _selectedVoicePersona = (p == 'Buddy' || p == 'Leo') ? 'Buddy (Child)' : p);
             _triggerVoiceConfirmation('$p Persona');
             break;
           }

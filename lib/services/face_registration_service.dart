@@ -7,12 +7,14 @@ class FaceProfile {
   final String id;
   final String name;
   final String? imageLocalPath;
+  final List<double>? faceFeatures;
   final DateTime registeredAt;
 
   FaceProfile({
     required this.id,
     required this.name,
     this.imageLocalPath,
+    this.faceFeatures,
     required this.registeredAt,
   });
 
@@ -20,6 +22,7 @@ class FaceProfile {
         'id': id,
         'name': name,
         'imageLocalPath': imageLocalPath,
+        'faceFeatures': faceFeatures,
         'registeredAt': registeredAt.toIso8601String(),
       };
 
@@ -27,6 +30,9 @@ class FaceProfile {
         id: json['id'] as String,
         name: json['name'] as String,
         imageLocalPath: json['imageLocalPath'] as String?,
+        faceFeatures: (json['faceFeatures'] as List<dynamic>?)
+            ?.map((e) => (e as num).toDouble())
+            .toList(),
         registeredAt: DateTime.parse(json['registeredAt'] as String),
       );
 }
