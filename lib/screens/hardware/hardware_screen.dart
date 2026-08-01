@@ -977,17 +977,23 @@ class _HardwareScreenState extends State<HardwareScreen> {
   Future<void> _detectFaceOnFrame(Uint8List bytes, int width, int height) async {
     if (_faceDetector == null) return;
     try {
-      final Size imageSize = Size(width.toDouble(), height.toDouble());
+      final rotation = _getImageRotation();
+      final bool isRotated = rotation == InputImageRotation.rotation90deg || rotation == InputImageRotation.rotation270deg;
+      final Size bufferSize = Size(width.toDouble(), height.toDouble());
+      final Size displayImageSize = isRotated
+          ? Size(height.toDouble(), width.toDouble())
+          : Size(width.toDouble(), height.toDouble());
+
       final inputImageMetadata = InputImageMetadata(
-        size: imageSize,
-        rotation: _getImageRotation(),
+        size: bufferSize,
+        rotation: rotation,
         format: InputImageFormat.nv21,
         bytesPerRow: width,
       );
       final inputImage =
           InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
       final faces = await _faceDetector!.processImage(inputImage);
-      await _processFaceResults(faces, imageSize);
+      await _processFaceResults(faces, displayImageSize);
     } catch (e) {
       // Face detection errors are non-fatal
     }
