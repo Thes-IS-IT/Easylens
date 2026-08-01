@@ -755,14 +755,13 @@ class _HardwareScreenState extends State<HardwareScreen> {
     final leftMouth = face.landmarks[FaceLandmarkType.leftMouth]?.position;
     final rightMouth = face.landmarks[FaceLandmarkType.rightMouth]?.position;
 
-    final aspectRatio = width / height;
-
     double eyeDist = 0.5;
     double eyeNoseDist = 0.4;
     double mouthWidth = 0.4;
     double noseMouthDist = 0.3;
-    double nosePosY = 0.5;
     double eyePosY = 0.35;
+    double nosePosY = 0.5;
+    double mouthPosY = 0.65;
 
     if (leftEye != null && rightEye != null) {
       eyeDist = (Offset(leftEye.x.toDouble(), leftEye.y.toDouble()) -
@@ -783,37 +782,36 @@ class _HardwareScreenState extends State<HardwareScreen> {
       mouthWidth = (Offset(leftMouth.x.toDouble(), leftMouth.y.toDouble()) -
               Offset(rightMouth.x.toDouble(), rightMouth.y.toDouble()))
           .distance / width;
+      mouthPosY = ((leftMouth.y + rightMouth.y) / 2.0 - bbox.top) / height;
       if (nose != null) {
         final mouthMid = Offset((leftMouth.x + rightMouth.x) / 2.0, (leftMouth.y + rightMouth.y) / 2.0);
         noseMouthDist = (Offset(nose.x.toDouble(), nose.y.toDouble()) - mouthMid).distance / height;
       }
     }
 
-    final smileProb = face.smilingProbability ?? 0.5;
-    final eulerY = (face.headEulerAngleY ?? 0.0) / 90.0;
-
     return [
-      aspectRatio,
       eyeDist,
       eyeNoseDist,
       mouthWidth,
       noseMouthDist,
-      nosePosY,
       eyePosY,
-      smileProb,
-      eulerY,
+      nosePosY,
+      mouthPosY,
     ];
   }
 
   double _compareFaceFeatures(List<double> v1, List<double> v2) {
-    final len = math.min(v1.length, v2.length);
-    if (len == 0) return double.infinity;
-    double sumSq = 0.0;
-    for (int i = 0; i < len; i++) {
+    if (v1.length != v2.length || v1.isEmpty) return double.infinity;
+    final weights = [3.0, 3.0, 2.0, 2.0, 2.0, 2.0, 2.0];
+    double weightedSumSq = 0.0;
+    double totalWeight = 0.0;
+    for (int i = 0; i < v1.length; i++) {
+      final w = i < weights.length ? weights[i] : 1.0;
       final diff = v1[i] - v2[i];
-      sumSq += diff * diff;
+      weightedSumSq += w * diff * diff;
+      totalWeight += w;
     }
-    return math.sqrt(sumSq / len);
+    return math.sqrt(weightedSumSq / totalWeight);
   }
 
   Future<void> _loadRegisteredFaces() async {
@@ -959,7 +957,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
             } else if (isPrimaryFace && _registeredFaces.isNotEmpty) {
               final detectedFeats = _extractFaceFeatures(face, imageSize);
               String? matchedName;
-              double bestDistance = 0.32; // Tight, accurate distance threshold
+              double bestDistance = 0.12; // High-precision biometric matching threshold
 
               for (final prof in _registeredFaces) {
                 if (assignedNamesInFrame.contains(prof.name)) continue; // 1 assignment per person per frame

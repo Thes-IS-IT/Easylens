@@ -144,14 +144,13 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
     final leftMouth = face.landmarks[FaceLandmarkType.leftMouth]?.position;
     final rightMouth = face.landmarks[FaceLandmarkType.rightMouth]?.position;
 
-    final aspectRatio = width / height;
-
     double eyeDist = 0.5;
     double eyeNoseDist = 0.4;
     double mouthWidth = 0.4;
     double noseMouthDist = 0.3;
-    double nosePosY = 0.5;
     double eyePosY = 0.35;
+    double nosePosY = 0.5;
+    double mouthPosY = 0.65;
 
     if (leftEye != null && rightEye != null) {
       eyeDist = (Offset(leftEye.x.toDouble(), leftEye.y.toDouble()) -
@@ -172,25 +171,21 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       mouthWidth = (Offset(leftMouth.x.toDouble(), leftMouth.y.toDouble()) -
               Offset(rightMouth.x.toDouble(), rightMouth.y.toDouble()))
           .distance / width;
+      mouthPosY = ((leftMouth.y + rightMouth.y) / 2.0 - bbox.top) / height;
       if (nose != null) {
         final mouthMid = Offset((leftMouth.x + rightMouth.x) / 2.0, (leftMouth.y + rightMouth.y) / 2.0);
         noseMouthDist = (Offset(nose.x.toDouble(), nose.y.toDouble()) - mouthMid).distance / height;
       }
     }
 
-    final smileProb = face.smilingProbability ?? 0.5;
-    final eulerY = (face.headEulerAngleY ?? 0.0) / 90.0;
-
     return [
-      aspectRatio,
       eyeDist,
       eyeNoseDist,
       mouthWidth,
       noseMouthDist,
-      nosePosY,
       eyePosY,
-      smileProb,
-      eulerY,
+      nosePosY,
+      mouthPosY,
     ];
   }
 
