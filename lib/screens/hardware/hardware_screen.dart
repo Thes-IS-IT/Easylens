@@ -801,11 +801,12 @@ class _HardwareScreenState extends State<HardwareScreen> {
   }
 
   double _compareFaceFeatures(List<double> v1, List<double> v2) {
-    if (v1.length != v2.length || v1.isEmpty) return double.infinity;
+    final len = math.min(v1.length, v2.length);
+    if (len < 5) return double.infinity;
     final weights = [3.0, 3.0, 2.0, 2.0, 2.0, 2.0, 2.0];
     double weightedSumSq = 0.0;
     double totalWeight = 0.0;
-    for (int i = 0; i < v1.length; i++) {
+    for (int i = 0; i < len; i++) {
       final w = i < weights.length ? weights[i] : 1.0;
       final diff = v1[i] - v2[i];
       weightedSumSq += w * diff * diff;
@@ -829,7 +830,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     try {
       for (int i = 0; i < profiles.length; i++) {
         final prof = profiles[i];
-        if ((prof.faceFeatures == null || prof.faceFeatures!.isEmpty) &&
+        if ((prof.faceFeatures == null || prof.faceFeatures!.isEmpty || prof.faceFeatures!.length != 7) &&
             prof.imageLocalPath != null) {
           try {
             final file = File(prof.imageLocalPath!);
@@ -957,7 +958,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
             } else if (isPrimaryFace && _registeredFaces.isNotEmpty) {
               final detectedFeats = _extractFaceFeatures(face, imageSize);
               String? matchedName;
-              double bestDistance = 0.12; // High-precision biometric matching threshold
+              double bestDistance = 0.28; // Optimal biometric matching threshold
 
               for (final prof in _registeredFaces) {
                 if (assignedNamesInFrame.contains(prof.name)) continue; // 1 assignment per person per frame
