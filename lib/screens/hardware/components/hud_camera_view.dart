@@ -467,15 +467,27 @@ class HudCameraView extends StatelessWidget {
                             ),
                             child: Align(
                               alignment: Alignment.topLeft,
-                              child: Container(
-                                color: const Color(0xFF7C3AED),
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                child: Text(
-                                  "$name$trackingStr",
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                              child: OverflowBox(
+                                maxWidth: 160,
+                                alignment: Alignment.topLeft,
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF7C3AED),
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(6),
+                                      bottomRight: Radius.circular(6),
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  child: Text(
+                                    "$name$trackingStr",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),

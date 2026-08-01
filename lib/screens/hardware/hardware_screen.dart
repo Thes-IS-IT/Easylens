@@ -462,7 +462,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _isProcessingFrame = true;
 
     Future.microtask(() async {
-      if (!mounted) {
+      if (!mounted || (_selectedHudMode == HudMode.objectDetection && !_tfliteProcessor.isReady)) {
         _isProcessingFrame = false;
         return;
       }
@@ -928,10 +928,18 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final sortedFaces = List<Face>.from(faces)
         ..sort((a, b) => a.boundingBox.center.dx.compareTo(b.boundingBox.center.dx));
 
+      final assignedNamesInFrame = <String>{};
+
       for (int i = 0; i < sortedFaces.length; i++) {
         final face = sortedFaces[i];
         final id = face.trackingId;
         final center = face.boundingBox.center;
+        final bbox = face.boundingBox;
+
+        // Skip identity matching on tiny background/thumbnail faces (e.g. photos on a monitor screen or poster)
+        final isPrimaryFace = imageSize != Size.zero
+            ? (bbox.width >= imageSize.width * 0.10 || bbox.height >= imageSize.height * 0.10)
+            : true;
 
         if (id != null) {
           // Check spatial proximity to inherit name if tracking ID shifted
@@ -948,23 +956,32 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
             if (matchedPrevId != null) {
               _faceIdToNameMap[id] = _faceIdToNameMap[matchedPrevId]!;
-            } else {
-              // Real facial feature matching against registered profiles
+            } else if (isPrimaryFace && _registeredFaces.isNotEmpty) {
               final detectedFeats = _extractFaceFeatures(face, imageSize);
               String? matchedName;
-              if (_registeredFaces.isNotEmpty) {
-                double bestDistance = double.infinity;
-                for (final prof in _registeredFaces) {
-                  if (prof.faceFeatures != null && prof.faceFeatures!.isNotEmpty) {
-                    final dist = _compareFaceFeatures(detectedFeats, prof.faceFeatures!);
-                    if (dist < 0.45 && dist < bestDistance) {
-                      bestDistance = dist;
-                      matchedName = prof.name;
-                    }
+              double bestDistance = 0.32; // Tight, accurate distance threshold
+
+              for (final prof in _registeredFaces) {
+                if (assignedNamesInFrame.contains(prof.name)) continue; // 1 assignment per person per frame
+                if (prof.faceFeatures != null && prof.faceFeatures!.isNotEmpty) {
+                  final dist = _compareFaceFeatures(detectedFeats, prof.faceFeatures!);
+                  if (dist < bestDistance) {
+                    bestDistance = dist;
+                    matchedName = prof.name;
                   }
                 }
               }
+              if (matchedName != null) {
+                assignedNamesInFrame.add(matchedName);
+              }
               _faceIdToNameMap[id] = matchedName ?? 'Unknown Face';
+            } else {
+              _faceIdToNameMap[id] = 'Unknown Face';
+            }
+          } else {
+            final name = _faceIdToNameMap[id]!;
+            if (name != 'Unknown Face' && name != 'Face') {
+              assignedNamesInFrame.add(name);
             }
           }
         }
