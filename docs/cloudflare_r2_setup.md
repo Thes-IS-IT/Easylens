@@ -70,7 +70,18 @@ Since Flutter applications upload images directly from client devices, you must 
 
 ---
 
-## 4. Code Implementation Example (Dart / Flutter)
+## 4. Simplified R2 Direct Upload Flow
+
+```mermaid
+graph LR
+    Client[EasyLens Flutter App] --> SigV4[Generate AWS SigV4 HMAC-SHA256 Header]
+    SigV4 --> R2Put[HTTP PUT direct to Cloudflare R2 Bucket]
+    R2Put --> PublicURL[Retrieve Public CDN Avatar Image URL]
+```
+
+---
+
+## 5. Code Implementation Example (Dart / Flutter)
 When implementing uploads in Dart, R2 acts exactly like an S3 endpoint. You can perform S3 Signature V4 uploads or use simple presigned URLs.
 
 ### S3 Endpoint URL Format

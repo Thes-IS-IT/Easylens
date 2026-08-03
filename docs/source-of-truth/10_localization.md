@@ -38,7 +38,18 @@ The onboarding signup wizard is localized via [signup_strings.dart](file:///User
 
 ---
 
-## 2. Text-to-Speech (TTS) Integration
+## 2. Simplified Localization Pipeline
+
+```mermaid
+graph LR
+    Lang[Selected Language State] --> Translation[TranslationService & SignupStrings]
+    Translation --> UI[Instant UI Re-render]
+    Translation --> TTS[TTS Voice Resolver & Locale Fallback]
+```
+
+---
+
+## 3. Text-to-Speech (TTS) Integration
 
 Localization is wired directly into the TTS engine to ensure speech output matches the interface language:
 1. **Language Map Selection**: When the user selects a language in `Settings` or `Signup`, the app updates the UI translations immediately.

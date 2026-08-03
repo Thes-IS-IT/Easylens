@@ -30,6 +30,17 @@ EasyLens integrates global map routing with localized safety metrics to construc
 
 ## State Machine
 
+#### Simplified Walking Navigation States
+```mermaid
+graph LR
+    Clear[Path Clear] --> Check{Hazard Detected?}
+    Check -- Close & Centered --> Stop[🔴 Stop Immediately]
+    Check -- Moderate Distance --> Avoid[🟠 Avoid Obstacle]
+    Check -- Side Object --> Slow[🟡 Slow Down]
+    Check -- Door/Window --> Ambient[🚪 Ambient Cue]
+```
+
+#### Detailed Navigation State Diagram
 ```mermaid
 stateDiagram-v2
     [*] --> PathClear

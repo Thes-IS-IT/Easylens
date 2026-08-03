@@ -65,7 +65,18 @@ Holds caregiver profiles linked to the primary account owner:
 
 ---
 
-## 3. Storage & Cloud Synchronization Strategy
+## 3. Simplified Storage & Sync Flowchart
+
+```mermaid
+graph LR
+    UI[User Action / Preferences Update] --> Prefs[Local SharedPreferences & SQLite]
+    Prefs --> Cache[Firestore Offline Cache]
+    Cache -->|Network Connected| Cloud[Sync to Remote Firestore Database]
+```
+
+---
+
+## 4. Storage & Cloud Synchronization Strategy
 
 Firestore features **built-in offline persistence** that caches updates locally when offline and automatically syncs them to the cloud once network connectivity is restored.
 

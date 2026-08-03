@@ -71,7 +71,19 @@ To prevent visual false positives, the system implements a strict string classif
 
 ---
 
-## 4. Multi-Threaded Isolate Processing
+## 4. Simplified Detection Pipeline
+
+```mermaid
+graph TD
+    Frame[Raw YUV / MJPEG Camera Frame] --> Isolate[Background Isolate Runner]
+    Isolate --> TFLite[300x300 MobileNetV2 SSD Inference]
+    TFLite --> Threat[Spatial Trajectory & Proximity Evaluation]
+    Threat --> HUD[Render HUD Bounding Box & Trigger Voice Guidance]
+```
+
+---
+
+## 5. Multi-Threaded Isolate Processing
 
 To guarantee a stable 60 FPS user interface, the system runs heavy inference tasks asynchronously:
 1. **Isolate Worker Spawn**: The UI thread sends raw YUV420 frame bytes or ESP32 WiFi JPEG streams to a background Dart Isolate thread.

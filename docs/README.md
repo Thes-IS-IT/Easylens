@@ -8,6 +8,7 @@ reference; the topic pages in this directory provide shorter entry points.
 
 | Need | Document |
 | --- | --- |
+| Official Releases & Version Changelog (v1.0 - v20.0) | [Release Notes & History](RELEASES.md) |
 | Run or configure the app | [Project overview](source-of-truth/01_project_overview.md) |
 | Understand app structure and data flow | [Architecture](source-of-truth/02_architecture.md) |
 | Find a screen or service | [Screens](source-of-truth/03_screens_and_navigation.md) / [services](source-of-truth/04_services_reference.md) |

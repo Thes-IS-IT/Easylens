@@ -93,6 +93,15 @@ EasyLens utilizes specialized, high-performance algorithms to perform real-time 
 
 ### Architecture
 
+#### Simplified AI/ML Pipeline Overview
+```mermaid
+graph LR
+    Input[Query / Camera Frame] --> RAG[RAG Keyword Matcher & Guardrails]
+    RAG --> LLM[Local Gemma or Cloud Gemini]
+    LLM --> Response[TTS Voice Response & Scene Description]
+```
+
+#### Detailed RAG Architecture Diagram
 ```mermaid
 graph TD
     Query[User Query] --> Guard[Guardrail Filter]

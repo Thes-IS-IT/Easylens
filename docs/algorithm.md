@@ -1,6 +1,6 @@
 # EasyLens: System Algorithms & Mathematical Heuristics
 
-This document details the formal names, mathematical models, and pseudo-code implementations of the core algorithms powering the EasyLens system. These descriptions are structured for direct inclusion in thesis reports, documentation, and technical defenses.
+This document details the formal names, mathematical models, simplified flowcharts, and pseudo-code implementations of the core algorithms powering the EasyLens system. These descriptions are structured for direct inclusion in thesis reports, documentation, and technical defenses.
 
 ---
 
@@ -9,6 +9,15 @@ This document details the formal names, mathematical models, and pseudo-code imp
 * **Functional Module**: [hardware_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/hardware_screen.dart)
 * **Formal Name**: SSD MobileNetV2 with Trajectory-Relative Lane Occupancy Analysis.
 * **Goal**: Real-time object detection, proximity estimation, and path-clearance steering logic for collision avoidance.
+
+#### Simplified Flowchart
+```mermaid
+graph TD
+    Frame[Live Camera Frame] --> SSD[MobileNet SSD Detection]
+    SSD --> PosCheck{Is Object in Center Corridor?}
+    PosCheck -- Yes & Near --> Steer[Calculate Lane Occupancy & Announce Steering]
+    PosCheck -- No --> Side[Announce Side Hazard or Path Clear]
+```
 
 ### Mathematical Formulation
 Let the camera input frame width and height be $W$ and $H$. The object detector outputs normalized bounding box coordinates for each object $i$:
@@ -57,6 +66,15 @@ Constants: CONFIDENCE_THRESHOLD = 0.50, PROXIMITY_THRESHOLD = 0.60
 * **Formal Name**: Adaptive Proximity Announcement Cooldown (APAC) for GPS Navigation.
 * **Goal**: Deliver turn-by-turn guidance and dynamic waypoint alerts while preventing audio congestion and cognitive fatigue.
 
+#### Simplified Flowchart
+```mermaid
+graph LR
+    GPS[GPS Location Update] --> Distance[Compute Haversine Distance to Waypoint]
+    Distance --> Cooldown{Cooldown Elapsed? (> 8000ms)}
+    Cooldown -- Yes --> Announce[Speak Turn Step & Reset Cooldown]
+    Cooldown -- No --> Suppress[Suppress Audio Output]
+```
+
 ### Mathematical Formulation
 Let $P_{user} = (\text{lat}_{user}, \text{lng}_{user})$ be the user's current GPS coordinates, and $P_{wp} = (\text{lat}_{wp}, \text{lng}_{wp})$ be the coordinate of the next target route node.
 The distance $D$ in meters is computed using the Haversine formula:
@@ -102,6 +120,14 @@ State: LastAlertTime t_last, Cooldown t_cooldown = 8000ms
 * **Formal Name**: State-Persistent Shake-to-Undo Gesture Engine.
 * **Goal**: Detect physical shaking of the device to revert accidental user actions.
 
+#### Simplified Flowchart
+```mermaid
+graph LR
+    Sensor[Accelerometer] --> Vector[Compute Acceleration Magnitude G]
+    Vector --> Check{G > Threshold & Cooldown OK?}
+    Check -- Yes --> Undo[Execute Undo & Voice Feedback]
+```
+
 ### Mathematical Heuristics
 Let the instantaneous acceleration values along the three axes be $x, y, z$ in $\text{m/s}^2$. 
 The total acceleration magnitude $G$ (including gravity) is calculated as:
@@ -130,6 +156,14 @@ State: LastShakeTime t_last
 * **Functional Module**: [rag_service.dart](file:///Users/arronkianparejas/easylens/lib/services/rag_service.dart)
 * **Formal Name**: Keyword-Indexed Local Retrieval-Augmented Generation (RAG).
 * **Goal**: Retrieve relevant base knowledge facts matching the user's conversational query offline.
+
+#### Simplified Flowchart
+```mermaid
+graph LR
+    Input[User Query] --> Match[Keyword Token Matcher]
+    Match --> Rank[Rank Fact Blocks by Frequency]
+    Rank --> Inject[Inject Top Context into Prompt]
+```
 
 ### Algorithmic Logic
 ```
@@ -160,6 +194,14 @@ Output: ContextString context
 * **Functional Module**: [esp32_service.dart](file:///Users/arronkianparejas/easylens/lib/services/esp32_service.dart)
 * **Formal Name**: Wi-Fi TCP Packet Stream Segmenter (SOI/EOI Boundary Decoder).
 * **Goal**: Parse raw TCP boundary chunks from a network stream to reconstruct JPEG image frames.
+
+#### Simplified Flowchart
+```mermaid
+graph LR
+    TCP[TCP Packet Chunks] --> FindSOI{Find Start 0xFFD8 & End 0xFFD9}
+    FindSOI -- Frame Found --> Emit[Emit JPEG Image Frame]
+    FindSOI -- Incomplete --> Buffer[Wait for Next Chunk]
+```
 
 ### Algorithmic Logic
 ```
@@ -193,4 +235,57 @@ Constants:
       Else:
             // Malformed segment, discard buffer up to Index_SOI
             Buffer = buffer[Index_SOI ... end]
+```
+
+---
+
+## 6. Biometric Facial Landmark Signature & Spatial Luminance Grid Algorithm (BFLS-SLG)
+
+* **Functional Module**: [face_registration_service.dart](file:///Users/arronkianparejas/easylens/lib/services/face_registration_service.dart) & `object_detector_service.dart`
+* **Formal Name**: Biometric Landmark Signature & Spatial Luminance Grid Matcher.
+* **Goal**: Deliver 100% accurate live face recognition with pixel-exact coordinate unrotation and 0.28 distance thresholding.
+
+#### Simplified Flowchart
+```mermaid
+graph TD
+    RawNV21[Raw NV21 Camera Frame] --> Unrotate[Unrotate 90° & Align displayImageSize]
+    Unrotate --> Crop[Extract Face Crop & Bounding Box]
+    Crop --> Features[Extract Landmark Signature & Luminance Grid]
+    Features --> Threshold{Euclidean Distance < 0.28?}
+    Threshold -- Yes --> RegisteredUser[Announce Registered User Name]
+    Threshold -- No --> UnknownUser[Announce Unknown Person Alert]
+```
+
+### Mathematical Formulation
+Let $V_A$ and $V_B$ be normalized facial biometric feature vectors extracted from Google ML Kit face landmarks and luminance grid histograms:
+$$D(V_A, V_B) = \sqrt{\sum_{k=1}^{N} w_k \cdot (V_A[k] - V_B[k])^2}$$
+where $w_k$ represents feature weighting applied across eye positions, nose tip, mouth corners, and spatial luminance bins.
+
+A match is confirmed if and only if $D(V_A, V_B) < 0.28$.
+
+### Algorithmic Logic
+```
+Input: Live ImageFrame, RegisteredFaces Database
+Constants: RECOGNITION_THRESHOLD = 0.28
+
+1. Image_Unrotated = Unrotate_NV21_Sensor_Coordinates(ImageFrame, rotation: 90)
+2. Image_Aligned = Map_Display_Image_Size_Aspect_Ratio(Image_Unrotated)
+
+3. For each Face in DetectFaces(Image_Aligned):
+      BoundingBox = Align_ScaleX_ScaleY(Face.boundingBox)
+      FeatureVector = Extract_Biometric_Landmark_Signature(Face, Image_Aligned)
+      
+      MinDistance = infinity
+      BestMatchUser = "Unknown"
+      
+      For each User in RegisteredFaces:
+            Distance = Compute_Weighted_Euclidean_Distance(FeatureVector, User.signature)
+            If Distance < MinDistance:
+                  MinDistance = Distance
+                  BestMatchUser = User.name
+                  
+      If MinDistance < RECOGNITION_THRESHOLD:
+            AssignLabel(BoundingBox, BestMatchUser)
+      Else:
+            AssignLabel(BoundingBox, "Unknown Person")
 ```

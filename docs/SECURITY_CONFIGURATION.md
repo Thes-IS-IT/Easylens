@@ -33,6 +33,16 @@ expects. Renaming it requires a code change.
 - The ESP32 default stream is `http://192.168.4.1:81/stream`; it can be changed
   from the Devices screen.
 
+## Simplified Security Architecture Flowchart
+
+```mermaid
+graph TD
+    Client[Mobile App Client] --> EnvCheck[Load Environment Secrets from .env]
+    EnvCheck --> Validations[Input Validations & 11-Digit Phone Checks]
+    Validations --> Auth[Firebase Token Auth & HMAC SigV4 Requests]
+    Auth --> CloudServices[Restricted Third-Party & Cloudflare API Services]
+```
+
 ## Important security note
 
 The repository currently contains credential-like defaults in application and

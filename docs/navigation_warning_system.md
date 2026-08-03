@@ -43,7 +43,20 @@ EasyLens classifies environmental features detected in the camera view into thre
 
 ---
 
-## 2. Threat Calculation Logic
+## 2. Simplified Hazard Pipeline
+
+```mermaid
+graph TD
+    Detection[Object / Landmark Detection] --> Score[Calculate Threat Score]
+    Score --> Priority{Priority Level}
+    Priority -- Priority 1 Critical --> Critical[Crimson Card + Interrupt Voice + Double Haptic]
+    Priority -- Priority 2 Moderate --> Moderate[Amber Card + Steering Guidance + Medium Haptic]
+    Priority -- Priority 3 Info --> Info[Blue Card + Informational Voice Announcement]
+```
+
+---
+
+## 3. Threat Calculation Logic
 
 Threat scoring is computed dynamically for every detected object based on three primary factors:
 

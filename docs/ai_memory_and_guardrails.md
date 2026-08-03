@@ -8,6 +8,15 @@ This document details the software design, processing loops, retrieval mechanics
 
 Buddy maintains a hybrid memory framework to provide both contextual conversation continuity (short-term memory) and historical user awareness (long-term memory).
 
+#### Simplified Memory Overview
+```mermaid
+graph LR
+    User[User Session] --> STM[Short-Term Conversation Queue]
+    User --> LTM[Long-Term SQLite Journal History]
+    STM & LTM --> RAG[Unified Context Prompt Pipeline]
+```
+
+#### Detailed Memory Architecture
 ```mermaid
 graph TD
     UserInteraction["User Interaction"]
@@ -54,6 +63,14 @@ graph TD
 
 To perform on-device Retrieval-Augmented Generation (RAG) fully offline, EasyLens implements a Term Frequency-Inverse Document Frequency (TF-IDF) indexing and search engine.
 
+#### Simplified TF-IDF Search Flow
+```mermaid
+graph LR
+    Query[User Query] --> TFIDF[Cached TF-IDF Search Index]
+    TFIDF --> Context[Extract Top Relevant Knowledge Context]
+```
+
+#### Detailed TF-IDF Index & Search Diagram
 ```mermaid
 flowchart TD
     Query["User Input Query"]
@@ -100,6 +117,15 @@ flowchart TD
 
 To prevent the LLM from executing non-assistive computations, hallucinating, or freezing, the RAG and prompt rendering loops employ multiple safety guardrails.
 
+#### Simplified Safety Guardrails Flow
+```mermaid
+graph LR
+    Input[Raw Input] --> Filter{Matches Whitelist / Assistive Scope?}
+    Filter -- Off-Topic --> Reject[Friendly Rejection Speech]
+    Filter -- Valid --> LLM[Local LLM / Cloud Inference]
+```
+
+#### Detailed Safety Guardrails Diagram
 ```mermaid
 flowchart TD
     RawInput["Raw Speech/Text Input"]

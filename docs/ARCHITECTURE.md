@@ -49,6 +49,17 @@ Easylens is a state-of-the-art accessibility assistant designed to empower visua
 
 ## 2. High-Level Architecture Flowchart
 
+#### Simplified Architecture Overview
+```mermaid
+graph TD
+    User[User UI & Voice Inputs] --> Core[State Providers & Controllers]
+    Core --> Vision[ML Kit & TFLite Vision Engine]
+    Core --> AI[Local Gemma 2B & Gemini RAG]
+    Core --> Hardware[ESP32 Smart Glasses & Audio TTS/STT]
+    Core --> Storage[Local SQLite, Firebase & Cloudflare]
+```
+
+#### Detailed Architecture Diagram
 ```mermaid
 graph TD
     %% User Interface
@@ -131,6 +142,17 @@ lib/
 ### A. RAG Engine & LLM Integrations
 Easylens uses `RagService` as a multi-tier fallback generation coordinator to handle user queries offline and online:
 
+#### Simplified RAG Inference Flow
+```mermaid
+graph LR
+    Query[User Voice Query] --> Coordinator[RAG Service Coordinator]
+    Coordinator -->|1. Primary Offline| Gemma[Gemma 2B Local LLM]
+    Coordinator -->|2. Local Server| Ollama[Local Ollama API]
+    Coordinator -->|3. Cloud Fallback| Gemini[Cloud Gemini API]
+    Gemma & Ollama & Gemini --> Speech[TTS Audio Output]
+```
+
+#### Detailed RAG Sequence Diagram
 ```mermaid
 sequenceDiagram
     participant User as User Voice Input
@@ -172,6 +194,16 @@ Easylens connects directly to a custom head-mounted ESP32-CAM device:
 
 `RagService` acts as a smart router that selects the correct LLM backend based on the active app language:
 
+#### Simplified Language Routing Flow
+```mermaid
+graph LR
+    Input[User Query] --> LangCheck{Selected Language?}
+    LangCheck -- Tagalog --> GeminiCloud[Cloud Gemini API]
+    LangCheck -- English --> GemmaLocal[Gemma 2B Offline LLM]
+    GeminiCloud & GemmaLocal --> Action[Speech Output & Navigation Action]
+```
+
+#### Detailed Language Routing Flowchart
 ```mermaid
 flowchart TD
     UserMsg[User Message] --> IsFilipino{Language == Filipino?}
@@ -299,6 +331,15 @@ assets/sounds/
 
 The following flowchart describes the pipeline of reading user profile settings, hardware frame streams, and offline RAG queries, along with how state is synchronized across Local Storage and Cloud Storage:
 
+#### Simplified Data Sync Flow
+```mermaid
+graph LR
+    Inputs[Camera Feed & User Audio] --> Isolate[Background Isolate Processing]
+    Isolate --> State[Local App State & Settings]
+    State --> Cloud[Firebase Firestore & Cloudflare Storage]
+```
+
+#### Detailed Data Synchronization Diagram
 ```mermaid
 graph TD
     %% Local Inputs

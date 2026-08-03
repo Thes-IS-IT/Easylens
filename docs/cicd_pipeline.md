@@ -8,6 +8,15 @@ This document describes the automated build, integration, and Over-The-Air (OTA)
 
 The build pipeline is configured inside [.github/workflows/release.yml](file:///Users/arronkianparejas/easylens/.github/workflows/release.yml). It is executed on every push to the `main` branch.
 
+#### Simplified CI/CD Pipeline
+```mermaid
+graph LR
+    Push[Push Commit to Main] --> Actions[GitHub Actions Runner]
+    Actions --> Build[Build Native APK & Docker Image]
+    Build --> Publish[Deploy Docker to GHCR & Attach Release APK]
+```
+
+#### Detailed CI/CD Sequence Diagram
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
@@ -40,6 +49,16 @@ sequenceDiagram
 
 Instead of routing updates through third-party app stores (which can be difficult to navigate for screen readers), EasyLens embeds a lightweight, native update checker directly into Settings.
 
+#### Simplified OTA Update Flow
+```mermaid
+graph LR
+    Check[User Taps Check Updates] --> Fetch[Query GitHub Release REST API]
+    Fetch --> Version{New Version Available?}
+    Version -- Yes --> Download[Prompt Download & Install APK]
+    Version -- No --> Toast[Notify 'Up to Date']
+```
+
+#### Detailed OTA Updates Diagram
 ```mermaid
 graph TD
     UserClick[User taps 'Check for Updates']

@@ -30,7 +30,18 @@ Before committing to `main` or building release packages, verify:
 
 ---
 
-## 2. CI/CD GitHub Actions Pipeline
+## 2. Simplified CI/CD & Release Flowchart
+
+```mermaid
+graph LR
+    Commit[Push Commit to Main] --> Actions[GitHub Actions Runner]
+    Actions --> Analyze[Run Static Code Analysis]
+    Analyze --> Build[Docker Compose & Release Package Generation]
+```
+
+---
+
+## 3. CI/CD GitHub Actions Pipeline
 
 The pipeline is defined in [.github/workflows/ci_cd.yml](file:///Users/arronkianparejas/easylens/.github/workflows/ci_cd.yml).
 

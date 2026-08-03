@@ -72,8 +72,16 @@ Supported navigation tags include:
 
 ## 4. Complete AI Interaction & Decision Loop
 
-The flowchart below shows how user audio is ingested, analyzed, matched with memory, routed autonomously, and outputted back to the user:
+#### Simplified AI Decision Loop
+```mermaid
+graph TD
+    Voice[User Voice Query] --> Memory[RAG Memory & Knowledge Match]
+    Memory --> LLM[Local Gemma or Gemini LLM]
+    LLM --> Router[Autonomous App Router & Intent Handler]
+    Router --> Speech[Voice Response & Screen Navigation]
+```
 
+#### Detailed Interaction & Decision Loop
 ```mermaid
 graph TD
     %% Inputs

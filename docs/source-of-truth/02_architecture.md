@@ -13,6 +13,15 @@
 
 ## System Architecture Diagram
 
+#### Simplified Architecture Overview
+```mermaid
+graph TD
+    UI[Flutter Screen & Custom Controls UI] --> Services[Singleton Services Core]
+    Services --> ML[ML Kit, TFLite & Gemini/Gemma AI]
+    Services --> Storage[SQLite, SharedPreferences & Firebase/Cloudflare]
+```
+
+#### Detailed Architecture Diagram
 ```mermaid
 graph TD
     subgraph UI["Flutter UI Layer"]
@@ -127,6 +136,15 @@ Esp32Service
 
 This is the most performance-critical pipeline in the app.
 
+#### Simplified Camera Processing Flow
+```mermaid
+graph LR
+    Camera[Live Camera Feed] --> Isolate[Background YUV Isolate]
+    Isolate --> ML[ML Kit & TFLite Vision]
+    ML --> UI[UI Bounding Box & TTS Audio Alert]
+```
+
+#### Detailed Camera Processing Sequence
 ```mermaid
 sequenceDiagram
     participant Camera as CameraController / ESP32 Feed

@@ -8,6 +8,17 @@ EasyLens has **16 screen modules** organized under `lib/screens/`. The app uses 
 
 ## Navigation Flow
 
+#### Simplified Screen Routing Overview
+```mermaid
+graph LR
+    Auth[Welcome / Login / Signup] --> Dashboard[Dashboard Home Hub]
+    Dashboard --> Camera[Camera & Object Detection]
+    Dashboard --> Navigation[Audio Map Navigation]
+    Dashboard --> AI[Buddy AI Assistant]
+    Dashboard --> Settings[Settings & Preferences]
+```
+
+#### Detailed Navigation Flow Diagram
 ```mermaid
 graph LR
     Welcome[WelcomeScreen] --> Login[LoginScreen]
