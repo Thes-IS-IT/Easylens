@@ -12,6 +12,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
 import '../../services/tts_service.dart';
+import '../face_registration/face_registration_screen.dart';
 import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
 import '../../services/settings_service.dart';
@@ -54,7 +55,7 @@ class HardwareScreen extends StatefulWidget {
   State<HardwareScreen> createState() => _HardwareScreenState();
 }
 
-class _HardwareScreenState extends State<HardwareScreen> {
+class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObserver {
   // Navigation: 1=Main, 2=Pairing instructions, 3=Pairing progress GIF, 4=Object Detection Screen
   int _pairStep = 1;
 
@@ -131,6 +132,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
   int _latestWidth = 0;
   int _latestHeight = 0;
   String _voiceState = "idle"; // S01: Tracks speech state ('idle', 'listening', 'thinking', 'speaking')
+  File? _esp32CachedFile;
 
   // Face recognition
   FaceDetector? _faceDetector;
@@ -300,6 +302,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     BuddyAssistantSheet.isVisible.addListener(_onBuddyVisibilityChanged);
     SpeechNavigationNotifier.hardwareControlNotifier.addListener(_onSpeechHardwareControl);
 
+    WidgetsBinding.instance.addObserver(this);
     if (_pairStep == 4 && !_isCameraInitialized) {
       _initializeCamera();
     }
@@ -467,7 +470,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         return;
       }
       try {
-        final nv21Bytes = await _yuvToNv21Async(image);
+        final nv21Bytes = _yuvToNv21Sync(image);
         final yBytes = Uint8List.fromList(image.planes[0].bytes);
         final width = image.width;
         final height = image.height;
@@ -477,7 +480,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
 
         if (_selectedHudMode == HudMode.faceRecognition) {
-          if (nowMs - _lastFaceDetectionTime > 1500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
+          if (nowMs - _lastFaceDetectionTime > 800 && _faceDetector != null) {
             _lastFaceDetectionTime = nowMs;
             await _detectFaceOnFrame(nv21Bytes, width, height);
           }
@@ -546,6 +549,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     TtsService().stop();
     _batterySubscription?.cancel();
     _objectDetectionTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _objectDetector?.close();
     _tfliteProcessor.dispose();
     // Stop the image stream BEFORE disposing the camera controller
@@ -560,6 +564,24 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _textRecognizer.close();
     _faceDetector?.close();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      try {
+        if (_cameraController!.value.isStreamingImages) {
+          _cameraController!.stopImageStream();
+        }
+      } catch (_) {}
+    } else if (state == AppLifecycleState.resumed) {
+      if (!_cameraController!.value.isStreamingImages && mounted && !_isPaused) {
+        try {
+          _cameraController!.startImageStream(_onCameraFrameReceived);
+        } catch (_) {}
+      }
+    }
   }
 
   Future<void> _loadCocoLabels() async {
@@ -744,160 +766,38 @@ class _HardwareScreenState extends State<HardwareScreen> {
     );
   }
 
-  List<double> _extractFaceFeatures(Face face, Size imageSize, {Uint8List? nv21Bytes, int? imgWidth, int? imgHeight, Uint8List? imageFileBytes}) {
-    final bbox = face.boundingBox;
-    final width = bbox.width > 0 ? bbox.width : 1.0;
-    final height = bbox.height > 0 ? bbox.height : 1.0;
-
-    final leftEye = face.landmarks[FaceLandmarkType.leftEye]?.position;
-    final rightEye = face.landmarks[FaceLandmarkType.rightEye]?.position;
-    final nose = face.landmarks[FaceLandmarkType.noseBase]?.position;
-    final leftMouth = face.landmarks[FaceLandmarkType.leftMouth]?.position;
-    final rightMouth = face.landmarks[FaceLandmarkType.rightMouth]?.position;
-
-    double eyeDist = 0.5;
-    double eyeNoseDist = 0.4;
-    double mouthWidth = 0.4;
-    double noseMouthDist = 0.3;
-    double eyePosY = 0.35;
-    double nosePosY = 0.5;
-    double mouthPosY = 0.65;
-
-    if (leftEye != null && rightEye != null) {
-      eyeDist = (Offset(leftEye.x.toDouble(), leftEye.y.toDouble()) -
-              Offset(rightEye.x.toDouble(), rightEye.y.toDouble()))
-          .distance / width;
-      eyePosY = ((leftEye.y + rightEye.y) / 2.0 - bbox.top) / height;
-    }
-
-    if (nose != null) {
-      nosePosY = (nose.y - bbox.top) / height;
-      if (leftEye != null && rightEye != null) {
-        final eyeMid = Offset((leftEye.x + rightEye.x) / 2.0, (leftEye.y + rightEye.y) / 2.0);
-        eyeNoseDist = (eyeMid - Offset(nose.x.toDouble(), nose.y.toDouble())).distance / height;
-      }
-    }
-
-    if (leftMouth != null && rightMouth != null) {
-      mouthWidth = (Offset(leftMouth.x.toDouble(), leftMouth.y.toDouble()) -
-              Offset(rightMouth.x.toDouble(), rightMouth.y.toDouble()))
-          .distance / width;
-      mouthPosY = ((leftMouth.y + rightMouth.y) / 2.0 - bbox.top) / height;
-      if (nose != null) {
-        final mouthMid = Offset((leftMouth.x + rightMouth.x) / 2.0, (leftMouth.y + rightMouth.y) / 2.0);
-        noseMouthDist = (Offset(nose.x.toDouble(), nose.y.toDouble()) - mouthMid).distance / height;
-      }
-    }
-
-    final features = <double>[
-      eyeDist,
-      eyeNoseDist,
-      mouthWidth,
-      noseMouthDist,
-      eyePosY,
-      nosePosY,
-      mouthPosY,
-    ];
-
-    if (nv21Bytes != null && imgWidth != null && imgHeight != null && imgWidth > 0 && imgHeight > 0) {
-      try {
-        final rotation = _getImageRotation();
-        int cropLeft = 0;
-        int cropTop = 0;
-        int cropW = 0;
-        int cropH = 0;
-
-        if (rotation == InputImageRotation.rotation90deg) {
-          final scaleX = imageSize.height > 0 ? imgWidth / imageSize.height : 1.0;
-          final scaleY = imageSize.width > 0 ? imgHeight / imageSize.width : 1.0;
-          cropLeft = (bbox.top * scaleX).toInt().clamp(0, imgWidth - 1);
-          cropTop = ((imageSize.width - bbox.right) * scaleY).toInt().clamp(0, imgHeight - 1);
-          cropW = (bbox.height * scaleX).toInt().clamp(1, imgWidth - cropLeft);
-          cropH = (bbox.width * scaleY).toInt().clamp(1, imgHeight - cropTop);
-        } else {
-          final scaleX = imageSize.width > 0 ? imgWidth / imageSize.width : 1.0;
-          final scaleY = imageSize.height > 0 ? imgHeight / imageSize.height : 1.0;
-          cropLeft = (bbox.left * scaleX).toInt().clamp(0, imgWidth - 1);
-          cropTop = (bbox.top * scaleY).toInt().clamp(0, imgHeight - 1);
-          cropW = (bbox.width * scaleX).toInt().clamp(1, imgWidth - cropLeft);
-          cropH = (bbox.height * scaleY).toInt().clamp(1, imgHeight - cropTop);
-        }
-
-        if (cropW > 4 && cropH > 4) {
-          final faceImg = img.Image(width: cropW, height: cropH);
-          final frameSize = imgWidth * imgHeight;
-          for (int y = 0; y < cropH; y++) {
-            final srcY = cropTop + y;
-            for (int x = 0; x < cropW; x++) {
-              final srcX = cropLeft + x;
-              final yIndex = srcY * imgWidth + srcX;
-              if (yIndex < frameSize) {
-                final luma = nv21Bytes[yIndex] & 0xFF;
-                faceImg.setPixelRgb(x, y, luma, luma, luma);
-              }
-            }
-          }
-          final resized = img.copyResize(faceImg, width: 8, height: 8);
-          double sum = 0.0;
-          final grid = <double>[];
-          for (int y = 0; y < 8; y++) {
-            for (int x = 0; x < 8; x++) {
-              final p = resized.getPixel(x, y);
-              final luma = p.r.toDouble();
-              grid.add(luma);
-              sum += luma;
-            }
-          }
-          final avg = (sum / 64.0).clamp(1.0, 255.0);
-          for (final val in grid) {
-            features.add(val / (avg * 2.5));
-          }
-        }
-      } catch (_) {}
-    } else if (imageFileBytes != null && imageFileBytes.isNotEmpty) {
-      try {
-        final decoded = img.decodeImage(imageFileBytes);
-        if (decoded != null) {
-          final cropLeft = bbox.left.toInt().clamp(0, decoded.width - 1);
-          final cropTop = bbox.top.toInt().clamp(0, decoded.height - 1);
-          final cropW = bbox.width.toInt().clamp(1, decoded.width - cropLeft);
-          final cropH = bbox.height.toInt().clamp(1, decoded.height - cropTop);
-          final cropped = img.copyCrop(decoded, x: cropLeft, y: cropTop, width: cropW, height: cropH);
-          final resized = img.copyResize(cropped, width: 8, height: 8);
-
-          double sum = 0.0;
-          final grid = <double>[];
-          for (int y = 0; y < 8; y++) {
-            for (int x = 0; x < 8; x++) {
-              final p = resized.getPixel(x, y);
-              final luma = 0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
-              grid.add(luma);
-              sum += luma;
-            }
-          }
-          final avg = (sum / 64.0).clamp(1.0, 255.0);
-          for (final val in grid) {
-            features.add(val / (avg * 2.5));
-          }
-        }
-      } catch (_) {}
-    }
-
-    return features;
+  /// Extracts geometric face features using the shared contour-based algorithm.
+  /// No pixel grid — purely geometric ratios for robust cross-condition matching.
+  List<double> _extractFaceFeatures(Face face, Size imageSize) {
+    return FaceRegistrationScreen.extractFaceFeatures(face, imageSize);
   }
 
+  /// Compares two geometric feature vectors using normalized Euclidean distance.
+  /// 100% geometric — no pixel grid component.
   double _compareFaceFeatures(List<double> v1, List<double> v2) {
+    if (v1.isEmpty || v2.isEmpty) return double.infinity;
     final len = math.min(v1.length, v2.length);
-    if (len < 5) return double.infinity;
-    double weightedSumSq = 0.0;
-    double totalWeight = 0.0;
+    if (len == 0) return double.infinity;
+
+    double sumSq = 0.0;
     for (int i = 0; i < len; i++) {
-      final w = i < 7 ? 2.0 : 3.5;
       final diff = v1[i] - v2[i];
-      weightedSumSq += w * diff * diff;
-      totalWeight += w;
+      sumSq += diff * diff;
     }
-    return math.sqrt(weightedSumSq / totalWeight);
+    return math.sqrt(sumSq / len);
+  }
+
+  /// Compares detected features against all stored sample vectors for a profile.
+  /// Returns the best (minimum) distance across all samples.
+  double _compareFaceToProfile(List<double> detectedFeats, FaceProfile prof) {
+    final vectors = prof.allFeatureVectors;
+    if (vectors.isEmpty) return double.infinity;
+    double bestDist = double.infinity;
+    for (final stored in vectors) {
+      final dist = _compareFaceFeatures(detectedFeats, stored);
+      if (dist < bestDist) bestDist = dist;
+    }
+    return bestDist;
   }
 
   Future<void> _loadRegisteredFaces() async {
@@ -915,8 +815,14 @@ class _HardwareScreenState extends State<HardwareScreen> {
     try {
       for (int i = 0; i < profiles.length; i++) {
         final prof = profiles[i];
-        if ((prof.faceFeatures == null || prof.faceFeatures!.isEmpty || prof.faceFeatures!.length != 71) &&
-            prof.imageLocalPath != null) {
+        // Always re-extract features with the new contour-based algorithm.
+        // Old profiles had 71 features (7 landmarks + 64 pixel grid), new ones have ~25.
+        // Force re-extraction if feature count doesn't match the new algorithm output.
+        final needsReExtraction = prof.faceFeatures == null ||
+            prof.faceFeatures!.isEmpty ||
+            prof.faceFeatures!.length > 30 || // Old 71-feature profiles
+            prof.faceFeatures!.length < 15;    // Incomplete profiles
+        if (needsReExtraction && prof.imageLocalPath != null) {
           try {
             final file = File(prof.imageLocalPath!);
             if (await file.exists()) {
@@ -929,19 +835,24 @@ class _HardwareScreenState extends State<HardwareScreen> {
               final inputImage = InputImage.fromFile(file);
               final faces = await accurateDetector.processImage(inputImage);
               if (faces.isNotEmpty) {
-                final feats = _extractFaceFeatures(faces.first, imgSize, imageFileBytes: fileBytes);
+                final feats = _extractFaceFeatures(faces.first, imgSize);
                 final updatedProf = FaceProfile(
                   id: prof.id,
                   name: prof.name,
                   imageLocalPath: prof.imageLocalPath,
                   faceFeatures: feats,
+                  multiSampleFeatures: prof.multiSampleFeatures,
                   registeredAt: prof.registeredAt,
+                  userId: prof.userId,
                 );
                 await FaceRegistrationService().saveProfile(updatedProf);
                 profiles[i] = updatedProf;
+                debugPrint('[FaceRecog] Re-extracted ${feats.length} geometric features for "${prof.name}"');
               }
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[FaceRecog] Error re-extracting features for "${prof.name}": $e');
+          }
         }
       }
     } finally {
@@ -952,6 +863,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
       setState(() {
         _registeredFaces = profiles;
       });
+      debugPrint('[FaceRecog] Loaded ${profiles.length} registered faces. Feature lengths: ${profiles.map((p) => "${p.name}:${p.faceFeatures?.length ?? 0}").join(", ")}');
     }
   }
 
@@ -1051,24 +963,20 @@ class _HardwareScreenState extends State<HardwareScreen> {
               final detectedFeats = _extractFaceFeatures(
                 face, 
                 imageSize, 
-                nv21Bytes: _latestNv21Bytes, 
-                imgWidth: _latestWidth, 
-                imgHeight: _latestHeight,
               );
               String? matchedName;
-              double bestDistance = 0.40; // Optimal portrait face matching threshold
+              double bestDistance = 0.30; // Tuned threshold for contour-based geometric matching
 
               for (final prof in _registeredFaces) {
                 if (assignedNamesInFrame.contains(prof.name)) continue; // 1 assignment per person per frame
-                if (prof.faceFeatures != null && prof.faceFeatures!.isNotEmpty) {
-                  final dist = _compareFaceFeatures(detectedFeats, prof.faceFeatures!);
-                  if (dist < bestDistance) {
-                    bestDistance = dist;
-                    matchedName = prof.name;
-                  }
+                final dist = _compareFaceToProfile(detectedFeats, prof);
+                if (dist < bestDistance) {
+                  bestDistance = dist;
+                  matchedName = prof.name;
                 }
               }
               if (matchedName != null) {
+                debugPrint('[FaceRecog] Matched "$matchedName" with distance $bestDistance');
                 assignedNamesInFrame.add(matchedName);
               }
               _faceIdToNameMap[id] = matchedName ?? 'Unknown Face';
@@ -1077,7 +985,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
             }
           } else {
             final name = _faceIdToNameMap[id]!;
-            if (name != 'Unknown Face' && name != 'Face') {
+            if (name != 'Unknown Face' && name != 'Unregistered' && name != 'Face') {
               assignedNamesInFrame.add(name);
             }
           }
@@ -1131,9 +1039,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
       } else {
         final count = faces.length;
         faceAnnouncement = isTagalog 
-            ? "Nakakita ako ng $count tao"
-            : "I see $count ${count == 1 ? 'person' : 'people'}";
-        faceDescription = "Buddy detected $count ${count == 1 ? 'person' : 'people'} nearby.";
+            ? (count == 1 ? "Nakakita ako ng hindi kilalang mukha" : "Nakakita ako ng $count hindi kilalang mukha")
+            : (count == 1 ? "I see an unknown face" : "I see $count unknown faces");
+        faceDescription = count == 1
+            ? "Buddy detected an unknown face."
+            : "Buddy detected $count unknown faces.";
       }
 
       final now = DateTime.now();
@@ -1142,12 +1052,18 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
       if (cooldownElapsed) {
         _lastFaceAnnouncedAt = now;
-        if (!_isContinuousVoiceEnabled) {
+        if (!_isContinuousVoiceEnabled && faceAnnouncement.isNotEmpty) {
           TtsService().speak(faceAnnouncement);
         }
         if (mounted) {
           setState(() {
-            _detectedFaceName = recognizedNames.isNotEmpty ? recognizedNames.join(' & ') : '';
+            if (recognizedNames.isNotEmpty) {
+              _detectedFaceName = recognizedNames.join(' & ');
+            } else if (unrecognizedCount > 0) {
+              _detectedFaceName = unrecognizedCount == 1 ? 'Unknown Face' : '$unrecognizedCount Unknown Faces';
+            } else {
+              _detectedFaceName = '';
+            }
           });
           Future.delayed(const Duration(seconds: 4), () {
             if (mounted) setState(() => _detectedFaceName = '');
@@ -1157,7 +1073,11 @@ class _HardwareScreenState extends State<HardwareScreen> {
 
       if (_selectedHudMode == HudMode.faceRecognition && mounted) {
         setState(() {
-          _activeTitle = faces.length > 1 ? "Multiple Faces Detected" : "Face Detected";
+          if (recognizedNames.isNotEmpty) {
+            _activeTitle = recognizedNames.length > 1 ? "Multiple Faces Recognized" : "Face Recognized";
+          } else {
+            _activeTitle = faces.length > 1 ? "Unknown Faces Detected" : "Unknown Face Detected";
+          }
           _activeDescription = faceDescription;
           _statusCardBg = const Color(0xFFF3E8FF);
           _statusIcon = Icons.face_retouching_natural;
@@ -2222,7 +2142,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
     });
   }
 
-  Future<Uint8List> _yuvToNv21Async(CameraImage image) async {
+  Uint8List _yuvToNv21Sync(CameraImage image) {
     final yPlane = image.planes[0];
     final uPlane = image.planes[1];
     final vPlane = image.planes[2];
@@ -2240,7 +2160,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
       vPixelStride: vPlane.bytesPerPixel ?? 1,
     );
 
-    return await compute(convertYuvToNv21, data);
+    return convertYuvToNv21(data);
   }
 
   Future<void> _navigateTo(Widget screen) async {
@@ -2646,8 +2566,8 @@ class _HardwareScreenState extends State<HardwareScreen> {
     _isProcessingFrame = true;
 
     try {
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/esp32_frame.jpg');
+      _esp32CachedFile ??= File('${(await getTemporaryDirectory()).path}/esp32_frame.jpg');
+      final file = _esp32CachedFile!;
       await file.writeAsBytes(frameBytes);
 
       final inputImage = InputImage.fromFile(file);
@@ -2655,7 +2575,7 @@ class _HardwareScreenState extends State<HardwareScreen> {
       final Size imageSize = const Size(640, 480); // Default ESP32-CAM stream dimensions
 
       if (_selectedHudMode == HudMode.faceRecognition) {
-        if (nowMs - _lastFaceDetectionTime > 1500 && _registeredFaces.isNotEmpty && _faceDetector != null) {
+        if (nowMs - _lastFaceDetectionTime > 1500 && _faceDetector != null) {
           _lastFaceDetectionTime = nowMs;
           final faces = await _faceDetector!.processImage(inputImage);
           await _processFaceResults(faces, imageSize);

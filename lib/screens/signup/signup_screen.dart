@@ -53,6 +53,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _email = ''; // Step 10
   String _phone = ''; // Step 11
   String _password = ''; // Step 12
+  bool _rememberMe = true;
   File? _pickedImage; // Step 15
   String _name = ''; // Step 17 ("What should I call you?")
   String _birthday = ''; // Step 18
@@ -876,7 +877,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (user == null) {
         if (_authMethod == 'Google') {
           // Use real Google Sign-In — returns the actual Gmail address from the account picker
-          user = await _firebaseService.signInWithGoogle();
+          user = await _firebaseService.signInWithGoogle(rememberMe: _rememberMe);
           if (user == null) {
             setState(() {
               _isLoading = false;
@@ -888,7 +889,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           }
         } else {
           // Direct real Firebase registration (Email auth)
-          user = await _firebaseService.signUp(regEmail, regPassword, regName, _isForMyself);
+          user = await _firebaseService.signUp(regEmail, regPassword, regName, _isForMyself, rememberMe: _rememberMe);
         }
       }
 
@@ -1166,6 +1167,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           password: _password,
           language: _selectedLanguage,
           onPasswordChanged: (val) => setState(() => _password = val),
+          onRememberMeChanged: (val) => setState(() => _rememberMe = val),
         );
       case 11:
         return StepPermissions(

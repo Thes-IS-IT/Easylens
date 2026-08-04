@@ -134,12 +134,16 @@ class _DashboardHomeState extends State<DashboardHome> {
         children: [
           Icon(weatherIcon, color: iconColor, size: 20),
           const SizedBox(width: 8),
-          Text(
-            "$tempStr • $desc",
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryText,
+          Flexible(
+            child: Text(
+              "$tempStr • $desc",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryText,
+              ),
             ),
           ),
         ],

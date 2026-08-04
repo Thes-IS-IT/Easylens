@@ -150,8 +150,14 @@ class EasyLensApp extends StatelessWidget {
           ),
           home: const WelcomeScreen(),
           builder: (context, child) {
-            return ConfettiOverlay(
-              child: SpeechNavigationOverlay(child: child!),
+            final mediaQuery = MediaQuery.of(context);
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(settingsService.textSizeScale),
+              ),
+              child: ConfettiOverlay(
+                child: SpeechNavigationOverlay(child: child!),
+              ),
             );
           },
         );

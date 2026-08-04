@@ -223,44 +223,50 @@ class _MascotBannerState extends State<MascotBanner> {
                         _isExpanded = !_isExpanded;
                       });
                     },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Buddy',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.bold,
-                            color: headerColor,
-                            fontSize: 17,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        AnimatedCrossFade(
-                          duration: const Duration(milliseconds: 200),
-                          crossFadeState: _isExpanded
-                              ? CrossFadeState.showSecond
-                              : CrossFadeState.showFirst,
-                          firstChild: Text(
-                            activeMessage,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
-                              color: subtextColor,
-                              fontSize: 13,
-                              height: 1.3,
+                    child: Center(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Buddy',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                                color: headerColor,
+                                fontSize: 17,
+                              ),
                             ),
-                          ),
-                          secondChild: Text(
-                            activeMessage,
-                            style: GoogleFonts.inter(
-                              color: subtextColor,
-                              fontSize: 13,
-                              height: 1.3,
+                            const SizedBox(height: 2),
+                            AnimatedCrossFade(
+                              duration: const Duration(milliseconds: 200),
+                              crossFadeState: _isExpanded
+                                  ? CrossFadeState.showSecond
+                                  : CrossFadeState.showFirst,
+                              firstChild: Text(
+                                activeMessage,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  color: subtextColor,
+                                  fontSize: 13,
+                                  height: 1.3,
+                                ),
+                              ),
+                              secondChild: Text(
+                                activeMessage,
+                                style: GoogleFonts.inter(
+                                  color: subtextColor,
+                                  fontSize: 13,
+                                  height: 1.3,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

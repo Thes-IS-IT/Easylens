@@ -431,9 +431,9 @@ class HudCameraView extends StatelessWidget {
                         )
                     ],
 
-                    // Draw face bounding boxes dynamically in Face Recognition mode
+                    // Draw face bounding boxes + landmark dots in Face Recognition mode
                     if (selectedHudMode == HudMode.faceRecognition && faceImageSize != Size.zero)
-                      ...detectedFacesList.asMap().entries.map((entry) {
+                      ...detectedFacesList.asMap().entries.expand((entry) {
                         final idx = entry.key;
                         final face = entry.value;
                         final r = face.boundingBox;
@@ -446,14 +446,19 @@ class HudCameraView extends StatelessWidget {
                         double height = r.height * scaleY;
                         
                         final trackingId = face.trackingId;
-                        String name = "Face";
+                        String name = "Unknown Face";
                         if (trackingId != null && faceIdToNameMap.containsKey(trackingId)) {
                           name = faceIdToNameMap[trackingId]!;
                         }
-                        final trackingStr = trackingId != null ? " #:$trackingId" : "";
+                        final isKnown = name != 'Unknown Face' && name != 'Unregistered';
+                        final boxColor = isKnown ? const Color(0xFF34D399) : const Color(0xFF7C3AED);
+                        final labelColor = isKnown ? const Color(0xFF34D399) : const Color(0xFF7C3AED);
+
+                        final widgets = <Widget>[];
                         
-                        return AnimatedPositioned(
-                          key: ValueKey('${face.trackingId ?? face.boundingBox.topLeft.toString()}_$idx'),
+                        // Bounding box with name label
+                        widgets.add(AnimatedPositioned(
+                          key: ValueKey('face_box_${face.trackingId ?? face.boundingBox.topLeft.toString()}_$idx'),
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.easeOutCubic,
                           left: left,
@@ -462,7 +467,7 @@ class HudCameraView extends StatelessWidget {
                           height: height.clamp(0.0, constraints.maxHeight - top),
                           child: Container(
                             decoration: BoxDecoration(
-                              border: Border.all(color: const Color(0xFF7C3AED), width: 2.5),
+                              border: Border.all(color: boxColor, width: 2.5),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Align(
@@ -471,16 +476,16 @@ class HudCameraView extends StatelessWidget {
                                 maxWidth: 160,
                                 alignment: Alignment.topLeft,
                                 child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF7C3AED),
-                                    borderRadius: BorderRadius.only(
+                                  decoration: BoxDecoration(
+                                    color: labelColor,
+                                    borderRadius: const BorderRadius.only(
                                       topLeft: Radius.circular(6),
                                       bottomRight: Radius.circular(6),
                                     ),
                                   ),
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   child: Text(
-                                    "$name$trackingStr",
+                                    name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.inter(
@@ -493,8 +498,32 @@ class HudCameraView extends StatelessWidget {
                               ),
                             ),
                           ),
-                        );
-                      }).toList(),
+                        ));
+
+                        // Landmark dots
+                        for (final type in FaceLandmarkType.values) {
+                          final landmark = face.landmarks[type];
+                          if (landmark != null) {
+                            final dx = landmark.position.x * scaleX;
+                            final dy = landmark.position.y * scaleY;
+                            widgets.add(Positioned(
+                              left: dx - 3,
+                              top: dy - 3,
+                              child: Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: isKnown ? const Color(0xFF34D399) : const Color(0xFFA78BFA),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 0.5),
+                                ),
+                              ),
+                            ));
+                          }
+                        }
+
+                        return widgets;
+                      }),
 
                     Positioned(
                       top: 16,

@@ -39,16 +39,23 @@ class FirebaseService {
 
   bool get isFirebaseAvailable => _firebaseInitialized;
 
-  /// Saves session credentials locally so the user remains logged in across restarts.
-  Future<void> saveUserSession(EasyLensUser user) async {
+  /// Saves session credentials locally so the user remains logged in across restarts if rememberMe is true.
+  Future<void> saveUserSession(EasyLensUser user, {bool rememberMe = true}) async {
     _mockUser = user;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_logged_in', true);
-      await prefs.setString('user_uid', user.uid);
-      await prefs.setString('user_email', user.email);
-      await prefs.setString('user_display_name', user.displayName);
-      print('[FirebaseService] User session persisted for ${user.email}');
+      await prefs.setBool('is_logged_in', rememberMe);
+      await prefs.setBool('remember_me', rememberMe);
+      if (rememberMe) {
+        await prefs.setString('user_uid', user.uid);
+        await prefs.setString('user_email', user.email);
+        await prefs.setString('user_display_name', user.displayName);
+      } else {
+        await prefs.remove('user_uid');
+        await prefs.remove('user_email');
+        await prefs.remove('user_display_name');
+      }
+      print('[FirebaseService] User session save (rememberMe: $rememberMe) for ${user.email}');
     } catch (e) {
       print("[FirebaseService] Failed to save user session: $e");
     }
@@ -93,11 +100,21 @@ class FirebaseService {
       }
     }
 
-    // Restore persisted local user session
+    // Restore persisted local user session only if stay logged in (remember_me) was enabled
     try {
       final prefs = await SharedPreferences.getInstance();
-      final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
-      if (isLoggedIn) {
+      final rememberMe = prefs.getBool('remember_me') ?? prefs.getBool('is_logged_in') ?? false;
+
+      if (!rememberMe) {
+        if (_firebaseInitialized) {
+          try {
+            await FirebaseAuth.instance.signOut();
+          } catch (_) {}
+        }
+        _mockUser = null;
+        await prefs.setBool('is_logged_in', false);
+        print('[FirebaseService] Stay logged in is false. Cleared session for restart.');
+      } else {
         final savedUid = prefs.getString('user_uid') ?? "persisted_user_uid";
         final savedEmail = prefs.getString('user_email') ?? "user@easylens.app";
         final savedName = prefs.getString('user_display_name') ?? "EasyLens Explorer";
@@ -156,8 +173,9 @@ class FirebaseService {
     String email,
     String password,
     String name,
-    bool isForMyself,
-  ) async {
+    bool isForMyself, {
+    bool rememberMe = true,
+  }) async {
     final cleanEmail = email.trim();
     final cleanPassword = password.trim();
 
@@ -196,13 +214,13 @@ class FirebaseService {
     }
 
     if (newUser != null) {
-      await saveUserSession(newUser);
+      await saveUserSession(newUser, rememberMe: rememberMe);
     }
     return newUser;
   }
 
   // Sign in
-  Future<EasyLensUser?> signIn(String email, String password) async {
+  Future<EasyLensUser?> signIn(String email, String password, {bool rememberMe = true}) async {
     EasyLensUser? user;
     if (_firebaseInitialized) {
       try {
@@ -237,13 +255,13 @@ class FirebaseService {
     }
 
     if (user != null) {
-      await saveUserSession(user);
+      await saveUserSession(user, rememberMe: rememberMe);
     }
     return user;
   }
 
   // Google Sign In
-  Future<EasyLensUser?> signInWithGoogle() async {
+  Future<EasyLensUser?> signInWithGoogle({bool rememberMe = true}) async {
     if (!_firebaseInitialized) {
       throw Exception("Firebase is not initialized.");
     }
@@ -353,7 +371,7 @@ class FirebaseService {
     }
 
     if (gUser != null) {
-      await saveUserSession(gUser);
+      await saveUserSession(gUser, rememberMe: rememberMe);
     }
 
     return gUser;

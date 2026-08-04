@@ -13,6 +13,8 @@ reference; the topic pages in this directory provide shorter entry points.
 | Understand app structure and data flow | [Architecture](source-of-truth/02_architecture.md) |
 | Find a screen or service | [Screens](source-of-truth/03_screens_and_navigation.md) / [services](source-of-truth/04_services_reference.md) |
 | Work on AI, vision, or Buddy | [AI and ML pipeline](source-of-truth/05_ai_ml_pipeline.md) |
+| Review MobileNetV2 Fine-Tuning & Benchmarks | [MobileNetV2 Training Report](training/MOBILENETV2_FINETUNING_REPORT.md) |
+| Review Multi-Tier Hybrid Vision Architecture | [Hybrid Vision Fusion](training/HYBRID_AI_FUSION_APP_INTEGRATION.md) |
 | Work on navigation safety | [Walking navigation](source-of-truth/06_walking_navigation.md) |
 | Configure cloud services or secrets | [Configuration and security](SECURITY_CONFIGURATION.md) |
 | Test or release the app | [Testing and CI](source-of-truth/09_testing_cicd.md) |

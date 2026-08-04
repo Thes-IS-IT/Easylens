@@ -319,7 +319,7 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      final user = await _firebaseService.signIn(email, password);
+      final user = await _firebaseService.signIn(email, password, rememberMe: _rememberMe);
       if (user != null) {
         final prefs = await SharedPreferences.getInstance();
         if (_rememberMe) {
@@ -402,7 +402,7 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      final user = await _firebaseService.signInWithGoogle();
+      final user = await _firebaseService.signInWithGoogle(rememberMe: _rememberMe);
       if (user != null && mounted) {
         setState(() {
           _loginSuccess = true;

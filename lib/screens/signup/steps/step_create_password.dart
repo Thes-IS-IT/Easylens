@@ -10,12 +10,14 @@ class StepCreatePassword extends StatefulWidget {
   final String password;
   final String language;
   final ValueChanged<String> onPasswordChanged;
+  final ValueChanged<bool>? onRememberMeChanged;
 
   const StepCreatePassword({
     super.key,
     required this.password,
     required this.language,
     required this.onPasswordChanged,
+    this.onRememberMeChanged,
   });
 
   @override
@@ -212,6 +214,7 @@ class _StepCreatePasswordState extends State<StepCreatePassword> {
             setState(() {
               _rememberMe = val;
             });
+            widget.onRememberMeChanged?.call(val);
           },
         ),
       ],

@@ -22,6 +22,26 @@ class SettingsService extends ChangeNotifier {
   String selectedUnit = 'Metric';
   String selectedMobilityAid = 'None (Hands-Free)';
 
+  // Text Sizing properties
+  String selectedTextSize = 'Default'; // Options: 'Small', 'Default', 'Large', 'Extra Large', 'Custom'
+  double textSizeCustomScale = 1.0;
+
+  double get textSizeScale {
+    switch (selectedTextSize) {
+      case 'Small':
+        return 0.85;
+      case 'Large':
+        return 1.15;
+      case 'Extra Large':
+        return 1.30;
+      case 'Custom':
+        return textSizeCustomScale.clamp(0.85, 1.35);
+      case 'Default':
+      default:
+        return 1.0;
+    }
+  }
+
   // New Appearance, Navigation and UI properties
   String appearanceTheme = 'Default';
   int accentColorIndex = 0;
@@ -71,6 +91,8 @@ class SettingsService extends ChangeNotifier {
       selectedVoicePersona = prefs.getString('selectedVoicePersona') ?? 'Aria (Calm)';
       selectedUnit = prefs.getString('selectedUnit') ?? 'Metric';
       selectedMobilityAid = prefs.getString('selectedMobilityAid') ?? 'None (Hands-Free)';
+      selectedTextSize = prefs.getString('selectedTextSize') ?? 'Default';
+      textSizeCustomScale = prefs.getDouble('textSizeCustomScale') ?? 1.0;
 
       faceIdUnlock = prefs.getBool('faceIdUnlock') ?? false;
       shakeToUndo = prefs.getBool('shakeToUndo') ?? true;
@@ -154,6 +176,8 @@ class SettingsService extends ChangeNotifier {
     String? selectedVoicePersona,
     String? selectedUnit,
     String? selectedMobilityAid,
+    String? selectedTextSize,
+    double? textSizeCustomScale,
     String? appearanceTheme,
     int? accentColorIndex,
     bool? faceIdUnlock,
@@ -174,6 +198,8 @@ class SettingsService extends ChangeNotifier {
     if (selectedVoicePersona != null) this.selectedVoicePersona = selectedVoicePersona;
     if (selectedUnit != null) this.selectedUnit = selectedUnit;
     if (selectedMobilityAid != null) this.selectedMobilityAid = selectedMobilityAid;
+    if (selectedTextSize != null) this.selectedTextSize = selectedTextSize;
+    if (textSizeCustomScale != null) this.textSizeCustomScale = textSizeCustomScale;
     if (appearanceTheme != null) this.appearanceTheme = appearanceTheme;
     if (accentColorIndex != null) this.accentColorIndex = accentColorIndex;
 
@@ -208,6 +234,8 @@ class SettingsService extends ChangeNotifier {
       if (selectedVoicePersona != null) await prefs.setString('selectedVoicePersona', selectedVoicePersona);
       if (selectedUnit != null) await prefs.setString('selectedUnit', selectedUnit);
       if (selectedMobilityAid != null) await prefs.setString('selectedMobilityAid', selectedMobilityAid);
+      if (selectedTextSize != null) await prefs.setString('selectedTextSize', selectedTextSize);
+      if (textSizeCustomScale != null) await prefs.setDouble('textSizeCustomScale', textSizeCustomScale);
       if (faceIdUnlock != null) await prefs.setBool('faceIdUnlock', faceIdUnlock);
       if (shakeToUndo != null) await prefs.setBool('shakeToUndo', shakeToUndo);
       if (speechNavigation != null) await prefs.setBool('speechNavigation', speechNavigation);
@@ -233,6 +261,8 @@ class SettingsService extends ChangeNotifier {
     selectedVoicePersona = 'Aria (Calm)';
     selectedUnit = 'Metric';
     selectedMobilityAid = 'None (Hands-Free)';
+    selectedTextSize = 'Default';
+    textSizeCustomScale = 1.0;
     appearanceTheme = 'Default';
     accentColorIndex = 0;
     faceIdUnlock = false;
@@ -248,9 +278,35 @@ class SettingsService extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      final keysToRemove = [
+        'voiceFeedback',
+        'hapticFeedback',
+        'companionSharing',
+        'selectedContrastTheme',
+        'appearanceTheme',
+        'accentColorIndex',
+        'selectedLanguage',
+        'selectedVoicePersona',
+        'selectedUnit',
+        'selectedMobilityAid',
+        'selectedTextSize',
+        'textSizeCustomScale',
+        'faceIdUnlock',
+        'shakeToUndo',
+        'speechNavigation',
+        'speechRate',
+        'speechPitch',
+        'homeScreenCards',
+        'useLocalAI',
+        'showFloatingMascot',
+        'geminiApiKey',
+        'userDisplayName',
+      ];
+      for (final key in keysToRemove) {
+        await prefs.remove(key);
+      }
     } catch (e) {
-      print('Error clearing SharedPreferences: $e');
+      print('Error resetting settings in SharedPreferences: $e');
     }
   }
 }

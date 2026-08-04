@@ -69,23 +69,34 @@ EasyLens utilizes specialized, high-performance algorithms to perform real-time 
 
 ---
 
-## 2. TFLite SSD MobileNetV2
+## 2. On-Device TFLite Models
 
-### Model Specs
+### 2.1 Standard SSD MobileNetV2 (91 COCO Classes)
 | Property | Value |
 |---|---|
 | File | `assets/models/ssd_mobilenet_v2.tflite` |
 | Labels | `assets/models/coco_labels.txt` (91 COCO classes) |
 | Input | `300×300` RGB float32 array |
-| Output | Bounding boxes, class IDs, confidence scores |
+| Output | Bounding boxes `[ymin, xmin, ymax, xmax]`, class IDs, confidence scores |
 | Threads | 4 CPU threads |
-| Service | `TfliteProcessor` (`lib/services/tflite_processor.dart`) |
+| Service | `TfliteProcessor` ([`lib/services/tflite_processor.dart`](file:///Users/arronkianparejas/easylens/lib/services/tflite_processor.dart)) |
+
+### 2.2 Custom Fine-Tuned 24-Class MobileNetV2 (Navigation Safety Classifier)
+EasyLens integrates a custom fine-tuned **MobileNetV2** model trained on **38,176 cleaned images** across 24 high-priority navigation classes (`pothole`, `crosswalk`, `stairs`, `red_light`, `green_light`, `door`, `elevator`, etc.).
+
+* **Training Strategy**: 4-Phase Transfer Learning (Warm-up $\rightarrow$ Mid-Level 30-Layer Unfreezing with Class Weights $\rightarrow$ Deep Full Unfreezing $\rightarrow$ Ultra-Low LR Optimization).
+* **Top-1 Accuracy**: **85.55%** | **Top-2 Accuracy**: **92.10%** | **Top-3 Accuracy**: **94.54%**
+* **Balanced Accuracy**: **85.02%** | **Macro ROC AUC**: **0.9902**
+* **Hazard Sensitivity**: **97% Recall on Potholes**, **95% F1 on Crosswalks**, **92% Recall on Stairs**.
+* **Inference Speed**: **2.48 ms** per image (**>400 FPS** latency profile).
+* **Technical Report**: See [`docs/training/MOBILENETV2_FINETUNING_REPORT.md`](file:///Users/arronkianparejas/easylens/docs/training/MOBILENETV2_FINETUNING_REPORT.md)
+* **Hybrid Fusion Architecture**: See [`docs/training/HYBRID_AI_FUSION_APP_INTEGRATION.md`](file:///Users/arronkianparejas/easylens/docs/training/HYBRID_AI_FUSION_APP_INTEGRATION.md)
 
 ### Processing Pipeline
 1. Camera frame (YUV420 or Smart Glasses stream) → `compute()` isolate → NV21 bytes
-2. NV21 → crop/resize to 300×300 → normalize to `[0, 1]` float32
+2. NV21 → crop/resize to 300×300 → normalize to `[-1, 1]` float32
 3. Run TFLite interpreter
-4. Post-process: apply confidence threshold, NMS, map class IDs to COCO labels
+4. Post-process: apply confidence threshold, NMS, map class IDs to COCO & Custom Navigation labels
 
 ---
 

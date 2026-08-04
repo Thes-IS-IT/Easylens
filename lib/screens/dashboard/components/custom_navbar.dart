@@ -34,6 +34,7 @@ class CustomNavbar extends StatelessWidget {
           Expanded(
             child: Container(
               height: 74,
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: navBg,
                 borderRadius: BorderRadius.circular(37),
@@ -50,22 +51,27 @@ class CustomNavbar extends StatelessWidget {
                 ] : null,
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildNavbarItem(
-                    index: 0,
-                    icon: Icons.home_outlined,
-                    label: 'Home',
+                  Expanded(
+                    child: _buildNavbarItem(
+                      index: 0,
+                      icon: Icons.home_outlined,
+                      label: 'Home',
+                    ),
                   ),
-                  _buildNavbarItem(
-                    index: 1,
-                    icon: Icons.navigation_outlined,
-                    label: 'Nav',
+                  Expanded(
+                    child: _buildNavbarItem(
+                      index: 1,
+                      icon: Icons.navigation_outlined,
+                      label: 'Nav',
+                    ),
                   ),
-                  _buildNavbarItem(
-                    index: 2,
-                    icon: Icons.sensors,
-                    label: 'EasyLens',
+                  Expanded(
+                    child: _buildNavbarItem(
+                      index: 2,
+                      icon: Icons.sensors,
+                      label: 'EasyLens',
+                    ),
                   ),
                 ],
               ),
@@ -135,13 +141,11 @@ class CustomNavbar extends StatelessWidget {
       onTap: () => onTap(index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(31),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
@@ -150,12 +154,17 @@ class CustomNavbar extends StatelessWidget {
               size: 24,
             ),
             const SizedBox(height: 2),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? fg : unselectedFg,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? fg : unselectedFg,
+                ),
               ),
             ),
           ],
