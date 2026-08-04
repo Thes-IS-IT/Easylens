@@ -20,7 +20,7 @@ Instead of relying on a single vision model, EasyLens dynamically combines:
            ┌────────────────────────────────┼────────────────────────────────┐
            ▼                                ▼                                ▼
    Google ML Kit Labeler           SSD MobileNetV2 TFLite          Fine-Tuned MobileNetV2
- (400+ General Objects & Scene)   (91 COCO Bounding Boxes)       (24 Fine-Tuned Navigation Classes)
+ (400+ General Objects & Scene)   (80 COCO Bounding Boxes)       (24 Fine-Tuned Navigation Classes)
            │                                │                                │
   General Scene Labels             Spatial Coordinates & Boxes       High-Risk Hazard Alerts
   ("furniture", "kitchen")        ([ymin, xmin, ymax, xmax])       ("Pothole", "Crosswalk", "Stairs")
