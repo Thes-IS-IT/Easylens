@@ -2,17 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import '../../../services/settings_service.dart';
+import '../../../services/sound_service.dart';
 
 class CustomNavbar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final VoidCallback onEasyLensTap;
+  final GlobalKey? navKey;
+  final GlobalKey? easylensKey;
 
   const CustomNavbar({
     super.key,
     required this.currentIndex,
     required this.onTap,
     required this.onEasyLensTap,
+    this.navKey,
+    this.easylensKey,
   });
 
   @override
@@ -60,6 +65,7 @@ class CustomNavbar extends StatelessWidget {
                     ),
                   ),
                   Expanded(
+                    key: navKey,
                     child: _buildNavbarItem(
                       index: 1,
                       icon: Icons.navigation_outlined,
@@ -67,6 +73,7 @@ class CustomNavbar extends StatelessWidget {
                     ),
                   ),
                   Expanded(
+                    key: easylensKey,
                     child: _buildNavbarItem(
                       index: 2,
                       icon: Icons.sensors,
@@ -80,7 +87,10 @@ class CustomNavbar extends StatelessWidget {
           const SizedBox(width: 16),
           // Floating Circular Action Button on the right
           GestureDetector(
-            onTap: onEasyLensTap,
+            onTap: () {
+              SoundService.playClick();
+              onEasyLensTap();
+            },
             child: Container(
               width: 64,
               height: 64,
@@ -138,7 +148,10 @@ class CustomNavbar extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: () => onTap(index),
+      onTap: () {
+        SoundService.playClick();
+        onTap(index);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(

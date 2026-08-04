@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import '../../../constants/colors.dart';
 import '../../../services/settings_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/sound_service.dart';
 
 class HeaderBar extends StatelessWidget {
   final VoidCallback onSOSSelected;
   final VoidCallback onSettingsSelected;
   final VoidCallback onNotificationsSelected;
   final VoidCallback onContactsSelected;
+  final GlobalKey? sosKey;
+  final GlobalKey? settingsKey;
+  final GlobalKey? notificationsKey;
+  final GlobalKey? contactsKey;
 
   const HeaderBar({
     super.key,
@@ -15,6 +20,10 @@ class HeaderBar extends StatelessWidget {
     required this.onSettingsSelected,
     required this.onNotificationsSelected,
     required this.onContactsSelected,
+    this.sosKey,
+    this.settingsKey,
+    this.notificationsKey,
+    this.contactsKey,
   });
 
   @override
@@ -32,7 +41,11 @@ class HeaderBar extends StatelessWidget {
       children: [
         // SOS button
         GestureDetector(
-          onTap: onSOSSelected,
+          key: sosKey,
+          onTap: () {
+            SoundService.playClick();
+            onSOSSelected();
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
@@ -78,11 +91,15 @@ class HeaderBar extends StatelessWidget {
                     alignment: Alignment.center,
                     children: [
                       IconButton(
+                        key: notificationsKey,
                         icon: Icon(
                           count > 0 ? Icons.notifications : Icons.notifications_none, 
                           color: count > 0 ? const Color(0xFFEF4444) : iconColor,
                         ),
-                        onPressed: onNotificationsSelected,
+                        onPressed: () {
+                          SoundService.playClick();
+                          onNotificationsSelected();
+                        },
                         constraints: const BoxConstraints(),
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
@@ -117,14 +134,22 @@ class HeaderBar extends StatelessWidget {
                 },
               ),
               IconButton(
+                key: contactsKey,
                 icon: Icon(Icons.people_outline, color: iconColor),
-                onPressed: onContactsSelected, // Wired contacts screen trigger
+                onPressed: () {
+                  SoundService.playClick();
+                  onContactsSelected();
+                },
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.symmetric(horizontal: 8),
               ),
               IconButton(
+                key: settingsKey,
                 icon: Icon(Icons.settings_outlined, color: iconColor),
-                onPressed: onSettingsSelected,
+                onPressed: () {
+                  SoundService.playClick();
+                  onSettingsSelected();
+                },
                 constraints: const BoxConstraints(),
                 padding: const EdgeInsets.symmetric(horizontal: 8),
               ),

@@ -32,6 +32,12 @@ import '../../services/rag_service.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
+  static final ValueNotifier<bool> tutorialNotifier = ValueNotifier<bool>(false);
+
+  static void triggerTutorial() {
+    tutorialNotifier.value = true;
+  }
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
@@ -52,6 +58,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _isBuddySheetOpen = false;
   bool _showTutorial = false;
 
+  final GlobalKey _buddyMascotKey = GlobalKey();
+  final GlobalKey _easylensScanKey = GlobalKey();
+  final GlobalKey _audioNavKey = GlobalKey();
+  final GlobalKey _sosEmergencyKey = GlobalKey();
+  final GlobalKey _settingsKey = GlobalKey();
+  final GlobalKey _notificationsKey = GlobalKey();
+  final GlobalKey _contactsKey = GlobalKey();
+  final GlobalKey _buddyCardKey = GlobalKey();
+  final GlobalKey _easylensCardKey = GlobalKey();
+  final GlobalKey _facesCardKey = GlobalKey();
+  final GlobalKey _textCardKey = GlobalKey();
+  final GlobalKey _navigationCardKey = GlobalKey();
+  final GlobalKey _sosCardKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -70,9 +90,26 @@ class _DashboardScreenState extends State<DashboardScreen>
     _loadUserDisplayName();
     _checkTutorialStatus();
     _startShakeListening();
-    _playDashboardBark();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _playDashboardBark();
+      }
+    });
+
     SpeechNavigationNotifier.tabChangeNotifier.addListener(_onSpeechTabChange);
     SpeechNavigationNotifier.openBuddyNotifier.addListener(_onSpeechOpenBuddy);
+    DashboardScreen.tutorialNotifier.addListener(_onTutorialTriggered);
+  }
+
+  void _onTutorialTriggered() {
+    if (DashboardScreen.tutorialNotifier.value && mounted) {
+      setState(() {
+        _showTutorial = true;
+        _currentIndex = 0;
+      });
+      DashboardScreen.tutorialNotifier.value = false;
+    }
   }
 
   Future<void> _checkTutorialStatus() async {
@@ -90,6 +127,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _fadeController.dispose();
     SpeechNavigationNotifier.tabChangeNotifier.removeListener(_onSpeechTabChange);
     SpeechNavigationNotifier.openBuddyNotifier.removeListener(_onSpeechOpenBuddy);
+    DashboardScreen.tutorialNotifier.removeListener(_onTutorialTriggered);
     _stopShakeListening();
     _barkPlayer.dispose();
     super.dispose();
@@ -109,14 +147,14 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  /// Plays bark_dashboard.mp3 once when the user arrives on the Home tab.
-  Future<void> _playDashboardBark() async {
+  /// Plays bark_dashboard.mp3 once when the user arrives on the Home tab without blocking the UI thread.
+  void _playDashboardBark() {
     try {
-      await _barkPlayer.stop();
-      await _barkPlayer.play(
+      _barkPlayer.stop();
+      _barkPlayer.play(
         AssetSource('sounds/bark_dashboard.mp3'),
         volume: 1.0,
-      );
+      ).catchError((_) {});
     } catch (e) {
       // Non-fatal — audio failure should never block navigation
     }
@@ -302,6 +340,12 @@ class _DashboardScreenState extends State<DashboardScreen>
           DashboardHome(
             displayName: _displayName,
             showStickyHeader: false,
+            buddyCardKey: _buddyCardKey,
+            easylensCardKey: _easylensCardKey,
+            facesCardKey: _facesCardKey,
+            textCardKey: _textCardKey,
+            navigationCardKey: _navigationCardKey,
+            sosCardKey: _sosCardKey,
             onTabSelected: (index) {
               _onTabChanged(index);
             },
@@ -343,6 +387,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                             color: bg,
                             padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 8.0),
                             child: HeaderBar(
+                              sosKey: _sosEmergencyKey,
+                              settingsKey: _settingsKey,
+                              notificationsKey: _notificationsKey,
+                              contactsKey: _contactsKey,
                               onSOSSelected: () {
                                 _navigateTo(const EmergencyScreen(), "Emergency SOS");
                               },
@@ -393,6 +441,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 bottom: 0,
                 child: CustomNavbar(
                   currentIndex: _currentIndex,
+                  navKey: _audioNavKey,
+                  easylensKey: _easylensScanKey,
                   onTap: (index) {
                     _onTabChanged(index);
                   },
@@ -402,7 +452,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
               // Draggable Floating Mascot Button S01
               if (settings.showFloatingMascot)
-                DraggableBuddyButton(onTap: _openBuddyAssistant),
+                DraggableBuddyButton(
+                  buttonKey: _buddyMascotKey,
+                  onTap: _openBuddyAssistant,
+                ),
 
               // ── Fullscreen Lock Overlay ──────────────────────────────
               ValueListenableBuilder<bool>(
@@ -464,6 +517,20 @@ class _DashboardScreenState extends State<DashboardScreen>
               if (_showTutorial)
                 Positioned.fill(
                   child: InteractiveTutorialOverlay(
+                    buddyMascotKey: _buddyMascotKey,
+                    easylensScanKey: _easylensScanKey,
+                    audioNavKey: _audioNavKey,
+                    sosEmergencyKey: _sosEmergencyKey,
+                    settingsKey: _settingsKey,
+                    notificationsKey: _notificationsKey,
+                    contactsKey: _contactsKey,
+                    buddyCardKey: _buddyCardKey,
+                    easylensCardKey: _easylensCardKey,
+                    facesCardKey: _facesCardKey,
+                    textCardKey: _textCardKey,
+                    navigationCardKey: _navigationCardKey,
+                    sosCardKey: _sosCardKey,
+                    onTabRequested: (index) => _onTabChanged(index),
                     onComplete: () {
                       setState(() {
                         _showTutorial = false;
@@ -482,8 +549,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
 class DraggableBuddyButton extends StatefulWidget {
   final VoidCallback onTap;
+  final Key? buttonKey;
 
-  const DraggableBuddyButton({super.key, required this.onTap});
+  const DraggableBuddyButton({super.key, required this.onTap, this.buttonKey});
 
   @override
   State<DraggableBuddyButton> createState() => _DraggableBuddyButtonState();
@@ -518,6 +586,7 @@ class _DraggableBuddyButtonState extends State<DraggableBuddyButton> {
       left: _left,
       top: _top,
       child: GestureDetector(
+        key: widget.buttonKey,
         onPanUpdate: (details) {
           setState(() {
             _top = (_top! + details.delta.dy).clamp(

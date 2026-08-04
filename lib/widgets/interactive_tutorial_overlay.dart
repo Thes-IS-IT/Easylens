@@ -1,241 +1,275 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../constants/colors.dart';
 import '../services/settings_service.dart';
+import '../services/tts_service.dart';
+import 'spotlight_tutorial_overlay.dart';
 
-class InteractiveTutorialOverlay extends StatefulWidget {
+/// Full interactive walkthrough tutorial overlay with illuminated spotlights
+/// over every single button across EasyLens (Dashboard cards, Navigation, EasyLens Camera, AppBar icons, Settings).
+class InteractiveTutorialOverlay extends StatelessWidget {
   final VoidCallback onComplete;
+  final ValueChanged<int>? onTabRequested;
+  final ValueChanged<Widget>? onNavigateRequested;
+  final VoidCallback? onPopRequested;
 
-  const InteractiveTutorialOverlay({super.key, required this.onComplete});
+  final GlobalKey? buddyMascotKey;
+  final GlobalKey? easylensScanKey;
+  final GlobalKey? audioNavKey;
+  final GlobalKey? sosEmergencyKey;
+  final GlobalKey? settingsKey;
+  final GlobalKey? notificationsKey;
+  final GlobalKey? contactsKey;
+  final GlobalKey? buddyCardKey;
+  final GlobalKey? easylensCardKey;
+  final GlobalKey? facesCardKey;
+  final GlobalKey? textCardKey;
+  final GlobalKey? navigationCardKey;
+  final GlobalKey? sosCardKey;
 
-  @override
-  State<InteractiveTutorialOverlay> createState() => _InteractiveTutorialOverlayState();
-}
-
-class _InteractiveTutorialOverlayState extends State<InteractiveTutorialOverlay> {
-  int _currentStep = 0;
-
-  List<Map<String, String>> _getSteps(bool isTagalog) {
-    if (isTagalog) {
-      return [
-        {
-          'title': 'Maligayang Pagdating sa EasyLens!',
-          'description': 'Mag-tour tayo nang mabilis sa loob ng 1 minuto para matutunan ang paggamit kay Buddy at sa iyong dashboard.',
-          'actionText': 'Simulan ang Tour',
-        },
-        {
-          'title': 'Kilalanin si Buddy, Ang Iyong AI Guide',
-          'description': 'I-tap ang floating Buddy Mascot button (o ang gitnang button sa navbar) para buksan si Buddy. Magtanong ng kahit ano o magpatulong sa nabigasyon!',
-          'actionText': 'Susunod',
-        },
-        {
-          'title': 'Mga Sensor at Alerto sa Harang',
-          'description': 'Gamitin ang "EasyLens" tab para sa real-time object detection, pagbasa ng teksto, at mga sensor sa pag-iwas sa harang.',
-          'actionText': 'Susunod',
-        },
-        {
-          'title': 'Nabigasyon sa Boses at SOS',
-          'description': 'Gamitin ang "Nav" tab para sa hands-free na gabay sa daan, o i-tap ang "SOS Emergency" sa dashboard para sa mabilis na saklolo.',
-          'actionText': 'Susunod',
-        },
-        {
-          'title': 'Boses na Nabigasyon',
-          'description': 'Maaari mong i-activate ang "Speech Navigation" sa mga setting para mag-navigate sa mga screen at mag-click ng mga button gamit ang utos ng boses.',
-          'actionText': 'Tapusin',
-        },
-      ];
-    }
-    return [
-      {
-        'title': 'Welcome to EasyLens!',
-        'description': 'Let\'s take a quick 1-minute tour to help you navigate Buddy and your sensor dashboard.',
-        'actionText': 'Start Tour',
-      },
-      {
-        'title': 'Meet Buddy, Your AI Guide',
-        'description': 'Tap the floating Buddy Mascot button (or the center button on the navbar) to open the Buddy Assistant sheet. Ask Buddy anything or let him guide your navigation!',
-        'actionText': 'Next',
-      },
-      {
-        'title': 'Sensors & Obstacle alerts',
-        'description': 'Use the "EasyLens" tab to access real-time object detection, text recognition, and hazard mapping sensors.',
-        'actionText': 'Next',
-      },
-      {
-        'title': 'Audio Navigation & SOS',
-        'description': 'Access the "Nav" tab for hands-free audio route guidance, or trigger "SOS Emergency" from the dashboard for immediate help.',
-        'actionText': 'Next',
-      },
-      {
-        'title': 'Voice Control Enabled!',
-        'description': 'You can activate "Speech Navigation" in settings to navigate screens and click elements entirely hands-free using simple voice commands.',
-        'actionText': 'Finish',
-      },
-    ];
-  }
+  const InteractiveTutorialOverlay({
+    super.key,
+    required this.onComplete,
+    this.onTabRequested,
+    this.onNavigateRequested,
+    this.onPopRequested,
+    this.buddyMascotKey,
+    this.easylensScanKey,
+    this.audioNavKey,
+    this.sosEmergencyKey,
+    this.settingsKey,
+    this.notificationsKey,
+    this.contactsKey,
+    this.buddyCardKey,
+    this.easylensCardKey,
+    this.facesCardKey,
+    this.textCardKey,
+    this.navigationCardKey,
+    this.sosCardKey,
+  });
 
   Future<void> _finishTutorial() async {
+    TtsService().stop();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_completed_tutorial', true);
-    widget.onComplete();
+    onPopRequested?.call();
+    onComplete();
   }
 
-  void _nextStep(int maxSteps) {
-    if (_currentStep < maxSteps - 1) {
-      setState(() {
-        _currentStep++;
-      });
-    } else {
-      _finishTutorial();
+  List<SpotlightStep> _buildSteps(bool isTagalog) {
+    if (isTagalog) {
+      return [
+        SpotlightStep(
+          targetKey: null,
+          title: 'Maligayang Pagdating sa EasyLens!',
+          description: 'Mag-tour tayo sa bawat button at tampok ng app na may illuminated spotlight at voice narration!',
+          mascotAsset: 'assets/Mascots/05 Welcome.gif',
+          actionText: 'Simulan ang Tour',
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: buddyCardKey ?? buddyMascotKey,
+          title: 'Kausapin si Buddy (AI Assistant)',
+          description: 'I-tap para buksan ang iyong AI voice assistant! Magtanong ng kahit ano, humingi ng gabay sa daan, o mag-double tap ng mga card para sa instant na boses.',
+          mascotAsset: 'assets/Mascots/01 Happy.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: easylensCardKey ?? easylensScanKey,
+          title: 'EasyLens: Real-Time Camera Scan',
+          description: 'Ginagamit para sa real-time navigation sa mga harang, AI object detection sa paligid, paglalarawan ng tanawin (scenery), at face recognition!',
+          mascotAsset: 'assets/Mascots/03 Loading.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: facesCardKey,
+          title: 'Magrehistro ng Mukha (Face ID)',
+          description: 'Magrehistro ng mga mukha ng pamilya at kaibigan para makilala at maipahayag ni EasyLens ang kanilang mga pangalan sa real-time!',
+          mascotAsset: 'assets/Mascots/06 Thinking.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: textCardKey,
+          title: 'Magbasa ng Teksto sa Paligid (OCR)',
+          description: 'I-tapat ang camera sa mga sign board, dokumento, o sulat para awtomatikong basahin nang malakas ang teksto gamit ang OCR!',
+          mascotAsset: 'assets/Mascots/05 Welcome.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: navigationCardKey ?? audioNavKey,
+          title: 'Boses na Nabigasyon sa Daan',
+          description: 'Gamitin ang "Nav" tab para sa hands-free audio route guidance, paghahanap ng pupuntahan, at boses na direksyon habang naglalakad.',
+          mascotAsset: 'assets/Mascots/06 Thinking.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 1,
+        ),
+        SpotlightStep(
+          targetKey: sosCardKey ?? sosEmergencyKey,
+          title: 'SOS Emergency: Mabilis na Saklolo',
+          description: 'I-tap ang pulang SOS button para agad na magpadala ng alerto at lokasyon sa iyong mga emergency contact sa oras ng saklolo.',
+          mascotAsset: 'assets/Mascots/01 Happy.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: notificationsKey,
+          title: 'Mga Alerto at Abiso sa Kaligtasan',
+          description: 'Suriin ang mga babala sa masamang panahon, mga alerto sa panganib, at mga update sa system sa iyong notification icon.',
+          mascotAsset: 'assets/Mascots/05 Welcome.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: contactsKey,
+          title: 'Mga Emergency Contact',
+          description: 'Mag-imbak ng hanggang 3 pinagkakatiwalaang contact na makakatanggap ng iyong live na lokasyon tuwing mag-trigger ng SOS.',
+          mascotAsset: 'assets/Mascots/01 Happy.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: settingsKey,
+          title: 'Mga Setting at Kontrol sa Boses',
+          description: 'I-customize ang contrast theme, wika, boses na nabigasyon, at ulitin ang walkthrough na ito anumang oras sa Settings!',
+          mascotAsset: 'assets/Mascots/05 Welcome.gif',
+          actionText: 'Susunod',
+          targetPadding: const EdgeInsets.all(8),
+          targetTabIndex: 0,
+        ),
+        SpotlightStep(
+          targetKey: null,
+          title: 'Kumpleto na ang Iyong Walkthrough!',
+          description: 'Nalaman mo na ang lahat ng gamit ng bawat button sa EasyLens! Handa ka nang maglakbay nang ligtas.',
+          mascotAsset: 'assets/Mascots/04 Congratulations.gif',
+          actionText: 'Tapusin ang Tour',
+          targetTabIndex: 0,
+        ),
+      ];
     }
+
+    return [
+      SpotlightStep(
+        targetKey: null,
+        title: 'Welcome to EasyLens!',
+        description: 'Let\'s take an interactive tour with illuminated spotlights over every single button and feature across your app!',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        actionText: 'Start Tour',
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: buddyCardKey ?? buddyMascotKey,
+        title: 'Talk to Buddy (AI Assistant)',
+        description: 'Tap to open your AI voice assistant! Ask Buddy anything, get navigation guidance, or double-tap cards for instant spoken feedback.',
+        mascotAsset: 'assets/Mascots/01 Happy.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: easylensCardKey ?? easylensScanKey,
+        title: 'EasyLens: Real-Time Camera Scan',
+        description: 'Used for real-time obstacle navigation, AI object detection, scenery description, and face recognition!',
+        mascotAsset: 'assets/Mascots/03 Loading.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: facesCardKey,
+        title: 'Register Face ID & Recognition',
+        description: 'Register faces of family, friends, and caregivers so EasyLens can recognize and announce them by name in real-time!',
+        mascotAsset: 'assets/Mascots/06 Thinking.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: textCardKey,
+        title: 'Nearby Text (OCR Reader)',
+        description: 'Point your camera at signboards, documents, or labels to read text out loud automatically with high-accuracy OCR!',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: navigationCardKey ?? audioNavKey,
+        title: 'Hands-Free Audio Navigation',
+        description: 'Access the "Nav" tab for turn-by-turn voice route guidance, destination search, and real-time audio orientation while traveling.',
+        mascotAsset: 'assets/Mascots/06 Thinking.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 1,
+      ),
+      SpotlightStep(
+        targetKey: sosCardKey ?? sosEmergencyKey,
+        title: 'SOS Emergency Rescue',
+        description: 'Triggers immediate emergency SMS broadcasts and location coordinates to your designated contacts for rapid help!',
+        mascotAsset: 'assets/Mascots/01 Happy.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: notificationsKey,
+        title: 'Notifications & Safety Alerts',
+        description: 'Check unread hazard alerts, weather warnings, and system updates from your top bar notification icon.',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: contactsKey,
+        title: 'Emergency Contacts Manager',
+        description: 'Manage up to 3 trusted emergency contacts who will receive your live GPS location during emergency SOS triggers.',
+        mascotAsset: 'assets/Mascots/01 Happy.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: settingsKey,
+        title: 'Settings & Voice Controls',
+        description: 'Customize high-contrast visual themes, Tagalog/English language, speech navigation, and replay this walkthrough anytime!',
+        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        actionText: 'Next',
+        targetPadding: const EdgeInsets.all(8),
+        targetTabIndex: 0,
+      ),
+      SpotlightStep(
+        targetKey: null,
+        title: 'You\'re All Set!',
+        description: 'You\'ve learned every single button and feature across EasyLens! Enjoy your safe, AI-guided journeys.',
+        mascotAsset: 'assets/Mascots/04 Congratulations.gif',
+        actionText: 'Finish Tour',
+        targetTabIndex: 0,
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = SettingsService();
-    final isDefault = settings.selectedContrastTheme == 'Default';
     final isTagalog = settings.selectedLanguage.toLowerCase().contains('tagalog') ||
         settings.selectedLanguage.toLowerCase().contains('filipino');
-    final steps = _getSteps(isTagalog);
-    final step = steps[_currentStep];
+    final steps = _buildSteps(isTagalog);
 
-    return Scaffold(
-      backgroundColor: Colors.black.withOpacity(0.85),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Skip option
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: _finishTutorial,
-                  child: Text(
-                    'Skip Tour',
-                    style: GoogleFonts.inter(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Tutorial Card Content
-              Card(
-                color: isDefault ? Colors.white : AppColors.primaryBackground,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  side: isDefault ? BorderSide.none : BorderSide(color: AppColors.cardBorder, width: 2),
-                ),
-                elevation: 12,
-                child: Padding(
-                  padding: const EdgeInsets.all(28.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Mascot Illustration representation
-                      Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFEFF6FF),
-                          border: Border.all(color: const Color(0xFF3B82F6), width: 2),
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/Mascots/App Mascot.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.pets_rounded,
-                              color: Color(0xFF2563EB),
-                              size: 40,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Title
-                      Text(
-                        step['title']!,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: isDefault ? const Color(0xFF002663) : AppColors.primaryText,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Description
-                      Text(
-                        step['description']!,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: isDefault ? const Color(0xFF64748B) : AppColors.primaryText.withOpacity(0.8),
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Step indicator dots
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(steps.length, (index) {
-                          final isActive = index == _currentStep;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            height: 8,
-                            width: isActive ? 24 : 8,
-                            decoration: BoxDecoration(
-                              color: isActive 
-                                  ? const Color(0xFF2563EB)
-                                  : (isDefault ? Colors.grey.shade300 : AppColors.cardBorder),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Navigation Action Button
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: () => _nextStep(steps.length),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(27),
-                    ),
-                    elevation: 4,
-                  ),
-                  child: Text(
-                    step['actionText']!,
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return SpotlightTutorialOverlay(
+      steps: steps,
+      onComplete: _finishTutorial,
+      onTabRequested: onTabRequested,
     );
   }
 }

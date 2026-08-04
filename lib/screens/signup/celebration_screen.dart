@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
+import '../../utils/app_route.dart';
 import '../dashboard/dashboard_screen.dart';
 
 /// Full-screen celebration shown after successful registration.
@@ -23,6 +24,7 @@ class _CelebrationScreenState extends State<CelebrationScreen>
   late ConfettiController _confettiRight;
   late AnimationController _fadeController;
   late Animation<double> _fadeIn;
+  late Animation<double> _mascotBounce;
 
   @override
   void initState() {
@@ -34,9 +36,12 @@ class _CelebrationScreenState extends State<CelebrationScreen>
 
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 750),
     );
     _fadeIn = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _mascotBounce = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.elasticOut),
+    );
 
     // Fire everything on first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -58,12 +63,7 @@ class _CelebrationScreenState extends State<CelebrationScreen>
 
   void _goToDashboard() {
     Navigator.of(context).pushAndRemoveUntil(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const DashboardScreen(),
-        transitionsBuilder: (_, animation, __, child) =>
-            FadeTransition(opacity: animation, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
+      AppRoute.mascotZoom(const DashboardScreen()),
       (route) => false,
     );
   }
@@ -130,16 +130,19 @@ class _CelebrationScreenState extends State<CelebrationScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Mascot / celebration image
-                    SizedBox(
-                      width: 180,
-                      height: 180,
-                      child: Image.asset(
-                        'assets/Mascots/04 Congratulations.gif',
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(
-                          Icons.celebration_outlined,
-                          size: 80,
-                          color: AppColors.primaryButton,
+                    ScaleTransition(
+                      scale: _mascotBounce,
+                      child: SizedBox(
+                        width: 180,
+                        height: 180,
+                        child: Image.asset(
+                          'assets/Mascots/04 Congratulations.gif',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.celebration_outlined,
+                            size: 80,
+                            color: AppColors.primaryButton,
+                          ),
                         ),
                       ),
                     ),

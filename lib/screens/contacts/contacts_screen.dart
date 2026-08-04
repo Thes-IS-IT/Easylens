@@ -5,6 +5,7 @@ import '../../constants/colors.dart';
 import '../../services/emergency_contact_service.dart';
 import '../../services/firebase_service.dart';
 import '../../services/sms_service.dart';
+import '../../services/sound_service.dart';
 import 'package:flutter_contacts/flutter_contacts.dart' as fc;
 
 import '../../widgets/screen_tutorial_card.dart';
@@ -839,7 +840,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
             children: [
               // 1. Floating Pill Back Button
               GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
+                onTap: () {
+                  SoundService.playClick();
+                  Navigator.of(context).pop();
+                },
                 child: Container(
                   width: 95,
                   height: 44,
@@ -1029,7 +1033,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       borderRadius: BorderRadius.circular(28.0),
                     ),
                   ),
-                  onPressed: _importContactFromPhone,
+                  onPressed: () {
+                    SoundService.playClick();
+                    _importContactFromPhone();
+                  },
                   icon: const Icon(Icons.phone_outlined, size: 20),
                   label: Text(
                     'Import from Contacts',
@@ -1056,7 +1063,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       borderRadius: BorderRadius.circular(28.0),
                     ),
                   ),
-                  onPressed: _showAddContactModal,
+                  onPressed: () {
+                    SoundService.playClick();
+                    _showAddContactModal();
+                  },
                   icon: Icon(Icons.person_add_alt_1_outlined, size: 20, color: AppColors.primaryText),
                   label: Text(
                     'Add Person Manually',

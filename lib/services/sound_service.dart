@@ -1,38 +1,68 @@
 import 'package:flutter/services.dart';
+import 'settings_service.dart';
 
-/// SoundService provides instant, zero-latency "blop / pop" button click sounds
-/// and tactile haptic feedback across the EasyLens application.
+/// SoundService provides instant, 100% native Flutter built-in button click sound effects
+/// (SystemSoundType.click / SystemSoundType.alert) and tactile haptic feedback without external MP3 dependencies.
 class SoundService {
   static final SoundService _instance = SoundService._internal();
   factory SoundService() => _instance;
   SoundService._internal();
 
-  static bool isMuted = false;
+  /// Play Flutter's built-in native system button click sound (SystemSoundType.click).
+  static void playClick() {
+    final settings = SettingsService();
+    if (!settings.soundEffects) return;
 
-  /// Play a crisp "blop / pop" click sound and subtle haptic feedback when pressing any button.
-  static void playBlop() {
-    if (isMuted) return;
     try {
+      // 1. Flutter built-in native system click audio
       SystemSound.play(SystemSoundType.click);
-      HapticFeedback.selectionClick();
+
+      // 2. Tactile haptic feedback
+      if (settings.hapticFeedback) {
+        HapticFeedback.selectionClick();
+      }
     } catch (_) {}
   }
 
-  /// Play a slightly stronger "pop" for primary action buttons (e.g. Sign In, Continue, Start Navigation).
+  /// Play a crisp native button click sound.
+  static void playBlop() => playClick();
+
+  /// Play a primary action button pop sound with medium haptic impact.
   static void playPop() {
-    if (isMuted) return;
+    final settings = SettingsService();
+    if (!settings.soundEffects) return;
+
     try {
       SystemSound.play(SystemSoundType.click);
-      HapticFeedback.mediumImpact();
+      if (settings.hapticFeedback) {
+        HapticFeedback.mediumImpact();
+      }
     } catch (_) {}
   }
 
-  /// Play tactile feedback for back buttons or tab switches.
+  /// Play tab or back button navigation sound with light haptic impact.
   static void playTab() {
-    if (isMuted) return;
+    final settings = SettingsService();
+    if (!settings.soundEffects) return;
+
     try {
       SystemSound.play(SystemSoundType.click);
-      HapticFeedback.lightImpact();
+      if (settings.hapticFeedback) {
+        HapticFeedback.lightImpact();
+      }
+    } catch (_) {}
+  }
+
+  /// Play native system alert sound for warnings or emergency actions.
+  static void playAlert() {
+    final settings = SettingsService();
+    if (!settings.soundEffects) return;
+
+    try {
+      SystemSound.play(SystemSoundType.alert);
+      if (settings.hapticFeedback) {
+        HapticFeedback.heavyImpact();
+      }
     } catch (_) {}
   }
 }

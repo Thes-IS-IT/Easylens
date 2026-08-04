@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
+import '../dashboard/dashboard_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../notifications/notification_settings_screen.dart';
 import 'profile_details_screen.dart';
@@ -39,6 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _selectedAccentColorIndex = 0; // Index 0 represents Green S01
   bool _shakeToUndo = true;
   bool _speechNavigation = false;
+  bool _soundEffects = true;
   bool _useLocalAI = true;
   bool _showFloatingMascot = true;
 
@@ -79,6 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     _shakeToUndo = settings.shakeToUndo;
     _speechNavigation = settings.speechNavigation;
+    _soundEffects = settings.soundEffects;
     _useLocalAI = settings.useLocalAI;
     _showFloatingMascot = settings.showFloatingMascot;
 
@@ -1209,6 +1213,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino')
+                                    ? 'Mga Sound Effect (SFX)'
+                                    : 'Sound Effects (SFX)',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino')
+                                    ? 'I-play ang button_click.mp3 sa bawat pag-click ng button'
+                                    : 'Play button_click.mp3 audio on every button press',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _soundEffects,
+                          onChanged: (val) {
+                            setState(() => _soundEffects = val);
+                            SettingsService().updateSoundEffects(val);
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
 
@@ -1377,35 +1430,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        SizedBox(
-                          height: 38,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: isDark ? const Color(0xFF333333) : const Color(0xFFE2E8F0)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(19),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            SizedBox(
+                              height: 38,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: isDark ? const Color(0xFF333333) : const Color(0xFFE2E8F0)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(19),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    AppRoute.to(const HelpGuideScreen()),
+                                  );
+                                },
+                                icon: Text(
+                                  TranslationService.translate('open_help', lang),
+                                  style: GoogleFonts.inter(
+                                    color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                label: Icon(
+                                  Icons.arrow_forward,
+                                  color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                                  size: 16,
+                                ),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
                             ),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                AppRoute.to(const HelpGuideScreen()),
-                              );
-                            },
-                            icon: Text(
-                              TranslationService.translate('open_help', lang),
-                              style: GoogleFonts.inter(
-                                color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                            SizedBox(
+                              height: 38,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(19),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                ),
+                                onPressed: () async {
+                                  final prefs = await SharedPreferences.getInstance();
+                                  await prefs.setBool('has_completed_tutorial', false);
+                                  DashboardScreen.triggerTutorial();
+                                  if (context.mounted) {
+                                    Navigator.of(context).popUntil((route) => route.isFirst);
+                                  }
+                                },
+                                icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
+                                label: Text(
+                                  lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino')
+                                      ? 'Simulan ang Walkthrough Tour'
+                                      : 'Replay Walkthrough Tour',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             ),
-                            label: Icon(
-                              Icons.arrow_forward,
-                              color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
-                              size: 16,
-                            ),
-                          ),
+                          ],
                         ),
                       ],
                     ),

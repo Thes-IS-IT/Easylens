@@ -16,6 +16,7 @@ import '../notifications/notifications_screen.dart';
 import '../contacts/contacts_screen.dart';
 import '../../utils/app_route.dart';
 import '../../services/settings_service.dart';
+import '../../services/sound_service.dart';
 import '../../services/active_navigation_service.dart';
 import '../../services/translation_service.dart';
 import '../../widgets/speech_navigation_overlay.dart';
@@ -1313,6 +1314,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                             color: _isNativeMapAvailable ? const Color(0xFF002663) : Colors.black87,
                           ),
                           onPressed: () {
+                            SoundService.playClick();
                             setState(() {
                               _isNativeMapAvailable = !_isNativeMapAvailable;
                             });
@@ -1322,19 +1324,28 @@ class _NavigationScreenState extends State<NavigationScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.notifications_none, size: 20),
-                          onPressed: () => Navigator.push(context, AppRoute.to(const NotificationsScreen())),
+                          onPressed: () {
+                            SoundService.playClick();
+                            Navigator.push(context, AppRoute.to(const NotificationsScreen()));
+                          },
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                         ),
                         IconButton(
                           icon: const Icon(Icons.people_outline, size: 20),
-                          onPressed: () => Navigator.push(context, AppRoute.to(const ContactsScreen())),
+                          onPressed: () {
+                            SoundService.playClick();
+                            Navigator.push(context, AppRoute.to(const ContactsScreen()));
+                          },
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                         ),
                         IconButton(
                           icon: const Icon(Icons.settings_outlined, size: 20),
-                          onPressed: () => Navigator.push(context, AppRoute.to(const SettingsScreen())),
+                          onPressed: () {
+                            SoundService.playClick();
+                            Navigator.push(context, AppRoute.to(const SettingsScreen()));
+                          },
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                         ),

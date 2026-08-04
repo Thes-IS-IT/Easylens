@@ -23,6 +23,12 @@ class DashboardHome extends StatefulWidget {
   final VoidCallback onFaceRegistrationSelected;
 
   final bool showStickyHeader;
+  final GlobalKey? buddyCardKey;
+  final GlobalKey? easylensCardKey;
+  final GlobalKey? facesCardKey;
+  final GlobalKey? textCardKey;
+  final GlobalKey? navigationCardKey;
+  final GlobalKey? sosCardKey;
 
   const DashboardHome({
     super.key,
@@ -35,6 +41,12 @@ class DashboardHome extends StatefulWidget {
     required this.onBuddyAssistantTap,
     required this.onFaceRegistrationSelected,
     this.showStickyHeader = true,
+    this.buddyCardKey,
+    this.easylensCardKey,
+    this.facesCardKey,
+    this.textCardKey,
+    this.navigationCardKey,
+    this.sosCardKey,
   });
 
   @override
@@ -228,24 +240,28 @@ class _DashboardHomeState extends State<DashboardHome> {
 
         final Map<String, Widget> cardWidgets = {
           'buddy': DashboardButton(
+            key: widget.buddyCardKey,
             title: TranslationService.translate('talk_to_buddy', lang),
             icon: Icons.chat_bubble_outline,
             color: const Color(0xFF6B21A8),
             onTap: widget.onBuddyAssistantTap,
           ),
           'easylens': DashboardButton(
+            key: widget.easylensCardKey,
             title: TranslationService.translate('easylens', lang),
             icon: Icons.visibility,
             color: const Color(0xFF002663),
             onTap: () => widget.onTabSelected(2),
           ),
           'faces': DashboardButton(
+            key: widget.facesCardKey,
             title: TranslationService.translate('register_face', lang),
             icon: Icons.face_retouching_natural,
             color: const Color(0xFF7C3AED),
             onTap: widget.onFaceRegistrationSelected,
           ),
           'text': DashboardButton(
+            key: widget.textCardKey,
             title: TranslationService.translate('nearby_text', lang),
             icon: Icons.notes,
             color: const Color(0xFF3F83F8),
@@ -260,6 +276,7 @@ class _DashboardHomeState extends State<DashboardHome> {
               );
             },
           ),
+
           'objects': DashboardButton(
             title: TranslationService.translate('nearby_objects', lang),
             icon: Icons.zoom_in,
@@ -271,12 +288,14 @@ class _DashboardHomeState extends State<DashboardHome> {
             },
           ),
           'navigation': DashboardButton(
+            key: widget.navigationCardKey,
             title: TranslationService.translate('audio_navigation', lang),
             icon: Icons.near_me,
             color: const Color(0xFF85581A),
             onTap: () => widget.onTabSelected(1),
           ),
           'sos': DashboardButton(
+            key: widget.sosCardKey,
             title: TranslationService.translate('sos_emergency', lang),
             icon: Icons.phone_in_talk,
             color: const Color(0xFFC53030),

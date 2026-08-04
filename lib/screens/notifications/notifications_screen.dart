@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../../models/app_notification.dart';
 import '../../services/notification_service.dart';
+import '../../services/sound_service.dart';
 import '../../widgets/screen_tutorial_card.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -131,7 +132,10 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             children: [
               // Back pill
               GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
+                onTap: () {
+                  SoundService.playClick();
+                  Navigator.of(context).pop();
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(

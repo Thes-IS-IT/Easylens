@@ -39,11 +39,14 @@ class _LoginScreenState extends State<LoginScreen>
   late AnimationController _buttonPressController;
   late AnimationController _errorSlideController;
   late AnimationController _mascotZoomController;
+  late AnimationController _loadingPullController;
 
   // Mascot zoom animation on successful login
   late Animation<double> _mascotZoomScale;
   late Animation<Alignment> _mascotCenterAlignment;
   late Animation<double> _formFadeOut;
+  late Animation<double> _loadingPullOffset;
+  late Animation<double> _bannerPullDown;
 
   // Staggered entrance animations
   late Animation<double> _heroScale;
@@ -231,6 +234,18 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
 
+    // Banner loading pull pulse (gentle pull-down nudge while authenticating)
+    _loadingPullController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _loadingPullOffset = Tween<double>(begin: 0.0, end: 12.0).animate(
+      CurvedAnimation(
+        parent: _loadingPullController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
     // Mascot zoom controller for successful login
     _mascotZoomController = AnimationController(
       vsync: this,
@@ -257,6 +272,12 @@ class _LoginScreenState extends State<LoginScreen>
         curve: const Interval(0.0, 0.45, curve: Curves.easeOut),
       ),
     );
+    _bannerPullDown = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _mascotZoomController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
 
     // Start entrance animation
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -276,6 +297,7 @@ class _LoginScreenState extends State<LoginScreen>
     _buttonPressController.dispose();
     _errorSlideController.dispose();
     _mascotZoomController.dispose();
+    _loadingPullController.dispose();
     super.dispose();
   }
 
@@ -295,6 +317,8 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _showError(String msg) {
     if (mounted) {
+      _loadingPullController.stop();
+      _loadingPullController.animateTo(0.0, duration: const Duration(milliseconds: 200));
       setState(() {
         _errorMessage = msg;
         _isLoading = false;
@@ -317,6 +341,7 @@ class _LoginScreenState extends State<LoginScreen>
       _isLoading = true;
       _errorMessage = null;
     });
+    _loadingPullController.repeat(reverse: true);
 
     try {
       final user = await _firebaseService.signIn(email, password, rememberMe: _rememberMe);
@@ -333,16 +358,17 @@ class _LoginScreenState extends State<LoginScreen>
         }
 
         if (mounted) {
+          _loadingPullController.animateTo(0.0, duration: const Duration(milliseconds: 200));
           setState(() {
             _loginSuccess = true;
             _isLoading = false;
           });
           _mascotZoomController.forward();
-          await _firebaseService.fetchContactsFromCloud(user.uid);
+          _firebaseService.fetchContactsFromCloud(user.uid);
+          ScreenTutorialCard.markAllSeen();
+
           await Future.delayed(const Duration(milliseconds: 550));
-        if (mounted) {
-            // Returning user — mark all tutorials as seen so they don't see them again
-            await ScreenTutorialCard.markAllSeen();
+          if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               AppRoute.mascotZoom(const DashboardScreen()),
               (route) => false,
@@ -400,26 +426,30 @@ class _LoginScreenState extends State<LoginScreen>
       _isLoading = true;
       _errorMessage = null;
     });
+    _loadingPullController.repeat(reverse: true);
 
     try {
       final user = await _firebaseService.signInWithGoogle(rememberMe: _rememberMe);
       if (user != null && mounted) {
+        _loadingPullController.animateTo(0.0, duration: const Duration(milliseconds: 200));
         setState(() {
           _loginSuccess = true;
           _isLoading = false;
         });
         _mascotZoomController.forward();
-        await _firebaseService.fetchContactsFromCloud(user.uid);
+        _firebaseService.fetchContactsFromCloud(user.uid);
+        ScreenTutorialCard.markAllSeen();
+
         await Future.delayed(const Duration(milliseconds: 550));
         if (mounted) {
-          // Returning Google user — mark all tutorials as seen
-          await ScreenTutorialCard.markAllSeen();
           Navigator.of(context).pushAndRemoveUntil(
             AppRoute.mascotZoom(const DashboardScreen()),
             (route) => false,
           );
         }
       } else if (mounted) {
+        _loadingPullController.stop();
+        _loadingPullController.animateTo(0.0, duration: const Duration(milliseconds: 200));
         setState(() {
           _isLoading = false;
         });
@@ -450,21 +480,9 @@ class _LoginScreenState extends State<LoginScreen>
   // ═══════════════════════════════════════════════
 
   Widget _buildHeroSection() {
-    // Determine gradient colors based on theme
-    final bool isDarkTheme = AppColors.primaryBackground == Colors.black;
-    final gradientColors = isDarkTheme
-        ? [const Color(0xFF0A0A0A), const Color(0xFF1A1A2E)]
-        : [const Color(0xFF00205B), const Color(0xFF0F3E8F)];
-
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      color: Colors.transparent,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -1004,11 +1022,60 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final bool isDarkTheme = AppColors.primaryBackground == Colors.black;
+    final gradientColors = isDarkTheme
+        ? [const Color(0xFF0A0A0A), const Color(0xFF1A1A2E)]
+        : [const Color(0xFF00205B), const Color(0xFF0F3E8F)];
+
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
       body: Stack(
         children: [
-          // Main content: Hero + Form Sheet
+          // ── 1. BLUE BANNER PULL-DOWN BACKGROUND LAYER ──
+          AnimatedBuilder(
+            animation: Listenable.merge([_mascotZoomController, _loadingPullController]),
+            builder: (context, child) {
+              final double expandedBubbleOffset = _isBubbleExpanded ? 70.0 : 0.0;
+              final double baseHeroHeight = 285.0 + expandedBubbleOffset;
+              final double loadingOffset = _isLoading ? _loadingPullOffset.value : 0.0;
+              final double pullProgress = _bannerPullDown.value;
+
+              final double currentHeight = baseHeroHeight + loadingOffset + (pullProgress * (screenSize.height - baseHeroHeight));
+              final double cornerRadius = (1.0 - pullProgress) * 24.0;
+
+              return AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                top: 0,
+                left: 0,
+                right: 0,
+                height: currentHeight,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: gradientColors,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(cornerRadius),
+                      bottomRight: Radius.circular(cornerRadius),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF002663).withValues(alpha: 0.25 * (1.0 - pullProgress)),
+                        blurRadius: 16,
+                        offset: Offset(0, 4 + loadingOffset),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // ── 2. MAIN LAYOUT COLUMN (Hero Content + Form Sheet) ──
           Column(
             children: [
               // ── GRADIENT HERO ZONE ──
@@ -1018,8 +1085,15 @@ class _LoginScreenState extends State<LoginScreen>
               Expanded(
                 child: FadeTransition(
                   opacity: _formFadeOut,
-                  child: Transform.translate(
-                    offset: const Offset(0, -24),
+                  child: AnimatedBuilder(
+                    animation: _loadingPullController,
+                    builder: (context, child) {
+                      final double shift = _isLoading ? _loadingPullOffset.value * 0.5 : 0.0;
+                      return Transform.translate(
+                        offset: Offset(0, -24 + shift),
+                        child: child,
+                      );
+                    },
                     child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.primaryBackground,

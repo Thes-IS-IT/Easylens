@@ -14,6 +14,7 @@ class SettingsService extends ChangeNotifier {
 
   bool voiceFeedback = true;
   bool hapticFeedback = true;
+  bool soundEffects = true;
   bool companionSharing = false;
 
   String selectedContrastTheme = 'Default';
@@ -76,6 +77,7 @@ class SettingsService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       voiceFeedback = prefs.getBool('voiceFeedback') ?? true;
       hapticFeedback = prefs.getBool('hapticFeedback') ?? true;
+      soundEffects = prefs.getBool('soundEffects') ?? true;
       companionSharing = prefs.getBool('companionSharing') ?? false;
       selectedContrastTheme = prefs.getString('selectedContrastTheme') ?? 'Default';
       appearanceTheme = prefs.getString('appearanceTheme') ?? 'Default';
@@ -102,6 +104,7 @@ class SettingsService extends ChangeNotifier {
       homeScreenCards = prefs.getStringList('homeScreenCards') ?? ['buddy', 'easylens', 'faces', 'text', 'navigation', 'sos'];
       homeScreenCards.remove('journal');
       homeScreenCards.remove('objects');
+      homeScreenCards.remove('nutriscan');
 
       useLocalAI = prefs.getBool('useLocalAI') ?? true;
       showFloatingMascot = prefs.getBool('showFloatingMascot') ?? true;
@@ -251,10 +254,18 @@ class SettingsService extends ChangeNotifier {
     }
   }
 
+  Future<void> updateSoundEffects(bool enabled) async {
+    soundEffects = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('soundEffects', enabled);
+    notifyListeners();
+  }
+
   /// Reset preferences to defaults (called upon sign-out / new account setup)
   Future<void> resetToDefaults() async {
     voiceFeedback = true;
     hapticFeedback = true;
+    soundEffects = true;
     companionSharing = false;
     selectedContrastTheme = 'Default';
     selectedLanguage = 'English (US)';

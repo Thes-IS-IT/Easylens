@@ -31,6 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   int _currentStep = 1;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isForwardTransition = true;
 
   // Flow flags
   bool _showOtherConditionInput = false;
@@ -78,6 +79,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   int? _lastSpokenStep;
   bool _isSpeakingPrompt = false;
   bool _isProcessingCommand = false;
+
+  String get _activeMascotAsset {
+    return 'assets/Mascots/03 Loading.gif';
+  }
 
   @override
   void initState() {
@@ -680,6 +685,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     setState(() {
+      _isForwardTransition = true;
       if (_currentStep < 17) {
         _currentStep++;
       }
@@ -704,6 +710,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _isVerifyingCode = false);
     } else if (_currentStep > 1) {
       setState(() {
+        _isForwardTransition = false;
         _currentStep--;
         if (_currentStep == 14 && _pickedImage == null) {
           _currentStep = 13; // Skip photo confirmation when going back if no photo was uploaded
@@ -839,16 +846,45 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    if (regPassword.length < 6) {
-      final passMsg = isTagalog
-          ? 'Masyadong maikli ang password. Dapat ay may 6 o higit pang karakter.'
-          : 'Password is too short. Please use at least 6 characters.';
+    try {
+      final bool hasMinLength = regPassword.length >= 6;
+      final bool hasUppercase = RegExp(r'[A-Z]').hasMatch(regPassword);
+      final bool hasNumber = RegExp(r'[0-9]').hasMatch(regPassword);
+      final bool hasSpecialChar = RegExp(r'[!@#$%^&*(),.?":{}|<>\-_=+\\|/`~]').hasMatch(regPassword);
+
+      if (!hasMinLength || !hasUppercase || !hasNumber || !hasSpecialChar) {
+        String passMsg = isTagalog
+            ? 'Ang password ay dapat may hindi bababa sa 6 na karakter, 1 uppercase na letra (A-Z), 1 numero (0-9), at 1 espesyal na karakter (!@#\$%^&*).'
+            : 'Password must have at least 6 characters, 1 uppercase letter (A-Z), 1 number (0-9), and 1 special character (!@#\$%^&*).';
+
+        if (!hasMinLength) {
+          passMsg = isTagalog ? 'Dapat may hindi bababa sa 6 na karakter ang password.' : 'Password must be at least 6 characters long.';
+        } else if (!hasUppercase) {
+          passMsg = isTagalog ? 'Dapat may hindi bababa sa 1 uppercase na letra (A-Z) ang password.' : 'Password must contain at least 1 uppercase letter (A-Z).';
+        } else if (!hasNumber) {
+          passMsg = isTagalog ? 'Dapat may hindi bababa sa 1 numero (0-9) ang password.' : 'Password must contain at least 1 number (0-9).';
+        } else if (!hasSpecialChar) {
+          passMsg = isTagalog ? 'Dapat may hindi bababa sa 1 espesyal na karakter (!@#\$%^&*) ang password.' : 'Password must contain at least 1 special character (!@#\$%^&*).';
+        }
+
+        setState(() {
+          _isLoading = false;
+          _errorMessage = passMsg;
+          _currentStep = 10;
+        });
+        TtsService().speak(passMsg);
+        return;
+      }
+    } catch (e) {
+      final errPassMsg = isTagalog
+          ? 'Error sa pagproseso ng password: ${e.toString()}'
+          : 'Error processing password requirements: ${e.toString()}';
       setState(() {
         _isLoading = false;
-        _errorMessage = passMsg;
+        _errorMessage = errPassMsg;
         _currentStep = 10;
       });
-      TtsService().speak(passMsg);
+      TtsService().speak(errPassMsg);
       return;
     }
 
@@ -1284,7 +1320,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     children: [
                       const SizedBox(height: 8),
 
-                      // Top Appbar Header Row (Back Pill + Step Count)
+                      // ── 1. Top Appbar Header Row (Back Pill + Step Pill) ──
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -1296,7 +1332,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.lightBackground,
                                 borderRadius: BorderRadius.circular(25),
-                                border: Border.all(color: AppColors.cardBorder.withOpacity(0.3)),
+                                border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1316,190 +1352,334 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           ),
 
-                          // Step Indicator Pill (e.g. 1 of 17)
+                          // Step Indicator Pill with Bounce Animation
                           if (_shouldShowStepIndicator())
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppColors.lightBackground,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                '$_currentStep of 17',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryText,
+                            TweenAnimationBuilder<double>(
+                              key: ValueKey<int>(_currentStep),
+                              tween: Tween<double>(begin: 0.85, end: 1.0),
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutBack,
+                              builder: (context, scale, child) {
+                                return Transform.scale(
+                                  scale: scale,
+                                  child: child,
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.primaryButton.withValues(alpha: 0.12),
+                                      const Color(0xFF38BDF8).withValues(alpha: 0.12),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: AppColors.primaryButton.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Text(
+                                  '$_currentStep of 17',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryText,
+                                  ),
                                 ),
                               ),
                             ),
                         ],
                       ),
 
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 10),
 
-                    // Voice Assistant Status & Validation Banner
-                    GestureDetector(
-                      onTap: () {
-                        setState(() => _isVoiceActivated = !_isVoiceActivated);
-                        if (_isVoiceActivated) {
-                          _speakStepPromptAndListen();
-                        } else {
-                          SttService().stopListening((_) {});
-                          TtsService().stop();
-                        }
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightBackground,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _isVoiceActivated
-                                ? (_isAwaitingConfirmation ? const Color(0xFFE5A63C) : AppColors.primaryButton)
-                                : AppColors.cardBorder.withValues(alpha: 0.3),
-                            width: 1.5,
+                      // ── 2. Glowing Gradient Progress Bar ──
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          height: 5,
+                          width: double.infinity,
+                          color: AppColors.cardBorder.withValues(alpha: 0.2),
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween<double>(
+                              begin: 0.0,
+                              end: (_currentStep / 17.0).clamp(0.0, 1.0),
+                            ),
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, value, child) {
+                              return FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: value,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF002663),
+                                        Color(0xFF0F3E8F),
+                                        Color(0xFF38BDF8),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(4),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF38BDF8).withValues(alpha: 0.5),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 14,
-                              backgroundColor: _isVoiceActivated
-                                  ? (_isAwaitingConfirmation ? const Color(0xFFE5A63C) : AppColors.primaryButton)
-                                  : AppColors.cardBorder.withValues(alpha: 0.4),
-                              child: Icon(
-                                _isVoiceActivated
-                                    ? (_isAwaitingConfirmation
-                                        ? Icons.mark_chat_read_rounded
-                                        : (_isListening ? Icons.mic : Icons.volume_up))
-                                    : Icons.mic_off,
-                                color: AppColors.primaryButtonText,
-                                size: 14,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _isVoiceActivated
-                                    ? (_isAwaitingConfirmation
-                                        ? (isTagalog
-                                            ? "Pinili: $_pendingVoiceSelection. Sabihin ang 'Oo', 'Ituloy', o 'Bumalik'"
-                                            : "Selected: $_pendingVoiceSelection. Say 'Yes', 'Next', or 'Back'")
-                                        : (_voiceFeedbackText.isNotEmpty
-                                            ? _voiceFeedbackText
-                                            : (isTagalog ? "Nakinig sa iyong boses..." : "Voice activated. Speak your choice...")))
-                                    : (isTagalog ? "Voice Mode Muted (Tap to enable)" : "Voice Mode Muted (Tap to enable)"),
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryText,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    ),
-                    
-                    if (_errorMessage != null) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: GoogleFonts.inter(
-                                  color: Colors.red.shade900,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
 
-                    Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                          return Stack(
-                            alignment: Alignment.topCenter,
-                            children: <Widget>[
-                              ...previousChildren,
-                              if (currentChild != null) currentChild,
+                      const SizedBox(height: 12),
+
+                      // ── 3. Buddy Hero Companion Banner ──
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Buddy Mascot GIF Avatar
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 350),
+                            switchInCurve: Curves.easeOutBack,
+                            child: Container(
+                              key: ValueKey<String>(_activeMascotAsset),
+                              height: 82,
+                              width: 82,
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                border: Border.all(
+                                  color: AppColors.primaryButton.withValues(alpha: 0.35),
+                                  width: 2.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.08),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  _activeMascotAsset,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(width: 10),
+
+                          // Buddy Speech & Voice Status Bubble
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() => _isVoiceActivated = !_isVoiceActivated);
+                                if (_isVoiceActivated) {
+                                  _speakStepPromptAndListen();
+                                } else {
+                                  SttService().stopListening((_) {});
+                                  TtsService().stop();
+                                }
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.lightBackground,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(18),
+                                    topRight: Radius.circular(18),
+                                    bottomRight: Radius.circular(18),
+                                    bottomLeft: Radius.circular(4),
+                                  ),
+                                  border: Border.all(
+                                    color: _isVoiceActivated
+                                        ? (_isAwaitingConfirmation ? const Color(0xFFE5A63C) : AppColors.primaryButton)
+                                        : AppColors.cardBorder.withValues(alpha: 0.3),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 13,
+                                      backgroundColor: _isVoiceActivated
+                                          ? (_isAwaitingConfirmation ? const Color(0xFFE5A63C) : AppColors.primaryButton)
+                                          : AppColors.cardBorder.withValues(alpha: 0.4),
+                                      child: Icon(
+                                        _isVoiceActivated
+                                            ? (_isAwaitingConfirmation
+                                                ? Icons.mark_chat_read_rounded
+                                                : (_isListening ? Icons.mic : Icons.volume_up))
+                                            : Icons.mic_off,
+                                        color: AppColors.primaryButtonText,
+                                        size: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _isVoiceActivated
+                                            ? (_isAwaitingConfirmation
+                                                ? (isTagalog
+                                                    ? "Pinili: $_pendingVoiceSelection. Sabihin ang 'Oo', 'Ituloy', o 'Bumalik'"
+                                                    : "Selected: $_pendingVoiceSelection. Say 'Yes', 'Next', or 'Back'")
+                                                : (_voiceFeedbackText.isNotEmpty
+                                                    ? _voiceFeedbackText
+                                                    : (isTagalog ? "Nakinig sa iyong boses..." : "Voice activated. Speak your choice...")))
+                                            : (isTagalog ? "Voice Mode Muted (Tap to enable)" : "Voice Mode Muted (Tap to enable)"),
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primaryText,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: GoogleFonts.inter(
+                                    color: Colors.red.shade900,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
                             ],
-                          );
-                        },
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: ScaleTransition(
-                              scale: Tween<double>(begin: 0.96, end: 1.0).animate(
-                                CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeOutCubic,
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 10),
+
+                      // ── 4. Directional Card Slide + Spring Scale Transitions ──
+                      Expanded(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 380),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                            return Stack(
+                              alignment: Alignment.topCenter,
+                              children: <Widget>[
+                                ...previousChildren,
+                                if (currentChild != null) currentChild,
+                              ],
+                            );
+                          },
+                          transitionBuilder: (Widget child, Animation<double> animation) {
+                            final isIncoming = child.key == ValueKey<int>(_currentStep);
+                            final Offset startOffset = _isForwardTransition
+                                ? (isIncoming ? const Offset(0.15, 0.0) : const Offset(-0.15, 0.0))
+                                : (isIncoming ? const Offset(-0.15, 0.0) : const Offset(0.15, 0.0));
+
+                            final slideAnimation = Tween<Offset>(
+                              begin: startOffset,
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            ));
+
+                            final scaleAnimation = Tween<double>(
+                              begin: 0.95,
+                              end: 1.0,
+                            ).animate(CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutBack,
+                            ));
+
+                            return FadeTransition(
+                              opacity: animation,
+                              child: ScaleTransition(
+                                scale: scaleAnimation,
+                                child: SlideTransition(
+                                  position: slideAnimation,
+                                  child: child,
                                 ),
                               ),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Align(
-                          key: ValueKey<int>(_currentStep),
-                          alignment: Alignment.topCenter,
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            child: _buildStepContent(),
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    if (_shouldShowContinueButton()) ...[
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryButton,
-                            foregroundColor: AppColors.primaryButtonText,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28.0),
-                            ),
-                          ),
-                          onPressed: _nextStep,
-                          child: Text(
-                            SignupL10n.t('continue', _selectedLanguage),
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                            );
+                          },
+                          child: Align(
+                            key: ValueKey<int>(_currentStep),
+                            alignment: Alignment.topCenter,
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: _buildStepContent(),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      
+                      if (_shouldShowContinueButton()) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryButton,
+                              foregroundColor: AppColors.primaryButtonText,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(28.0),
+                              ),
+                            ),
+                            onPressed: _nextStep,
+                            child: Text(
+                              SignupL10n.t('continue', _selectedLanguage),
+                              style: GoogleFonts.inter(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ],
-                  ],
-                ),
+                  ),
           ),
         ),
       ),

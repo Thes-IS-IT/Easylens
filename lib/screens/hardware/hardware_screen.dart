@@ -16,6 +16,7 @@ import '../face_registration/face_registration_screen.dart';
 import '../../services/stt_service.dart';
 import '../../services/rag_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/sound_service.dart';
 import '../../services/tflite_processor.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';

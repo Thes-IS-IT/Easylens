@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import '../../../services/settings_service.dart';
+import '../../../services/sound_service.dart';
 
 class DashboardButton extends StatelessWidget {
   final String title;
@@ -52,7 +53,10 @@ class DashboardButton extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 24),
           ),
-          onPressed: onTap,
+          onPressed: () {
+            SoundService.playClick();
+            onTap();
+          },
           child: Row(
             children: [
               Icon(icon, size: 24),

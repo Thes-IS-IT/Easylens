@@ -8,6 +8,7 @@ import '../../constants/colors.dart';
 import '../../services/sms_service.dart';
 import '../../services/emergency_contact_service.dart';
 import '../../services/tts_service.dart';
+import '../../services/sound_service.dart';
 import '../../widgets/screen_tutorial_card.dart';
 
 class EmergencyScreen extends StatefulWidget {
@@ -20,9 +21,9 @@ class EmergencyScreen extends StatefulWidget {
 class _EmergencyScreenState extends State<EmergencyScreen> {
   bool _isCountdownActive = true;
   bool _alertSent = false;
-  int _countdownTimer = 3;
+  int _countdownTimer = 5;
   Timer? _timer;
-  String _sosStatusMessage = 'Alerting in 3 seconds…';
+  String _sosStatusMessage = 'Alerting in 5 seconds…';
 
   @override
   void initState() {
@@ -187,7 +188,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             children: [
               // 1. Floating Pill Back Button
               GestureDetector(
-                onTap: _cancelSOS,
+                onTap: () {
+                  SoundService.playClick();
+                  _cancelSOS();
+                },
                 child: Container(
                   width: 95,
                   height: 44,
@@ -311,7 +315,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                       borderRadius: BorderRadius.circular(28.0),
                     ),
                   ),
-                  onPressed: _cancelSOS,
+                  onPressed: () {
+                    SoundService.playClick();
+                    _cancelSOS();
+                  },
                   child: Text(
                     'Cancel SOS',
                     style: GoogleFonts.inter(

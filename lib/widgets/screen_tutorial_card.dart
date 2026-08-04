@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/colors.dart';
 import '../services/settings_service.dart';
 import '../services/translation_service.dart';
+import 'spotlight_tutorial_overlay.dart';
 
 class ScreenTutorialCard extends StatelessWidget {
   const ScreenTutorialCard({
@@ -13,6 +14,7 @@ class ScreenTutorialCard extends StatelessWidget {
     required String titleKey,
     required String descriptionKey,
     required String mascotAsset,
+    GlobalKey? targetKey,
   });
 
   /// Returns a UID-scoped pref key, e.g. "seen_tutorial_abc123_home".
@@ -67,6 +69,7 @@ class ScreenTutorialCard extends StatelessWidget {
     required String titleKey,
     required String descriptionKey,
     required String mascotAsset,
+    GlobalKey? targetKey,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final hasSeen = prefs.getBool(_prefKey(tutorialKey)) ?? false;
@@ -74,18 +77,49 @@ class ScreenTutorialCard extends StatelessWidget {
 
     if (!context.mounted) return;
 
-    await showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.6),
-      builder: (context) {
-        return _TutorialDialog(
-          tutorialKey: tutorialKey,
-          titleKey: titleKey,
-          descriptionKey: descriptionKey,
-          mascotAsset: mascotAsset,
-        );
-      },
-    );
+    if (targetKey != null) {
+      final settings = SettingsService();
+      final lang = settings.selectedLanguage;
+      final titleText = TranslationService.translate(titleKey, lang);
+      final descText = TranslationService.translate(descriptionKey, lang);
+      final gotItText = TranslationService.translate('tutorial_got_it', lang);
+
+      late OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (context) {
+          return SpotlightTutorialOverlay(
+            steps: [
+              SpotlightStep(
+                targetKey: targetKey,
+                title: titleText,
+                description: descText,
+                mascotAsset: mascotAsset,
+                actionText: gotItText,
+              ),
+            ],
+            onComplete: () async {
+              entry.remove();
+              await prefs.setBool(_prefKey(tutorialKey), true);
+            },
+          );
+        },
+      );
+
+      Overlay.of(context).insert(entry);
+    } else {
+      await showDialog(
+        context: context,
+        barrierColor: Colors.black.withOpacity(0.6),
+        builder: (context) {
+          return _TutorialDialog(
+            tutorialKey: tutorialKey,
+            titleKey: titleKey,
+            descriptionKey: descriptionKey,
+            mascotAsset: mascotAsset,
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -138,6 +172,7 @@ class _TutorialDialogState extends State<_TutorialDialog> {
           insetPadding: const EdgeInsets.symmetric(horizontal: 24),
           elevation: 0,
           child: Container(
+            constraints: const BoxConstraints(maxWidth: 420),
             decoration: BoxDecoration(
               color: isDefault ? Colors.white : AppColors.primaryBackground,
               borderRadius: BorderRadius.circular(24),
@@ -155,16 +190,17 @@ class _TutorialDialogState extends State<_TutorialDialog> {
             ),
             child: Stack(
               children: [
-                Padding(
+                SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Mascot container with padding to fit the GIF correctly S01
+                      // Mascot container with padding to fit the GIF correctly
                       Container(
                         width: 96,
                         height: 96,
-                        padding: const EdgeInsets.all(8), // Add padding so it doesn't crop the mascot
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isDefault ? const Color(0xFFF0F7FF) : Colors.black.withOpacity(0.2),
                           shape: BoxShape.circle,
@@ -172,7 +208,7 @@ class _TutorialDialogState extends State<_TutorialDialog> {
                         child: ClipOval(
                           child: Image.asset(
                             widget.mascotAsset,
-                            fit: BoxFit.contain, // Fit contain to avoid cropping
+                            fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) => const Icon(
                               Icons.help_outline_rounded,
                               color: Colors.blueAccent,

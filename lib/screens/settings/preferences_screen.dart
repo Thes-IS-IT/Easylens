@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'voice_feedback_screen.dart';
 import '../../services/settings_service.dart';
+import '../../services/sound_service.dart';
 import '../../services/firebase_service.dart';
 import '../../services/translation_service.dart';
 import '../../constants/colors.dart';
@@ -443,7 +444,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () {
+                          SoundService.playClick();
+                          Navigator.of(context).pop();
+                        },
                         child: Container(
                           height: 44,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -537,6 +541,18 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                                 onChanged: (val) {
                                   setState(() => _voiceFeedback = val);
                                   _saveSettings(voice: val);
+                                },
+                                titleColor: tileTextColor,
+                              ),
+                              Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
+                              _buildSwitchRow(
+                                title: 'Sound Effects (SFX)',
+                                subtitle: isFilipino
+                                    ? 'I-play ang button_click.mp3 audio effect sa bawat pag-click ng button.'
+                                    : 'Plays button_click.mp3 audio effect on every button press across the app.',
+                                value: settings.soundEffects,
+                                onChanged: (val) {
+                                  settings.updateSoundEffects(val);
                                 },
                                 titleColor: tileTextColor,
                               ),
