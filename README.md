@@ -198,5 +198,13 @@ easylens/
 
 | Version | Date | Highlights |
 |---|---|---|
-| 1.0.0 | 2026-07-08 | Initial release: vision pipeline, navigation, Buddy (Gemma), SOS, settings, onboarding |
-| 1.1.0 | 2026-07-09 | Filipino language full rollout, Gemini for Filipino Buddy, bark sound cue, proximity navigation TTS with anti-spam, dynamic theming on all screens, `ListenableBuilder` on Dashboard for live updates |
+| 1.0.0 | 2026-06-01 | Initial release: core application scaffold, navigation wrapper, accessible high-contrast themes |
+| 5.0.0 | 2026-07-02 | Smart HUD mode, hands-free interface, speech audio session isolation |
+| 6.0.0 | 2026-07-08 | Offline Gemma-IT 2B LLM, Buddy mascot persona, floating mascot animations |
+| 10.0.0 | 2026-07-20 | Persistent bi-directional AI context memory & RAG guardrails |
+| 15.0.0 | 2026-07-30 | ESP32-CAM Smart Glasses integration over WiFi stream with live HUD panel |
+| 18.0.0 | 2026-08-02 | Strict input validation, emergency contact phone safeguards, authentication error handling |
+| 19.0.0 | 2026-08-03 | Dockerized multi-stage build, docker-compose server, GitHub Container Registry (GHCR) CI/CD pipeline |
+| 20.0.0 | 2026-08-03 | Pixel-exact live face recognition, spatial facial luminance grid, 0.28 biometric distance threshold |
+| 21.0.0 | 2026-08-04 | Custom fine-tuned 24-class MobileNetV2 vision pipeline (85.55% Top-1 / 92.10% Top-2 accuracy, 2.48ms latency), 4-Phase Transfer Learning technical report, and Multi-Tier Hybrid AI Vision Fusion architecture |
+

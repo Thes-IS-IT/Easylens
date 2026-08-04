@@ -30,6 +30,7 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 | [v18.0](#v180---robust-input-field-validation--emailphone-safeguards) | Strict 11-digit Phone & Email Validations | `2158e8b` | 2026-08-02 |
 | [v19.0](#v190---docker-infrastructure-native-apk-pipeline--ghcr-deployment) | Dockerized Infrastructure & GHCR Pipeline | `41be50c` | 2026-08-03 |
 | [v20.0](#v200---pixel-exact-live-face-recognition--biometric-overlay-engine) | Spatial Facial Luminance Grid & 0.28 Biometrics | `b3b41a2` | 2026-08-03 |
+| [v21.0](#v210---custom-fine-tuned-mobilenetv2--hybrid-ai-vision-fusion) | 4-Phase Fine-Tuning & Multi-Tier Hybrid Vision | `99730bd` | 2026-08-04 |
 
 ---
 
@@ -312,3 +313,16 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 - [x] Corrected `displayImageSize` aspect ratio mapping for portrait and landscape sensor orientations.
 - [x] Calibrated `scaleX` and `scaleY` bounding box alignment for exact live face camera overlay.
 - [x] Prevented face label collisions and duplicate assignments during multi-face detection.
+
+---
+
+### v21.0 - Custom Fine-Tuned MobileNetV2 & Hybrid AI Vision Fusion
+- **Commit:** `99730bd`
+- **Focus:** 4-Phase Transfer Learning technical report, 24-class custom MobileNetV2 model validation, and Multi-Tier Hybrid AI Vision Fusion architecture.
+
+#### Changes & Features
+- [x] Published technical report `MOBILENETV2_FINETUNING_REPORT.md` documenting 4-Phase Transfer Learning pipeline (Warm-up $\rightarrow$ Mid-Level Unfreezing with Class Weights $\rightarrow$ Deep Full Unfreezing $\rightarrow$ Ultra-Low LR Optimization).
+- [x] Validated custom 24-class MobileNetV2 model achieving **85.55% Top-1**, **92.10% Top-2**, and **94.54% Top-3** accuracy with **2.48 ms** per-image latency (>400 FPS throughput).
+- [x] Documented **97% recall on potholes**, **95% F1 on crosswalks**, **92% recall on stairs**, and **99% recall on fire hydrants**.
+- [x] Published architecture document `HYBRID_AI_FUSION_APP_INTEGRATION.md` detailing the integration of Google ML Kit (400+ categories), TFLite SSD MobileNetV2 (91 COCO classes), fine-tuned MobileNetV2 (24 hazard classes), and Multimodal RAG (Gemma 2B / Gemini Flash).
+- [x] Updated canonical AI/ML source-of-truth document `05_ai_ml_pipeline.md` and root `README.md`.
