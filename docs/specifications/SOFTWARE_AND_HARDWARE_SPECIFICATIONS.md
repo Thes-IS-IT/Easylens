@@ -85,25 +85,32 @@ The system combines physical wearable optics (**ESP32-CAM OV2640 with 75° FoV l
 
 ---
 
-### 2.4 Mechanical & 3D-Printed Modular Clips Specifications
+### 2.4 Mechanical & 3D-Printed Modular Enclosure Specifications
 
 ```
-                       MODULAR PETG CLIP SCHEMATIC
-         +---------------------------------------------------+
-         | [Lever] Quick-Release Thumb Clamp                 |
-         | [Housing] Weather-Resistant PETG Shell (0.2mm L)  |
-         | [Mount] Dual-Axis Ball Joint (Glasses / Harness)  |
-         | [Vibration] Internal TPU Rubber Gasket Pads       |
-         | [Thermal] Heat Dissipation Grates for ESP32       |
-         +---------------------------------------------------+
+               MODULAR PETG ESP32 ENCLOSURE SCHEMATIC
+ +-------------------------------------------------------------------+
+ | [Lens] Precision OV2640 Camera Aperture Hole                     |
+ | [Ventilation] Adjustable Air Ventilation Sliding Door             |
+ | [Thermal] Conductive Thermal Cooling Pads for ESP32 SoC & PSRAM   |
+ | [Mount] Dual Hinged Zip-Tie Slots for Eyeglasses Frame Mounting   |
+ | [Housing] Weather-Resistant PETG Shell (0.2mm layer height)       |
+ | [Vibration] Internal TPU Rubber Gasket Pads                       |
+ +-------------------------------------------------------------------+
 ```
 
 * **Body Material**: **PETG (Polyethylene Terephthalate Glycol)** or **ABS**.
-* **Weight**: **22 grams** (Clip unit only).
+* **Camera Aperture**: Precision-molded front-facing aperture hole engineered for the OV2640 75° FoV lens module, preventing peripheral vignetting.
+* **Thermal Management & Cooling**: 
+  * **Thermal Cooling Pads**: Direct-contact high-conductivity silicone thermal pads mounted onto the ESP32 SoC and external PSRAM chips.
+  * **Air Ventilation Sliding Door**: Manual/slotted sliding door mechanism allowing users to open ventilation channels for active convection cooling during long vision streams, or close them for weather protection.
+* **Eyeglasses Integration**: 
+  * **Hinged Zip-Tie Mounts**: Dual articulated side hinges with integrated 2.5mm zip-tie channels, allowing quick and secure lock-mounting to any standard spectacle or safety glasses frames without slipping.
+* **Weight**: **22 grams** (Enclosure & mount assembly).
 * **Print Settings**: 0.2mm layer height, 30% tri-hexagon structural infill, 4 perimeter wall layers.
 * **Thermal Endurance**: Heat deflection temperature up to **75°C**.
 * **Vibration Isolation**: Integrated TPU (Thermoplastic Polyurethane) dampening pads absorb body motion jitter up to $15\text{ Hz}$.
-* **Cable Routing**: Integrated cable channel guide for 90° USB-C strain relief.
+* **Cable Routing**: Integrated cable channel guide for 90° USB-C / power cable strain relief.
 
 ---
 
