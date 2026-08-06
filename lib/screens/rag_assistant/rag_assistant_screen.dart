@@ -9,6 +9,7 @@ import '../../widgets/chat_history_viewer.dart';
 import '../../widgets/screen_tutorial_card.dart';
 import '../../services/chat_history_service.dart';
 import '../../services/journal_service.dart';
+import '../../services/settings_service.dart';
 
 class ChatMessage {
   final String text;
