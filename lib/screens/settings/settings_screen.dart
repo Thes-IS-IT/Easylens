@@ -41,6 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _selectedAccentColorIndex = 0; // Index 0 represents Green S01
   bool _shakeToUndo = true;
   bool _speechNavigation = false;
+  bool _bubbleTransitionSound = true;
   bool _soundEffects = true;
   bool _useLocalAI = true;
   bool _showFloatingMascot = true;
@@ -82,6 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     _shakeToUndo = settings.shakeToUndo;
     _speechNavigation = settings.speechNavigation;
+    _bubbleTransitionSound = settings.bubbleTransitionSound;
     _soundEffects = settings.soundEffects;
     _useLocalAI = settings.useLocalAI;
     _showFloatingMascot = settings.showFloatingMascot;
@@ -128,6 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       faceIdUnlock: _faceIdUnlock,
       shakeToUndo: _shakeToUndo,
       speechNavigation: _speechNavigation,
+      bubbleTransitionSound: _bubbleTransitionSound,
       useLocalAI: _useLocalAI,
       showFloatingMascot: _showFloatingMascot,
     );
@@ -143,6 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'faceIdUnlock': _faceIdUnlock,
         'shakeToUndo': _shakeToUndo,
         'speechNavigation': _speechNavigation,
+        'bubbleTransitionSound': _bubbleTransitionSound,
         'useLocalAI': _useLocalAI,
         'showFloatingMascot': _showFloatingMascot,
       });
@@ -1213,6 +1217,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('bubble_transition_sound', lang),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('bubble_transition_sound_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _bubbleTransitionSound,
+                          onChanged: (val) {
+                            setState(() => _bubbleTransitionSound = val);
+                            _saveSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
 
@@ -1389,7 +1438,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               height: 38,
                               child: OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: isDark ? const Color(0xFF333333) : const Color(0xFFE2E8F0)),
+                                  side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.4)),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(19),
                                   ),
@@ -1403,14 +1452,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 icon: Text(
                                   TranslationService.translate('open_help', lang),
                                   style: GoogleFonts.inter(
-                                    color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                                    color: AppColors.primaryButton,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
                                 ),
                                 label: Icon(
                                   Icons.arrow_forward,
-                                  color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                                  color: AppColors.primaryButton,
                                   size: 16,
                                 ),
                               ),
@@ -1419,8 +1468,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               height: 38,
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: AppColors.primaryButton,
+                                  foregroundColor: AppColors.primaryButtonText,
                                   elevation: 2,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(19),

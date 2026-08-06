@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import '../../services/face_registration_service.dart';
+import '../../services/settings_service.dart';
 import '../../constants/colors.dart';
 import '../dashboard/components/custom_navbar.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
@@ -507,6 +508,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
 
   // ── Builders ──────────────────────────────────────────────────────────
 
+  // ── Builders ──────────────────────────────────────────────────────────
+
   Widget _buildStepIndicator() {
     final labels = ['Capture', 'Detect', 'Name', 'Angles', 'Done'];
     final activeStep = _step > 4 ? 4 : _step;
@@ -522,7 +525,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
               height: 18,
               decoration: BoxDecoration(
                 color: isActive
-                    ? const Color(0xFF7C3AED)
+                    ? AppColors.primaryButton
                     : AppColors.unselectedBorder,
                 borderRadius: BorderRadius.circular(9),
               ),
@@ -532,7 +535,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                   style: GoogleFonts.inter(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: isActive ? AppColors.primaryButtonText : AppColors.textMuted,
                   ),
                 ),
               ),
@@ -542,7 +545,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                 width: 20,
                 height: 2,
                 color: i < activeStep
-                    ? const Color(0xFF7C3AED)
+                    ? AppColors.primaryButton
                     : AppColors.unselectedBorder,
               ),
           ],
@@ -555,31 +558,37 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Hero icon
+        // Hero Mascot GIF
         ScaleTransition(
           scale: _pulseAnim,
           child: Container(
-            width: 120,
-            height: 120,
+            width: 140,
+            height: 140,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: AppColors.lightBackground,
+              border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.4), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF7C3AED).withOpacity(0.45),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
+                  color: AppColors.shadowColor,
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.face_retouching_natural,
-              size: 60,
-              color: Colors.white,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/Mascots/05 Welcome.gif',
+                width: 116,
+                height: 116,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.face_retouching_natural,
+                  size: 60,
+                  color: AppColors.primaryButton,
+                ),
+              ),
             ),
           ),
         ),
@@ -594,7 +603,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         ),
         const SizedBox(height: 10),
         Text(
-          'Take a clear photo of someone.\nEasyLens will remember them by name.',
+          'Take a clear photo of someone.\nBuddy will remember their landmark profile and announce their name.',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             fontSize: 14,
@@ -607,9 +616,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.15),
+              color: Colors.red.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.withOpacity(0.4)),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
             ),
             child: Row(
               children: [
@@ -628,14 +637,12 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             ),
           ),
         ],
-        const SizedBox(height: 40),
+        const SizedBox(height: 36),
         // Camera button
         _GlassButton(
           icon: Icons.camera_alt_rounded,
           label: 'Take a Photo',
-          gradient: const LinearGradient(
-            colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
-          ),
+          isPrimary: true,
           onTap: () => _pickAndDetect(ImageSource.camera),
         ),
         const SizedBox(height: 12),
@@ -643,12 +650,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         _GlassButton(
           icon: Icons.photo_library_rounded,
           label: 'Choose from Gallery',
-          gradient: LinearGradient(
-            colors: [
-              Colors.white.withOpacity(0.12),
-              Colors.white.withOpacity(0.06),
-            ],
-          ),
+          isPrimary: false,
           onTap: () => _pickAndDetect(ImageSource.gallery),
         ),
         const SizedBox(height: 20),
@@ -659,13 +661,12 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
               AppRoute.to(const RegisteredFacesScreen()),
             );
           },
-          icon: const Icon(Icons.people_alt_rounded,
-              color: Color(0xFFA78BFA), size: 18),
+          icon: Icon(Icons.people_alt_rounded, color: AppColors.primaryButton, size: 18),
           label: Text(
             'View Registered Faces',
             style: GoogleFonts.inter(
-              color: const Color(0xFFA78BFA),
-              fontWeight: FontWeight.w600,
+              color: AppColors.primaryButton,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -680,30 +681,42 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         if (_pickedImage != null)
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: Image.file(
-              _pickedImage!,
-              height: 240,
-              width: double.infinity,
-              fit: BoxFit.cover,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Image.file(
+                _pickedImage!,
+                height: 240,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-        const SizedBox(height: 28),
-        const CircularProgressIndicator(
-          color: Color(0xFF7C3AED),
-          strokeWidth: 3,
+        const SizedBox(height: 24),
+        Image.asset(
+          'assets/Mascots/03 Loading.gif',
+          width: 100,
+          height: 100,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => CircularProgressIndicator(
+            color: AppColors.primaryButton,
+            strokeWidth: 3,
+          ),
         ),
         const SizedBox(height: 16),
         Text(
           'Scanning for faces…',
           style: GoogleFonts.inter(
             fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
             color: AppColors.primaryText,
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          'ML Kit is analyzing facial landmarks',
+          'ML Kit is analyzing 25+ facial geometric landmarks',
           style: GoogleFonts.inter(
             fontSize: 13,
             color: AppColors.textMuted,
@@ -751,7 +764,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                               child: Container(
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color: const Color(0xFF34D399),
+                                    color: Colors.greenAccent,
                                     width: 2.5,
                                   ),
                                   borderRadius: BorderRadius.circular(4),
@@ -762,7 +775,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 6, vertical: 2),
                                     decoration: const BoxDecoration(
-                                      color: Color(0xFF34D399),
+                                      color: Colors.green,
                                       borderRadius: BorderRadius.only(
                                         bottomRight: Radius.circular(4),
                                       ),
@@ -792,17 +805,16 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.55),
+                          color: AppColors.primaryBackground.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: const Color(0xFF34D399), width: 1.2),
+                          border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.4), width: 1.2),
                         ),
                         child: Text(
                           '${_detectedFaces.length} face${_detectedFaces.length != 1 ? 's' : ''} • ${_getFeatureCount()} points',
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF34D399),
+                            color: AppColors.primaryButton,
                           ),
                         ),
                       ),
@@ -825,7 +837,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         ),
         const SizedBox(height: 6),
         Text(
-          'EasyLens will announce their name when seen.',
+          'Buddy will announce their name when recognized.',
           style: GoogleFonts.inter(
             fontSize: 13,
             color: AppColors.textMuted,
@@ -835,9 +847,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         const SizedBox(height: 20),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.primaryBackground,
+            color: AppColors.lightBackground,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.unselectedBorder),
+            border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.4)),
           ),
           child: TextField(
             controller: _nameController,
@@ -846,9 +858,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             decoration: InputDecoration(
               hintText: 'Enter name (e.g. Mom, John)',
               hintStyle: GoogleFonts.inter(
-                  color: AppColors.textMuted.withOpacity(0.6), fontSize: 15),
-              prefixIcon: const Icon(Icons.badge_rounded,
-                  color: Color(0xFF7C3AED)),
+                  color: AppColors.textMuted.withValues(alpha: 0.6), fontSize: 15),
+              prefixIcon: Icon(Icons.badge_rounded, color: AppColors.primaryButton),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 14),
@@ -861,9 +872,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         _GlassButton(
           icon: Icons.camera_enhance_rounded,
           label: 'Continue with 3-Angle Capture',
-          gradient: const LinearGradient(
-            colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
-          ),
+          isPrimary: true,
           onTap: () {
             final name = _nameController.text.trim();
             if (name.isEmpty) {
@@ -891,12 +900,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         _GlassButton(
           icon: Icons.save_rounded,
           label: 'Quick Save (1 Photo Only)',
-          gradient: LinearGradient(
-            colors: [
-              Colors.white.withOpacity(0.12),
-              Colors.white.withOpacity(0.06),
-            ],
-          ),
+          isPrimary: false,
           onTap: _quickSave,
         ),
         const SizedBox(height: 12),
@@ -935,8 +939,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF7C3AED).withOpacity(0.1),
+            color: AppColors.primaryButton.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -948,9 +953,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: i < capturedCount
-                        ? const Color(0xFF34D399)
+                        ? Colors.green
                         : i == capturedCount
-                            ? const Color(0xFF7C3AED)
+                            ? AppColors.primaryButton
                             : AppColors.unselectedBorder,
                   ),
                   child: Center(
@@ -966,7 +971,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                     width: 32,
                     height: 2,
                     color: i < capturedCount
-                        ? const Color(0xFF34D399)
+                        ? Colors.green
                         : AppColors.unselectedBorder,
                   ),
               ],
@@ -974,15 +979,21 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           ),
         ),
         const SizedBox(height: 28),
-        // Angle instruction icon
-        Icon(
-          _currentCaptureIndex == 0
-              ? Icons.face
-              : _currentCaptureIndex == 1
-                  ? Icons.rotate_left
-                  : Icons.rotate_right,
-          size: 80,
-          color: const Color(0xFF7C3AED),
+        // Mascot guiding turn angle
+        Image.asset(
+          'assets/Mascots/06 Thinking.gif',
+          width: 120,
+          height: 120,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Icon(
+            _currentCaptureIndex == 0
+                ? Icons.face
+                : _currentCaptureIndex == 1
+                    ? Icons.rotate_left
+                    : Icons.rotate_right,
+            size: 80,
+            color: AppColors.primaryButton,
+          ),
         ),
         const SizedBox(height: 20),
         Text(
@@ -1010,9 +1021,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.15),
+              color: Colors.red.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.withOpacity(0.4)),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
             ),
             child: Row(
               children: [
@@ -1033,20 +1044,17 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         ],
         const SizedBox(height: 32),
         if (_isDetecting)
-          const CircularProgressIndicator(color: Color(0xFF7C3AED), strokeWidth: 3)
+          CircularProgressIndicator(color: AppColors.primaryButton, strokeWidth: 3)
         else ...[
           _GlassButton(
             icon: Icons.camera_alt_rounded,
             label: 'Capture $label',
-            gradient: const LinearGradient(
-              colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
-            ),
+            isPrimary: true,
             onTap: () => _captureAngle(ImageSource.camera),
           ),
           const SizedBox(height: 12),
           TextButton(
             onPressed: () async {
-              // Skip remaining angles and save with what we have
               await _saveProfile();
             },
             child: Text(
@@ -1068,29 +1076,18 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Success animation
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.elasticOut,
-          builder: (_, v, child) => Transform.scale(scale: v, child: child),
-          child: Container(
+        // Mascot Congratulations Animation
+        Image.asset(
+          'assets/Mascots/04 Congratulations.gif',
+          width: 140,
+          height: 140,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Container(
             width: 110,
             height: 110,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF34D399), Color(0xFF059669)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF34D399).withOpacity(0.4),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+              color: AppColors.primaryButton,
             ),
             child: const Icon(Icons.check_rounded, color: Colors.white, size: 58),
           ),
@@ -1106,7 +1103,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         ),
         const SizedBox(height: 10),
         Text(
-          '"$name" has been saved with $sampleCount angle${sampleCount > 1 ? 's' : ''}.\nEasyLens will recognize them on the camera.',
+          '"$name" has been saved with $sampleCount angle${sampleCount > 1 ? 's' : ''}.\nBuddy will recognize them in real-time.',
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             fontSize: 14,
@@ -1118,9 +1115,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         _GlassButton(
           icon: Icons.add_a_photo_rounded,
           label: 'Register Another',
-          gradient: const LinearGradient(
-            colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
-          ),
+          isPrimary: true,
           onTap: () {
             setState(() {
               _step = 0;
@@ -1139,12 +1134,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         _GlassButton(
           icon: Icons.people_alt_rounded,
           label: 'View All Registered Faces',
-          gradient: LinearGradient(
-            colors: [
-              Colors.white.withOpacity(0.12),
-              Colors.white.withOpacity(0.06),
-            ],
-          ),
+          isPrimary: false,
           onTap: () {
             Navigator.of(context).pushReplacement(
               AppRoute.to(const RegisteredFacesScreen()),
@@ -1170,7 +1160,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
   List<Widget> _buildLandmarkDots(Face face, double scaleX, double scaleY) {
     final dots = <Widget>[];
     const dotSize = 5.0;
-    const dotColor = Color(0xFF7C3AED);
+    final dotColor = AppColors.primaryButton;
 
     // Draw all available landmarks as dots
     for (final type in FaceLandmarkType.values) {
@@ -1182,7 +1172,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           child: Container(
             width: dotSize,
             height: dotSize,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: dotColor,
               shape: BoxShape.circle,
             ),
@@ -1193,7 +1183,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
 
     // Draw contour points as smaller dots
     const contourDotSize = 3.0;
-    const contourColor = Color(0xFFA78BFA);
+    final contourColor = AppColors.primaryButton.withValues(alpha: 0.7);
     for (final type in FaceContourType.values) {
       final contour = face.contours[type];
       if (contour != null) {
@@ -1204,7 +1194,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             child: Container(
               width: contourDotSize,
               height: contourDotSize,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: contourColor,
                 shape: BoxShape.circle,
               ),
@@ -1224,78 +1214,83 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Face Registration',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryText,
-          ),
-        ),
-      ),
-      bottomNavigationBar: CustomNavbar(
-        currentIndex: 0,
-        onTap: (index) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        },
-        onEasyLensTap: () {
-          BuddyAssistantSheet.show(
-            context,
-            onNavigate: (screenKey) {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-          );
-        },
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            // Step indicator
-            _buildStepIndicator(),
-            const SizedBox(height: 24),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 350),
-                  transitionBuilder: (child, anim) => FadeTransition(
-                    opacity: anim,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.04, 0),
-                        end: Offset.zero,
-                      ).animate(anim),
-                      child: child,
-                    ),
-                  ),
-                  child: KeyedSubtree(
-                    key: ValueKey(_step),
-                    child: _step == 0
-                        ? _buildStep0()
-                        : _step == 1
-                            ? _buildStep1()
-                            : _step == 2
-                                ? _buildStep2()
-                                : _step == 3
-                                    ? _buildStep3()
-                                    : _buildStep4(),
-                  ),
-                ),
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: AppColors.primaryBackground,
+          appBar: AppBar(
+            backgroundColor: AppColors.primaryBackground,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              'Face Registration',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryText,
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+          bottomNavigationBar: CustomNavbar(
+            currentIndex: 0,
+            onTap: (index) {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            onEasyLensTap: () {
+              BuddyAssistantSheet.show(
+                context,
+                onNavigate: (screenKey) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+              );
+            },
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                // Step indicator
+                _buildStepIndicator(),
+                const SizedBox(height: 24),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 350),
+                      transitionBuilder: (child, anim) => FadeTransition(
+                        opacity: anim,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.04, 0),
+                            end: Offset.zero,
+                          ).animate(anim),
+                          child: child,
+                        ),
+                      ),
+                      child: KeyedSubtree(
+                        key: ValueKey(_step),
+                        child: _step == 0
+                            ? _buildStep0()
+                            : _step == 1
+                                ? _buildStep1()
+                                : _step == 2
+                                    ? _buildStep2()
+                                    : _step == 3
+                                        ? _buildStep3()
+                                        : _buildStep4(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1304,13 +1299,13 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
 class _GlassButton extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Gradient gradient;
+  final bool isPrimary;
   final VoidCallback onTap;
 
   const _GlassButton({
     required this.icon,
     required this.label,
-    required this.gradient,
+    required this.isPrimary,
     required this.onTap,
   });
 
@@ -1319,25 +1314,45 @@ class _GlassButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: 56,
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryButton,
-          foregroundColor: AppColors.primaryButtonText,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
-          ),
-        ),
-        onPressed: onTap,
-        icon: Icon(icon, size: 20),
-        label: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      child: isPrimary
+          ? ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryButton,
+                foregroundColor: AppColors.primaryButtonText,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
+              ),
+              onPressed: onTap,
+              icon: Icon(icon, size: 20),
+              label: Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                backgroundColor: AppColors.lightBackground,
+                foregroundColor: AppColors.primaryText,
+                side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.4), width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
+              ),
+              onPressed: onTap,
+              icon: Icon(icon, size: 20, color: AppColors.primaryText),
+              label: Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
     );
   }
 }

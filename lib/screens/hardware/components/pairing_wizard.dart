@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/esp32_service.dart';
+import '../../../services/settings_service.dart';
 import '../../notifications/notifications_screen.dart';
 import '../../contacts/contacts_screen.dart';
 import '../../settings/settings_screen.dart';
@@ -26,16 +27,21 @@ class PairingWizard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (pairStep) {
-      case 1:
-        return _buildMainScreen(context);
-      case 2:
-        return _buildPairingStartScreen(context);
-      case 3:
-        return _buildScanningScreen(context);
-      default:
-        return _buildMainScreen(context);
-    }
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        switch (pairStep) {
+          case 1:
+            return _buildMainScreen(context);
+          case 2:
+            return _buildPairingStartScreen(context);
+          case 3:
+            return _buildScanningScreen(context);
+          default:
+            return _buildMainScreen(context);
+        }
+      },
+    );
   }
 
   Widget _buildMainScreen(BuildContext context) {
@@ -64,9 +70,9 @@ class PairingWizard extends StatelessWidget {
               const Spacer(),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.lightBackground,
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.black.withOpacity(0.06)),
+                  border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: Row(
@@ -88,7 +94,7 @@ class PairingWizard extends StatelessWidget {
                                   ? Icons.notifications_active
                                   : Icons.notifications_none,
                               size: 20,
-                              color: unread > 0 ? const Color(0xFFDC2626) : null,
+                              color: unread > 0 ? const Color(0xFFDC2626) : AppColors.primaryText,
                             ),
                             onPressed: () => Navigator.push(context, AppRoute.to(const NotificationsScreen())),
                             constraints: const BoxConstraints(),
@@ -98,7 +104,7 @@ class PairingWizard extends StatelessWidget {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.people_outline, size: 20),
+                      icon: Icon(Icons.people_outline, size: 20, color: AppColors.primaryText),
                       onPressed: () => Navigator.push(context, AppRoute.to(const ContactsScreen())),
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -111,7 +117,7 @@ class PairingWizard extends StatelessWidget {
                           icon: Icon(
                             connected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
                             size: 20,
-                            color: connected ? const Color(0xFF10B981) : null,
+                            color: connected ? const Color(0xFF10B981) : AppColors.primaryText,
                           ),
                           onPressed: () => Navigator.push(context, AppRoute.to(const SettingsScreen())),
                           constraints: const BoxConstraints(),
@@ -121,7 +127,7 @@ class PairingWizard extends StatelessWidget {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.settings_outlined, size: 20),
+                      icon: Icon(Icons.settings_outlined, size: 20, color: AppColors.primaryText),
                       onPressed: () => Navigator.push(context, AppRoute.to(const SettingsScreen())),
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -152,15 +158,18 @@ class PairingWizard extends StatelessWidget {
           const SizedBox(height: 24),
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Image.asset(
-              'assets/images/easylensprototype.png',
-              width: double.infinity,
-              height: 220,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: AppColors.lightBackground,
+            child: Container(
+              color: Colors.white,
+              child: Image.asset(
+                'assets/images/easylensprototype.png',
+                width: double.infinity,
                 height: 220,
-                child: Icon(Icons.image_not_supported, size: 48, color: AppColors.textMuted),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: AppColors.lightBackground,
+                  height: 220,
+                  child: Icon(Icons.image_not_supported, size: 48, color: AppColors.textMuted),
+                ),
               ),
             ),
           ),
@@ -174,7 +183,7 @@ class PairingWizard extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryText,
                       backgroundColor: AppColors.lightBackground,
-                      side: BorderSide(color: AppColors.cardBorder, width: 1.5),
+                      side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.4), width: 1.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                     ),
                     onPressed: onInitializeCamera,
@@ -229,10 +238,10 @@ class PairingWizard extends StatelessWidget {
             ),
             const Spacer(),
             CircleAvatar(
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.lightBackground,
               radius: 20,
               child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.black54, size: 18),
+                icon: Icon(Icons.close, color: AppColors.primaryText, size: 18),
                 onPressed: onCancelOrBack,
               ),
             ),
@@ -247,7 +256,7 @@ class PairingWizard extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF002663),
+                  color: AppColors.primaryText,
                 ),
               ),
               const SizedBox(height: 12),
@@ -258,22 +267,28 @@ class PairingWizard extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: Colors.grey.shade600,
+                    color: AppColors.textMuted,
                     height: 1.5,
                   ),
                 ),
               ),
-              const SizedBox(height: 48),
-              Image.asset(
-                'assets/images/mockup_glasses.png',
-                width: 280,
-                height: 180,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Colors.grey.shade100,
-                  width: 280,
-                  height: 180,
-                  child: const Icon(Icons.image_not_supported, size: 48),
+              const SizedBox(height: 36),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  color: Colors.white,
+                  child: Image.asset(
+                    'assets/images/easylensprototype.png',
+                    width: 280,
+                    height: 200,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.lightBackground,
+                      width: 280,
+                      height: 200,
+                      child: Icon(Icons.image_not_supported, size: 48, color: AppColors.textMuted),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -285,8 +300,8 @@ class PairingWizard extends StatelessWidget {
           height: 56,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF002663),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primaryButton,
+              foregroundColor: AppColors.primaryButtonText,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
               elevation: 0,
             ),
@@ -308,20 +323,20 @@ class PairingWizard extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF002663),
+              backgroundColor: AppColors.lightBackground,
+              foregroundColor: AppColors.primaryText,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: Colors.black.withOpacity(0.06)),
+                side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.3)),
               ),
             ),
             onPressed: onCancelOrBack,
-            icon: const Icon(Icons.arrow_back_ios, size: 16),
+            icon: Icon(Icons.arrow_back_ios, size: 16, color: AppColors.primaryText),
             label: Text(
               'Back',
-              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryText),
             ),
           ),
         ),
@@ -331,7 +346,7 @@ class PairingWizard extends StatelessWidget {
           width: 180,
           height: 180,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => const CircularProgressIndicator(),
+          errorBuilder: (_, __, ___) => CircularProgressIndicator(color: AppColors.primaryButton),
         ),
         const SizedBox(height: 36),
         Text(
@@ -339,7 +354,7 @@ class PairingWizard extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF002663),
+            color: AppColors.primaryText,
           ),
         ),
         const SizedBox(height: 12),
@@ -350,7 +365,7 @@ class PairingWizard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: Colors.grey.shade500,
+              color: AppColors.textMuted,
               height: 1.5,
             ),
           ),
@@ -361,8 +376,9 @@ class PairingWizard extends StatelessWidget {
           height: 56,
           child: OutlinedButton(
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF002663),
-              side: const BorderSide(color: Color(0xFF002663), width: 1.5),
+              foregroundColor: AppColors.primaryText,
+              backgroundColor: AppColors.lightBackground,
+              side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.4), width: 1.5),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             ),
             onPressed: onCancelOrBack,
@@ -376,3 +392,4 @@ class PairingWizard extends StatelessWidget {
     );
   }
 }
+

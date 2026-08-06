@@ -643,31 +643,37 @@ class FirebaseService {
     }
   }
 
-  // Save recent navigation data to local storage and Firestore
+  // Save recent navigation data to local storage and Firestore (Max 5 items)
   Future<void> saveRecentNavigation(String userId, Map<String, dynamic> navData) async {
+    final nameStr = (navData['name'] as String? ?? '').trim();
+    if (nameStr.isEmpty) return;
+
     // 1. Save to SharedPreferences locally
     try {
       final prefs = await SharedPreferences.getInstance();
       final List<String> recentList = prefs.getStringList('recent_navigation') ?? [];
       
       // Keep only unique entries by destination name
+      final newName = nameStr.toLowerCase();
       recentList.removeWhere((item) {
         try {
           final Map<String, dynamic> decoded = jsonDecode(item);
-          return decoded['name'] == navData['name'];
+          final existingName = (decoded['name'] as String? ?? '').trim().toLowerCase();
+          return existingName == newName;
         } catch (_) {
           return false;
         }
       });
       
+      // Insert newest at top (index 0)
       recentList.insert(0, jsonEncode(navData));
       
-      // Limit local list size to 10 entries
-      if (recentList.length > 10) {
-        recentList.removeLast();
+      // Limit local list size strictly to 5 entries (removes oldest when > 5)
+      if (recentList.length > 5) {
+        recentList.removeRange(5, recentList.length);
       }
       await prefs.setStringList('recent_navigation', recentList);
-      print('Local: Navigation history saved.');
+      print('Local: Navigation history saved (Max 5 entries).');
     } catch (e) {
       print('Local navigation history save error: $e');
     }
@@ -692,7 +698,7 @@ class FirebaseService {
     }
   }
 
-  // Get recent navigation history from local storage and Firestore
+  // Get recent navigation history from local storage and Firestore (Max 5 items)
   Future<List<Map<String, dynamic>>> getRecentNavigations(String? userId) async {
     final List<Map<String, dynamic>> results = [];
     final Set<String> seenNames = {};
@@ -704,11 +710,12 @@ class FirebaseService {
       for (final item in recentList) {
         try {
           final Map<String, dynamic> decoded = Map<String, dynamic>.from(jsonDecode(item));
-          final name = decoded['name'] as String? ?? '';
+          final name = (decoded['name'] as String? ?? '').trim();
           if (name.isNotEmpty && !seenNames.contains(name.toLowerCase())) {
             seenNames.add(name.toLowerCase());
             results.add(decoded);
           }
+          if (results.length >= 5) break;
         } catch (_) {}
       }
     } catch (e) {
@@ -716,29 +723,30 @@ class FirebaseService {
     }
 
     // 2. Load from Firestore if user logged in
-    if (_firebaseInitialized && userId != null && userId.isNotEmpty) {
+    if (_firebaseInitialized && userId != null && userId.isNotEmpty && results.length < 5) {
       try {
         final querySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
             .collection('recent_navigation')
             .orderBy('timestamp', descending: true)
-            .limit(10)
+            .limit(5)
             .get();
 
         for (final doc in querySnapshot.docs) {
           final data = doc.data();
-          final name = data['name'] as String? ?? '';
+          final name = (data['name'] as String? ?? '').trim();
           if (name.isNotEmpty && !seenNames.contains(name.toLowerCase())) {
             seenNames.add(name.toLowerCase());
             results.add(Map<String, dynamic>.from(data));
           }
+          if (results.length >= 5) break;
         }
       } catch (e) {
         print('Firestore recent navigation read error: $e');
       }
     }
 
-    return results;
+    return results.take(5).toList();
   }
 }

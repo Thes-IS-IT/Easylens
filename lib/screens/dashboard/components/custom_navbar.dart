@@ -133,17 +133,17 @@ class CustomNavbar extends StatelessWidget {
     final isDefault = theme == 'Default';
     final isSelected = currentIndex == index;
 
-    Color bg;
-    Color fg;
+    Color activeBg;
+    Color activeFg;
     Color unselectedFg;
 
     if (isDefault) {
-      bg = isSelected ? const Color(0xFFECEFF1) : Colors.transparent;
-      fg = isSelected ? const Color(0xFF1E88E5) : Colors.black;
-      unselectedFg = Colors.black;
+      activeBg = const Color(0xFFE3F2FD); // Light blue active pill background
+      activeFg = const Color(0xFF1E88E5); // Vibrant blue text & icon
+      unselectedFg = Colors.black87;
     } else {
-      bg = isSelected ? AppColors.primaryButton : Colors.transparent;
-      fg = isSelected ? AppColors.primaryButtonText : AppColors.primaryText;
+      activeBg = AppColors.primaryButton;
+      activeFg = AppColors.primaryButtonText;
       unselectedFg = AppColors.primaryText;
     }
 
@@ -153,34 +153,49 @@ class CustomNavbar extends StatelessWidget {
         onTap(index);
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          color: bg,
+          color: isSelected ? activeBg : Colors.transparent,
           borderRadius: BorderRadius.circular(31),
+          boxShadow: (isSelected && isDefault)
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF60A5FA).withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ]
+              : null,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? fg : unselectedFg,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? fg : unselectedFg,
+        child: AnimatedScale(
+          scale: isSelected ? 1.04 : 1.0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? activeFg : unselectedFg,
+                size: 24,
+              ),
+              const SizedBox(height: 2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected ? activeFg : unselectedFg,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

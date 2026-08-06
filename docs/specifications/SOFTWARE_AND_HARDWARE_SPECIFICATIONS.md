@@ -107,16 +107,31 @@ The system combines physical wearable optics (**ESP32-CAM OV2640 with 75° FoV l
 
 ---
 
-### 2.5 Host Mobile Device System Requirements
+### 2.5 Host Mobile Device System Requirements (Android & iPhone)
 
-| Specification | Minimum Requirement | Recommended Specification |
-| :--- | :--- | :--- |
-| **Operating System** | Android 10 (API level 29) / iOS 15.0 | Android 13+ (API level 33) / iOS 17.0+ |
-| **Processor (CPU)** | 64-bit Octa-core ARM (2.0 GHz) | 64-bit Octa-core ARM (2.8 GHz+ with NPU/TPU) |
-| **System RAM** | 4 GB LPDDR4 | 8 GB LPDDR5 |
-| **Storage Space** | 2.5 GB free space (For local Gemma 2B model)| 5.0 GB free NVMe storage |
-| **USB Support** | USB-OTG (On-The-Go) Host Mode | USB 3.1 Gen 2 Type-C Host Mode |
-| **Wi-Fi Module** | Dual-band Wi-Fi 802.11 a/b/g/n (2.4 GHz) | Wi-Fi 6 (802.11ax) |
+#### A. Supported Operating Systems & Device Compatibility
+| Platform | Minimum Supported OS | Recommended OS | Compatible Devices |
+| :--- | :--- | :--- | :--- |
+| **Android** | **Android 10** (API Level 29) | **Android 13+** (API Level 33–35) | Android smartphones with 64-bit ARM (`arm64-v8a`) architecture & USB-OTG support |
+| **iPhone (iOS)** | **iOS 16.0** | **iOS 17.0 – iOS 18+** | iPhone 8, iPhone X, iPhone 11, 12, 13, 14, 15, and 16 series (A11 Bionic chip or newer) |
+
+#### B. Hardware Specifications Matrix (Minimum, Recommended & Maximum)
+
+| System Resource | Minimum Specs | Recommended Specs | Maximum / Ultra Specs |
+| :--- | :--- | :--- | :--- |
+| **Android Processor (SoC)** | 64-bit Octa-core ARM @ 2.0 GHz (e.g., Snapdragon 680 / Helio G88) | Snapdragon 8 Gen 1/Gen 2/Gen 3, Tensor G2/G3/G4, Dimensity 9000+ | Snapdragon 8 Gen 3 / Tensor G4 (Dedicated NPU/TPU acceleration) |
+| **iPhone Processor (SoC)** | Apple A11 / A12 Bionic (iPhone 8 / X / XS / XR / 11) | Apple A15 / A16 Bionic (iPhone 13 / 14 / 15) | Apple A17 Pro / A18 Pro (iPhone 15 Pro / 16 Pro with 16-core Neural Engine) |
+| **System RAM (Android)** | **4 GB** LPDDR4 | **8 GB** LPDDR5 | **12 GB – 16 GB** LPDDR5X |
+| **System RAM (iPhone)** | **4 GB** RAM | **6 GB** RAM | **8 GB** RAM |
+| **Free Storage Space** | **2.5 GB** NVMe/UFS (For local Gemma 2B weights & OCR) | **5.0 GB** NVMe/UFS 3.1 | **10.0 GB+** High-Speed NVMe/UFS 4.0 |
+| **Wired Camera (USB OTG)** | USB 2.0 OTG Host Mode (Android) / Lightning OTG Adapter (iOS) | USB 3.1 Gen 2 Type-C Direct Host Mode (iPhone 15/16 & flagship Android) | USB 3.2 / Thunderbolt (10 Gbps bus throughput) |
+| **Wireless Camera Stream** | Dual-band Wi-Fi 802.11 b/g/n (2.4 GHz AP Mode) | Wi-Fi 6 (802.11ax) Dual-Band | Wi-Fi 6E / Wi-Fi 7 (802.11be) |
+
+#### C. Platform Build Packages & Binary Footprint
+| Platform | Build Package Format | Package Size | Architecture Breakdown | Installation Method |
+| :--- | :--- | :--- | :--- | :--- |
+| **Android** | `app-release.apk` | **~475 MB** | Multi-Arch FAT binary (`arm64-v8a`, `armeabi-v7a`, `x86_64` for maximum device compatibility) | Direct APK installation / ADB sideload / Google Play |
+| **iPhone (iOS)** | `easylens.ipa` / `Runner.app` | **~154 MB** (IPA) / **~250 MB** (Raw `.app`) | Single 64-bit ARM architecture (`arm64` optimized for iOS devices) | AltStore / Sideloadly / Xcode / Apple TestFlight |
 
 ---
 

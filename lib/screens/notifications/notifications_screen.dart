@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../../models/app_notification.dart';
 import '../../services/notification_service.dart';
+import '../../services/settings_service.dart';
 import '../../services/sound_service.dart';
 import '../../widgets/screen_tutorial_card.dart';
 
@@ -16,6 +17,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen>
     with SingleTickerProviderStateMixin {
   final NotificationService _service = NotificationService();
+  final SettingsService _settingsService = SettingsService();
   late final AnimationController _fadeCtrl;
   NotificationType? _activeFilter; // null = show all
 
@@ -27,6 +29,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
       duration: const Duration(milliseconds: 350),
     )..forward();
     _service.addListener(_rebuild);
+    _settingsService.addListener(_rebuild);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScreenTutorialCard.showIfNeeded(
@@ -46,6 +49,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   @override
   void dispose() {
     _service.removeListener(_rebuild);
+    _settingsService.removeListener(_rebuild);
     _fadeCtrl.dispose();
     super.dispose();
   }
@@ -100,7 +104,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     final unread = _service.unreadCount;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: AppColors.primaryBackground,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,6 +125,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   // ─── Header ───────────────────────────────────────────────────────────────
 
   Widget _buildHeader(int unread) {
+    final isDark = SettingsService().isDarkMode;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
@@ -144,7 +150,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                     border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
+                        color: AppColors.shadowColor,
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -173,13 +179,16 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
+                      color: isDark ? const Color(0xFF3F1D1D) : const Color(0xFFFEE2E2),
                       borderRadius: BorderRadius.circular(22),
+                      border: isDark
+                          ? Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.4))
+                          : null,
                     ),
                     child: Text(
                       'Clear All',
                       style: GoogleFonts.inter(
-                        color: const Color(0xFFDC2626),
+                        color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -230,7 +239,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 'Mark all as read',
                 style: GoogleFonts.inter(
                   fontSize: 13,
-                  color: const Color(0xFF6366F1),
+                  color: AppColors.primaryButton,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -257,6 +266,11 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           final isActive = _activeFilter == filter;
           final label = filter == null ? 'All' : _typeLabel(filter);
           final color = filter == null ? AppColors.primaryButton : _typeColor(filter);
+          final activeTextColor = filter == null
+              ? AppColors.primaryButtonText
+              : (ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+                  ? Colors.white
+                  : Colors.black);
 
           return GestureDetector(
             onTap: () => setState(() => _activeFilter = filter),
@@ -279,7 +293,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isActive ? AppColors.primaryButtonText : AppColors.primaryText,
+                  color: isActive ? activeTextColor : AppColors.primaryText,
                 ),
               ),
             ),
@@ -305,6 +319,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   Widget _buildCard(AppNotification n) {
     final color = _typeColor(n.type);
     final icon = _typeIcon(n.type);
+    final isDark = SettingsService().isDarkMode;
 
     return Dismissible(
       key: Key(n.id),
@@ -329,15 +344,19 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: n.isRead ? AppColors.lightBackground : color.withValues(alpha: 0.08),
+            color: n.isRead
+                ? AppColors.lightBackground
+                : color.withValues(alpha: isDark ? 0.18 : 0.08),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: n.isRead ? AppColors.cardBorder.withValues(alpha: 0.3) : color.withValues(alpha: 0.35),
+              color: n.isRead
+                  ? AppColors.cardBorder.withValues(alpha: 0.3)
+                  : color.withValues(alpha: 0.4),
               width: n.isRead ? 1 : 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: AppColors.shadowColor,
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -351,7 +370,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: color.withValues(alpha: isDark ? 0.25 : 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 22),
@@ -400,7 +419,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.10),
+                            color: color.withValues(alpha: isDark ? 0.20 : 0.10),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -417,7 +436,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                           _relativeTime(n.timestamp),
                           style: GoogleFonts.inter(
                             fontSize: 11,
-                            color: const Color(0xFF94A3B8),
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ],
@@ -443,13 +462,13 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFF002663).withOpacity(0.06),
+              color: AppColors.primaryButton.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.notifications_none_rounded,
               size: 40,
-              color: Color(0xFF002663),
+              color: AppColors.primaryButton,
             ),
           ),
           const SizedBox(height: 20),
@@ -458,7 +477,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             style: GoogleFonts.inter(
               fontSize: 17,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF002663),
+              color: AppColors.primaryText,
             ),
           ),
           const SizedBox(height: 8),
@@ -467,7 +486,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 13,
-              color: const Color(0xFF94A3B8),
+              color: AppColors.textMuted,
               height: 1.5,
             ),
           ),
@@ -479,29 +498,41 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   // ─── Clear All Confirm ────────────────────────────────────────────────────
 
   Future<void> _confirmClearAll() async {
+    final isDark = SettingsService().isDarkMode;
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: AppColors.primaryBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Clear all notifications?',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 17),
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w800,
+            fontSize: 17,
+            color: AppColors.primaryText,
+          ),
         ),
         content: Text(
           'This will permanently delete all notifications.',
-          style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF64748B)),
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.textMuted,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: GoogleFonts.inter(color: const Color(0xFF64748B))),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: AppColors.textMuted),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               'Clear All',
               style: GoogleFonts.inter(
-                color: const Color(0xFFDC2626),
+                color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -512,3 +543,4 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     if (ok == true) _service.clearAll();
   }
 }
+

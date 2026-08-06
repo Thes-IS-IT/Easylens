@@ -469,35 +469,15 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Buddy Mascot GIF with Scale animation
+          // Buddy Mascot GIF (just the mascot without circular frame/border)
           ScaleTransition(
             scale: _pulseAnim,
-            child: Container(
-              width: 74,
-              height: 74,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isDefault
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : AppColors.primaryBackground,
-                border: Border.all(
-                  color: isDefault ? const Color(0xFF60A5FA) : AppColors.cardBorder,
-                  width: 2.5,
-                ),
-                boxShadow: [
-                  if (isDefault)
-                    BoxShadow(
-                      color: const Color(0xFF60A5FA).withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 2),
-                    ),
-                ],
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  _mascotAsset,
-                  fit: BoxFit.cover,
-                ),
+            child: SizedBox(
+              width: 96,
+              height: 96,
+              child: Image.asset(
+                _mascotAsset,
+                fit: BoxFit.contain,
               ),
             ),
           ),

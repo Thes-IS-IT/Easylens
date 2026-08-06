@@ -300,13 +300,13 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
         color: cardBg,
         borderRadius: BorderRadius.circular(24.0),
         border: border,
-        boxShadow: isDefault ? [
+        boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: AppColors.shadowColor,
             blurRadius: 16,
             offset: const Offset(0, 4),
           )
-        ] : null,
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,14 +361,14 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF262626) : const Color(0xFFF1F5F9),
+                          color: chipBg,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
                           child: Text(
                             '${sec.bulletPoints.length}',
                             style: GoogleFonts.inter(
-                              color: secondaryTextColor,
+                              color: chipText,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
@@ -378,7 +378,7 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
                       const SizedBox(width: 8),
                       Icon(
                         isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                        color: secondaryTextColor,
+                        color: cardTitleColor,
                         size: 24,
                       ),
                     ],
@@ -390,7 +390,7 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
           
           // Expanded Card Content
           if (isExpanded) ...[
-            Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
+            Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.cardBorder.withValues(alpha: 0.3)),
             
             // "STARTS WITH" banner
             Container(
@@ -399,7 +399,7 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
               decoration: BoxDecoration(
                 color: subCardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.4 : 0.2), width: 1),
+                border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3), width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,7 +445,7 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
                             bp,
                             style: GoogleFonts.inter(
                               fontSize: 12,
-                              color: secondaryTextColor,
+                              color: AppColors.primaryText,
                               height: 1.4,
                             ),
                           ),
@@ -472,23 +472,23 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
         final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
 
         final headerColor = AppColors.primaryText;
-        final cardTitleColor = isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText);
-        final secondaryTextColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B);
-        final cardBg = isDark ? const Color(0xFF141414) : Colors.white;
-        final subCardBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC);
-        final chipBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
-        final chipText = isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
-        final cardBorder = Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 0.3)), width: 1.5);
+        final cardTitleColor = AppColors.primaryText;
+        final secondaryTextColor = AppColors.textMuted;
+        final cardBg = AppColors.lightBackground;
+        final subCardBg = AppColors.primaryBackground;
+        final chipBg = AppColors.primaryButton.withValues(alpha: 0.15);
+        final chipText = AppColors.primaryButton;
+        final cardBorder = Border.all(color: AppColors.cardBorder.withValues(alpha: 0.35), width: 1.5);
 
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: AppColors.primaryBackground,
           body: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 1. Sticky Header Bar (Back Button + Title)
                 Container(
-                  color: AppColors.lightBackground,
+                  color: AppColors.primaryBackground,
                   padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,16 +499,16 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
                           width: 95,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground),
+                            color: AppColors.lightBackground,
                             borderRadius: BorderRadius.circular(22),
-                            border: Border.all(color: AppColors.cardBorder.withOpacity(isDark ? 0.6 : (isDefault ? 0.0 : 1.0)), width: 1.5),
-                            boxShadow: isDefault ? [
+                            border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.4), width: 1.5),
+                            boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
+                                color: AppColors.shadowColor,
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               )
-                            ] : null,
+                            ],
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,

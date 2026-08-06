@@ -433,6 +433,44 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
     );
   }
 
+  Future<void> _startNewChat() async {
+    HapticFeedback.mediumImpact();
+    await TtsService().stop();
+
+    // 1. Persist current conversation messages to ChatHistory and Journal Memory
+    if (_messages.isNotEmpty) {
+      await ChatHistoryService().saveMessages(_messages);
+    }
+
+    // 2. Clear current chat history UI & stored thread
+    await ChatHistoryService().clearHistory();
+
+    final user = FirebaseService().currentUser;
+    final name = user?.displayName ?? "friend";
+    final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+        SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+
+    final welcomeMsg = isFilipino
+        ? "Nagsimula ng bagong chat, $name! Naka-save ang ating nakaraang pinag-usapan sa memorya ni Buddy. Ano ang gusto mong itanong o ipaliwanag ngayon?"
+        : "Started a new chat, $name! Our previous conversation is saved in Buddy's memory. What would you like to explore or ask now?";
+
+    setState(() {
+      _messages.clear();
+      _messages.add({
+        'text': welcomeMsg,
+        'isUser': false,
+      });
+      _buddyState = 'idle';
+    });
+
+    _scrollToBottom();
+
+    final announcement = isFilipino
+        ? "Nagsimula ng bagong chat. Naka-save ang iyong mga memorya at kagustuhan!"
+        : "Started a new chat. Buddy saved your conversation and remembers your memory!";
+    await TtsService().speak(announcement);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = SettingsService().selectedContrastTheme;
@@ -461,8 +499,6 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
               borderRadius: BorderRadius.circular(2.5),
             ),
           ),
-          
-
           
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 24, vertical: isKeyboardOpen ? 6 : 16),
@@ -564,7 +600,26 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                         },
                       ),
                       const SizedBox(width: 8),
+                      ActionChip(
+                        backgroundColor: AppColors.lightBackground,
+                        side: BorderSide(color: AppColors.cardBorder.withOpacity(0.3)),
+                        avatar: Icon(Icons.add_comment_rounded, size: 16, color: AppColors.primaryButton),
+                        label: Text(
+                          SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+                                  SettingsService().selectedLanguage.toLowerCase().contains('filipino')
+                              ? 'Bagong Chat'
+                              : 'New Chat',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryText,
+                          ),
+                        ),
+                        onPressed: _startNewChat,
+                      ),
+                      const SizedBox(width: 4),
                       IconButton(
+                        tooltip: 'Chat Memory & History',
                         icon: Icon(Icons.history, color: AppColors.primaryText),
                         onPressed: () => ChatHistoryViewer.showHistorySheet(context),
                       ),

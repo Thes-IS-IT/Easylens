@@ -6,6 +6,7 @@ import '../login/login_screen.dart';
 import '../../constants/colors.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../../services/firebase_service.dart';
+import '../../services/sound_service.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../../utils/app_route.dart';
 
@@ -24,6 +25,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    
+    // Play Buddy dog bark sound on fresh startup
+    SoundService.playBark();
     
     Future.microtask(() {
       if (mounted) {

@@ -27,6 +27,7 @@ import 'dart:typed_data';
 import '../../services/danger_warning_service.dart';
 import '../../widgets/critical_danger_overlay.dart';
 import '../../services/navigation_voice_assistant.dart';
+import '../../services/journal_service.dart';
 
 class NavigationScreen extends StatefulWidget {
   final bool isActive;
@@ -227,6 +228,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   void _requestNavigationConfirmation(Map<String, dynamic> place) {
+    _saveToRecentHistory(place);
+
     final lang = SettingsService().selectedLanguage;
     final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     
@@ -273,48 +276,114 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
 
   final _firebaseService = FirebaseService();
+  List<Map<String, dynamic>> _recentPlaces = [];
+
+  Future<void> _saveToRecentHistory(Map<String, dynamic> place) async {
+    final nameStr = (place['name'] as String? ?? '').trim();
+    if (nameStr.isEmpty) return;
+
+    final user = _firebaseService.currentUser;
+    double lat = 0.0;
+    double lng = 0.0;
+
+    if (place['latLng'] is LatLng) {
+      final l = place['latLng'] as LatLng;
+      lat = l.latitude;
+      lng = l.longitude;
+    } else if (place['latitude'] != null && place['longitude'] != null) {
+      lat = (place['latitude'] as num).toDouble();
+      lng = (place['longitude'] as num).toDouble();
+    }
+
+    if (lat != 0.0 && lng != 0.0) {
+      final calc = _calculateDistanceAndTime(LatLng(lat, lng));
+      final addressStr = (place['address'] as String? ?? '').trim();
+      final navData = {
+        'name': nameStr,
+        'address': addressStr,
+        'dist': calc['dist']!,
+        'time': calc['time']!,
+        'latitude': lat,
+        'longitude': lng,
+        'steps': place['steps'] ?? [
+          'Head toward $nameStr',
+          'Follow directional signs',
+          'Arrive at $nameStr'
+        ],
+      };
+      
+      // 1. Save to local device SharedPreferences + Firestore
+      await _firebaseService.saveRecentNavigation(user?.uid ?? 'guest', navData);
+
+      // 2. Save to Buddy's Long-Term RAG Journal Memory
+      try {
+        final journalEntry = addressStr.isNotEmpty
+            ? "User navigated or searched for $nameStr ($addressStr). Distance: ${calc['dist']!}, Est Time: ${calc['time']!}."
+            : "User navigated or searched for $nameStr. Distance: ${calc['dist']!}, Est Time: ${calc['time']!}.";
+        
+        await JournalService().appendToDailyJournal("Visited / Navigated Place", journalEntry);
+        await JournalService().generateAndAddInsight("Frequent Navigation", "Visited place: $nameStr");
+      } catch (e) {
+        debugPrint("[BUDDY MEMORY SAVE ERROR] $e");
+      }
+
+      await _loadRecentNavigations();
+    }
+  }
 
   Future<void> _loadRecentNavigations() async {
     try {
       final user = _firebaseService.currentUser;
       final rawRecents = await _firebaseService.getRecentNavigations(user?.uid);
-      if (rawRecents.isNotEmpty && mounted) {
-        final List<Map<String, dynamic>> parsed = [];
-        for (final item in rawRecents) {
-          double lat = 0.0;
-          double lng = 0.0;
-          if (item['latLng'] is LatLng) {
-            final l = item['latLng'] as LatLng;
-            lat = l.latitude;
-            lng = l.longitude;
-          } else if (item['latitude'] != null && item['longitude'] != null) {
-            lat = (item['latitude'] as num).toDouble();
-            lng = (item['longitude'] as num).toDouble();
-          }
-
-          if (lat != 0.0 && lng != 0.0) {
-            final calc = _calculateDistanceAndTime(LatLng(lat, lng));
-            parsed.add({
-              'name': item['name'] ?? 'Recent Location',
-              'address': item['address'] ?? '',
-              'dist': calc['dist']!,
-              'time': calc['time']!,
-              'latLng': LatLng(lat, lng),
-              'steps': item['steps'] ?? [
-                'Head toward ${item['name']}',
-                'Turn right onto closest main road',
-                'Follow directional signs',
-                'Arrive at ${item['name']}'
-              ],
-            });
-          }
+      final List<Map<String, dynamic>> parsed = [];
+      
+      for (final item in rawRecents) {
+        double lat = 0.0;
+        double lng = 0.0;
+        if (item['latLng'] is LatLng) {
+          final l = item['latLng'] as LatLng;
+          lat = l.latitude;
+          lng = l.longitude;
+        } else if (item['latitude'] != null && item['longitude'] != null) {
+          lat = (item['latitude'] as num).toDouble();
+          lng = (item['longitude'] as num).toDouble();
         }
 
-        if (parsed.isNotEmpty) {
-          setState(() {
-            _searchResults = List.from(parsed);
-            SpeechNavigationNotifier.activeSearchResults = _searchResults;
+        if (lat != 0.0 && lng != 0.0) {
+          final calc = _calculateDistanceAndTime(LatLng(lat, lng));
+          parsed.add({
+            'name': item['name'] ?? 'Recent Location',
+            'address': item['address'] ?? '',
+            'dist': calc['dist']!,
+            'time': calc['time']!,
+            'latLng': LatLng(lat, lng),
+            'steps': item['steps'] ?? [
+              'Head toward ${item['name']}',
+              'Turn right onto closest main road',
+              'Follow directional signs',
+              'Arrive at ${item['name']}'
+            ],
           });
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _recentPlaces = parsed.take(5).toList();
+          if (_searchController.text.trim().isEmpty) {
+            _searchResults = List.from(_recentPlaces);
+            SpeechNavigationNotifier.activeSearchResults = _searchResults;
+          }
+        });
+
+        if (_recentPlaces.isEmpty && _searchController.text.trim().isEmpty) {
+          final res = await _getRealNearbyInitialPlaces();
+          if (mounted && _searchController.text.trim().isEmpty) {
+            setState(() {
+              _searchResults = res.take(5).toList();
+              SpeechNavigationNotifier.activeSearchResults = _searchResults;
+            });
+          }
         }
       }
     } catch (e) {
@@ -327,9 +396,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
     super.initState();
     _searchResults = [];
     _getRealNearbyInitialPlaces().then((res) {
-      if (mounted && _searchResults.isEmpty) {
+      if (mounted && _searchResults.isEmpty && _recentPlaces.isEmpty) {
         setState(() {
-          _searchResults = res;
+          _searchResults = res.take(5).toList();
           SpeechNavigationNotifier.activeSearchResults = _searchResults;
         });
       }
@@ -343,6 +412,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     SpeechNavigationNotifier.stopRouteNotifier.addListener(_onVoiceStopRouteRequested);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+
       ScreenTutorialCard.showIfNeeded(
         context,
         tutorialKey: 'navigation',
@@ -798,11 +868,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
-  // Debounced search wrapper — waits 600ms after user stops typing before firing API
   void _onSearchChanged(String rawQuery) {
     _searchDebounceTimer?.cancel();
     if (rawQuery.trim().isEmpty) {
-      _performSearch(rawQuery);
+      if (_recentPlaces.isNotEmpty) {
+        _updateSearchResults(List.from(_recentPlaces));
+      } else {
+        _performSearch(rawQuery);
+      }
       return;
     }
     _searchDebounceTimer = Timer(const Duration(milliseconds: 600), () {
@@ -884,7 +957,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
   // Live filtered search with authentic spatial API queries — NO SYNTHETIC/FAKE PLACES EVER
   Future<List<Map<String, dynamic>>> _performSearch(String rawQuery) async {
     if (rawQuery.trim().isEmpty) {
-      final res = await _getRealNearbyInitialPlaces();
+      List<Map<String, dynamic>> res = [];
+      if (_recentPlaces.isNotEmpty) {
+        res = List.from(_recentPlaces);
+      } else {
+        res = await _getRealNearbyInitialPlaces();
+      }
       if (mounted) setState(() { _isSearching = false; });
       _updateSearchResults(res);
       return res;
@@ -1285,21 +1363,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
     });
     _fetchRoadRoute();
 
-    // Save recent navigation data locally and to Firestore
-    final user = _firebaseService.currentUser;
-    if (place['latLng'] is LatLng) {
-      final latLng = place['latLng'] as LatLng;
-      final navData = {
-        'name': place['name'],
-        'address': place['address'],
-        'dist': place['dist'],
-        'time': place['time'],
-        'latitude': latLng.latitude,
-        'longitude': latLng.longitude,
-      };
-      _firebaseService.saveRecentNavigation(user?.uid ?? 'guest', navData);
-      _loadRecentNavigations();
-    }
+    // Save recent navigation data locally and to Firestore (Max 5 items)
+    _saveToRecentHistory(place);
 
     // Animate map camera to focus on selected location
     if (_mapController != null) {
@@ -1357,6 +1422,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
         currentStepIndex: _currentStepIndex,
       );
     } else {
+      if (_selectedPlace != null) {
+        _saveToRecentHistory(_selectedPlace!);
+      }
       setState(() {
         _navState = 2; // Arrived map view (Figma Screen 4)
       });
@@ -1367,7 +1435,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
-  void _cancelNavigation() {
+  void _cancelNavigation() async {
     ActiveNavigationService().stopNavigation();
     setState(() {
       _navState = 0;
@@ -1376,8 +1444,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _lastDynamicAnnouncedDistanceM = null;
       _hasAnnouncedArrival = false;
       _searchController.clear();
-      _performSearch("");
-      SpeechNavigationNotifier.activeSearchResults = _searchResults;
       _stepLocations = [];
       _lastRerouteTime = 0;
       _offRouteCounter = 0;
@@ -1387,6 +1453,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _lastTurnIndexAnnounced = -1;
       _lastProximityIndexAnnounced = -1;
     });
+
+    await _loadRecentNavigations();
 
     if (_mapController != null) {
       try {
@@ -1978,9 +2046,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
       minSize = 0.5;
       maxSize = 0.9;
     } else if (_navState == 2) {
-      initialSize = 0.35;
-      minSize = 0.25;
-      maxSize = 0.5;
+      initialSize = 0.52;
+      minSize = 0.35;
+      maxSize = 0.90;
     }
 
     return DraggableScrollableSheet(
@@ -2002,9 +2070,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
           child: SingleChildScrollView(
             controller: scrollController,
-            physics: const ClampingScrollPhysics(),
+            physics: const BouncingScrollPhysics(),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 110),
               child: _buildCardContent(),
             ),
           ),
@@ -2710,6 +2778,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     final placeName = _selectedPlace!['name'] as String? ?? (isTagalog ? 'Patutunguhan' : 'Destination');
     final placeAddr = _selectedPlace!['address'] as String? ?? '';
+    final isDark = SettingsService().isDarkMode || (SettingsService().selectedContrastTheme != 'Default' && SettingsService().selectedContrastTheme != 'Black on White');
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -2720,7 +2789,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             width: 50,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.primaryText.withOpacity(0.3),
+              color: AppColors.primaryText.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -2728,62 +2797,100 @@ class _NavigationScreenState extends State<NavigationScreen> {
         const SizedBox(height: 16),
 
         // Success Icon Badge
-        CircleAvatar(
-          radius: 28,
-          backgroundColor: Colors.green.shade900.withOpacity(0.2),
-          child: Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 36),
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDark
+                ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                : const Color(0xFFD1FAE5),
+            border: Border.all(
+              color: isDark ? const Color(0xFF34D399) : const Color(0xFF10B981),
+              width: 1.5,
+            ),
+          ),
+          child: Icon(
+            Icons.check_circle_rounded,
+            color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+            size: 32,
+          ),
         ),
         const SizedBox(height: 12),
 
         // Arrived Headline
         Text(
           isTagalog ? 'Nakarating Ka Na!' : 'You Have Arrived!',
-          style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryText),
+          style: GoogleFonts.inter(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: AppColors.primaryText,
+          ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
 
         // Destination Name
         Text(
           placeName,
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primaryButton),
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryText,
+          ),
         ),
         if (placeAddr.isNotEmpty) ...[
-          const SizedBox(height: 2),
-          Text(
-            placeAddr,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              placeAddr,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: AppColors.textMuted,
+                height: 1.3,
+              ),
+            ),
           ),
         ],
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
 
-        // Reached Status Badge
+        // Reached Status Badge (High contrast in Default & Dark themes)
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
           decoration: BoxDecoration(
-            color: Colors.green.shade900.withOpacity(0.2),
+            color: isDark
+                ? const Color(0xFF065F46).withValues(alpha: 0.4)
+                : const Color(0xFFD1FAE5),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
+            border: Border.all(
+              color: isDark ? const Color(0xFF34D399) : const Color(0xFF10B981),
+              width: 1.5,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: Colors.greenAccent,
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Text(
                 isTagalog ? '0 m • Nakarating Na' : '0 m • Destination Reached',
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent),
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
+                ),
               ),
             ],
           ),
@@ -2808,6 +2915,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 80),
       ],
     );
   }

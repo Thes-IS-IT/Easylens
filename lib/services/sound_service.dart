@@ -1,12 +1,38 @@
 import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'settings_service.dart';
 
-/// SoundService provides instant, 100% native Flutter built-in button click sound effects
-/// (SystemSoundType.click / SystemSoundType.alert) and tactile haptic feedback without external MP3 dependencies.
+/// SoundService provides native Flutter button click sound effects, haptics, and dog bark audio.
 class SoundService {
   static final SoundService _instance = SoundService._internal();
   factory SoundService() => _instance;
   SoundService._internal();
+
+  static AudioPlayer? _audioPlayer;
+  static AudioPlayer? _transitionPlayer;
+
+  /// Play the Buddy dog bark sound effect on app startup or interaction.
+  static Future<void> playBark() async {
+    try {
+      _audioPlayer?.stop();
+      _audioPlayer = AudioPlayer();
+      await _audioPlayer!.play(AssetSource('sounds/bark_dashboard.mp3'));
+    } catch (e) {
+      print('Bark sound error: $e');
+    }
+  }
+
+  /// Play the Spongebob bubble transition sound effect synchronized with tab changes.
+  static Future<void> playBubbleTransition() async {
+    if (!SettingsService().bubbleTransitionSound) return;
+    try {
+      _transitionPlayer?.stop();
+      _transitionPlayer = AudioPlayer();
+      await _transitionPlayer!.play(AssetSource('sounds/spongebob-bubble-transition.mp3'));
+    } catch (e) {
+      print('Bubble transition sound error: $e');
+    }
+  }
 
   /// Play click action with tactile haptic feedback (audio SFX removed).
   static void playClick() {

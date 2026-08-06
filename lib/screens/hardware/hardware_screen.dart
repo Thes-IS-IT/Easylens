@@ -11,6 +11,7 @@ import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
+import '../../constants/colors.dart';
 import '../../services/tts_service.dart';
 import '../face_registration/face_registration_screen.dart';
 import '../../services/stt_service.dart';
@@ -3401,7 +3402,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                         style: GoogleFonts.inter(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF002663),
+                          color: AppColors.primaryText,
                         ),
                       ),
                     ],
@@ -3425,7 +3426,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   if (_geminiSpokenQuestion.isNotEmpty) ...[
                     Text(
                       'You said:',
-                      style: GoogleFonts.inter(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -3435,7 +3436,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         fontStyle: FontStyle.italic,
-                        color: Colors.black87,
+                        color: AppColors.primaryText,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -3446,9 +3447,9 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: AppColors.lightBackground,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black.withOpacity(0.04)),
+                        border: Border.all(color: AppColors.cardBorder.withOpacity(0.3)),
                       ),
                       padding: const EdgeInsets.all(16),
                       child: SingleChildScrollView(
@@ -3461,7 +3462,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                   Text(
                                     _geminiAssistantResponse.isEmpty ? 'Buddy is processing...' : _geminiAssistantResponse,
                                     textAlign: TextAlign.center,
-                                    style: GoogleFonts.inter(color: Colors.grey.shade600),
+                                    style: GoogleFonts.inter(color: AppColors.textMuted),
                                   ),
                                 ],
                               )
@@ -3472,7 +3473,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   height: 1.4,
-                                  color: const Color(0xFF334155),
+                                  color: AppColors.primaryText,
                                 ),
                               ),
                       ),
@@ -3486,8 +3487,8 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                     height: 52,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF002663),
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.primaryButton,
+                        foregroundColor: AppColors.primaryButtonText,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                       ),
                       onPressed: _isThinking ? null : () => _describeSurroundings(modalSetState),
@@ -3903,8 +3904,9 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 height: 38,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF002663),
-                    side: const BorderSide(color: Color(0xFF002663), width: 1.5),
+                    foregroundColor: AppColors.primaryText,
+                    backgroundColor: AppColors.lightBackground,
+                    side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.4), width: 1.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
                   onPressed: _onCancelOrBack,

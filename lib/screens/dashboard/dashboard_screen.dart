@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../../services/firebase_service.dart';
+import '../../services/sound_service.dart';
 import '../../constants/colors.dart';
 import '../navigation/navigation_screen.dart';
 import '../hardware/hardware_screen.dart';
@@ -15,6 +16,7 @@ import '../contacts/contacts_screen.dart';
 import 'components/custom_navbar.dart';
 import 'components/buddy_assistant_sheet.dart';
 import 'components/header_bar.dart';
+import 'components/weather_effects_overlay.dart';
 import '../../widgets/interactive_tutorial_overlay.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,7 +45,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _firebaseService = FirebaseService();
   late String _displayName;
   int _currentIndex = 0;
@@ -52,10 +54,17 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
+  // Single unified smooth tab-transition controller
+  late AnimationController _transitionController;
+  bool _isTransitioning = false;
+  bool _hasSwitchedTab = false;
+  int _pendingIndex = 0;
+
   StreamSubscription? _accelerometerSubscription;
   int _lastShakeTime = 0;
   bool _isBuddySheetOpen = false;
   bool _showTutorial = false;
+  bool _showWeatherEffect = true;
 
   final GlobalKey _buddyMascotKey = GlobalKey();
   final GlobalKey _easylensScanKey = GlobalKey();
@@ -84,6 +93,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       curve: Curves.easeOut,
     );
     _fadeController.forward();
+
+    // Single smooth transition controller synchronized with 3.24s spongebob bubble audio
+    _transitionController = AnimationController(
+      duration: const Duration(milliseconds: 3240),
+      vsync: this,
+    );
 
     _displayName = "User";
     _loadUserDisplayName();
@@ -123,6 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     SpeechNavigationNotifier.openBuddyNotifier.removeListener(_onSpeechOpenBuddy);
     DashboardScreen.tutorialNotifier.removeListener(_onTutorialTriggered);
     _fadeController.dispose();
+    _transitionController.dispose();
     _stopShakeListening();
     super.dispose();
   }
@@ -141,9 +157,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  /// Central tab-change handler.
+  /// Central tab-change handler with buttery-smooth single-controller transition.
   void _onTabChanged(int index, {bool isUndo = false}) {
-    if (index == _currentIndex) return;
+    if (index == _currentIndex || _isTransitioning) return;
     final previousIndex = _currentIndex;
 
     final tabNames = ["Dashboard Home", "Audio Navigation", "Camera/Hardware Mode"];
@@ -152,12 +168,36 @@ class _DashboardScreenState extends State<DashboardScreen>
       RagService.recordNavigation(name, actionDescription: isUndo ? "Undid switch to $name" : "Switched tab to $name");
     }
 
-    setState(() => _currentIndex = index);
     if (!isUndo) {
       UndoService().add(() {
         _onTabChanged(previousIndex, isUndo: true);
       }, description: "Switch tab to index $previousIndex");
     }
+
+    _pendingIndex = index;
+    _hasSwitchedTab = false;
+
+    setState(() {
+      _isTransitioning = true;
+    });
+
+    SoundService.playBubbleTransition();
+
+    _transitionController.reset();
+    _transitionController.forward();
+
+    // Listener: switch tab at 45% progress (when curtain fully covers screen)
+    void listener() {
+      if (!_hasSwitchedTab && _transitionController.value >= 0.45 && mounted) {
+        _hasSwitchedTab = true;
+        setState(() => _currentIndex = _pendingIndex);
+      }
+      if (_transitionController.isCompleted && mounted) {
+        _transitionController.removeListener(listener);
+        setState(() => _isTransitioning = false);
+      }
+    }
+    _transitionController.addListener(listener);
   }
 
   Future<void> _loadUserDisplayName() async {
@@ -350,7 +390,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           backgroundColor: bg,
           body: Stack(
             children: [
-              // Tabs stacked content
+              // Tabs stacked content (curtain handles visual transition)
               SafeArea(
                 bottom: false,
                 child: IndexedStack(
@@ -514,6 +554,29 @@ class _DashboardScreenState extends State<DashboardScreen>
                     },
                   ),
                 ),
+
+              // ── Weather-Reactive Fresh Start Effect (5s duration) ────────
+              if (_showWeatherEffect && _currentIndex == 0)
+                Positioned.fill(
+                  child: WeatherEffectsOverlay(
+                    onComplete: () {
+                      if (mounted) {
+                        setState(() {
+                          _showWeatherEffect = false;
+                        });
+                      }
+                    },
+                  ),
+                ),
+
+              // ── Light Blue Wave Transition Curtain ────────────
+              if (_isTransitioning)
+                Positioned.fill(
+                  child: _LightBlueWaveCurtain(
+                    controller: _transitionController,
+                    theme: settings.selectedContrastTheme,
+                  ),
+                ),
             ],
           ),
         );
@@ -609,4 +672,246 @@ class _DraggableBuddyButtonState extends State<DraggableBuddyButton> {
       ),
     );
   }
+}
+
+// ── GPU-Optimized Theme-Synced Wave Curtain (AnimatedWidget) ────────
+class _LightBlueWaveCurtain extends AnimatedWidget {
+  final String theme;
+
+  const _LightBlueWaveCurtain({
+    required AnimationController controller,
+    required this.theme,
+  }) : super(listenable: controller);
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = listenable as AnimationController;
+    final v = controller.value;
+
+    // Three-phase animation:
+    // Phase 1 (0.00–0.40): Sweep up from below → covers screen
+    // Phase 2 (0.40–0.60): Hold — screen fully covered (tab switches behind)
+    // Phase 3 (0.60–1.00): Sweep up off top → reveals new tab
+
+    double translateY;
+    double opacity;
+
+    if (v <= 0.40) {
+      final t = v / 0.40;
+      final curved = Curves.easeOutCubic.transform(t);
+      translateY = 1.0 - curved;
+      opacity = curved;
+    } else if (v <= 0.60) {
+      translateY = 0.0;
+      opacity = 1.0;
+    } else {
+      final t = (v - 0.60) / 0.40;
+      final curved = Curves.easeInCubic.transform(t);
+      translateY = -curved;
+      opacity = 1.0 - (curved * 0.3);
+    }
+
+    return IgnorePointer(
+      child: Opacity(
+        opacity: opacity.clamp(0.0, 1.0),
+        child: FractionalTranslation(
+          translation: Offset(0.0, translateY),
+          child: CustomPaint(
+            painter: _OceanWavePainter(progress: v, theme: theme),
+            child: const SizedBox.expand(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// GPU-accelerated ocean wave painter — theme-synced colors.
+class _OceanWavePainter extends CustomPainter {
+  final double progress;
+  final String theme;
+  const _OceanWavePainter({required this.progress, required this.theme});
+
+  // Theme-aware color palettes
+  List<Color> get _gradientColors {
+    switch (theme) {
+      case 'Green on Black':
+        return const [
+          Color(0xFF0A2E0A), // Dark forest
+          Color(0xFF145214), // Deep green
+          Color(0xFF1E7A1E), // Mid green
+          Color(0xFF32CD32), // Lime green
+        ];
+      case 'Yellow on Black':
+        return const [
+          Color(0xFF2E2600), // Dark gold
+          Color(0xFF5C4D00), // Deep amber
+          Color(0xFF8B7500), // Mid gold
+          Color(0xFFFFD700), // Gold yellow
+        ];
+      case 'Cyan on Black':
+        return const [
+          Color(0xFF002B28), // Dark teal
+          Color(0xFF004D47), // Deep cyan
+          Color(0xFF007A70), // Mid cyan
+          Color(0xFF00D2C4), // Bright cyan
+        ];
+      case 'White on Black':
+        return const [
+          Color(0xFF1A1A1A), // Near black
+          Color(0xFF2D2D2D), // Dark grey
+          Color(0xFF404040), // Mid grey
+          Color(0xFF666666), // Lighter grey
+        ];
+      case 'Black on White':
+        return const [
+          Color(0xFFE8E8E8), // Light grey
+          Color(0xFFCCCCCC), // Mid grey
+          Color(0xFFAAAAAA), // Darker grey
+          Color(0xFF888888), // Dark grey
+        ];
+      case 'Default':
+      default:
+        return const [
+          Color(0xFFBFDBFE), // Light blue top
+          Color(0xFF60A5FA), // Mid blue
+          Color(0xFF3B82F6), // Richer blue
+          Color(0xFF2563EB), // Deep blue bottom
+        ];
+    }
+  }
+
+  Color get _waveTint {
+    switch (theme) {
+      case 'Green on Black':  return const Color(0xFF32CD32).withOpacity(0.35);
+      case 'Yellow on Black': return const Color(0xFFFFD700).withOpacity(0.35);
+      case 'Cyan on Black':   return const Color(0xFF00D2C4).withOpacity(0.35);
+      case 'White on Black':  return Colors.white.withOpacity(0.15);
+      case 'Black on White':  return Colors.black.withOpacity(0.12);
+      default:                return const Color(0xFFDBEAFE).withOpacity(0.55);
+    }
+  }
+
+  Color get _bubbleColor {
+    switch (theme) {
+      case 'Green on Black':  return const Color(0xFF32CD32);
+      case 'Yellow on Black': return const Color(0xFFFFD700);
+      case 'Cyan on Black':   return const Color(0xFF00D2C4);
+      case 'White on Black':  return Colors.white;
+      case 'Black on White':  return Colors.black;
+      default:                return Colors.white;
+    }
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final waveAmp = 28.0;
+    final wavePhase = progress * 3.14159 * 4;
+
+    // ── 1. Main Organic Wavy Curtain Body (No straight box lines!) ─
+    final mainPath = Path();
+    final startTopY = sin(wavePhase) * waveAmp;
+    mainPath.moveTo(0, startTopY);
+
+    // Top wave curve (0 -> w)
+    for (double x = 0; x <= w; x += 2) {
+      final y = sin((x / w) * 3.14159 * 3 + wavePhase) * waveAmp;
+      mainPath.lineTo(x, y);
+    }
+
+    // Right edge to bottom wave
+    final startBotY = h - (sin(3.14159 * 3 - wavePhase) * waveAmp);
+    mainPath.lineTo(w, startBotY);
+
+    // Bottom wave curve (w -> 0)
+    for (double x = w; x >= 0; x -= 2) {
+      final y = h - (sin((x / w) * 3.14159 * 3 - wavePhase) * waveAmp);
+      mainPath.lineTo(x, y);
+    }
+    mainPath.close();
+
+    final bgPaint = Paint()
+      ..shader = LinearGradient(
+        colors: _gradientColors,
+        stops: const [0.0, 0.3, 0.65, 1.0],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
+
+    canvas.drawPath(mainPath, bgPaint);
+
+    // ── 2. Top Organic Wave Ribbon Highlight ────────────────────
+    final topFoamPath = Path();
+    topFoamPath.moveTo(0, startTopY);
+    for (double x = 0; x <= w; x += 2) {
+      final y = sin((x / w) * 3.14159 * 3 + wavePhase) * waveAmp;
+      topFoamPath.lineTo(x, y);
+    }
+    for (double x = w; x >= 0; x -= 2) {
+      final y = sin((x / w) * 3.14159 * 3 + wavePhase) * waveAmp + 14.0;
+      topFoamPath.lineTo(x, y);
+    }
+    topFoamPath.close();
+    canvas.drawPath(topFoamPath, Paint()..color = _waveTint);
+
+    // ── 3. Bottom Organic Wave Ribbon Highlight ─────────────────
+    final botFoamPath = Path();
+    final endBotY = h - (sin(-wavePhase) * waveAmp);
+    botFoamPath.moveTo(0, endBotY);
+    for (double x = 0; x <= w; x += 2) {
+      final y = h - (sin((x / w) * 3.14159 * 3 - wavePhase) * waveAmp);
+      botFoamPath.lineTo(x, y);
+    }
+    for (double x = w; x >= 0; x -= 2) {
+      final y = h - (sin((x / w) * 3.14159 * 3 - wavePhase) * waveAmp) - 14.0;
+      botFoamPath.lineTo(x, y);
+    }
+    botFoamPath.close();
+    canvas.drawPath(botFoamPath, Paint()..color = _waveTint);
+
+    // ── 4. Floating bubbles ────────────────────────────────────
+    final bubbleOpacity = (0.25 + (sin(progress * 3.14159 * 2) * 0.15)).clamp(0.1, 0.4);
+    final bColor = _bubbleColor;
+    final bubblePaint = Paint()
+      ..color = bColor.withOpacity(bubbleOpacity)
+      ..style = PaintingStyle.fill;
+    final bubbleBorderPaint = Paint()
+      ..color = bColor.withOpacity((bubbleOpacity + 0.2).clamp(0.0, 1.0))
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    final bubbles = [
+      _Bubble(w * 0.12, h * 0.12, 14),
+      _Bubble(w * 0.75, h * 0.18, 20),
+      _Bubble(w * 0.45, h * 0.30, 16),
+      _Bubble(w * 0.85, h * 0.42, 12),
+      _Bubble(w * 0.25, h * 0.55, 18),
+      _Bubble(w * 0.65, h * 0.65, 10),
+      _Bubble(w * 0.35, h * 0.78, 14),
+      _Bubble(w * 0.80, h * 0.85, 16),
+    ];
+
+    for (final b in bubbles) {
+      canvas.drawCircle(Offset(b.x, b.y), b.r, bubblePaint);
+      canvas.drawCircle(Offset(b.x, b.y), b.r, bubbleBorderPaint);
+      final shinePaint = Paint()
+        ..color = bColor.withOpacity((bubbleOpacity + 0.1).clamp(0.0, 1.0));
+      canvas.drawCircle(
+        Offset(b.x - b.r * 0.3, b.y - b.r * 0.3),
+        b.r * 0.25,
+        shinePaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_OceanWavePainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.theme != theme;
+}
+
+class _Bubble {
+  final double x, y, r;
+  const _Bubble(this.x, this.y, this.r);
 }

@@ -49,6 +49,7 @@ class SettingsService extends ChangeNotifier {
   bool faceIdUnlock = false;
   bool shakeToUndo = true;
   bool speechNavigation = false;
+  bool bubbleTransitionSound = true;
   bool get voiceNavigationEnabled => speechNavigation;
   bool get isDarkMode => appearanceTheme == 'Black' || (selectedContrastTheme != 'Default' && selectedContrastTheme != 'Black on White');
   double speechRate = 0.5;
@@ -99,6 +100,7 @@ class SettingsService extends ChangeNotifier {
       faceIdUnlock = prefs.getBool('faceIdUnlock') ?? false;
       shakeToUndo = prefs.getBool('shakeToUndo') ?? true;
       speechNavigation = prefs.getBool('speechNavigation') ?? false;
+      bubbleTransitionSound = prefs.getBool('bubbleTransitionSound') ?? true;
       speechRate = prefs.getDouble('speechRate') ?? 0.5;
       speechPitch = prefs.getDouble('speechPitch') ?? 0.5;
       homeScreenCards = prefs.getStringList('homeScreenCards') ?? ['buddy', 'easylens', 'faces', 'text', 'navigation', 'sos'];
@@ -186,6 +188,7 @@ class SettingsService extends ChangeNotifier {
     bool? faceIdUnlock,
     bool? shakeToUndo,
     bool? speechNavigation,
+    bool? bubbleTransitionSound,
     double? speechRate,
     double? speechPitch,
     List<String>? homeScreenCards,
@@ -215,6 +218,7 @@ class SettingsService extends ChangeNotifier {
     if (faceIdUnlock != null) this.faceIdUnlock = faceIdUnlock;
     if (shakeToUndo != null) this.shakeToUndo = shakeToUndo;
     if (speechNavigation != null) this.speechNavigation = speechNavigation;
+    if (bubbleTransitionSound != null) this.bubbleTransitionSound = bubbleTransitionSound;
     if (speechRate != null) this.speechRate = speechRate;
     if (speechPitch != null) this.speechPitch = speechPitch;
     if (homeScreenCards != null) this.homeScreenCards = homeScreenCards;
@@ -242,6 +246,7 @@ class SettingsService extends ChangeNotifier {
       if (faceIdUnlock != null) await prefs.setBool('faceIdUnlock', faceIdUnlock);
       if (shakeToUndo != null) await prefs.setBool('shakeToUndo', shakeToUndo);
       if (speechNavigation != null) await prefs.setBool('speechNavigation', speechNavigation);
+      if (bubbleTransitionSound != null) await prefs.setBool('bubbleTransitionSound', bubbleTransitionSound);
       if (speechRate != null) await prefs.setDouble('speechRate', speechRate);
       if (speechPitch != null) await prefs.setDouble('speechPitch', speechPitch);
       if (homeScreenCards != null) await prefs.setStringList('homeScreenCards', homeScreenCards);

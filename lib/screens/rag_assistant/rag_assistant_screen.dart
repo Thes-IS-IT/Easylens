@@ -288,6 +288,38 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
     }
   }
 
+  Future<void> _startNewChat() async {
+    await TtsService().stop();
+    if (_messages.isNotEmpty) {
+      _persistChatMessages();
+    }
+    await ChatHistoryService().clearHistory();
+
+    final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+        SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+
+    final welcomeMsg = isFilipino
+        ? "Nagsimula ng bagong chat! Naka-save ang ating nakaraang pinag-usapan sa memorya ni Buddy. Paano kita matutulungan ngayon?"
+        : "Started a new chat! Our previous conversation is saved in Buddy's memory. How can I help you explore today?";
+
+    setState(() {
+      _messages.clear();
+      _messages.add(
+        ChatMessage(
+          text: welcomeMsg,
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
+    });
+
+    _scrollToBottom();
+    final announcement = isFilipino
+        ? "Nagsimula ng bagong chat. Tanda pa rin ni Buddy ang iyong mga memorya!"
+        : "Started a new chat. Buddy still remembers your memories and preferences!";
+    await TtsService().speak(announcement);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isLocalActive = _ragService.isGemmaReady;
@@ -324,6 +356,12 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'New Chat',
+            icon: Icon(Icons.add_comment_rounded, color: AppColors.primaryButton),
+            onPressed: _startNewChat,
+          ),
+          IconButton(
+            tooltip: 'Chat Memory & History',
             icon: Icon(Icons.history, color: AppColors.primaryText),
             onPressed: () => ChatHistoryViewer.showHistorySheet(context),
           ),

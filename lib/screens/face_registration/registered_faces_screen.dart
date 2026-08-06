@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/face_registration_service.dart';
+import '../../services/settings_service.dart';
 import '../../constants/colors.dart';
 import '../dashboard/components/custom_navbar.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
@@ -38,24 +39,24 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1B4B),
+        backgroundColor: AppColors.primaryBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Remove "${p.name}"?',
           style: GoogleFonts.inter(
-            color: Colors.white,
+            color: AppColors.primaryText,
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
           'This face profile will be permanently deleted.',
-          style: GoogleFonts.inter(color: Colors.white70),
+          style: GoogleFonts.inter(color: AppColors.textMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text('Cancel',
-                style: GoogleFonts.inter(color: Colors.white54)),
+                style: GoogleFonts.inter(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -83,138 +84,143 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Registered Faces',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryText,
-          ),
-        ),
-        actions: [
-          if (_profiles.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E1B4B),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    title: Text('Clear All?',
-                        style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold)),
-                    content: Text(
-                      'All registered face profiles will be deleted.',
-                      style: GoogleFonts.inter(color: Colors.white70),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, false),
-                        child: Text('Cancel',
-                            style: GoogleFonts.inter(
-                                color: Colors.white54)),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, true),
-                        child: Text('Clear All',
-                            style: GoogleFonts.inter(
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true) {
-                  await FaceRegistrationService().clearAll();
-                  await _load();
-                }
-              },
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: AppColors.primaryBackground,
+          appBar: AppBar(
+            backgroundColor: AppColors.primaryBackground,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-        ],
-      ),
-      bottomNavigationBar: CustomNavbar(
-        currentIndex: 0,
-        onTap: (index) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        },
-        onEasyLensTap: () {
-          BuddyAssistantSheet.show(
-            context,
-            onNavigate: (screenKey) {
+            title: Text(
+              'Registered Faces',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryText,
+              ),
+            ),
+            actions: [
+              if (_profiles.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        backgroundColor: AppColors.primaryBackground,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        title: Text('Clear All?',
+                            style: GoogleFonts.inter(
+                                color: AppColors.primaryText,
+                                fontWeight: FontWeight.bold)),
+                        content: Text(
+                          'All registered face profiles will be deleted.',
+                          style: GoogleFonts.inter(color: AppColors.textMuted),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(context, false),
+                            child: Text('Cancel',
+                                style: GoogleFonts.inter(
+                                    color: AppColors.textMuted)),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(context, true),
+                            child: Text('Clear All',
+                                style: GoogleFonts.inter(
+                                    color: Colors.redAccent,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await FaceRegistrationService().clearAll();
+                      await _load();
+                    }
+                  },
+                ),
+            ],
+          ),
+          bottomNavigationBar: CustomNavbar(
+            currentIndex: 0,
+            onTap: (index) {
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
-          );
-        },
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            // Count pill
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF7C3AED).withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: const Color(0xFF7C3AED).withOpacity(0.3)),
-              ),
-              child: Text(
-                "${_profiles.length} face${_profiles.length != 1 ? 's' : ''} registered",
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF7C3AED),
+            onEasyLensTap: () {
+              BuddyAssistantSheet.show(
+                context,
+                onNavigate: (screenKey) {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+              );
+            },
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                // Count pill
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryButton.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: AppColors.cardBorder.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    "${_profiles.length} face${_profiles.length != 1 ? 's' : ''} registered",
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryButton,
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
-            // List
-            Expanded(
-              child: _loading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                          color: Color(0xFF7C3AED)))
-                  : _profiles.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: _profiles.length,
-                          itemBuilder: (_, i) =>
-                              _buildProfileCard(_profiles[i]),
-                        ),
+                // List
+                Expanded(
+                  child: _loading
+                      ? Center(
+                          child: CircularProgressIndicator(
+                              color: AppColors.primaryButton))
+                      : _profiles.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              itemCount: _profiles.length,
+                              itemBuilder: (_, i) =>
+                                  _buildProfileCard(_profiles[i]),
+                            ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await Navigator.of(context).push(
-            AppRoute.to(const FaceRegistrationScreen()),
-          );
-          await _load();
-        },
-        backgroundColor: const Color(0xFF7C3AED),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_a_photo_rounded),
-        label: Text('Add Face',
-            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-      ),
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () async {
+              await Navigator.of(context).push(
+                AppRoute.to(const FaceRegistrationScreen()),
+              );
+              await _load();
+            },
+            backgroundColor: AppColors.primaryButton,
+            foregroundColor: AppColors.primaryButtonText,
+            icon: const Icon(Icons.add_a_photo_rounded),
+            label: Text('Add Face',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+          ),
+        );
+      },
     );
   }
 
@@ -275,9 +281,9 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.primaryBackground,
+          color: AppColors.lightBackground,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.unselectedBorder),
+          border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -296,9 +302,7 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
                       height: 60,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
-                        ),
+                        color: AppColors.primaryButton,
                       ),
                       child: Center(
                         child: Text(
@@ -308,7 +312,7 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
                           style: GoogleFonts.inter(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppColors.primaryButtonText,
                           ),
                         ),
                       ),
@@ -331,8 +335,8 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_rounded,
-                          size: 11, color: Color(0xFF7C3AED)),
+                      Icon(Icons.calendar_today_rounded,
+                          size: 11, color: AppColors.primaryButton),
                       const SizedBox(width: 4),
                       Text(
                         'Registered ${_formatDate(p.registeredAt)}',
