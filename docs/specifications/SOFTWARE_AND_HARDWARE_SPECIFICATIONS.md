@@ -95,7 +95,6 @@ The system combines physical wearable optics (**ESP32-CAM OV2640 with 75° FoV l
  | [Thermal] Conductive Thermal Cooling Pads for ESP32 SoC & PSRAM   |
  | [Mount] Dual Hinged Zip-Tie Slots for Eyeglasses Frame Mounting   |
  | [Housing] Weather-Resistant PETG Shell (0.2mm layer height)       |
- | [Vibration] Internal TPU Rubber Gasket Pads                       |
  +-------------------------------------------------------------------+
 ```
 
@@ -109,7 +108,6 @@ The system combines physical wearable optics (**ESP32-CAM OV2640 with 75° FoV l
 * **Weight**: **22 grams** (Enclosure & mount assembly).
 * **Print Settings**: 0.2mm layer height, 30% tri-hexagon structural infill, 4 perimeter wall layers.
 * **Thermal Endurance**: Heat deflection temperature up to **75°C**.
-* **Vibration Isolation**: Integrated TPU (Thermoplastic Polyurethane) dampening pads absorb body motion jitter up to $15\text{ Hz}$.
 * **Cable Routing**: Integrated cable channel guide for 90° USB-C / power cable strain relief.
 
 ---
