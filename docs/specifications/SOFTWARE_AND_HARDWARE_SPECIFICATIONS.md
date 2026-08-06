@@ -179,7 +179,8 @@ graph LR
 
 #### 1. TensorFlow Lite Object Detection Pipeline (`tflite_flutter: ^0.12.1`)
 * **Engine**: TensorFlow Lite C-API Dart Native bindings.
-* **Default Execution Model**: MobileNetV2 SSD trained on MS-COCO dataset (80 object classes including stairs, doors, chairs, vehicles, pedestrians).
+* **Custom MobileNetV2 SSD Model**: Includes a custom fine-tuned **MobileNetV2 SSD** object detection model (`ssd_mobilenet_v2.tflite`) trained to detect and classify **24 specialized accessibility object categories** (such as doors, stairs, chairs, tables, vehicles, pedestrians, crosswalks, traffic signals, curbs, and navigational hazards).
+* **COCO Dataset Fallback**: Supports multi-class COCO object detection (up to 80 standard categories) for general scene parsing.
 * **Tensor Configuration**: Input shape `[1, 300, 300, 3]`, output tensors for bounding box coordinates, class IDs, detection scores, and total count.
 * **Execution Acceleration**: 4-thread CPU interpreter options with fallback to **NNAPI** (Android) or **Metal/GPU Delegate** (iOS).
 
