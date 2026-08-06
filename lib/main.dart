@@ -11,7 +11,7 @@ import 'services/esp32_service.dart';
 import 'widgets/speech_navigation_overlay.dart';
 import 'widgets/confetti_overlay.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Global Flutter error handler to prevent native framework crashes
@@ -19,64 +19,68 @@ void main() async {
     FlutterError.presentError(details);
     print('[EasyLens Error Boundary] Flutter error: ${details.exception}');
   };
-  
-  // Lock screen orientation to portrait
-  try {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-  } catch (e) {
-    print('Orientation lock notice: $e');
-  }
 
-  // Hide phone navigation and status bars globally (Immersive sticky mode)
-  try {
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  } catch (e) {
-    print('System UI mode notice: $e');
-  }
-
-  // Load environment variables (.env file)
-  try {
-    await dotenv.load(fileName: ".env");
-    print(".env variables loaded successfully");
-  } catch (e) {
-    print("Warning: .env file failed to load: $e");
-  }
-
-  // Initialize Firebase Service (safely fallbacks to Mock Mode if config plist/json is not set up)
-  try {
-    final firebaseService = FirebaseService();
-    await firebaseService.initialize();
-  } catch (e) {
-    print("Firebase init safe catch: $e");
-  }
-
-  // Load RAG knowledge base on boot; Gemma LLM model warms up lazily when AI Assistant is opened
-  try {
-    RagService().loadKnowledgeBase().catchError((e) {
-      print("RAG knowledge base load warning: $e");
-    });
-  } catch (e) {
-    print("RAG init safe catch: $e");
-  }
-
-  // Initialize notification service (loads persisted notifications + daily Buddy follow-up)
-  try {
-    await NotificationService().initialize();
-  } catch (e) {
-    print("NotificationService init safe catch: $e");
-  }
-
-  // Initialize ESP32 service (restores last used stream URL from prefs)
-  try {
-    await Esp32Service().initialize();
-  } catch (e) {
-    print("Esp32Service init safe catch: $e");
-  }
- 
+  // Launch UI immediately so iOS Watchdog Timer never terminates the app on boot
   runApp(const EasyLensApp());
+
+  // Initialize all background services asynchronously without blocking initial frame render
+  Future.microtask(() async {
+    // Lock screen orientation to portrait
+    try {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    } catch (e) {
+      print('Orientation lock notice: $e');
+    }
+
+    // Hide phone navigation and status bars globally (Immersive sticky mode)
+    try {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } catch (e) {
+      print('System UI mode notice: $e');
+    }
+
+    // Load environment variables (.env file)
+    try {
+      await dotenv.load(fileName: ".env");
+      print(".env variables loaded successfully");
+    } catch (e) {
+      print("Warning: .env file failed to load: $e");
+    }
+
+    // Initialize Firebase Service (safely fallbacks to Mock Mode if config plist/json is not set up)
+    try {
+      final firebaseService = FirebaseService();
+      await firebaseService.initialize();
+    } catch (e) {
+      print("Firebase init safe catch: $e");
+    }
+
+    // Load RAG knowledge base on boot; Gemma LLM model warms up lazily when AI Assistant is opened
+    try {
+      RagService().loadKnowledgeBase().catchError((e) {
+        print("RAG knowledge base load warning: $e");
+      });
+    } catch (e) {
+      print("RAG init safe catch: $e");
+    }
+
+    // Initialize notification service (loads persisted notifications + daily Buddy follow-up)
+    try {
+      await NotificationService().initialize();
+    } catch (e) {
+      print("NotificationService init safe catch: $e");
+    }
+
+    // Initialize ESP32 service (restores last used stream URL from prefs)
+    try {
+      await Esp32Service().initialize();
+    } catch (e) {
+      print("Esp32Service init safe catch: $e");
+    }
+  });
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
