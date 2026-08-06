@@ -8,58 +8,43 @@ class SoundService {
   factory SoundService() => _instance;
   SoundService._internal();
 
-  /// Play Flutter's built-in native system button click sound (SystemSoundType.click).
+  /// Play click action with tactile haptic feedback (audio SFX removed).
   static void playClick() {
     final settings = SettingsService();
-    if (!settings.soundEffects) return;
-
     try {
-      // 1. Flutter built-in native system click audio
-      SystemSound.play(SystemSoundType.click);
-
-      // 2. Tactile haptic feedback
       if (settings.hapticFeedback) {
         HapticFeedback.selectionClick();
       }
     } catch (_) {}
   }
 
-  /// Play a crisp native button click sound.
+  /// Play a crisp action feedback.
   static void playBlop() => playClick();
 
-  /// Play a primary action button pop sound with medium haptic impact.
+  /// Play pop action feedback.
   static void playPop() {
     final settings = SettingsService();
-    if (!settings.soundEffects) return;
-
     try {
-      SystemSound.play(SystemSoundType.click);
       if (settings.hapticFeedback) {
         HapticFeedback.mediumImpact();
       }
     } catch (_) {}
   }
 
-  /// Play tab or back button navigation sound with light haptic impact.
+  /// Play tab navigation action feedback.
   static void playTab() {
     final settings = SettingsService();
-    if (!settings.soundEffects) return;
-
     try {
-      SystemSound.play(SystemSoundType.click);
       if (settings.hapticFeedback) {
         HapticFeedback.lightImpact();
       }
     } catch (_) {}
   }
 
-  /// Play native system alert sound for warnings or emergency actions.
+  /// Play alert action feedback.
   static void playAlert() {
     final settings = SettingsService();
-    if (!settings.soundEffects) return;
-
     try {
-      SystemSound.play(SystemSoundType.alert);
       if (settings.hapticFeedback) {
         HapticFeedback.heavyImpact();
       }

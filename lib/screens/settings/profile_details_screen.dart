@@ -9,6 +9,8 @@ import '../../services/settings_service.dart';
 import '../../services/emergency_contact_service.dart';
 import '../../constants/colors.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class ProfileDetailsScreen extends StatefulWidget {
   const ProfileDetailsScreen({super.key});
 
@@ -28,6 +30,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   late TextEditingController _sosRelController;
 
   String? _avatarUrl;
+  File? _localImageFile;
   bool _isUploading = false;
   bool _isLoading = true;
 
@@ -54,7 +57,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
       if (publicUrl.isNotEmpty) {
         _avatarUrl = "$publicUrl/users/$userId/avatar.png";
       } else {
-        _avatarUrl = "https://pub-$accountId.r2.dev/$bucketName/users/$userId/avatar.png";
+        _avatarUrl = "https://pub-$accountId.r2.dev/users/$userId/avatar.png";
       }
     } else {
       _avatarUrl = "https://mock-cloudflare-storage.easylens.internal/users/$userId/avatar.png";
@@ -63,24 +66,39 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
   Future<void> _loadProfileDetails() async {
     final user = _firebaseService.currentUser;
-    if (user != null) {
-      try {
+    final uid = user?.uid ?? "anonymous";
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedLocalPath = prefs.getString('local_avatar_path_$uid');
+      if (savedLocalPath != null && savedLocalPath.isNotEmpty) {
+        final file = File(savedLocalPath);
+        if (file.existsSync()) {
+          _localImageFile = file;
+        }
+      }
+
+      if (user != null) {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
 
+          // Check top-level photoUrl first
+          if (data.containsKey('photoUrl') && (data['photoUrl'] as String).isNotEmpty) {
+            _avatarUrl = data['photoUrl'];
+          }
+
           // Load name, birthday, photo from preferences
           if (data.containsKey('preferences')) {
-            final prefs = data['preferences'] as Map<String, dynamic>;
-            if (prefs.containsKey('name') && (prefs['name'] as String).trim().isNotEmpty) {
-              _nameController.text = prefs['name'];
-              SettingsService().updateDisplayName(prefs['name']);
+            final prefData = data['preferences'] as Map<String, dynamic>;
+            if (prefData.containsKey('name') && (prefData['name'] as String).trim().isNotEmpty) {
+              _nameController.text = prefData['name'];
+              SettingsService().updateDisplayName(prefData['name']);
             }
-            if (prefs.containsKey('birthday')) {
-              _birthdayController.text = prefs['birthday'] ?? '';
+            if (prefData.containsKey('birthday')) {
+              _birthdayController.text = prefData['birthday'] ?? '';
             }
-            if (prefs.containsKey('photoUrl') && (prefs['photoUrl'] as String).isNotEmpty) {
-              _avatarUrl = prefs['photoUrl'];
+            if (prefData.containsKey('photoUrl') && (prefData['photoUrl'] as String).isNotEmpty) {
+              _avatarUrl = prefData['photoUrl'];
             }
           }
 
@@ -92,9 +110,9 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             _sosRelController.text = contact['relationship'] ?? '';
           }
         }
-      } catch (e) {
-        print("Error fetching profile details: $e");
       }
+    } catch (e) {
+      print("Error fetching profile details: $e");
     }
     if (mounted) {
       setState(() => _isLoading = false);
@@ -123,21 +141,41 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
       );
 
       if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        final user = _firebaseService.currentUser;
+        final uid = user?.uid ?? "anonymous";
+
+        final sharedPrefs = await SharedPreferences.getInstance();
+        await sharedPrefs.setString('local_avatar_path_$uid', file.path);
+
         setState(() {
+          _localImageFile = file;
           _isUploading = true;
         });
 
-        final file = File(pickedFile.path);
         final uploadedUrl = await _firebaseService.uploadImageFile(file, "users");
 
+        // Clear image cache so new image reloads immediately
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+
+        final updatedAvatarUrl = "$uploadedUrl?t=${DateTime.now().millisecondsSinceEpoch}";
+
+        // Persist avatar URL immediately to Cloud Firestore & user session
+        if (user != null) {
+          await _firebaseService.syncPreferencesToCloud(user.uid, {
+            'photoUrl': uploadedUrl,
+          });
+        }
+
         setState(() {
-          _avatarUrl = "$uploadedUrl?t=${DateTime.now().millisecondsSinceEpoch}";
+          _avatarUrl = updatedAvatarUrl;
           _isUploading = false;
         });
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Avatar uploaded successfully!')),
+            const SnackBar(content: Text('Avatar uploaded and saved successfully!')),
           );
         }
       }
@@ -367,27 +405,46 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                                             ),
                                           ),
                                         )
-                                      : (_avatarUrl != null && !_avatarUrl!.startsWith("https://mock-cloudflare-storage.easylens.internal"))
-                                          ? Image.network(
-                                              _avatarUrl!,
+                                      : (_localImageFile != null && _localImageFile!.existsSync())
+                                          ? Image.file(
+                                              _localImageFile!,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return const Center(
+                                              width: 110,
+                                              height: 110,
+                                            )
+                                          : (_avatarUrl != null &&
+                                                  !_avatarUrl!.startsWith("https://mock-cloudflare-storage.easylens.internal") &&
+                                                  !_avatarUrl!.startsWith("https://mock-firebase-storage.easylens.internal"))
+                                              ? Image.network(
+                                                  _avatarUrl!,
+                                                  fit: BoxFit.cover,
+                                                  width: 110,
+                                                  height: 110,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    if (_localImageFile != null && _localImageFile!.existsSync()) {
+                                                      return Image.file(
+                                                        _localImageFile!,
+                                                        fit: BoxFit.cover,
+                                                        width: 110,
+                                                        height: 110,
+                                                      );
+                                                    }
+                                                    return const Center(
+                                                      child: Icon(
+                                                        Icons.person_outline,
+                                                        size: 56,
+                                                        color: Color(0xFF94A3B8),
+                                                      ),
+                                                    );
+                                                  },
+                                                )
+                                              : const Center(
                                                   child: Icon(
                                                     Icons.person_outline,
                                                     size: 56,
                                                     color: Color(0xFF94A3B8),
                                                   ),
-                                                );
-                                              },
-                                            )
-                                          : const Center(
-                                              child: Icon(
-                                                Icons.person_outline,
-                                                size: 56,
-                                                color: Color(0xFF94A3B8),
-                                              ),
-                                            ),
+                                                ),
                                 ),
                                 Positioned(
                                   bottom: 0,

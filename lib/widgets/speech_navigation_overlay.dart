@@ -322,8 +322,8 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       // Speak direct concise confirmation
       await TtsService().speakAwait(response);
 
-      // Pause 500ms after TTS finishes to allow speaker echo to decay before unmuting mic for user turn
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Pause 1000ms after TTS finishes to allow speaker echo to decay before unmuting mic for user turn
+      await Future.delayed(const Duration(milliseconds: 1000));
     }
 
     if (mounted) {
@@ -334,7 +334,9 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
     _isProcessing = false;
 
     if (mounted && _isLoopActive) {
-      _runSpeechNavigationLoop();
+      if (!TtsService().isSpeaking) {
+        _runSpeechNavigationLoop();
+      }
     }
   }
 
@@ -429,14 +431,17 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       final count = results.length > 5 ? 5 : results.length;
       final sb = StringBuffer();
       sb.write(isFilipino 
-          ? "May nahanap akong $count na lugar para sa '$searchQuery'. " 
-          : "I found $count places for '$searchQuery'. ");
+          ? "Aling lokasyon ang pipiliin mo? " 
+          : "Which location will you choose? ");
       for (int i = 0; i < count; i++) {
-        sb.write("${i + 1}: ${results[i]['name']}. ");
+        final distStr = results[i]['dist'] ?? '';
+        sb.write(isFilipino
+            ? "Numero ${i + 1}: ${results[i]['name']}${distStr.isNotEmpty ? ', may layong $distStr' : ''}. "
+            : "Number ${i + 1}: ${results[i]['name']}${distStr.isNotEmpty ? ', $distStr away' : ''}. ");
       }
       sb.write(isFilipino 
-          ? "Sabihin ang numero 1 hanggang $count upang mag-navigate, o 'Kanselahin'." 
-          : "Please say number 1 to $count to navigate, or say 'Cancel'.");
+          ? "Mangyaring pumili ng numero mula 1 hanggang $count o sabihin ang 'Kanselahin'." 
+          : "Kindly pick a number from 1 to $count or say 'Cancel'.");
       return sb.toString();
     }
 
@@ -455,7 +460,7 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
 
       int selectedIndex = -1;
       
-      // Check word number matches S01
+      // Check word number matches S01 (Supports up to 10)
       if (cleanText.contains("1") || cleanText.contains("one") || cleanText.contains("first") || cleanText.contains("una")) {
         selectedIndex = 0;
       } else if (cleanText.contains("2") || cleanText.contains("two") || cleanText.contains("second") || cleanText.contains("pangalawa")) {
@@ -466,9 +471,19 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
         selectedIndex = 3;
       } else if (cleanText.contains("5") || cleanText.contains("five") || cleanText.contains("fifth") || cleanText.contains("panlima")) {
         selectedIndex = 4;
+      } else if (cleanText.contains("6") || cleanText.contains("six") || cleanText.contains("sixth") || cleanText.contains("pang-anim")) {
+        selectedIndex = 5;
+      } else if (cleanText.contains("7") || cleanText.contains("seven") || cleanText.contains("seventh") || cleanText.contains("pampito")) {
+        selectedIndex = 6;
+      } else if (cleanText.contains("8") || cleanText.contains("eight") || cleanText.contains("eighth") || cleanText.contains("pangwalo")) {
+        selectedIndex = 7;
+      } else if (cleanText.contains("9") || cleanText.contains("nine") || cleanText.contains("ninth") || cleanText.contains("pangsiyam")) {
+        selectedIndex = 8;
+      } else if (cleanText.contains("10") || cleanText.contains("ten") || cleanText.contains("tenth") || cleanText.contains("pangsampu")) {
+        selectedIndex = 9;
       } else {
         // Match specific place name
-        for (int i = 0; i < results.length && i < 5; i++) {
+        for (int i = 0; i < results.length && i < 10; i++) {
           final name = (results[i]['name'] as String).toLowerCase();
           if (cleanText.contains(name) || name.contains(cleanText)) {
             selectedIndex = i;
@@ -914,14 +929,17 @@ class _SpeechNavigationOverlayState extends State<SpeechNavigationOverlay> {
       final count = results.length > 5 ? 5 : results.length;
       final sb = StringBuffer();
       sb.write(isFilipino 
-          ? "May nahanap akong $count na lugar. " 
-          : "I found $count places. ");
+          ? "Aling lokasyon ang pipiliin mo? " 
+          : "Which location will you choose? ");
       for (int i = 0; i < count; i++) {
-        sb.write("${i + 1}: ${results[i]['name']}. ");
+        final distStr = results[i]['dist'] ?? '';
+        sb.write(isFilipino
+            ? "Numero ${i + 1}: ${results[i]['name']}${distStr.isNotEmpty ? ', may layong $distStr' : ''}. "
+            : "Number ${i + 1}: ${results[i]['name']}${distStr.isNotEmpty ? ', $distStr away' : ''}. ");
       }
       sb.write(isFilipino 
-          ? "Sabihin ang numero 1 hanggang $count upang mag-navigate." 
-          : "Please say the number 1 to $count to navigate.");
+          ? "Mangyaring pumili ng numero mula 1 hanggang $count." 
+          : "Kindly pick a number from 1 to $count.");
       return sb.toString();
     }
 

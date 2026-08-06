@@ -44,6 +44,7 @@ class FirebaseService {
     _mockUser = user;
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_completed_onboarding', true);
       await prefs.setBool('is_logged_in', rememberMe);
       await prefs.setBool('remember_me', rememberMe);
       if (rememberMe) {

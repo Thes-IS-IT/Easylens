@@ -128,9 +128,30 @@ class NotificationService extends ChangeNotifier {
 
   // --- Convenience push helpers (called from hardware_screen etc.) ---
 
-  Future<void> pushObstacleAlert(String direction, String objectLabel) async {
-    // Transient obstacle alerts are spoken and drawn on the HUD.
-    // They are not persisted to avoid notification spam and disk writing lag.
+  DateTime? _lastObstacleNotificationTime;
+
+  Future<void> pushObstacleAlert(String direction, String objectLabel, {bool isCritical = true}) async {
+    // Only push notifications for CRITICAL hazard alerts or camera covered events to prevent spam
+    if (!isCritical) return;
+
+    final now = DateTime.now();
+    if (_lastObstacleNotificationTime != null && now.difference(_lastObstacleNotificationTime!).inSeconds < 5) {
+      return; // 5-second cooldown to prevent notification spamming
+    }
+    _lastObstacleNotificationTime = now;
+
+    final labelLower = objectLabel.toLowerCase();
+    final isCameraCovered = labelLower.contains('covered') || labelLower.contains('blocked') || labelLower.contains('camera');
+    final title = isCameraCovered ? 'CRITICAL: Camera Covered / Obstructed!' : 'CRITICAL OBSTACLE ALERT!';
+    final body = isCameraCovered
+        ? 'Your smart glasses camera is covered or obstructed. Clear the camera lens immediately.'
+        : 'Critical obstacle detected ($objectLabel) directly in your path. Stop immediately!';
+
+    await push(
+      type: NotificationType.warning,
+      title: title,
+      body: body,
+    );
   }
 
   Future<void> pushWarning(String warningTitle, String detail) async {
@@ -153,13 +174,18 @@ class NotificationService extends ChangeNotifier {
     );
   }
 
+  bool? _lastConnectionState;
+
   Future<void> pushConnectionAlert(bool connected) async {
+    if (_lastConnectionState == connected) return;
+    _lastConnectionState = connected;
+
     await push(
       type: NotificationType.connection,
       title: connected ? 'Glasses Connected' : 'Glasses Disconnected',
       body: connected
           ? 'Your EasyLens smart glasses are now connected.'
-          : 'Your EasyLens smart glasses lost connection. Check Bluetooth.',
+          : 'Your EasyLens smart glasses lost connection. Check Bluetooth/WiFi.',
     );
   }
 

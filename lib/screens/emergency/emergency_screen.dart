@@ -181,7 +181,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,7 +225,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 ),
               ),
               
-              const Spacer(),
+              const SizedBox(height: 32),
               
               // 2. SOS Title Indicator
               Center(
@@ -239,7 +240,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 ),
               ),
               
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
               
               // 3. Main SOS Center Circle
               Center(
@@ -300,7 +301,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 ),
               ),
               
-              const Spacer(flex: 2),
+              const SizedBox(height: 36),
               
               // 4. Cancel SOS Bottom Button
               SizedBox(

@@ -22,7 +22,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.company.easylens"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -30,16 +29,17 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
-        // Limit native ABIs for debug builds to reduce APK size.
-        // arm64-v8a = modern physical devices, x86_64 = emulators.
-        // Remove this block (or set all ABIs) for production release builds.
-        ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
-        }
+        // No abiFilters here — release APK must include all ABIs so it installs
+        // on any device (arm64-v8a, armeabi-v7a, x86, x86_64).
     }
 
     buildTypes {
+        debug {
+            // Limit ABIs in debug to speed up build / emulator usage.
+            ndk {
+                abiFilters += listOf("arm64-v8a", "x86_64")
+            }
+        }
         release {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
@@ -52,14 +52,8 @@ android {
         }
     }
 
-    packaging {
-        jniLibs {
-            excludes += listOf(
-                "lib/armeabi-v7a/**",
-                "lib/x86/**"
-            )
-        }
-    }
+    // No jniLibs exclusions — release APK must ship with all ABI native libs
+    // so it can install on any Android device architecture.
 }
 
 dependencies {

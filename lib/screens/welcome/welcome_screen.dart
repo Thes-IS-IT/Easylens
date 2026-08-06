@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../login/login_screen.dart';
 import '../../constants/colors.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../../services/firebase_service.dart';
@@ -47,11 +49,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
     _timer = Timer(const Duration(seconds: 3), () async {
       if (mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        final hasCompletedOnboarding = prefs.getBool('has_completed_onboarding') ?? false;
         final firebaseService = FirebaseService();
         final user = firebaseService.currentUser;
         if (user != null) {
           Navigator.of(context).pushReplacement(
             AppRoute.to(const DashboardScreen()),
+          );
+        } else if (hasCompletedOnboarding) {
+          Navigator.of(context).pushReplacement(
+            AppRoute.to(const LoginScreen()),
           );
         } else {
           Navigator.of(context).pushReplacement(

@@ -7,7 +7,7 @@ import 'settings_service.dart';
 class NavigationVoiceAssistant {
   static Future<void> activateSearchAssistant({
     required BuildContext context,
-    required Function(String query) onQueryDiscovered,
+    required Future<List<Map<String, dynamic>>> Function(String query) onQueryDiscovered,
     required List<Map<String, dynamic>> Function() getSearchResults,
     required Function(Map<String, dynamic> place) onPlaceConfirmed,
   }) async {
@@ -52,10 +52,9 @@ class NavigationVoiceAssistant {
       return;
     }
 
-    onQueryDiscovered(finalQuery);
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Await async search execution so HTTP request & spatial filter complete
+    final results = await onQueryDiscovered(finalQuery);
 
-    final results = getSearchResults();
     if (results.isEmpty) {
       TtsService().speak(
         isTagalog
@@ -67,22 +66,103 @@ class NavigationVoiceAssistant {
 
     if (results.length == 1) {
       final place = results.first;
+      final name = place['name'] ?? 'Destination';
+      final dist = place['dist'] ?? '';
+      final time = place['time'] ?? '';
+      
+      final speech = isTagalog
+          ? "Nahanap ang $name, $dist ang layo, humigit-kumulang $time biyahe. Nais mo bang simulan ang nabigasyon?"
+          : "Found $name, $dist away, $time travel time. Would you like to start navigation?";
+      
+      await TtsService().speakAwait(speech);
       onPlaceConfirmed(place);
       return;
     }
 
+    // Present up to 5 distinct branch options dynamically
     final count = results.length > 5 ? 5 : results.length;
     final sb = StringBuffer();
     sb.write(isTagalog
-        ? "May nahanap akong $count na lugar. "
-        : "I found $count places. ");
+        ? "May nahanap akong $count na lokasyon para sa '$finalQuery'. "
+        : "Found $count locations for '$finalQuery'. ");
+
     for (int i = 0; i < count; i++) {
-      sb.write("${i + 1}: ${results[i]['name']}. ");
+      final name = results[i]['name'] ?? 'Place';
+      final dist = results[i]['dist'] ?? '';
+      final numWord = "${i + 1}";
+
+      if (dist.isNotEmpty) {
+        sb.write(isTagalog
+            ? "Sabihin ang $numWord para sa $name, $dist ang layo. "
+            : "Say $numWord for $name, $dist away. ");
+      } else {
+        sb.write(isTagalog
+            ? "Sabihin ang $numWord para sa $name. "
+            : "Say $numWord for $name. ");
+      }
     }
     sb.write(isTagalog
-        ? "Mangyaring pumili sa screen o sabihin ang numero."
-        : "Please tap a place on screen or say the number.");
+        ? "Alin sa mga ito ang nais mo?"
+        : "Which option would you like?");
 
-    TtsService().speak(sb.toString());
+    await TtsService().speakAwait(sb.toString());
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Listen for user's option choice (e.g., "1", "Jollibee Sindalan", "two")
+    String choiceInput = "";
+    final choiceCompleter = Completer<String>();
+
+    await SttService().startListening(
+      onListeningStateChanged: (_) {},
+      onResult: (text, isFinal) {
+        if (TtsService().isSpeaking || TtsService().isSelfEcho(text)) return;
+        if (text.trim().isNotEmpty) {
+          choiceInput = text.trim();
+          if (isFinal && !choiceCompleter.isCompleted) {
+            choiceCompleter.complete(choiceInput);
+          }
+        }
+      },
+    );
+
+    Timer(const Duration(seconds: 6), () {
+      if (!choiceCompleter.isCompleted) {
+        choiceCompleter.complete(choiceInput);
+      }
+    });
+
+    final userChoice = (await choiceCompleter.future).toLowerCase().trim();
+    await SttService().stopListening((_) {});
+
+    int selectedIndex = -1;
+    if (userChoice.contains('1') || userChoice.contains('one') || userChoice.contains('first') || userChoice.contains('una')) {
+      selectedIndex = 0;
+    } else if (userChoice.contains('2') || userChoice.contains('two') || userChoice.contains('second') || userChoice.contains('pangalawa')) {
+      selectedIndex = 1;
+    } else if (userChoice.contains('3') || userChoice.contains('three') || userChoice.contains('third') || userChoice.contains('pangatlo')) {
+      selectedIndex = 2;
+    } else if (userChoice.contains('4') || userChoice.contains('four') || userChoice.contains('fourth') || userChoice.contains('apat')) {
+      selectedIndex = 3;
+    } else if (userChoice.contains('5') || userChoice.contains('five') || userChoice.contains('fifth') || userChoice.contains('lima')) {
+      selectedIndex = 4;
+    } else {
+      for (int i = 0; i < count; i++) {
+        final pName = (results[i]['name'] as String? ?? '').toLowerCase();
+        if (pName.isNotEmpty && userChoice.contains(pName)) {
+          selectedIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (selectedIndex >= 0 && selectedIndex < results.length) {
+      final selectedPlace = results[selectedIndex];
+      final selName = selectedPlace['name'] ?? 'Destination';
+      final confirmSpeech = isTagalog
+          ? "Pinili ang $selName. Sinisimulan ang nabigasyon."
+          : "Selected $selName. Starting navigation.";
+      TtsService().speak(confirmSpeech);
+      onPlaceConfirmed(selectedPlace);
+    }
   }
 }

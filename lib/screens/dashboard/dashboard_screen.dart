@@ -47,7 +47,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   final _firebaseService = FirebaseService();
   late String _displayName;
   int _currentIndex = 0;
-  final _barkPlayer = AudioPlayer();
 
   // Fade-in animation for smooth dashboard entry
   late AnimationController _fadeController;
@@ -91,11 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _checkTutorialStatus();
     _startShakeListening();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _playDashboardBark();
-      }
-    });
+
 
     SpeechNavigationNotifier.tabChangeNotifier.addListener(_onSpeechTabChange);
     SpeechNavigationNotifier.openBuddyNotifier.addListener(_onSpeechOpenBuddy);
@@ -124,12 +119,11 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
-    _fadeController.dispose();
     SpeechNavigationNotifier.tabChangeNotifier.removeListener(_onSpeechTabChange);
     SpeechNavigationNotifier.openBuddyNotifier.removeListener(_onSpeechOpenBuddy);
     DashboardScreen.tutorialNotifier.removeListener(_onTutorialTriggered);
+    _fadeController.dispose();
     _stopShakeListening();
-    _barkPlayer.dispose();
     super.dispose();
   }
 
@@ -147,25 +141,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  /// Plays bark_dashboard.mp3 once when the user arrives on the Home tab without blocking the UI thread.
-  void _playDashboardBark() {
-    try {
-      _barkPlayer.stop();
-      _barkPlayer.play(
-        AssetSource('sounds/bark_dashboard.mp3'),
-        volume: 1.0,
-      ).catchError((_) {});
-    } catch (e) {
-      // Non-fatal — audio failure should never block navigation
-    }
-  }
-
-  /// Central tab-change handler. Plays bark when navigating to dashboard.
+  /// Central tab-change handler.
   void _onTabChanged(int index, {bool isUndo = false}) {
     if (index == _currentIndex) return;
     final previousIndex = _currentIndex;
-    final wasOnHome = _currentIndex == 0;
-    final goingHome = index == 0;
 
     final tabNames = ["Dashboard Home", "Audio Navigation", "Camera/Hardware Mode"];
     if (index >= 0 && index < tabNames.length) {
@@ -174,9 +153,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
 
     setState(() => _currentIndex = index);
-    if (goingHome && !wasOnHome) {
-      _playDashboardBark();
-    }
     if (!isUndo) {
       UndoService().add(() {
         _onTabChanged(previousIndex, isUndo: true);

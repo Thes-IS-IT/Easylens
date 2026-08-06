@@ -1499,7 +1499,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         if (!_isContinuousVoiceEnabled) {
           TtsService().speak(guidance);
         }
-        NotificationService().pushObstacleAlert('center', refinedLabel);
+        NotificationService().pushObstacleAlert('center', refinedLabel, isCritical: true);
       }
 
       if (mounted) {
@@ -1563,7 +1563,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         if (!_isContinuousVoiceEnabled) {
           TtsService().speak(guidance);
         }
-        NotificationService().pushObstacleAlert('center', refinedLabel);
+        NotificationService().pushObstacleAlert('center', refinedLabel, isCritical: false);
       }
 
       if (mounted) {
@@ -1956,7 +1956,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           if (!_isContinuousVoiceEnabled) {
             TtsService().speak(guidance);
           }
-          NotificationService().pushObstacleAlert('center', targetLabel);
+          NotificationService().pushObstacleAlert('center', targetLabel, isCritical: true);
         }
 
         if (mounted) {
@@ -2008,7 +2008,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           if (!_isContinuousVoiceEnabled) {
             TtsService().speak(guidance);
           }
-          NotificationService().pushObstacleAlert('center', targetLabel);
+          NotificationService().pushObstacleAlert('center', targetLabel, isCritical: false);
         }
 
         if (mounted) {

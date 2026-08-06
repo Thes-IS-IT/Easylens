@@ -83,7 +83,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   int _navState = 0;
 
   final _searchController = TextEditingController();
-  final List<String> _filters = ['Home', 'Work', 'Holy Angel University'];
+  final List<String> _filters = ['Restaurants', 'Gas Stations', 'Hospitals', 'Supermarkets', 'ATMs'];
   String _selectedFilter = '';
 
   // Google Map Controller & Native Map availability flag
@@ -92,6 +92,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   LatLng _currentLocation = const LatLng(15.1325, 120.5901); // Fallback coordinates
   StreamSubscription<Position>? _positionStreamSubscription;
+  Timer? _searchDebounceTimer;
   List<LatLng> _routePoints = [];
   bool _isFetchingRoute = false;
 
@@ -112,58 +113,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
   // HAU Location coordinates (Pampanga, PH)
   static const LatLng _hauLatLng = LatLng(15.1325, 120.5901);
 
-  // Caching mechanism to limit Google Maps api calls
-  static final Map<String, List<Map<String, dynamic>>> _placesCache = {};
+  // Caching mechanism to limit Google Maps api calls — NOT static so stale data resets on widget rebuild
+  final Map<String, List<Map<String, dynamic>>> _placesCache = {};
 
-  final List<Map<String, dynamic>> _allPlaces = [
-    {
-      'name': 'Holy Angel University',
-      'address': 'Holy Angel University Main Bldg, Angeles City',
-      'dist': '0.8 km',
-      'time': '10 min',
-      'latLng': _hauLatLng,
-      'steps': [
-        'Head toward Lubao Bypass Rd',
-        'Turn right onto J A Santos Ave',
-        'Continue straight for 300 meters',
-        'Arrive at Holy Angel University'
-      ]
-    },
-    {
-      'name': 'Angeles University Foundation',
-      'address': 'MacArthur Hwy, Angeles, Pampanga',
-      'dist': '2.1 km',
-      'time': '15 min',
-      'latLng': LatLng(15.1481, 120.5983),
-      'steps': ['Head north on MacArthur Hwy', 'Make a U-turn at AUF main gate']
-    },
-    {
-      'name': 'Nepo Mall',
-      'address': 'St. Joseph St, Angeles City',
-      'dist': '1.2 km',
-      'time': '8 min',
-      'latLng': LatLng(15.1352, 120.5843),
-      'steps': ['Head west toward Teresa Ave', 'Turn left on St. Joseph St']
-    },
-    {
-      'name': 'Carmelite Monastery',
-      'address': 'Angeles City, Pampanga',
-      'dist': '1.5 km',
-      'time': '12 min',
-      'latLng': LatLng(15.1275, 120.5910),
-      'steps': ['Head south toward Carmelite St', 'Arrive at Carmel Monastery']
-    },
-    {
-      'name': 'SM City Clark',
-      'address': 'M.A. Roxas Hwy, Clark Freeport Zone',
-      'dist': '3.5 km',
-      'time': '20 min',
-      'latLng': LatLng(15.1702, 120.5796),
-      'steps': ['Head north toward Roxas Highway', 'Take the exit toward SM Clark']
-    }
-  ];
 
   List<Map<String, dynamic>> _searchResults = [];
+  bool _isSearching = false;
   Map<String, dynamic>? _selectedPlace;
   Map<String, dynamic>? _pendingPlaceToConfirm;
   int _currentStepIndex = 0;
@@ -173,16 +128,33 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _searchResults = results;
     });
     SpeechNavigationNotifier.activeSearchResults = results;
+
+    if (_mapController != null && results.isNotEmpty) {
+      try {
+        final firstPos = results.first['latLng'] as LatLng?;
+        if (firstPos != null) {
+          _mapController?.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: firstPos,
+                zoom: 15.2,
+              ),
+            ),
+          );
+        }
+      } catch (_) {}
+    }
   }
 
   void _activateVoiceSearch() {
     NavigationVoiceAssistant.activateSearchAssistant(
       context: context,
-      onQueryDiscovered: (query) {
+      onQueryDiscovered: (query) async {
         if (mounted) {
           _searchController.text = query;
-          _performSearch(query);
+          return await _performSearch(query);
         }
+        return [];
       },
       getSearchResults: () => _searchResults,
       onPlaceConfirmed: (place) {
@@ -340,9 +312,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
         if (parsed.isNotEmpty) {
           setState(() {
-            final Set<String> recentNames = parsed.map((e) => e['name'].toString().toLowerCase()).toSet();
-            final remainingDefaults = _allPlaces.where((p) => !recentNames.contains(p['name'].toString().toLowerCase())).toList();
-            _searchResults = [...parsed, ...remainingDefaults];
+            _searchResults = List.from(parsed);
             SpeechNavigationNotifier.activeSearchResults = _searchResults;
           });
         }
@@ -355,7 +325,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   void initState() {
     super.initState();
-    _searchResults = List.from(_allPlaces);
+    _searchResults = [];
+    _getRealNearbyInitialPlaces().then((res) {
+      if (mounted && _searchResults.isEmpty) {
+        setState(() {
+          _searchResults = res;
+          SpeechNavigationNotifier.activeSearchResults = _searchResults;
+        });
+      }
+    });
     SpeechNavigationNotifier.activeSearchResults = _searchResults;
     _initializeLocationTracking();
     _loadRecentNavigations();
@@ -424,30 +402,27 @@ class _NavigationScreenState extends State<NavigationScreen> {
         return;
       }
 
-      // Get current location once with high accuracy
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-        timeLimit: const Duration(seconds: 5),
-      );
-      
-      if (mounted) {
-        setState(() {
-          _currentLocation = LatLng(position.latitude, position.longitude);
-        });
-      }
+      // Step 1: Immediate 0ms last known position update to eliminate HAU fallback default
+      try {
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown != null && mounted) {
+          setState(() {
+            _currentLocation = LatLng(lastKnown.latitude, lastKnown.longitude);
+          });
+          _mapController?.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(target: _currentLocation, zoom: 16),
+            ),
+          );
+        }
+      } catch (_) {}
 
-      // Animate map to location on boot
-      _mapController?.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(target: _currentLocation, zoom: 16),
-        ),
-      );
-
-      // Listen to continuous location changes to update marker dynamically
+      // Step 2: Start continuous position stream IMMEDIATELY
+      _positionStreamSubscription?.cancel();
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 5, // update every 5 meters
+          distanceFilter: 3, // update every 3 meters
         ),
       ).listen((Position position) {
         if (mounted) {
@@ -455,28 +430,40 @@ class _NavigationScreenState extends State<NavigationScreen> {
             _currentLocation = LatLng(position.latitude, position.longitude);
           });
 
-          if (_selectedPlace != null) {
-            // Smoothly track current location if navigating
-            if (_navState == 1) {
-              _mapController?.animateCamera(
-                CameraUpdate.newLatLng(_currentLocation),
-              );
-              // Check proximity to current step / destination and warn if off-route
-              _checkNavigationProgress(position);
-            }
+          if (_searchController.text.trim().isEmpty) {
+            _performSearch("");
+          }
+
+          if (_selectedPlace != null && _navState == 1) {
+            _mapController?.animateCamera(
+              CameraUpdate.newLatLng(_currentLocation),
+            );
+            _checkNavigationProgress(position);
           }
         }
       });
+
+      // Step 3: High-accuracy position fetch
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 4),
+      );
+      
+      if (mounted) {
+        setState(() {
+          _currentLocation = LatLng(position.latitude, position.longitude);
+        });
+        _mapController?.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(target: _currentLocation, zoom: 16),
+          ),
+        );
+        if (_searchController.text.trim().isEmpty) {
+          _performSearch("");
+        }
+      }
     } catch (e) {
       print('Location tracking init error: $e');
-      try {
-        final position = await Geolocator.getLastKnownPosition();
-        if (position != null) {
-          setState(() {
-            _currentLocation = LatLng(position.latitude, position.longitude);
-          });
-        }
-      } catch (_) {}
     }
   }
 
@@ -547,6 +534,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
       destination.longitude,
     );
 
+    // Update real-time distance remaining on selected place & global status
+    final dynamicDistStr = _formatDistance("${distToDestM.round()} m", unit);
+    _selectedPlace!['dist'] = dynamicDistStr;
+    ActiveNavigationService().updateProgress(
+      currentStepText: _formatStep(steps[_currentStepIndex], unit),
+      distanceRemaining: dynamicDistStr,
+      timeRemaining: _selectedPlace!['time'] ?? '',
+      currentLocation: _currentLocation,
+      currentStepIndex: _currentStepIndex,
+    );
+
     if (distToDestM < 20 && !_hasAnnouncedArrival) {
       _hasAnnouncedArrival = true;
       TtsService().speak(
@@ -575,7 +573,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // --- 4. Announce upcoming turns using step physical locations ---
     if (_currentStepIndex < steps.length && _currentStepIndex < _stepLocations.length) {
       final stepTarget = _stepLocations[_currentStepIndex];
-      final currentStepText = _formatStep(steps[_currentStepIndex], unit);
+      final rawStepText = _formatStep(steps[_currentStepIndex], unit);
+      // Clean static embedded distances ("for 300 meters") so spoken cue matches real-time distance
+      final cleanStepText = rawStepText.replaceAll(
+        RegExp(r'\s+for\s+[\d.]+\s*(?:meters|meter|km|miles|mile|feet|foot|ft|m\b)', caseSensitive: false),
+        '',
+      ).trim();
 
       final distToStepM = Geolocator.distanceBetween(
         _currentLocation.latitude,
@@ -597,8 +600,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
           final isTagalog = SettingsService().selectedLanguage == 'Tagalog';
           TtsService().speak(
             isTagalog
-                ? 'Maglakad nang diretso nang $announceDist, tapos $currentStepText'
-                : 'Go forward for $announceDist, then $currentStepText'
+                ? 'Maglakad nang $announceDist, tapos $cleanStepText'
+                : 'Walk for $announceDist, then $cleanStepText'
           );
         }
       }
@@ -610,16 +613,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
             _currentStepIndex++;
             _lastDynamicAnnouncedDistanceM = null;
           });
-          // Update global navigation status bar
+          final nextStepText = _formatStep(steps[_currentStepIndex], unit);
           ActiveNavigationService().updateProgress(
-            currentStepText: _formatStep(steps[_currentStepIndex], unit),
-            distanceRemaining: _selectedPlace!['dist'],
-            timeRemaining: _selectedPlace!['time'],
+            currentStepText: nextStepText,
+            distanceRemaining: dynamicDistStr,
+            timeRemaining: _selectedPlace!['time'] ?? '',
             currentLocation: _currentLocation,
             currentStepIndex: _currentStepIndex,
           );
-          // Critical turn info bypasses all cooldowns
-          TtsService().speak(_formatStep(steps[_currentStepIndex], unit));
+          TtsService().speak(nextStepText);
         }
       } 
       else if (distToStepM < 60) {
@@ -631,8 +633,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
               : '${distToStepM.round()} meters';
           TtsService().speak(
             SettingsService().selectedLanguage == 'Tagalog'
-                ? 'Sa loob ng $warnDist, $currentStepText'
-                : 'In $warnDist, $currentStepText',
+                ? 'Sa loob ng $warnDist, $cleanStepText'
+                : 'In $warnDist, $cleanStepText',
           );
         }
       } 
@@ -641,7 +643,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         if (_lastProximityIndexAnnounced != _currentStepIndex && (now - _lastProximityAlertTime > 20000)) {
           _lastProximityAlertTime = now;
           _lastProximityIndexAnnounced = _currentStepIndex;
-          TtsService().speak(currentStepText);
+          TtsService().speak(cleanStepText);
         }
       }
     }
@@ -796,72 +798,202 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
-  // Live filtered search with API cache limit protection
-  Future<void> _performSearch(String query) async {
-
-    if (query.trim().isEmpty) {
-      _updateSearchResults(List.from(_allPlaces));
+  // Debounced search wrapper — waits 600ms after user stops typing before firing API
+  void _onSearchChanged(String rawQuery) {
+    _searchDebounceTimer?.cancel();
+    if (rawQuery.trim().isEmpty) {
+      _performSearch(rawQuery);
       return;
+    }
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 600), () {
+      _performSearch(rawQuery);
+    });
+  }
+
+  // Fetches real authentic nearby places from Photon API when search box is empty
+  Future<List<Map<String, dynamic>>> _getRealNearbyInitialPlaces() async {
+    final List<Map<String, dynamic>> places = [];
+    try {
+      final photonUrl = Uri.parse(
+        'https://photon.komoot.io/api/'
+        '?q=store'
+        '&lat=${_currentLocation.latitude}'
+        '&lon=${_currentLocation.longitude}'
+        '&limit=10'
+      );
+      final response = await http.get(photonUrl).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final features = data['features'] as List?;
+        if (features != null) {
+          for (final feat in features) {
+            final props = feat['properties'] as Map<String, dynamic>? ?? {};
+            final geom = feat['geometry'] as Map<String, dynamic>? ?? {};
+            final coords = geom['coordinates'] as List?;
+            if (coords == null || coords.length < 2) continue;
+
+            final double lng = (coords[0] as num).toDouble();
+            final double lat = (coords[1] as num).toDouble();
+            final targetLatLng = LatLng(lat, lng);
+
+            String rawName = props['name']?.toString() ?? '';
+            if (rawName.trim().isEmpty) continue;
+
+            final street = props['street']?.toString() ?? '';
+            final locality = props['locality']?.toString() ?? props['district']?.toString() ?? props['suburb']?.toString() ?? '';
+            final city = props['city']?.toString() ?? '';
+            final state = props['state']?.toString() ?? '';
+
+            final addrParts = [street, locality, city, state].where((s) => s.isNotEmpty).toList();
+            final formattedAddress = addrParts.isNotEmpty ? addrParts.join(', ') : 'Nearby';
+
+            if (places.any((p) => p['name'] == rawName || (p['latLng'] as LatLng).latitude == lat)) {
+              continue;
+            }
+
+            final calc = _calculateDistanceAndTime(targetLatLng);
+            final distMeters = Geolocator.distanceBetween(
+              _currentLocation.latitude,
+              _currentLocation.longitude,
+              lat,
+              lng,
+            );
+
+            places.add({
+              'name': rawName,
+              'address': formattedAddress,
+              'dist': calc['dist']!,
+              'time': calc['time']!,
+              'distanceMeters': distMeters,
+              'latLng': targetLatLng,
+              'steps': [
+                'Head toward $rawName',
+                'Follow directional signs',
+                'Arrive at $rawName'
+              ]
+            });
+          }
+        }
+      }
+    } catch (_) {}
+
+    places.sort((a, b) => (a['distanceMeters'] as num).compareTo(b['distanceMeters'] as num));
+    return places.take(5).toList();
+  }
+
+  // Live filtered search with authentic spatial API queries — NO SYNTHETIC/FAKE PLACES EVER
+  Future<List<Map<String, dynamic>>> _performSearch(String rawQuery) async {
+    if (rawQuery.trim().isEmpty) {
+      final res = await _getRealNearbyInitialPlaces();
+      if (mounted) setState(() { _isSearching = false; });
+      _updateSearchResults(res);
+      return res;
+    }
+
+    if (mounted) setState(() { _isSearching = true; });
+
+    // Refresh live GPS position immediately before sending search API requests
+    try {
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null && mounted) {
+        setState(() {
+          _currentLocation = LatLng(lastKnown.latitude, lastKnown.longitude);
+        });
+      }
+    } catch (_) {}
+
+    // Clean voice query prefixes
+    String query = rawQuery.trim();
+    final cleanReg = RegExp(
+      r'^(?:navigate to|take me to|go to|look for|find|search for|nearest|malapit na|pumunta sa|hanapin ang|hanapin sa)\s+',
+      caseSensitive: false,
+    );
+    while (cleanReg.hasMatch(query)) {
+      query = query.replaceFirst(cleanReg, '').trim();
+    }
+    if (query.isEmpty) query = rawQuery.trim();
+
+    // Brand query title normalization
+    final lowerRaw = query.toLowerCase();
+    if (lowerRaw.contains('jollib') || lowerRaw.contains('jolib')) {
+      query = 'Jollibee';
+    } else if (lowerRaw.contains('mcdonald') || lowerRaw.contains('mcdo')) {
+      query = "McDonald's";
+    } else if (lowerRaw.contains('starbuck')) {
+      query = 'Starbucks';
+    } else if (lowerRaw.contains('chowking') || lowerRaw.contains('choking')) {
+      query = 'Chowking';
     }
 
     final lowercaseQuery = query.toLowerCase();
 
     // Check query cache
     if (_placesCache.containsKey(lowercaseQuery)) {
-      _updateSearchResults(_placesCache[lowercaseQuery]!);
-      print("Serving search results from local cache (API count protected)");
-      return;
+      final cached = _placesCache[lowercaseQuery]!;
+      if (mounted) setState(() { _isSearching = false; });
+      _updateSearchResults(cached);
+      return cached;
     }
 
     final List<Map<String, dynamic>> mappedPlaces = [];
 
-    // 1. Check local places first to seed matching results
-    final localResults = _allPlaces.where((place) {
-      final name = (place['name'] as String).toLowerCase();
-      final address = (place['address'] as String).toLowerCase();
-      return name.contains(lowercaseQuery) || address.contains(lowercaseQuery);
-    }).toList();
-    mappedPlaces.addAll(localResults);
-
     final apiKey = dotenv.env['GOOGLE_MAPS_KEY'] ?? '';
+    const androidPackage = 'com.company.easylens';
+    const androidCert = '449D1DCB363A578B7DE1E010286D8C0A90A40E57';
+    final googleHeaders = {
+      'X-Android-Package': androidPackage,
+      'X-Android-Cert': androidCert,
+    };
 
+    print('[EASYLENS SEARCH] query="$query" loc=${_currentLocation.latitude},${_currentLocation.longitude}');
+
+    // 1. Google Places Text Search API (Official Google Maps Places — Authorized via Package + Cert)
     if (apiKey.isNotEmpty) {
       try {
-        // 2. Fetch from Google Places Text Search API
-        final requestUrl = Uri.parse(
+        final googleTextUrl = Uri.parse(
           'https://maps.googleapis.com/maps/api/place/textsearch/json'
           '?query=${Uri.encodeComponent(query)}'
           '&location=${_currentLocation.latitude},${_currentLocation.longitude}'
-          '&radius=100000'
+          '&region=ph'
           '&key=$apiKey'
         );
-        final response = await http.get(requestUrl);
+        print('[EASYLENS GOOGLE TEXT] Querying: $googleTextUrl');
+        final response = await http.get(googleTextUrl, headers: googleHeaders).timeout(const Duration(seconds: 4));
+        print('[EASYLENS GOOGLE TEXT] HTTP ${response.statusCode}');
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          if (data['status'] == 'OK' && data['results'] != null) {
+          final status = data['status'] ?? 'UNKNOWN';
+          print('[EASYLENS GOOGLE TEXT] Status: $status, Results: ${(data['results'] as List?)?.length}');
+          if (data['results'] != null && (data['results'] as List).isNotEmpty) {
             final List<dynamic> results = data['results'];
             for (final res in results) {
               final lat = (res['geometry']['location']['lat'] as num).toDouble();
               final lng = (res['geometry']['location']['lng'] as num).toDouble();
-              final name = res['name'] as String;
+              String name = res['name'] as String;
               final formattedAddress = res['formatted_address'] ?? res['vicinity'] ?? '';
-              
-              // Skip if already added from local results
+              final targetLatLng = LatLng(lat, lng);
+
               if (mappedPlaces.any((p) => p['name'] == name || (p['latLng'] as LatLng).latitude == lat)) {
                 continue;
               }
 
-              final calc = _calculateDistanceAndTime(LatLng(lat, lng));
+              final calc = _calculateDistanceAndTime(targetLatLng);
+              final distMeters = Geolocator.distanceBetween(
+                _currentLocation.latitude,
+                _currentLocation.longitude,
+                lat,
+                lng,
+              );
 
               mappedPlaces.add({
                 'name': name,
                 'address': formattedAddress,
                 'dist': calc['dist']!,
                 'time': calc['time']!,
-                'latLng': LatLng(lat, lng),
+                'distanceMeters': distMeters,
+                'latLng': targetLatLng,
                 'steps': [
                   'Head toward $name',
-                  'Turn right onto closest main road',
                   'Follow directional signs',
                   'Arrive at $name'
                 ]
@@ -870,63 +1002,269 @@ class _NavigationScreenState extends State<NavigationScreen> {
           }
         }
       } catch (e) {
-        debugPrint("Google Places API search error: $e");
+        print('[EASYLENS GOOGLE TEXT ERROR] $e');
       }
     }
 
-    // 3. Fallback to OpenStreetMap (Nominatim) search if Google Places returns no results
-    if (mappedPlaces.isEmpty) {
+    // 2. Google Places Nearby Search API (Ranked strictly by distance from live GPS)
+    if (mappedPlaces.length < 5 && apiKey.isNotEmpty) {
       try {
-        final osmUrl = Uri.parse(
-          'https://nominatim.openstreetmap.org/search'
-          '?q=${Uri.encodeComponent(query)}'
-          '&format=json'
-          '&addressdetails=1'
-          '&limit=10'
+        final nearbyUrl = Uri.parse(
+          'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+          '?keyword=${Uri.encodeComponent(query)}'
+          '&location=${_currentLocation.latitude},${_currentLocation.longitude}'
+          '&rankby=distance'
+          '&key=$apiKey'
         );
-        final response = await http.get(osmUrl, headers: {
-          'User-Agent': 'EasyLensApp/1.0 (contact@easylens.com)'
-        });
+        print('[EASYLENS GOOGLE NEARBY] Querying: $nearbyUrl');
+        final response = await http.get(nearbyUrl, headers: googleHeaders).timeout(const Duration(seconds: 4));
+        print('[EASYLENS GOOGLE NEARBY] HTTP ${response.statusCode}');
         if (response.statusCode == 200) {
-          final List<dynamic> results = jsonDecode(response.body);
-          for (final res in results) {
-            final lat = double.tryParse(res['lat'].toString()) ?? 0.0;
-            final lng = double.tryParse(res['lon'].toString()) ?? 0.0;
-            if (lat == 0.0 && lng == 0.0) continue;
+          final data = jsonDecode(response.body);
+          if (data['results'] != null && (data['results'] as List).isNotEmpty) {
+            final List<dynamic> results = data['results'];
+            for (final res in results) {
+              final lat = (res['geometry']['location']['lat'] as num).toDouble();
+              final lng = (res['geometry']['location']['lng'] as num).toDouble();
+              String name = res['name'] as String;
+              final formattedAddress = res['vicinity'] ?? res['formatted_address'] ?? '';
+              final targetLatLng = LatLng(lat, lng);
 
-            final name = (res['name'] != null && res['name'].toString().isNotEmpty)
-                ? res['name'].toString()
-                : (res['display_name'] ?? '').toString().split(',')[0];
-            final formattedAddress = (res['display_name'] ?? '').toString();
+              if (mappedPlaces.any((p) => p['name'] == name || (p['latLng'] as LatLng).latitude == lat)) {
+                continue;
+              }
 
-            if (mappedPlaces.any((p) => p['name'] == name || (p['latLng'] as LatLng).latitude == lat)) {
-              continue;
+              final calc = _calculateDistanceAndTime(targetLatLng);
+              final distMeters = Geolocator.distanceBetween(
+                _currentLocation.latitude,
+                _currentLocation.longitude,
+                lat,
+                lng,
+              );
+
+              mappedPlaces.add({
+                'name': name,
+                'address': formattedAddress,
+                'dist': calc['dist']!,
+                'time': calc['time']!,
+                'distanceMeters': distMeters,
+                'latLng': targetLatLng,
+                'steps': [
+                  'Head toward $name',
+                  'Turn right onto main road',
+                  'Arrive at $name'
+                ]
+              });
             }
-
-            final calc = _calculateDistanceAndTime(LatLng(lat, lng));
-
-            mappedPlaces.add({
-              'name': name,
-              'address': formattedAddress,
-              'dist': calc['dist']!,
-              'time': calc['time']!,
-              'latLng': LatLng(lat, lng),
-              'steps': [
-                'Head toward $name',
-                'Turn right onto closest main road',
-                'Follow directional signs',
-                'Arrive at $name'
-              ]
-            });
           }
         }
       } catch (e) {
-        debugPrint("Nominatim search error: $e");
+        print('[EASYLENS GOOGLE NEARBY ERROR] $e');
       }
     }
 
-    _placesCache[lowercaseQuery] = mappedPlaces;
-    _updateSearchResults(mappedPlaces);
+    // 3. Photon Real Spatial Search API (OpenStreetMap Engine — Secondary Fallback)
+    if (mappedPlaces.length < 5) {
+      try {
+        final photonUrl = Uri.parse(
+          'https://photon.komoot.io/api/'
+          '?q=${Uri.encodeComponent(query)}'
+          '&lat=${_currentLocation.latitude}'
+          '&lon=${_currentLocation.longitude}'
+          '&limit=15'
+        );
+        print('[EASYLENS PHOTON] Querying: $photonUrl');
+        final response = await http.get(photonUrl).timeout(const Duration(seconds: 4));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final features = data['features'] as List?;
+          if (features != null && features.isNotEmpty) {
+            for (final feat in features) {
+              final props = feat['properties'] as Map<String, dynamic>? ?? {};
+              final geom = feat['geometry'] as Map<String, dynamic>? ?? {};
+              final coords = geom['coordinates'] as List?;
+              if (coords == null || coords.length < 2) continue;
+
+              final double lng = (coords[0] as num).toDouble();
+              final double lat = (coords[1] as num).toDouble();
+              final targetLatLng = LatLng(lat, lng);
+
+              String rawName = props['name']?.toString() ?? '';
+              if (rawName.trim().isEmpty) continue;
+
+              final street = props['street']?.toString() ?? '';
+              final locality = props['locality']?.toString() ?? props['district']?.toString() ?? props['suburb']?.toString() ?? '';
+              final city = props['city']?.toString() ?? '';
+              final state = props['state']?.toString() ?? '';
+
+              String displayName = rawName;
+              if (locality.isNotEmpty && !displayName.toLowerCase().contains(locality.toLowerCase())) {
+                displayName = '$rawName - $locality';
+              } else if (city.isNotEmpty && !displayName.toLowerCase().contains(city.toLowerCase())) {
+                displayName = '$rawName - $city';
+              }
+
+              final addrParts = [street, locality, city, state].where((s) => s.isNotEmpty).toList();
+              final formattedAddress = addrParts.isNotEmpty ? addrParts.join(', ') : 'Nearby $displayName';
+
+              if (mappedPlaces.any((p) => p['name'] == displayName || (p['latLng'] as LatLng).latitude == lat)) {
+                continue;
+              }
+
+              final calc = _calculateDistanceAndTime(targetLatLng);
+              final distMeters = Geolocator.distanceBetween(
+                _currentLocation.latitude,
+                _currentLocation.longitude,
+                lat,
+                lng,
+              );
+
+              mappedPlaces.add({
+                'name': displayName,
+                'address': formattedAddress,
+                'dist': calc['dist']!,
+                'time': calc['time']!,
+                'distanceMeters': distMeters,
+                'latLng': targetLatLng,
+                'steps': [
+                  'Head toward $displayName',
+                  'Follow directional signs',
+                  'Arrive at $displayName'
+                ]
+              });
+            }
+          }
+        }
+      } catch (e) {
+        print('[EASYLENS PHOTON ERROR] $e');
+      }
+    }
+
+    // 4. Smart Query Decomposition Fallback for multi-word location queries (e.g. "jollibee calulut")
+    if (mappedPlaces.isEmpty && query.contains(' ')) {
+      try {
+        final tokens = query.split(' ').where((t) => t.trim().isNotEmpty).toList();
+        String brandToken = '';
+        String locationToken = '';
+
+        for (int i = 0; i < tokens.length; i++) {
+          final t = tokens[i].toLowerCase();
+          if (t.contains('jollib') || t.contains('jolib')) {
+            brandToken = 'Jollibee';
+          } else if (t.contains('mcdonald') || t.contains('mcdo')) {
+            brandToken = "McDonald's";
+          } else if (t.contains('shakey')) {
+            brandToken = "Shakey's";
+          } else if (t.contains('starbuck')) {
+            brandToken = 'Starbucks';
+          } else if (t.contains('chowking')) {
+            brandToken = 'Chowking';
+          } else {
+            if (locationToken.isNotEmpty) locationToken += ' ';
+            locationToken += tokens[i];
+          }
+        }
+
+        if (brandToken.isNotEmpty && locationToken.isNotEmpty) {
+          print('[EASYLENS SMART SEARCH] Brand: "$brandToken", Location Modifier: "$locationToken"');
+          // Geocode location modifier first
+          final geoUrl = Uri.parse(
+            'https://photon.komoot.io/api/'
+            '?q=${Uri.encodeComponent(locationToken)}'
+            '&lat=${_currentLocation.latitude}'
+            '&lon=${_currentLocation.longitude}'
+            '&limit=1'
+          );
+          final geoResp = await http.get(geoUrl).timeout(const Duration(seconds: 3));
+          if (geoResp.statusCode == 200) {
+            final geoData = jsonDecode(geoResp.body);
+            final feats = geoData['features'] as List?;
+            if (feats != null && feats.isNotEmpty) {
+              final coords = feats[0]['geometry']['coordinates'] as List?;
+              if (coords != null && coords.length >= 2) {
+                final targetLat = (coords[1] as num).toDouble();
+                final targetLng = (coords[0] as num).toDouble();
+
+                // Now search brand centered at location modifier coordinates
+                final brandUrl = Uri.parse(
+                  'https://photon.komoot.io/api/'
+                  '?q=${Uri.encodeComponent(brandToken)}'
+                  '&lat=$targetLat'
+                  '&lon=$targetLng'
+                  '&limit=15'
+                );
+                print('[EASYLENS SMART SEARCH] Querying brand near location: $brandUrl');
+                final brandResp = await http.get(brandUrl).timeout(const Duration(seconds: 3));
+                if (brandResp.statusCode == 200) {
+                  final brandData = jsonDecode(brandResp.body);
+                  final brandFeats = brandData['features'] as List?;
+                  if (brandFeats != null) {
+                    for (final feat in brandFeats) {
+                      final props = feat['properties'] as Map<String, dynamic>? ?? {};
+                      final geom = feat['geometry'] as Map<String, dynamic>? ?? {};
+                      final c = geom['coordinates'] as List?;
+                      if (c == null || c.length < 2) continue;
+
+                      final double pLng = (c[0] as num).toDouble();
+                      final double pLat = (c[1] as num).toDouble();
+                      final placeLatLng = LatLng(pLat, pLng);
+
+                      String rawName = props['name']?.toString() ?? brandToken;
+                      final street = props['street']?.toString() ?? '';
+                      final locality = props['locality']?.toString() ?? props['district']?.toString() ?? locationToken;
+                      final city = props['city']?.toString() ?? '';
+                      final state = props['state']?.toString() ?? '';
+
+                      String displayName = '$rawName - $locality';
+                      final addrParts = [street, locality, city, state].where((s) => s.isNotEmpty).toList();
+                      final formattedAddress = addrParts.isNotEmpty ? addrParts.join(', ') : '$brandToken in $locationToken';
+
+                      final calc = _calculateDistanceAndTime(placeLatLng);
+                      final distMeters = Geolocator.distanceBetween(
+                        _currentLocation.latitude,
+                        _currentLocation.longitude,
+                        pLat,
+                        pLng,
+                      );
+
+                      mappedPlaces.add({
+                        'name': displayName,
+                        'address': formattedAddress,
+                        'dist': calc['dist']!,
+                        'time': calc['time']!,
+                        'distanceMeters': distMeters,
+                        'latLng': placeLatLng,
+                        'steps': [
+                          'Head toward $displayName',
+                          'Follow directional signs',
+                          'Arrive at $displayName'
+                        ]
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('[EASYLENS SMART SEARCH ERROR] $e');
+      }
+    }
+
+    // Sort by physical distance ascending (NEAREST FIRST)
+    mappedPlaces.sort((a, b) {
+      final double distA = (a['distanceMeters'] as num?)?.toDouble() ?? 0.0;
+      final double distB = (b['distanceMeters'] as num?)?.toDouble() ?? 0.0;
+      return distA.compareTo(distB);
+    });
+
+    final List<Map<String, dynamic>> finalResults = mappedPlaces.take(5).toList();
+
+    if (mounted) setState(() { _isSearching = false; });
+    _placesCache[lowercaseQuery] = finalResults;
+    _updateSearchResults(finalResults);
+    return finalResults;
   }
 
   void _onFilterTap(String filter) {
@@ -1038,7 +1376,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       _lastDynamicAnnouncedDistanceM = null;
       _hasAnnouncedArrival = false;
       _searchController.clear();
-      _searchResults = List.from(_allPlaces);
+      _performSearch("");
       SpeechNavigationNotifier.activeSearchResults = _searchResults;
       _stepLocations = [];
       _lastRerouteTime = 0;
@@ -1200,59 +1538,37 @@ class _NavigationScreenState extends State<NavigationScreen> {
             body: Stack(
               fit: StackFit.expand,
               children: [
-          // ── GOOGLE MAPS BACKGROUND WITH STYLIZED CANVAS FALLBACK ──
+          // ── DYNAMIC GOOGLE MAPS INTERACTIVE OVERLAY ──
           Positioned.fill(
             child: SizedBox.expand(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(
-                      size: Size.infinite,
-                      painter: _MapCanvasPainter(
-                        isNavigating: _navState == 1 || _selectedPlace != null,
-                        destinationName: _selectedPlace != null ? _selectedPlace!['name'] as String? : null,
-                      ),
-                    ),
-                  ),
-                  if (_isNativeMapAvailable)
-                    Positioned.fill(
-                      child: GoogleMap(
-                        initialCameraPosition: CameraPosition(
+              child: GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: _currentLocation,
+                  zoom: 15.0,
+                ),
+                zoomControlsEnabled: false,
+                myLocationButtonEnabled: false,
+                myLocationEnabled: false, // Prevents native SecurityException crash on Android
+                mapToolbarEnabled: false,
+                compassEnabled: false,
+                mapType: MapType.normal,
+                markers: _getMapMarkers(),
+                polylines: _getMapPolylines(),
+                onTap: _onMapLongPress,
+                onLongPress: _onMapLongPress,
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                  try {
+                    _mapController?.animateCamera(
+                      CameraUpdate.newCameraPosition(
+                        CameraPosition(
                           target: _currentLocation,
-                          zoom: 15.0,
+                          zoom: 15.5,
                         ),
-                        zoomControlsEnabled: false,
-                        myLocationButtonEnabled: false,
-                        myLocationEnabled: false, // Prevents native SecurityException crash on Android
-                        mapToolbarEnabled: false,
-                        compassEnabled: false,
-                        mapType: MapType.normal,
-                        markers: _getMapMarkers(),
-                        polylines: _getMapPolylines(),
-                        onTap: _onMapLongPress,
-                        onLongPress: _onMapLongPress,
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                          if (mounted) {
-                            setState(() {
-                              _isNativeMapAvailable = true;
-                            });
-                          }
-                          try {
-                            _mapController?.animateCamera(
-                              CameraUpdate.newCameraPosition(
-                                CameraPosition(
-                                  target: _currentLocation,
-                                  zoom: 16.0,
-                                ),
-                              ),
-                            );
-                          } catch (_) {}
-                        },
                       ),
-                    ),
-                ],
+                    );
+                  } catch (_) {}
+                },
               ),
             ),
           ),
@@ -1608,6 +1924,24 @@ class _NavigationScreenState extends State<NavigationScreen> {
           infoWindow: InfoWindow(title: _selectedPlace!['name'] as String),
         ),
       );
+    } else if (_searchResults.isNotEmpty) {
+      for (int i = 0; i < _searchResults.length && i < 5; i++) {
+        final place = _searchResults[i];
+        final latLng = place['latLng'] as LatLng?;
+        if (latLng != null) {
+          markers.add(
+            Marker(
+              markerId: MarkerId('search_res_$i'),
+              position: latLng,
+              infoWindow: InfoWindow(
+                title: place['name'] as String? ?? 'Nearby Place',
+                snippet: place['dist'] as String? ?? '',
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+            ),
+          );
+        }
+      }
     }
     return markers;
   }
@@ -1635,9 +1969,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
   Widget _buildDraggableCardOverlay() {
     if (_pendingPlaceToConfirm != null) return const SizedBox.shrink();
 
-    double initialSize = 0.45;
-    double minSize = 0.35;
-    double maxSize = 0.85;
+    double initialSize = 0.55;
+    double minSize = 0.30;
+    double maxSize = 0.92;
 
     if (_navState == 1) {
       initialSize = 0.65;
@@ -1715,7 +2049,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         // Search bar S01
         TextField(
           controller: _searchController,
-          onChanged: _performSearch,
+          onChanged: _onSearchChanged,
+          onSubmitted: (val) => _performSearch(val),
           style: GoogleFonts.inter(fontSize: 15, color: AppColors.primaryText),
           decoration: InputDecoration(
             hintText: TranslationService.translate('Where to?', lang),
@@ -1770,7 +2105,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
         const SizedBox(height: 20),
         Text(
-          TranslationService.translate('RECENT', lang),
+          _isSearching 
+            ? TranslationService.translate('SEARCHING...', lang)
+            : (_searchController.text.trim().isNotEmpty 
+              ? TranslationService.translate('RESULTS', lang) 
+              : TranslationService.translate('RECENT', lang)),
           style: GoogleFonts.inter(
             fontSize: 11,
             fontWeight: FontWeight.bold,
@@ -1780,7 +2119,55 @@ class _NavigationScreenState extends State<NavigationScreen> {
         ),
         const SizedBox(height: 12),
 
+        // Loading spinner while searching
+        if (_isSearching)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: 28, height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: AppColors.primaryButton,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Searching nearby places...',
+                    style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          )
+        // No results message
+        else if (_searchResults.isEmpty && _searchController.text.trim().isNotEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Column(
+                children: [
+                  Icon(Icons.location_off, color: AppColors.textMuted, size: 36),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No places found for "${_searchController.text.trim()}"',
+                    style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Check your Google Maps API key or internet connection',
+                    style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted.withValues(alpha: 0.6)),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
         // Results list
+        else
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -2333,7 +2720,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             width: 50,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFF002663).withOpacity(0.8),
+              color: AppColors.primaryText.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -2343,15 +2730,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
         // Success Icon Badge
         CircleAvatar(
           radius: 28,
-          backgroundColor: Colors.green.shade50,
-          child: Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 36),
+          backgroundColor: Colors.green.shade900.withOpacity(0.2),
+          child: Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 36),
         ),
         const SizedBox(height: 12),
 
         // Arrived Headline
         Text(
           isTagalog ? 'Nakarating Ka Na!' : 'You Have Arrived!',
-          style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+          style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryText),
         ),
         const SizedBox(height: 4),
 
@@ -2359,7 +2746,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         Text(
           placeName,
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF002663)),
+          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primaryButton),
         ),
         if (placeAddr.isNotEmpty) ...[
           const SizedBox(height: 2),
@@ -2368,7 +2755,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted),
           ),
         ],
 
@@ -2378,9 +2765,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: Colors.green.shade900.withOpacity(0.2),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.green.shade200),
+            border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -2388,15 +2775,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
               Container(
                 width: 6,
                 height: 6,
-                decoration: BoxDecoration(
-                  color: Colors.green.shade600,
+                decoration: const BoxDecoration(
+                  color: Colors.greenAccent,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
               Text(
                 isTagalog ? '0 m • Nakarating Na' : '0 m • Destination Reached',
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent),
               ),
             ],
           ),
@@ -2409,8 +2796,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
           height: 52,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF002663),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primaryButton,
+              foregroundColor: AppColors.primaryButtonText,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
             ),
@@ -2424,86 +2811,4 @@ class _NavigationScreenState extends State<NavigationScreen> {
       ],
     );
   }
-}
-
-class _MapCanvasPainter extends CustomPainter {
-  final bool isNavigating;
-  final String? destinationName;
-
-  _MapCanvasPainter({this.isNavigating = false, this.destinationName});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 1. Light Slate Background
-    final bgPaint = Paint()..color = const Color(0xFFF1F5F9);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    // 2. White Primary Road Grid
-    final roadPaint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 16
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final secondaryRoadPaint = Paint()
-      ..color = const Color(0xFFF8FAFC)
-      ..strokeWidth = 8
-      ..style = PaintingStyle.stroke;
-
-    final roadPath = Path();
-    roadPath.moveTo(0, size.height * 0.35);
-    roadPath.quadraticBezierTo(size.width * 0.4, size.height * 0.3, size.width, size.height * 0.42);
-
-    roadPath.moveTo(size.width * 0.25, 0);
-    roadPath.lineTo(size.width * 0.35, size.height);
-
-    roadPath.moveTo(size.width * 0.65, 0);
-    roadPath.lineTo(size.width * 0.75, size.height);
-
-    roadPath.moveTo(0, size.height * 0.65);
-    roadPath.lineTo(size.width, size.height * 0.72);
-
-    canvas.drawPath(roadPath, roadPaint);
-    canvas.drawPath(roadPath, secondaryRoadPaint);
-
-    // 3. Route Line (if navigating or place selected)
-    if (isNavigating) {
-      final routePaint = Paint()
-        ..color = const Color(0xFF1D4ED8)
-        ..strokeWidth = 8
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-
-      final routePath = Path();
-      routePath.moveTo(size.width * 0.35, size.height * 0.55);
-      routePath.lineTo(size.width * 0.35, size.height * 0.35);
-      routePath.quadraticBezierTo(size.width * 0.4, size.height * 0.3, size.width * 0.65, size.height * 0.32);
-      routePath.lineTo(size.width * 0.68, size.height * 0.22);
-
-      canvas.drawPath(routePath, routePaint);
-
-      // Destination Pin Marker
-      final destPinPaint = Paint()..color = const Color(0xFFDC2626);
-      canvas.drawCircle(Offset(size.width * 0.68, size.height * 0.22), 12, destPinPaint);
-      final destInner = Paint()..color = Colors.white;
-      canvas.drawCircle(Offset(size.width * 0.68, size.height * 0.22), 5, destInner);
-    }
-
-    // 4. Current Location Pulsing Pin Marker (Blue Dot)
-    final locOffset = Offset(size.width * 0.35, size.height * 0.55);
-    final pulsePaint = Paint()
-      ..color = const Color(0x402563EB)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(locOffset, 22, pulsePaint);
-
-    final bluePin = Paint()..color = const Color(0xFF2563EB);
-    canvas.drawCircle(locOffset, 10, bluePin);
-
-    final whiteCenter = Paint()..color = Colors.white;
-    canvas.drawCircle(locOffset, 4, whiteCenter);
-  }
-
-  @override
-  bool shouldRepaint(covariant _MapCanvasPainter oldDelegate) =>
-      oldDelegate.isNavigating != isNavigating || oldDelegate.destinationName != destinationName;
 }

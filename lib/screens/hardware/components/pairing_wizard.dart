@@ -153,7 +153,7 @@ class PairingWizard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.asset(
-              'assets/images/easylens.JPG',
+              'assets/images/easylensprototype.png',
               width: double.infinity,
               height: 220,
               fit: BoxFit.cover,

@@ -65,8 +65,8 @@ class TtsService {
 
   void _onSpeechFinished() {
     _decayTimer?.cancel();
-    // 500ms post-speech decay timer for acoustic echo clearance before unmuting STT mic
-    _decayTimer = Timer(const Duration(milliseconds: 500), () {
+    // 1000ms post-speech decay timer for acoustic echo clearance before unmuting STT mic
+    _decayTimer = Timer(const Duration(milliseconds: 1000), () {
       if (isSpeakingNotifier.value) {
         isSpeakingNotifier.value = false;
         print('[TTS] Speech completed & acoustic decay period passed. STT unmuted.');

@@ -103,13 +103,13 @@ class InteractiveTutorialOverlay extends StatelessWidget {
           targetTabIndex: 0,
         ),
         SpotlightStep(
-          targetKey: navigationCardKey ?? audioNavKey,
+          targetKey: audioNavKey ?? navigationCardKey,
           title: 'Boses na Nabigasyon sa Daan',
           description: 'Gamitin ang "Nav" tab para sa hands-free audio route guidance, paghahanap ng pupuntahan, at boses na direksyon habang naglalakad.',
           mascotAsset: 'assets/Mascots/06 Thinking.gif',
           actionText: 'Susunod',
           targetPadding: const EdgeInsets.all(8),
-          targetTabIndex: 1,
+          targetTabIndex: 0,
         ),
         SpotlightStep(
           targetKey: sosCardKey ?? sosEmergencyKey,
@@ -204,13 +204,13 @@ class InteractiveTutorialOverlay extends StatelessWidget {
         targetTabIndex: 0,
       ),
       SpotlightStep(
-        targetKey: navigationCardKey ?? audioNavKey,
+        targetKey: audioNavKey ?? navigationCardKey,
         title: 'Hands-Free Audio Navigation',
         description: 'Access the "Nav" tab for turn-by-turn voice route guidance, destination search, and real-time audio orientation while traveling.',
         mascotAsset: 'assets/Mascots/06 Thinking.gif',
         actionText: 'Next',
         targetPadding: const EdgeInsets.all(8),
-        targetTabIndex: 1,
+        targetTabIndex: 0,
       ),
       SpotlightStep(
         targetKey: sosCardKey ?? sosEmergencyKey,

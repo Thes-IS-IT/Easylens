@@ -544,18 +544,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                                 },
                                 titleColor: tileTextColor,
                               ),
-                              Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
-                              _buildSwitchRow(
-                                title: 'Sound Effects (SFX)',
-                                subtitle: isFilipino
-                                    ? 'I-play ang button_click.mp3 audio effect sa bawat pag-click ng button.'
-                                    : 'Plays button_click.mp3 audio effect on every button press across the app.',
-                                value: settings.soundEffects,
-                                onChanged: (val) {
-                                  settings.updateSoundEffects(val);
-                                },
-                                titleColor: tileTextColor,
-                              ),
+
                               Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
                               _buildSwitchRow(
                                 title: 'Navigation Voice Assistant',
