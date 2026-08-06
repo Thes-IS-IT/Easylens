@@ -37,7 +37,6 @@ This document provides complete software specifications, supported Android and i
 | **Android RAM** | **4 GB** LPDDR4 | **8 GB** LPDDR5 | **12 GB – 16 GB** LPDDR5X |
 | **iPhone RAM** | **4 GB** RAM | **6 GB** RAM | **8 GB** RAM |
 | **Storage Space** | **2.5 GB** Free NVMe/UFS (Local Gemma 2B weights & OCR) | **5.0 GB** Free NVMe/UFS 3.1 | **10.0 GB+** High-Speed NVMe/UFS 4.0 |
-| **Wired Camera (USB-OTG)** | USB 2.0 OTG Host Mode (Android) / Lightning OTG Adapter (iOS) | USB 3.1 Gen 2 Type-C Direct Host Mode (iPhone 15/16 & flagship Android) | USB 3.2 / Thunderbolt (10 Gbps bus throughput) |
 | **Wireless Camera Stream** | Dual-band Wi-Fi 802.11 b/g/n (2.4 GHz AP Mode) | Wi-Fi 6 (802.11ax) Dual-Band | Wi-Fi 6E / Wi-Fi 7 (802.11be) |
 
 ---
