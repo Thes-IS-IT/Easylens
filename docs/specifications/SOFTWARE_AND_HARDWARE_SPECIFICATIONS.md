@@ -199,7 +199,7 @@ graph LR
 * **Supported Fallback Models**: `llama3.2`, `gemma2:2b`, `qwen2.5:0.5b`.
 
 #### 5. Cloud Conversational Assistant (`google_generative_ai: ^0.4.4`)
-* **Remote Model**: Google **Gemini 1.5 Flash** for cloud-backed multi-turn reasoning when online connectivity is active.
+* **Remote Model**: Google **Gemini 3.6 Flash (Low)** for low-latency cloud-backed multi-turn reasoning and conversational assistance when online connectivity is active.
 
 ---
 

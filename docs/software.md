@@ -59,6 +59,6 @@ This document provides complete software specifications, supported Android and i
 * **Edge AI Engine**: TensorFlow Lite (`tflite_flutter: ^0.12.1`) running custom fine-tuned MobileNetV2 SSD (`ssd_mobilenet_v2.tflite`) detecting 24 specialized accessibility object categories (with MS-COCO fallback)
 * **Local Generative LLM**: Google Gemma 2B (`flutter_gemma: ^0.13.6`) via Google AI Edge C++ SDK
 * **OCR & Vision Labeling**: Google ML Kit Text Recognition (`^0.15.1`) & Image Labeling (`^0.14.2`)
-* **Cloud Fallback & Remote AI**: Google Gemini 1.5 Flash (`google_generative_ai: ^0.4.4`) & Ollama Local Daemon
+* **Cloud Fallback & Remote AI**: Google Gemini 3.6 Flash (Low) (`google_generative_ai: ^0.4.4`) & Ollama Local Daemon
 * **Cloud Backend & Storage**: Cloudflare D1 (SQL Database), Cloudflare R2 (S3-compatible via HMAC AWS SigV4), Firebase Auth/Firestore
 * **Accessibility Engines**: `flutter_tts` (Spatial Voice Alerts), `speech_to_text` (Hands-Free Voice Control), `vibration` (Obstacle Haptic Proximity Feedback)
