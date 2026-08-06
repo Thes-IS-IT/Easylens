@@ -67,5 +67,25 @@
 	</array>
 	<key>NSContactsUsageDescription</key>
 	<string>EasyLens requires access to your contacts to let you import emergency SOS contacts easily.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>EasyLens requires camera access for real-time object detection, text OCR, hazards warning, and face recognition.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>EasyLens requires microphone access for voice control commands and hands-free interaction with Buddy Assistant.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>EasyLens requires speech recognition permission to transcribe your spoken queries accurately.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>EasyLens requires location access to provide real-time walking navigation, safety alerts, and weather updates.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>EasyLens requires location access for continuous background walking guidance and hazard warnings.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>EasyLens requires photo library access to import saved images for label parsing and text detection.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>EasyLens requires permission to save capture diagnostic photos to your library.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>EasyLens uses Bluetooth to discover and pair with ESP32 wearable smart camera hardware.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>EasyLens uses Bluetooth peripheral mode for pairing with wearable accessibility devices.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>EasyLens needs local network access to stream video feeds from your ESP32-CAM camera on the local Wi-Fi network.</string>
 </dict>
 </plist>

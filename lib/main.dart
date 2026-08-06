@@ -13,15 +13,29 @@ import 'widgets/confetti_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Global Flutter error handler to prevent native framework crashes
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    print('[EasyLens Error Boundary] Flutter error: ${details.exception}');
+  };
   
   // Lock screen orientation to portrait
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  try {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  } catch (e) {
+    print('Orientation lock notice: $e');
+  }
 
   // Hide phone navigation and status bars globally (Immersive sticky mode)
-  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  try {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  } catch (e) {
+    print('System UI mode notice: $e');
+  }
 
   // Load environment variables (.env file)
   try {
@@ -32,19 +46,35 @@ void main() async {
   }
 
   // Initialize Firebase Service (safely fallbacks to Mock Mode if config plist/json is not set up)
-  final firebaseService = FirebaseService();
-  await firebaseService.initialize();
+  try {
+    final firebaseService = FirebaseService();
+    await firebaseService.initialize();
+  } catch (e) {
+    print("Firebase init safe catch: $e");
+  }
 
   // Load RAG knowledge base on boot; Gemma LLM model warms up lazily when AI Assistant is opened
-  RagService().loadKnowledgeBase().catchError((e) {
-    print("RAG knowledge base load warning: $e");
-  });
+  try {
+    RagService().loadKnowledgeBase().catchError((e) {
+      print("RAG knowledge base load warning: $e");
+    });
+  } catch (e) {
+    print("RAG init safe catch: $e");
+  }
 
   // Initialize notification service (loads persisted notifications + daily Buddy follow-up)
-  await NotificationService().initialize();
+  try {
+    await NotificationService().initialize();
+  } catch (e) {
+    print("NotificationService init safe catch: $e");
+  }
 
   // Initialize ESP32 service (restores last used stream URL from prefs)
-  await Esp32Service().initialize();
+  try {
+    await Esp32Service().initialize();
+  } catch (e) {
+    print("Esp32Service init safe catch: $e");
+  }
  
   runApp(const EasyLensApp());
 }
