@@ -562,7 +562,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
     final now = DateTime.now().millisecondsSinceEpoch;
     final unit = SettingsService().selectedUnit;
-    final steps = _selectedPlace!['steps'] as List<String>;
+    final steps = (_selectedPlace!['steps'] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
     final destination = _selectedPlace!['latLng'] as LatLng;
 
     // --- 1. Check GPS Accuracy ---
@@ -1394,7 +1394,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
 
     // Speak initial direction with user configuration preference
-    final firstDirection = place['steps'][0] as String;
+    final firstDirection = (place['steps'] as List).isNotEmpty ? (place['steps'] as List)[0].toString() : '';
     final unit = SettingsService().selectedUnit;
     final formattedDist = _formatDistance(place['dist'] as String, unit);
     final formattedStep = _formatStep(firstDirection, unit);
@@ -1406,7 +1406,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   void _nextStep() {
     if (_selectedPlace == null) return;
-    final steps = _selectedPlace!['steps'] as List<String>;
+    final steps = (_selectedPlace!['steps'] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
     if (_currentStepIndex < steps.length - 1) {
       setState(() {
         _currentStepIndex++;
@@ -2296,7 +2296,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     if (_selectedPlace == null) return const SizedBox.shrink();
     final lang = SettingsService().selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
-    final steps = _selectedPlace!['steps'] as List<String>;
+    final steps = (_selectedPlace!['steps'] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
     final stepText = steps[_currentStepIndex];
 
     return Column(
