@@ -68,30 +68,34 @@ class FirebaseService {
         _firebaseInitialized = true;
         print("Firebase already initialized (apps not empty)");
       } else {
-        final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? '';
-        final appId = dotenv.env['FIREBASE_APP_ID'] ?? '';
-        final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
-        final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
-        final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '';
-
-        if (apiKey.isNotEmpty && appId.isNotEmpty && projectId.isNotEmpty) {
-          await Firebase.initializeApp(
-            options: FirebaseOptions(
-              apiKey: apiKey,
-              appId: appId,
-              projectId: projectId,
-              messagingSenderId: messagingSenderId,
-              storageBucket: storageBucket,
-            ),
-          );
-        } else {
+        if (Platform.isIOS || Platform.isMacOS) {
           await Firebase.initializeApp();
+        } else {
+          final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? '';
+          final appId = dotenv.env['FIREBASE_APP_ID'] ?? '';
+          final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
+          final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
+          final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '';
+
+          if (apiKey.isNotEmpty && appId.isNotEmpty && projectId.isNotEmpty) {
+            await Firebase.initializeApp(
+              options: FirebaseOptions(
+                apiKey: apiKey,
+                appId: appId,
+                projectId: projectId,
+                messagingSenderId: messagingSenderId,
+                storageBucket: storageBucket,
+              ),
+            );
+          } else {
+            await Firebase.initializeApp();
+          }
         }
         _firebaseInitialized = true;
         print("Firebase successfully initialized with dynamic settings");
       }
     } catch (e) {
-      if (e.toString().contains("duplicate-app")) {
+      if (e.toString().contains("duplicate-app") || Firebase.apps.isNotEmpty) {
         _firebaseInitialized = true;
         print("Firebase already initialized (caught duplicate-app exception)");
       } else {
