@@ -11,14 +11,24 @@ class SoundService {
   static AudioPlayer? _audioPlayer;
   static AudioPlayer? _transitionPlayer;
 
+  static AudioPlayer _getBarkPlayer() {
+    _audioPlayer ??= AudioPlayer();
+    return _audioPlayer!;
+  }
+
+  static AudioPlayer _getTransitionPlayer() {
+    _transitionPlayer ??= AudioPlayer();
+    return _transitionPlayer!;
+  }
+
   /// Play the Buddy dog bark sound effect on app startup or interaction.
   static Future<void> playBark() async {
     try {
-      _audioPlayer?.stop();
-      _audioPlayer = AudioPlayer();
-      await _audioPlayer!.play(AssetSource('sounds/bark_dashboard.mp3'));
+      final player = _getBarkPlayer();
+      await player.stop();
+      await player.play(AssetSource('sounds/bark_dashboard.mp3'));
     } catch (e) {
-      print('Bark sound error: $e');
+      print('Bark sound notice: $e');
     }
   }
 
@@ -26,11 +36,11 @@ class SoundService {
   static Future<void> playBubbleTransition() async {
     if (!SettingsService().bubbleTransitionSound) return;
     try {
-      _transitionPlayer?.stop();
-      _transitionPlayer = AudioPlayer();
-      await _transitionPlayer!.play(AssetSource('sounds/spongebob-bubble-transition.mp3'));
+      final player = _getTransitionPlayer();
+      await player.stop();
+      await player.play(AssetSource('sounds/spongebob-bubble-transition.mp3'));
     } catch (e) {
-      print('Bubble transition sound error: $e');
+      print('Bubble transition sound notice: $e');
     }
   }
 

@@ -65,10 +65,10 @@ class SettingsService extends ChangeNotifier {
   String userDisplayName = '';
 
   Future<void> updateDisplayName(String name) async {
-    if (userDisplayName == name) return;
     userDisplayName = name;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userDisplayName', name);
+    await prefs.setString('user_display_name', name);
     notifyListeners();
   }
 
@@ -111,7 +111,7 @@ class SettingsService extends ChangeNotifier {
       useLocalAI = prefs.getBool('useLocalAI') ?? true;
       showFloatingMascot = prefs.getBool('showFloatingMascot') ?? true;
       geminiApiKey = prefs.getString('geminiApiKey') ?? '';
-      userDisplayName = prefs.getString('userDisplayName') ?? '';
+      userDisplayName = prefs.getString('userDisplayName') ?? prefs.getString('user_display_name') ?? '';
 
       notifyListeners();
     } catch (e) {

@@ -11,7 +11,7 @@ import 'services/esp32_service.dart';
 import 'widgets/speech_navigation_overlay.dart';
 import 'widgets/confetti_overlay.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Global Flutter error handler to prevent native framework crashes
@@ -20,10 +20,25 @@ void main() {
     print('[EasyLens Error Boundary] Flutter error: ${details.exception}');
   };
 
-  // Launch UI immediately so iOS Watchdog Timer never terminates the app on boot
+  // Load environment variables (.env file)
+  try {
+    await dotenv.load(fileName: ".env");
+    print(".env variables loaded successfully");
+  } catch (e) {
+    print("Warning: .env file failed to load: $e");
+  }
+
+  // Initialize Firebase Service prior to frame 1 render so Auth user state syncs cleanly
+  try {
+    final firebaseService = FirebaseService();
+    await firebaseService.initialize();
+  } catch (e) {
+    print("Firebase init safe catch: $e");
+  }
+
   runApp(const EasyLensApp());
 
-  // Initialize all background services asynchronously without blocking initial frame render
+  // Initialize background UI & knowledge base services asynchronously
   Future.microtask(() async {
     // Lock screen orientation to portrait
     try {
@@ -40,22 +55,6 @@ void main() {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     } catch (e) {
       print('System UI mode notice: $e');
-    }
-
-    // Load environment variables (.env file)
-    try {
-      await dotenv.load(fileName: ".env");
-      print(".env variables loaded successfully");
-    } catch (e) {
-      print("Warning: .env file failed to load: $e");
-    }
-
-    // Initialize Firebase Service (safely fallbacks to Mock Mode if config plist/json is not set up)
-    try {
-      final firebaseService = FirebaseService();
-      await firebaseService.initialize();
-    } catch (e) {
-      print("Firebase init safe catch: $e");
     }
 
     // Load RAG knowledge base on boot; Gemma LLM model warms up lazily when AI Assistant is opened

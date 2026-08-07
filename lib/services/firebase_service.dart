@@ -47,6 +47,9 @@ class FirebaseService {
       await prefs.setBool('has_completed_onboarding', true);
       await prefs.setBool('is_logged_in', rememberMe);
       await prefs.setBool('remember_me', rememberMe);
+      if (user.displayName.isNotEmpty) {
+        await SettingsService().updateDisplayName(user.displayName);
+      }
       if (rememberMe) {
         await prefs.setString('user_uid', user.uid);
         await prefs.setString('user_email', user.email);
@@ -66,48 +69,14 @@ class FirebaseService {
     try {
       if (Firebase.apps.isNotEmpty) {
         _firebaseInitialized = true;
-        print("Firebase already initialized natively (apps not empty)");
+        print("Firebase already initialized (apps not empty)");
         return;
       }
-
-      if (Platform.isIOS || Platform.isMacOS) {
-        try {
-          await Firebase.initializeApp();
-          _firebaseInitialized = true;
-        } catch (e) {
-          if (Firebase.apps.isNotEmpty || e.toString().contains("duplicate-app")) {
-            _firebaseInitialized = true;
-            print("Firebase already initialized natively on iOS");
-          } else {
-            print("iOS Firebase initialize notice: $e");
-            _firebaseInitialized = false;
-          }
-        }
-      } else {
-        final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? '';
-        final appId = dotenv.env['FIREBASE_APP_ID'] ?? '';
-        final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
-        final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
-        final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '';
-
-        if (apiKey.isNotEmpty && appId.isNotEmpty && projectId.isNotEmpty) {
-          await Firebase.initializeApp(
-            options: FirebaseOptions(
-              apiKey: apiKey,
-              appId: appId,
-              projectId: projectId,
-              messagingSenderId: messagingSenderId,
-              storageBucket: storageBucket,
-            ),
-          );
-        } else {
-          await Firebase.initializeApp();
-        }
-        _firebaseInitialized = true;
-        print("Firebase successfully initialized with dynamic settings");
-      }
+      await Firebase.initializeApp();
+      _firebaseInitialized = true;
+      print("Firebase successfully initialized");
     } catch (e) {
-      if (e.toString().contains("duplicate-app") || Firebase.apps.isNotEmpty) {
+      if (Firebase.apps.isNotEmpty || e.toString().contains("duplicate-app") || e.toString().contains("already exists")) {
         _firebaseInitialized = true;
         print("Firebase already initialized (caught duplicate-app exception)");
       } else {
