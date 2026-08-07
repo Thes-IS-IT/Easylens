@@ -1297,8 +1297,9 @@ class _LoginScreenState extends State<LoginScreen>
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSpeechBubble() {
     return GestureDetector(

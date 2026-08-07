@@ -20,7 +20,6 @@ import '../../utils/app_route.dart';
 import 'steps/signup_steps.dart';
 import 'steps/voice_input_widget.dart';
 import '../../services/sound_service.dart';
-import '../../utils/app_route.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
