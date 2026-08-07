@@ -29,6 +29,9 @@ class SoundService {
       await player.play(AssetSource('sounds/bark_dashboard.mp3'));
     } catch (e) {
       print('Bark sound notice: $e');
+      try {
+        SystemSound.play(SystemSoundType.click);
+      } catch (_) {}
     }
   }
 
@@ -41,13 +44,19 @@ class SoundService {
       await player.play(AssetSource('sounds/spongebob-bubble-transition.mp3'));
     } catch (e) {
       print('Bubble transition sound notice: $e');
+      try {
+        SystemSound.play(SystemSoundType.click);
+      } catch (_) {}
     }
   }
 
-  /// Play click action with tactile haptic feedback (audio SFX removed).
+  /// Play click action with tactile haptic feedback & audio click.
   static void playClick() {
     final settings = SettingsService();
     try {
+      if (settings.soundEffects) {
+        SystemSound.play(SystemSoundType.click);
+      }
       if (settings.hapticFeedback) {
         HapticFeedback.selectionClick();
       }
@@ -61,6 +70,9 @@ class SoundService {
   static void playPop() {
     final settings = SettingsService();
     try {
+      if (settings.soundEffects) {
+        SystemSound.play(SystemSoundType.click);
+      }
       if (settings.hapticFeedback) {
         HapticFeedback.mediumImpact();
       }
@@ -71,6 +83,9 @@ class SoundService {
   static void playTab() {
     final settings = SettingsService();
     try {
+      if (settings.soundEffects) {
+        SystemSound.play(SystemSoundType.click);
+      }
       if (settings.hapticFeedback) {
         HapticFeedback.lightImpact();
       }
@@ -81,6 +96,9 @@ class SoundService {
   static void playAlert() {
     final settings = SettingsService();
     try {
+      if (settings.soundEffects) {
+        SystemSound.play(SystemSoundType.click);
+      }
       if (settings.hapticFeedback) {
         HapticFeedback.heavyImpact();
       }

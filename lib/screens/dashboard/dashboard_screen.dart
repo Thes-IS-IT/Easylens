@@ -201,29 +201,54 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _loadUserDisplayName() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedName = prefs.getString('userDisplayName') ??
+          prefs.getString('user_display_name') ??
+          prefs.getString('user_name') ??
+          '';
+
+      if (savedName.isNotEmpty && savedName != 'User' && savedName != 'EasyLens Explorer') {
+        if (mounted) {
+          setState(() {
+            _displayName = savedName;
+          });
+        }
+      }
+    } catch (_) {}
+
     final user = _firebaseService.currentUser;
     if (user != null) {
-      // 1. First fallback to Auth display name
       if (user.displayName.isNotEmpty && user.displayName != 'User') {
-        setState(() {
-          _displayName = user.displayName;
-        });
-        SettingsService().updateDisplayName(_displayName);
+        if (mounted) {
+          setState(() {
+            _displayName = user.displayName;
+          });
+        }
+        SettingsService().updateDisplayName(user.displayName);
       }
 
-      // 2. Fetch from Firestore to get the registered name
       try {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
-          if (data.containsKey('preferences')) {
-            final prefs = data['preferences'] as Map<String, dynamic>;
-            if (prefs.containsKey('name') && (prefs['name'] as String).trim().isNotEmpty) {
-              setState(() {
-                _displayName = prefs['name'];
-              });
-              SettingsService().updateDisplayName(_displayName);
+          String name = '';
+          if (data.containsKey('name') && (data['name'] as String).trim().isNotEmpty) {
+            name = data['name'];
+          } else if (data.containsKey('displayName') && (data['displayName'] as String).trim().isNotEmpty) {
+            name = data['displayName'];
+          } else if (data.containsKey('preferences')) {
+            final prefsMap = data['preferences'] as Map<String, dynamic>;
+            if (prefsMap.containsKey('name') && (prefsMap['name'] as String).trim().isNotEmpty) {
+              name = prefsMap['name'];
             }
+          }
+
+          if (name.isNotEmpty && mounted) {
+            setState(() {
+              _displayName = name;
+            });
+            SettingsService().updateDisplayName(name);
           }
         }
       } catch (e) {

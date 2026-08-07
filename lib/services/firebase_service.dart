@@ -72,17 +72,40 @@ class FirebaseService {
         print("Firebase already initialized (apps not empty)");
         return;
       }
-      await Firebase.initializeApp();
+
+      final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? 'AIzaSyBWG5kgpCCP_FGpQJeUE0H6T_B7dCyHJcY';
+      final appId = dotenv.env['FIREBASE_APP_ID'] ?? '1:1082778201757:ios:947f83a84470f8e370ae74';
+      final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? 'easylens-a6191';
+      final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '1082778201757';
+      final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? 'easylens-a6191.firebasestorage.app';
+
+      if (apiKey.isNotEmpty && projectId.isNotEmpty) {
+        await Firebase.initializeApp(
+          options: FirebaseOptions(
+            apiKey: apiKey,
+            appId: appId,
+            projectId: projectId,
+            messagingSenderId: messagingSenderId,
+            storageBucket: storageBucket,
+          ),
+        );
+      } else {
+        await Firebase.initializeApp();
+      }
       _firebaseInitialized = true;
-      print("Firebase successfully initialized");
+      print("Firebase successfully initialized with project $projectId");
     } catch (e) {
       if (Firebase.apps.isNotEmpty || e.toString().contains("duplicate-app") || e.toString().contains("already exists")) {
         _firebaseInitialized = true;
         print("Firebase already initialized (caught duplicate-app exception)");
       } else {
-        print("Firebase initialization skipped or failed: $e.");
-        print("Running EasyLens in Local Mock Mode");
-        _firebaseInitialized = false;
+        try {
+          await Firebase.initializeApp();
+          _firebaseInitialized = true;
+        } catch (_) {
+          print("Firebase initialization notice: $e. Operating in safe local mode.");
+          _firebaseInitialized = false;
+        }
       }
     }
 
