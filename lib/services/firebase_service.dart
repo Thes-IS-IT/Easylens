@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -73,27 +74,33 @@ class FirebaseService {
         return;
       }
 
-      final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? 'AIzaSyBWG5kgpCCP_FGpQJeUE0H6T_B7dCyHJcY';
-      final appId = dotenv.env['FIREBASE_APP_ID'] ?? '1:1082778201757:ios:947f83a84470f8e370ae74';
-      final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? 'easylens-a6191';
-      final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '1082778201757';
-      final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? 'easylens-a6191.firebasestorage.app';
-
-      if (apiKey.isNotEmpty && projectId.isNotEmpty) {
-        await Firebase.initializeApp(
-          options: FirebaseOptions(
-            apiKey: apiKey,
-            appId: appId,
-            projectId: projectId,
-            messagingSenderId: messagingSenderId,
-            storageBucket: storageBucket,
-          ),
-        );
-      } else {
+      // On iOS, native Objective-C SDK reads bundled GoogleService-Info.plist automatically.
+      // Passing explicit FirebaseOptions on iOS causes FIRApp addAppToAppDictionary native SIGSEGV exceptions.
+      if (!kIsWeb && Platform.isIOS) {
         await Firebase.initializeApp();
+      } else {
+        final apiKey = dotenv.env['FIREBASE_API_KEY'] ?? '';
+        final appId = dotenv.env['FIREBASE_APP_ID'] ?? '';
+        final projectId = dotenv.env['FIREBASE_PROJECT_ID'] ?? 'easylens-a6191';
+        final messagingSenderId = dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
+        final storageBucket = dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '';
+
+        if (apiKey.isNotEmpty && projectId.isNotEmpty) {
+          await Firebase.initializeApp(
+            options: FirebaseOptions(
+              apiKey: apiKey,
+              appId: appId,
+              projectId: projectId,
+              messagingSenderId: messagingSenderId,
+              storageBucket: storageBucket,
+            ),
+          );
+        } else {
+          await Firebase.initializeApp();
+        }
       }
       _firebaseInitialized = true;
-      print("Firebase successfully initialized with project $projectId");
+      print("Firebase successfully initialized");
     } catch (e) {
       if (Firebase.apps.isNotEmpty || e.toString().contains("duplicate-app") || e.toString().contains("already exists")) {
         _firebaseInitialized = true;
