@@ -218,7 +218,11 @@ class TtsService {
 
     await _applyLanguage();
     await _applyVoicePersona();
-    await _flutterTts.speak(text);
+    try {
+      await _flutterTts.speak(text);
+    } catch (e) {
+      print("[TTS] Platform speak notice: $e");
+    }
   }
 
   Future<void> speakAwait(String text) async {
