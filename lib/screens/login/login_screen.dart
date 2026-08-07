@@ -87,6 +87,16 @@ class _LoginScreenState extends State<LoginScreen>
     _initAnimations();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(const AssetImage('assets/Mascots/01 Happy.gif'), context);
+    precacheImage(const AssetImage('assets/Mascots/02 Error.gif'), context);
+    precacheImage(const AssetImage('assets/Mascots/03 Loading.gif'), context);
+    precacheImage(const AssetImage('assets/Mascots/05 Welcome.gif'), context);
+    precacheImage(const AssetImage('assets/Mascots/06 Thinking.gif'), context);
+  }
+
   void _setupFocusListeners() {
     _emailFocus.addListener(_onFocusChange);
     _passwordFocus.addListener(_onFocusChange);
@@ -235,15 +245,15 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
 
-    // Banner loading pull pulse (gentle pull-down nudge while authenticating)
+    // Banner loading pull-down animation (expands top blue banner downward smoothly during authentication)
     _loadingPullController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 600),
     );
-    _loadingPullOffset = Tween<double>(begin: 0.0, end: 12.0).animate(
+    _loadingPullOffset = Tween<double>(begin: 0.0, end: 75.0).animate(
       CurvedAnimation(
         parent: _loadingPullController,
-        curve: Curves.easeInOut,
+        curve: Curves.easeInOutCubic,
       ),
     );
 
@@ -342,7 +352,7 @@ class _LoginScreenState extends State<LoginScreen>
       _isLoading = true;
       _errorMessage = null;
     });
-    _loadingPullController.repeat(reverse: true);
+    _loadingPullController.forward();
 
     try {
       final user = await _firebaseService.signIn(email, password, rememberMe: _rememberMe);
@@ -427,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen>
       _isLoading = true;
       _errorMessage = null;
     });
-    _loadingPullController.repeat(reverse: true);
+    _loadingPullController.forward();
 
     try {
       final user = await _firebaseService.signInWithGoogle(rememberMe: _rememberMe);
@@ -474,6 +484,21 @@ class _LoginScreenState extends State<LoginScreen>
     if (_errorMessage != null) return 'assets/Mascots/02 Error.gif';
     if (_isAnyFieldFocused) return 'assets/Mascots/06 Thinking.gif';
     return 'assets/Mascots/05 Welcome.gif';
+  }
+
+  Widget _buildCachedMascot(String assetPath, bool isVisible) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 250),
+      opacity: isVisible ? 1.0 : 0.0,
+      curve: Curves.easeInOut,
+      child: Image.asset(
+        assetPath,
+        fit: BoxFit.contain,
+        height: 140,
+        width: 140,
+        gaplessPlayback: true,
+      ),
+    );
   }
 
   // ═══════════════════════════════════════════════
@@ -579,25 +604,24 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Left Side: Bigger Mascot GIF sitting on top of white card
+                    // Left Side: Bigger Mascot GIF sitting on top of white card (Pre-mounted for 0 freeze/stutter)
                     Opacity(
                       opacity: _loginSuccess ? 0.0 : 1.0,
                       child: ScaleTransition(
                         scale: _heroScale,
                         child: FadeTransition(
                           opacity: _heroFade,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 400),
-                            child: Image.asset(
-                              _activeMascotAsset,
-                              key: ValueKey(_activeMascotAsset),
-                              fit: BoxFit.contain,
-                              height: 140,
-                              errorBuilder: (_, __, ___) => Image.asset(
-                                'assets/Mascots/App Logo.png',
-                                fit: BoxFit.contain,
-                                height: 140,
-                              ),
+                          child: SizedBox(
+                            height: 140,
+                            width: 140,
+                            child: Stack(
+                              children: [
+                                _buildCachedMascot('assets/Mascots/05 Welcome.gif', _activeMascotAsset == 'assets/Mascots/05 Welcome.gif'),
+                                _buildCachedMascot('assets/Mascots/03 Loading.gif', _activeMascotAsset == 'assets/Mascots/03 Loading.gif'),
+                                _buildCachedMascot('assets/Mascots/02 Error.gif', _activeMascotAsset == 'assets/Mascots/02 Error.gif'),
+                                _buildCachedMascot('assets/Mascots/06 Thinking.gif', _activeMascotAsset == 'assets/Mascots/06 Thinking.gif'),
+                                _buildCachedMascot('assets/Mascots/01 Happy.gif', _activeMascotAsset == 'assets/Mascots/01 Happy.gif'),
+                              ],
                             ),
                           ),
                         ),
@@ -1063,9 +1087,7 @@ class _LoginScreenState extends State<LoginScreen>
               final double currentHeight = baseHeroHeight + loadingOffset + (pullProgress * (screenSize.height - baseHeroHeight));
               final double cornerRadius = (1.0 - pullProgress) * 24.0;
 
-              return AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
+              return Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
