@@ -20,10 +20,12 @@ class ScreenTutorialCard extends StatelessWidget {
   /// Returns a UID-scoped pref key, e.g. "seen_tutorial_abc123_home".
   /// Falls back to device-only key when no user is signed in.
   static String _prefKey(String tutorialKey) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null && uid.isNotEmpty) {
-      return 'seen_tutorial_${uid}_$tutorialKey';
-    }
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null && uid.isNotEmpty) {
+        return 'seen_tutorial_${uid}_$tutorialKey';
+      }
+    } catch (_) {}
     return 'seen_tutorial_$tutorialKey';
   }
 
@@ -45,22 +47,26 @@ class ScreenTutorialCard extends StatelessWidget {
   /// Call this right after a NEW account is created so tutorials show for that user.
   /// For existing/returning users, call markAllSeen() to skip them.
   static Future<void> resetForNewUser() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    for (final key in _allTutorialKeys) {
-      await prefs.remove('seen_tutorial_${uid}_$key');
-    }
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in _allTutorialKeys) {
+        await prefs.remove('seen_tutorial_${uid}_$key');
+      }
+    } catch (_) {}
   }
 
   /// Call this for returning users (not first-time) so they never see tutorials.
   static Future<void> markAllSeen() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    for (final key in _allTutorialKeys) {
-      await prefs.setBool('seen_tutorial_${uid}_$key', true);
-    }
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in _allTutorialKeys) {
+        await prefs.setBool('seen_tutorial_${uid}_$key', true);
+      }
+    } catch (_) {}
   }
 
   static Future<void> showIfNeeded(
