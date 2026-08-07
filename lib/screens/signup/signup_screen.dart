@@ -15,6 +15,8 @@ import '../../services/emergency_contact_service.dart';
 import '../../services/storage/cloudflare_r2_service.dart';
 import '../../widgets/screen_tutorial_card.dart';
 import 'celebration_screen.dart';
+import '../welcome/welcome_screen.dart';
+import '../../utils/app_route.dart';
 import 'steps/signup_steps.dart';
 import 'steps/voice_input_widget.dart';
 import '../../services/sound_service.dart';
@@ -720,6 +722,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } else {
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushReplacement(
+          AppRoute.to(const WelcomeScreen()),
+        );
       }
     }
   }

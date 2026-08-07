@@ -8,6 +8,7 @@ import '../../services/firebase_service.dart';
 import '../../services/sound_service.dart';
 import '../../widgets/screen_tutorial_card.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../welcome/welcome_screen.dart';
 import '../../utils/app_route.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -501,7 +502,13 @@ class _LoginScreenState extends State<LoginScreen>
                   child: GestureDetector(
                     onTap: () {
                       SoundService.playTab();
-                      Navigator.of(context).pop();
+                      if (Navigator.canPop(context)) {
+                        Navigator.of(context).pop();
+                      } else {
+                        Navigator.of(context).pushReplacement(
+                          AppRoute.to(const WelcomeScreen()),
+                        );
+                      }
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1028,9 +1035,21 @@ class _LoginScreenState extends State<LoginScreen>
         ? [const Color(0xFF0A0A0A), const Color(0xFF1A1A2E)]
         : [const Color(0xFF00205B), const Color(0xFF0F3E8F)];
 
-    return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
-      body: Stack(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).pop();
+        } else {
+          Navigator.of(context).pushReplacement(
+            AppRoute.to(const WelcomeScreen()),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.primaryBackground,
+        body: Stack(
         children: [
           // ── 1. BLUE BANNER PULL-DOWN BACKGROUND LAYER ──
           AnimatedBuilder(
