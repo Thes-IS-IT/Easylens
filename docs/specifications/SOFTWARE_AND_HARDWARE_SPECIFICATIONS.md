@@ -196,7 +196,7 @@ graph LR
 
 #### 4. Local Server Fallback (Ollama Integration)
 * **Protocol**: HTTP REST Client communicating with local Ollama daemon at `http://10.0.2.2:11434` (Android Emulator/Bridge) or `http://localhost:11434` (iOS).
-* **Supported Fallback Models**: `llama3.2`, `gemma2:2b`, `qwen2.5:0.5b`.
+* **Supported Fallback Model**: `gemma2:2b`.
 
 #### 5. Cloud Conversational Assistant (`google_generative_ai: ^0.4.4`)
 * **Remote Model**: Google **Gemini 3.6 Flash (Low)** for low-latency cloud-backed multi-turn reasoning and conversational assistance when online connectivity is active.

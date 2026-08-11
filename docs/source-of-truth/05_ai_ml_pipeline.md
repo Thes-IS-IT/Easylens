@@ -157,7 +157,7 @@ The RAG service implements multiple safety layers:
 
 #### Ollama (Local Server Fallback)
 - **Endpoint:** `http://10.0.2.2:11434` (Android emulator) or `http://localhost:11434` (iOS)
-- **Models:** `llama3.2`, `gemma2:2b`, `qwen2.5:0.5b`
+- **Models:** `gemma2:2b`
 - **Usage:** Development/testing with a local Ollama daemon
 
 ---

@@ -155,7 +155,7 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 #### Changes & Features
 - [x] Restored optimal `gemini-1.5-flash` model parameter tuning for maximum response speed.
 - [x] Integrated local Ollama server API bridge (`http://10.0.2.2:11434`) for offline fallback.
-- [x] Added support for `llama3.2` and `qwen2.5` offline vision-language models.
+- [x] Added support for `gemma2` offline server models via Ollama bridge.
 - [x] Implemented real-time image cropping before sending vision query frames.
 - [x] Formatted AI descriptions into short, action-oriented audio prompts.
 - [x] Created visual context caching to prevent duplicate API requests for identical scenes.

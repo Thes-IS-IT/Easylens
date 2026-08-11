@@ -20,7 +20,7 @@ Easylens is a state-of-the-art accessibility assistant designed to empower visua
     *   **Interface:** Google AI Edge SDK. Uses hardware acceleration (NNAPI/GPU delegates where available) to perform offline prompts using context extracted locally.
 3.  **Local Ollama Server Fallback:**
     *   Connects to an external local Ollama daemon using HTTP protocols on `http://10.0.2.2:11434` (Android) or `http://localhost:11434` (iOS).
-    *   Supports models like `llama3.2`, `gemma2:2b`, and `qwen2.5:0.5b`.
+    *   Supports `gemma2:2b` for local developer testing.
 4.  **Cloud LLM - Google Gemini (`google_generative_ai: ^0.4.4`):**
     *   Targets remote `gemini-1.5-flash` or similar models for rich conversational tasks when Internet access is detected.
 5.  **Text Recognition & Image Labeling (`google_mlkit_text_recognition: ^0.15.1`, `google_mlkit_image_labeling: ^0.14.2`):**
