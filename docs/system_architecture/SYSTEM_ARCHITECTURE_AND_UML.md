@@ -97,13 +97,13 @@ flowchart TB
     end
 
     subgraph Backend Cloud ["Cloud & Storage Layer"]
-        D1["Cloudflare D1\n(Relational SQL Database)"]
-        R2["Cloudflare R2\n(AWS SigV4 Signed Storage)"]
+        D1["Cloudflare D1 SQL DB"]
+        R2["Cloudflare R2 Storage"]
         FIREBASE["Firebase Auth & Firestore"]
 
-        Edge Application <-->|"Rest API / JSON"| D1
-        Edge Application <-->|"Media Upload"| R2
-        Edge Application <-->|"Auth Tokens"| FIREBASE
+        RECV --> D1
+        RECV --> R2
+        RECV --> FIREBASE
     end
 
     WIFI --> RECV
@@ -168,34 +168,44 @@ classDiagram
 ### 3.2 Detailed UML Component Diagram
 
 ```mermaid
-architecture-beta
-    group hw(cloud)[Wearable Physical Hardware]
-    service pb(disk)[1500mAh Powerbank] in hw
-    service esp(server)[ESP32-CAM-MB Board] in hw
-    service ov(internet)[OV2640 70deg Camera] in hw
-    service frame(box)[3D Printed Box Frame] in hw
+flowchart TB
+    subgraph HW ["Wearable Physical Hardware"]
+        PB["1500mAh Powerbank"]
+        ESP["ESP32-CAM-MB Board"]
+        OV["OV2640 70° Camera"]
+        BOX["3D Printed Box Frame"]
 
-    group app(internet)[Easylens Mobile Core Engine]
-    service stream(internet)[Stream Receiver Service] in app
-    service iso(cpu)[Dart Isolate Worker] in app
-    service tflite(cpu)[TFLite MobileNetV2 SSD] in app
-    service mlkit(database)[Google ML Kit OCR] in app
-    service gemma(database)[Google Gemma 2B LLM] in app
-    service tts(disk)[Spatial Audio TTS] in app
+        PB --> ESP
+        ESP --- OV
+        BOX --- ESP
+    end
 
-    group cloud_tier(cloud)[Cloud Infrastructure Tier]
-    service d1(database)[Cloudflare D1 SQL] in cloud_tier
-    service r2(disk)[Cloudflare R2 Bucket] in cloud_tier
-    service fb(server)[Firebase Auth & Firestore] in cloud_tier
+    subgraph APP ["Easylens Mobile Core Engine"]
+        STREAM["Stream Receiver Service"]
+        ISO["Dart Isolate Worker"]
+        TFLITE["TFLite MobileNetV2 SSD"]
+        MLKIT["Google ML Kit OCR"]
+        GEMMA["Google Gemma 2B LLM"]
+        TTS["Spatial Audio TTS Engine"]
 
-    pb:R -- L:esp
-    esp:B -- T:stream
-    stream:R -- L:iso
-    iso:R -- L:tflite
-    iso:B -- T:mlkit
-    mlkit:R -- L:gemma
-    tflite:B -- T:tts
-    gemma:B -- T:tts
+        STREAM --> ISO
+        ISO --> TFLITE
+        ISO --> MLKIT
+        MLKIT --> GEMMA
+        TFLITE --> TTS
+        GEMMA --> TTS
+    end
+
+    subgraph CLOUD_TIER ["Cloud Infrastructure Tier"]
+        D1["Cloudflare D1 SQL DB"]
+        R2["Cloudflare R2 Bucket"]
+        FB["Firebase Auth & Firestore"]
+    end
+
+    ESP --> STREAM
+    APP --> D1
+    APP --> R2
+    APP --> FB
 ```
 
 ---
