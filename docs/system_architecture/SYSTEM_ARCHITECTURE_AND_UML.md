@@ -119,9 +119,9 @@ flowchart TB
 ```mermaid
 classDiagram
     class HardwareModule {
-        +PowerBank battery (1500mAh)
+        +PowerBank battery
         +ESP32Cam esp32
-        +OV2640Sensor sensor (75deg FoV)
+        +OV2640Sensor sensor
         +UvcCamera wiredCam
         +ModularClip clipMount
         +streamVideoFrames()
@@ -146,7 +146,7 @@ classDiagram
 
     class ObjectDetectorService {
         +TfLiteInterpreter interpreter
-        +List~Detection~ detectObjects(Uint8List frameBytes)
+        +List detectObjects(Uint8List frameBytes)
         +processBoundingBoxes()
     }
 
@@ -168,58 +168,34 @@ classDiagram
 ### 3.2 Detailed UML Component Diagram
 
 ```mermaid
-componentDiagram
-    package "Wearable Physical Hardware" {
-        [1500mAh Powerbank] as PowerBank
-        [ESP32-CAM Board] as ESP32Board
-        [OV2640 Camera (75° FoV)] as OV2640
-        [Wired UVC Camera Module] as UVCCam
-        [3D-Printed Modular Clip Mount] as ModularClip
+architecture-beta
+    group hw(cloud)[Wearable Physical Hardware]
+    service pb(disk)[1500mAh Powerbank] in hw
+    service esp(server)[ESP32-CAM-MB Board] in hw
+    service ov(internet)[OV2640 70deg Camera] in hw
+    service frame(box)[3D Printed Box Frame] in hw
 
-        PowerBank --> ESP32Board : 5V/3.3V Power Rail
-        PowerBank --> UVCCam : USB VBUS
-        ESP32Board *-- OV2640 : DVP Pin Bus
-        ModularClip ..> ESP32Board : Mechanical Enclosure
-        ModularClip ..> UVCCam : Physical Mounting
-    }
+    group app(internet)[Easylens Mobile Core Engine]
+    service stream(internet)[Stream Receiver Service] in app
+    service iso(cpu)[Dart Isolate Worker] in app
+    service tflite(cpu)[TFLite MobileNetV2 SSD] in app
+    service mlkit(database)[Google ML Kit OCR] in app
+    service gemma(database)[Google Gemma 2B LLM] in app
+    service tts(disk)[Spatial Audio TTS] in app
 
-    package "Edge Transport & Drivers" {
-        [USB-OTG Driver / UVC Host] as UVCDriver
-        [Wi-Fi Stream Client (HTTP/MJPEG)] as WiFiStreamer
-    }
+    group cloud_tier(cloud)[Cloud Infrastructure Tier]
+    service d1(database)[Cloudflare D1 SQL] in cloud_tier
+    service r2(disk)[Cloudflare R2 Bucket] in cloud_tier
+    service fb(server)[Firebase Auth & Firestore] in cloud_tier
 
-    package "Easylens Mobile Core Engine (Flutter)" {
-        [Stream Receiver & Frame Buffer] as FrameBuffer
-        [Isolate Parallel Processor] as IsolateWorker
-        [TFLite Vision Engine (MobileNetV2 SSD)] as TFLiteEngine
-        [Google ML Kit OCR Engine] as OCREngine
-        [Gemma 2B Local RAG Engine] as LocalLLM
-        [Spatial TTS Audio Manager] as AudioManager
-    }
-
-    package "Storage & Cloud Infrastructure" {
-        [Local SQLite Cache Database] as LocalDB
-        [Cloudflare D1 Database] as D1DB
-        [Cloudflare R2 Object Bucket] as R2Store
-        [Firebase Authentication] as FirebaseAuth
-    }
-
-    ESP32Board --> WiFiStreamer : Wi-Fi AP Stream (802.11 b/g/n)
-    UVCCam --> UVCDriver : Wired USB Data Lines (D+/D-)
-    WiFiStreamer --> FrameBuffer
-    UVCDriver --> FrameBuffer
-
-    FrameBuffer --> IsolateWorker : Raw RGB Array
-    IsolateWorker --> TFLiteEngine : 300x300 Tensor Input
-    IsolateWorker --> OCREngine : Image Buffer
-    OCREngine --> LocalLLM : Parsed Text Payload
-    TFLiteEngine --> AudioManager : Object Detection Trigger
-    LocalLLM --> AudioManager : Natural Language Voice Stream
-
-    Easylens Mobile Core Engine --> LocalDB : Offline State Sync
-    Easylens Mobile Core Engine --> D1DB : Encrypted Telemetry API
-    Easylens Mobile Core Engine --> R2Store : Signed Media Uploads
-    Easylens Mobile Core Engine --> FirebaseAuth : Auth Handshake
+    pb:R -- L:esp
+    esp:B -- T:stream
+    stream:R -- L:iso
+    iso:R -- L:tflite
+    iso:B -- T:mlkit
+    mlkit:R -- L:gemma
+    tflite:B -- T:tts
+    gemma:B -- T:tts
 ```
 
 ---
