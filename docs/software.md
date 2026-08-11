@@ -52,26 +52,25 @@ This document provides complete software specifications, supported Android and i
 
 ---
 
-## 4. Full Software Stack Overview
+## 4. EasyLens Full Software Component & Technology Stack Table
 
-* **UI & Core Framework**: Flutter SDK (`^3.11.5`) & Dart SDK (`^3.5.0` to `<4.0.0`)
-* **State Management**: Provider (`provider: ^6.1.2`)
-* **Edge AI & Computer Vision**:
-  * **TFLite Object Detection Engine**: TensorFlow Lite (`tflite_flutter: ^0.12.1`) executing custom fine-tuned MobileNetV2 SSD (`ssd_mobilenet_v2.tflite`) for accessibility hazard and object classification
-  * **On-Device LLM**: Google Gemma 2B (`flutter_gemma: ^0.13.6`) via Google AI Edge C++ Native SDK
-  * **ML Kit Vision Tools**: Google ML Kit Text Recognition (`^0.15.1`), Object Detection (`^0.15.1`), Image Labeling (`^0.14.2`), and Face Detection (`^0.13.1`)
-* **Cloud & Fallback AI Engines**:
-  * **Cloud Multimodal AI**: Google Gemini 3.6 Flash (Low) (`google_generative_ai: ^0.4.4`)
-  * **Local LLM Daemon Fallback**: Ollama Daemon (`gemma2:2b`) over local HTTP REST bridge
-* **Cloud Backend & Storage Tier**:
-  * **Cloudflare D1**: Serverless SQLite relational database for user profile, emergency contact, and incident logs
-  * **Cloudflare R2**: Object storage for diagnostic images via HMAC AWS SigV4 (`crypto: ^3.0.3`)
-  * **Firebase Suite**: Firebase Core (`^3.1.1`), Firebase Auth (`^5.1.2`), Cloud Firestore (`^5.0.2`), Firebase Storage (`^12.1.1`), and Google Sign-In (`^6.2.1`)
-* **Multimodal Accessibility Subsystems**:
-  * **Text-to-Speech (TTS)**: Spatial Voice Feedback (`flutter_tts: ^4.2.5`) with English & Filipino support
-  * **Speech-to-Text (STT)**: Hands-Free Voice Commands (`speech_to_text: ^7.4.0`)
-  * **Tactile Haptics**: Vibration Feedback (`vibration: ^3.2.0`)
-* **Sensors, Hardware & Environment Connectivity**:
-  * **Device Hardware**: `camera: ^0.10.5+9`, `sensors_plus: ^5.0.1`, `battery_plus: ^6.0.2`, `wakelock_plus: ^1.2.8`
-  * **Location & Maps**: `geolocator: ^11.0.0`, `google_maps_flutter: ^2.5.3`
-  * **System Utilities**: `audioplayers: ^6.1.0`, `flutter_local_notifications: ^22.0.1`, `flutter_contacts: ^2.1.0`, `url_launcher: ^6.3.2`, `image_picker: ^1.1.2`, `confetti: ^0.7.0`
+| Software Component | Technology Integrated | Primary Architectural Purpose |
+| :--- | :--- | :--- |
+| **Mobile Application Framework** | **Flutter / Dart** (SDK `^3.11.5` / Dart `^3.5.0`) | Cross-platform accessible UI rendering, camera stream ingestion, and background isolate workers. |
+| **State Management** | **Provider Pattern** (`provider: ^6.1.2`) | Reactive application state propagation, settings persistence, and real-time UI rebuilds. |
+| **Edge Vision Inference** | **TensorFlow Lite** (`tflite_flutter: ^0.12.1`) | Local, real-time execution of the custom fine-tuned **MobileNetV2 SSD** object detection model (`ssd_mobilenet_v2.tflite`). |
+| **On-Device Vision Tools** | **Google ML Kit SDK** (`google_mlkit_*`) | Real-time optical character recognition (OCR), multi-class image labeling, object tracking, and face detection. |
+| **On-Device LLM Runtime** | **Google Gemma 2B** (`flutter_gemma: ^0.13.6`) | Offline natural language reasoning, scene description synthesis, and local RAG context handling via Google AI Edge C++ SDK. |
+| **Cloud-Based Conversational AI** | **Google Gemini 3.6 Flash (Low)** (`google_generative_ai`) | Remote cloud-backed multi-turn reasoning, vision scene explanation, and conversational assistant mode. |
+| **Local LLM Daemon Fallback** | **Ollama Daemon** (`gemma2:2b`) | Local HTTP REST bridge fallback for LLM query processing (`http://10.0.2.2:11434` / `http://localhost:11434`). |
+| **Bilingual Spatial Audio Output** | **Flutter TTS** (`flutter_tts: ^4.2.5`) | Offline spatial speech synthesis and priority hazard voice warnings in **English** and **Filipino/Tagalog**. |
+| **Voice Command Capture** | **Speech to Text** (`speech_to_text: ^7.4.0`) | Hands-free continuous voice input parsing and spoken assistant query capture. |
+| **Tactile Haptic Feedback** | **Vibration Engine** (`vibration: ^3.2.0`) | Variable tactile vibration pulse patterns for button confirmation and proximity hazard warnings. |
+| **Mapping, Routing & Navigation** | **Google Maps API** (`google_maps_flutter`) + **OSRM / Photon** | Interactive mapping, turn-by-turn walking route calculations, and address geocoding search. |
+| **Soundboard & Audio Alerts** | **AudioPlayers** (`audioplayers: ^6.1.0`) | High-priority hazard warning sound effects, UI chime feedback, and soundboard cues. |
+| **Serverless Database** | **Cloudflare D1** | Serverless SQLite relational database for user profile metadata, emergency contacts, and incident logs. |
+| **Cloud Object Storage** | **Cloudflare R2** (S3-Compatible) | Diagnostic image store, avatar hosting, and direct uploads signed via HMAC **AWS SigV4** (`crypto: ^3.0.3`). |
+| **Authentication & Document Sync** | **Firebase Suite** (`firebase_auth`, `cloud_firestore`) | User session authentication, Google Sign-In (`google_sign_in`), real-time Firestore sync, and Firebase Storage. |
+| **Hardware & Environment Sensors** | **Sensors Plus**, **Battery Plus**, **Wakelock Plus** | Accelerometer/gyroscope orientation tracking, real-time power level sensing, and screen wake lock management. |
+| **Android Deployment Package** | **Android APK** (`app-release.apk` ~475 MB) | Multi-arch FAT binary (`arm64-v8a`, `armeabi-v7a`, `x86_64`) for direct sideloading and Google Play Store deployment. |
+| **iOS Deployment Package** | **iOS IPA** (`easylens.ipa` ~154 MB / ~250 MB `.app`) | Single 64-bit ARM (`arm64`) binary package for AltStore, TestFlight, and Apple App Store deployment. |
