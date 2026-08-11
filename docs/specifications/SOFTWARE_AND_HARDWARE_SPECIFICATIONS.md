@@ -211,8 +211,8 @@ graph LR
   * Supports priority audio interruption queues (e.g., immediate hazard alerts override casual scene descriptions).
 * **Speech-to-Text Voice Control (`speech_to_text: ^7.4.0`)**:
   * Captures user spoken queries and hands-free voice commands.
-* **Haptic Directional Engine (`vibration: ^2.0.1`)**:
-  * Triggers variable vibration pulses corresponding to obstacle proximity (e.g., fast pulsing for high-proximity hazards).
+* **Haptic Directional Engine (`vibration: ^3.2.0`)**:
+  * Triggers tactile vibration pulse patterns for touch feedback and obstacle proximity warnings.
 
 ---
 

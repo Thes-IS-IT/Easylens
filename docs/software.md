@@ -52,13 +52,26 @@ This document provides complete software specifications, supported Android and i
 
 ---
 
-## 4. Software Stack Overview
+## 4. Full Software Stack Overview
 
-* **Framework**: Flutter SDK (`^3.11.5`) & Dart SDK (`^3.5.0`)
+* **UI & Core Framework**: Flutter SDK (`^3.11.5`) & Dart SDK (`^3.5.0` to `<4.0.0`)
 * **State Management**: Provider (`provider: ^6.1.2`)
-* **Edge AI Engine**: TensorFlow Lite (`tflite_flutter: ^0.12.1`) running custom fine-tuned MobileNetV2 SSD (`ssd_mobilenet_v2.tflite`) detecting 24 specialized accessibility object categories (with MS-COCO fallback)
-* **Local Generative LLM**: Google Gemma 2B (`flutter_gemma: ^0.13.6`) via Google AI Edge C++ SDK
-* **OCR & Vision Labeling**: Google ML Kit Text Recognition (`^0.15.1`) & Image Labeling (`^0.14.2`)
-* **Cloud Fallback & Remote AI**: Google Gemini 3.6 Flash (Low) (`google_generative_ai: ^0.4.4`) & Ollama Local Daemon
-* **Cloud Backend & Storage**: Cloudflare D1 (SQL Database), Cloudflare R2 (S3-compatible via HMAC AWS SigV4), Firebase Auth/Firestore
-* **Accessibility Engines**: `flutter_tts` (Spatial Voice Alerts), `speech_to_text` (Hands-Free Voice Control), `vibration` (Obstacle Haptic Proximity Feedback)
+* **Edge AI & Computer Vision**:
+  * **TFLite Object Detection Engine**: TensorFlow Lite (`tflite_flutter: ^0.12.1`) executing custom fine-tuned MobileNetV2 SSD (`ssd_mobilenet_v2.tflite`) for accessibility hazard and object classification
+  * **On-Device LLM**: Google Gemma 2B (`flutter_gemma: ^0.13.6`) via Google AI Edge C++ Native SDK
+  * **ML Kit Vision Tools**: Google ML Kit Text Recognition (`^0.15.1`), Object Detection (`^0.15.1`), Image Labeling (`^0.14.2`), and Face Detection (`^0.13.1`)
+* **Cloud & Fallback AI Engines**:
+  * **Cloud Multimodal AI**: Google Gemini 3.6 Flash (Low) (`google_generative_ai: ^0.4.4`)
+  * **Local LLM Daemon Fallback**: Ollama Daemon (`gemma2:2b`) over local HTTP REST bridge
+* **Cloud Backend & Storage Tier**:
+  * **Cloudflare D1**: Serverless SQLite relational database for user profile, emergency contact, and incident logs
+  * **Cloudflare R2**: Object storage for diagnostic images via HMAC AWS SigV4 (`crypto: ^3.0.3`)
+  * **Firebase Suite**: Firebase Core (`^3.1.1`), Firebase Auth (`^5.1.2`), Cloud Firestore (`^5.0.2`), Firebase Storage (`^12.1.1`), and Google Sign-In (`^6.2.1`)
+* **Multimodal Accessibility Subsystems**:
+  * **Text-to-Speech (TTS)**: Spatial Voice Feedback (`flutter_tts: ^4.2.5`) with English & Filipino support
+  * **Speech-to-Text (STT)**: Hands-Free Voice Commands (`speech_to_text: ^7.4.0`)
+  * **Tactile Haptics**: Vibration Feedback (`vibration: ^3.2.0`)
+* **Sensors, Hardware & Environment Connectivity**:
+  * **Device Hardware**: `camera: ^0.10.5+9`, `sensors_plus: ^5.0.1`, `battery_plus: ^6.0.2`, `wakelock_plus: ^1.2.8`
+  * **Location & Maps**: `geolocator: ^11.0.0`, `google_maps_flutter: ^2.5.3`
+  * **System Utilities**: `audioplayers: ^6.1.0`, `flutter_local_notifications: ^22.0.1`, `flutter_contacts: ^2.1.0`, `url_launcher: ^6.3.2`, `image_picker: ^1.1.2`, `confetti: ^0.7.0`
