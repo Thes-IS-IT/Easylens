@@ -12,7 +12,7 @@ This document defines the usability quality metrics, core evaluation parameters,
 
 | Usability Quality Metric | Core Evaluation Parameter | Specific EasyLens Testing Target | Standard / Baseline |
 | :--- | :--- | :--- | :--- |
-| **Learnability** | Ease of interface memorization and onboarding | Tapping the high-contrast accessible main dashboard grid buttons (Object Detection, OCR Reader, AI Assistant, Emergency SOS) and locating primary navigation tools without visual assistance. | ISO/IEC 25010 (Learnability Sub-characteristic) |
+| **Learnability** | Ease of interface memorization and onboarding | Tapping the high-contrast accessible touch buttons on the EasyLens screen main dashboard (Object Detection, OCR Reader, AI Assistant, Emergency SOS) or pressing the dedicated hardware trigger button and locating primary navigation tools without visual assistance. | ISO/IEC 25010 (Learnability Sub-characteristic) |
 | **Operability** | Comfort and physical wearability of hardware | Comfort, secure fit, thermal performance, and weight distribution of the custom **3D-printed module box frame** housing the ESP32-CAM-MB, OV2640 70° light wide angle lens, heatsink pad, and 1500 mAh powerbank. | WEAR Scale (Wearable Quality Evaluation) |
 | **User Error Protection** | Code fault tolerance and exception recovery | System recovery and immediate spatial voice/audio feedback triggered during wireless Wi-Fi AP frame drops, camera disconnects, or low-battery thresholds. | ISO/IEC 5055 (Software Reliability & Fault Tolerance) |
 | **Accessibility** | Multilingual spatial audio clarity & visual adaptation | Audibility, speech rate customization, and pitch clarity of English and Filipino spatial Text-to-Speech (TTS) alerts under noisy ambient outdoor environments, combined with high-contrast screen scaling. | WCAG 2.2 (Level AAA Guidelines) |
@@ -26,7 +26,7 @@ This document defines the usability quality metrics, core evaluation parameters,
 * **Target Users**: Visually impaired (blind/low vision) and neurodivergent test participants.
 * **Test Method**: Task Completion Time (TCT) on initial launch without tutorial prompts.
 * **Success Criteria**:
-  * $\ge 90\%$ of participants successfully navigate from the home screen to active vision mode within **15 seconds** using screen-reader gestures or direct tap inputs.
+  * $\ge 90\%$ of participants successfully navigate from the EasyLens screen dashboard or activate controls via physical hardware buttons to active vision mode within **15 seconds** using accessibility gestures, screen-reader audio cues, or direct touch inputs.
 
 ### 3.2 Operability & Thermal Wearability
 * **Hardware Profile**: Wearable unit consisting of the **3D-Printed Module Box Frame**, **ESP32-CAM-MB with CH340G**, **OV2640 70° Light Wide Angle Lens**, **Heatsink Pad**, and **1500 mAh Powerbank**.
