@@ -52,7 +52,7 @@ EasyLens is a state-of-the-art accessibility assistant mobile application design
 - **`shared_preferences: ^2.2.3`** — Local on-device key-value store
 
 ### Networking
-- **`http: ^1.2.1`** — REST calls (OSRM routing, Ollama, Geocoding, ESP32)
+- **`http: ^1.2.1`** — REST calls (Google Maps routing, Ollama, Geocoding, ESP32)
 - **`flutter_dotenv: ^5.2.1`** — `.env` secrets management
 
 ---

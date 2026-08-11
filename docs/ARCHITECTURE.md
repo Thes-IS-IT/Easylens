@@ -274,7 +274,7 @@ A timestamp-based cooldown (`_navAlertCooldownMs = 8000 ms`) ensures TTS is neve
 | < 80 m to destination | "Almost there! X meters away" |
 | < 20 m to destination | "You have arrived!" + transitions to navState 2 |
 
-Step waypoints are estimated by interpolating the OSRM `_routePoints` array using the current step index fraction. This gives a smooth positional estimate even when step coordinate data is not available.
+Step waypoints are estimated by interpolating the Google Maps `_routePoints` array using the current step index fraction. This gives a smooth positional estimate even when step coordinate data is not available.
 
 ---
 

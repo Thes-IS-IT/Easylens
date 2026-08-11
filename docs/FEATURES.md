@@ -112,7 +112,7 @@ The Navigation screen provides GPS-based turn-by-turn guidance with full TTS gui
 
 ### Features
 - **Real-time GPS tracking** — Uses `Geolocator` with `LocationAccuracy.bestForNavigation` and a 5-metre distance filter for smooth tracking.
-- **Live route drawing** — Fetches road geometry from the OSRM open-source routing API and draws a polyline on the Google Map.
+- **Live route drawing** — Fetches road geometry from the Google Maps Directions API and draws a polyline on the Google Map.
 - **Search & geocoding** — Live search with local place cache; falls back to Google Geocoding API for unfound locations.
 - **Quick-filter chips** — Pre-defined shortcuts (Home, Work, Holy Angel University) for instant navigation.
 - **Step-by-step TTS guidance** — Reads the initial direction, then each subsequent step.
@@ -131,7 +131,7 @@ The Navigation screen provides GPS-based turn-by-turn guidance with full TTS gui
 - **Recent navigation save** — Each route is saved to Firestore for history tracking.
 - **Manual Next/Cancel buttons** — User can manually advance steps or cancel navigation.
 - **Arrived screen** — Dedicated map view shown on arrival (navState 2).
-- **Single-Tap or Long-Press Pinning** — Users can tap or hold anywhere on the map to drop a custom location marker pin. The app instantly queries the OSRM router to fetch directions, draw route polylines, and start active guidance.
+- **Single-Tap or Long-Press Pinning** — Users can tap or hold anywhere on the map to drop a custom location marker pin. The app instantly queries Google Maps routing to fetch directions, draw route polylines, and start active guidance.
 - **Conversational Voice Search & Choice Selection** — Users can say "search for [place]" or "hanapin ang [place]" using Speech Navigation. The overlay lists the top 3 search results aloud (e.g., "1: Nepo Mall, 2: SM Clark..."). The user selects their destination hands-free by speaking the corresponding number ("one", "two", "three" or "una", "pangalawa", "pangatlo") to start navigation immediately. Can say "cancel" to abort.
 
 ### Key Files

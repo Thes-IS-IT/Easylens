@@ -265,9 +265,9 @@
     "keywords": ["cloudflare r2", "r2 bucket", "database sync", "model update", "weights", "background download", "wi-fi update"]
   },
   {
-    "title": "EasyLens Navigation Mode OSRM Route Request Architecture",
-    "content": "When a destination is selected, the Map screen sends an HTTP request to the Open Source Routing Machine (OSRM) API. The request contains the user's current GPS coordinates and the destination coordinates. The API returns the route geometry as a GeoJSON path, which the app converts into a list of LatLng coordinates to draw the route on the maps and the circular HUD minimap.",
-    "keywords": ["osrm", "routing machine", "api request", "geojson", "route geometry", "latlng", "polyline", "coordinates", "maps"]
+    "title": "EasyLens Navigation Mode Google Maps Route Request Architecture",
+    "content": "When a destination is selected, the Map screen sends a request to the Google Maps Directions API. The request contains the user's current GPS coordinates and the destination coordinates. The API returns the route geometry as a polyline path, which the app converts into a list of LatLng coordinates to draw the route on the maps and the circular HUD minimap.",
+    "keywords": ["google maps", "directions api", "routing", "route geometry", "latlng", "polyline", "coordinates", "maps"]
   },
   {
     "title": "Buddy's Guide - How to Request Help in Public",
@@ -536,8 +536,8 @@
   },
   {
     "title": "EasyLens Screens - Navigation Maps Screen Landmarks List",
-    "content": "The Maps tab displays a scrolling panel of nearby landmarks like Nepo Mall and HAU. Visually impaired users can select any item to calculate OSRM routes, showing distances, walking times, and launching the circular HUD minimap.",
-    "keywords": ["maps landmarks", "maps screen panel", "route calculation", "walking times", "nearby places", "osrm path", "launch minimap"]
+    "content": "The Maps tab displays a scrolling panel of nearby landmarks like Nepo Mall and HAU. Visually impaired users can select any item to calculate Google Maps routes, showing distances, walking times, and launching the circular HUD minimap.",
+    "keywords": ["maps landmarks", "maps screen panel", "route calculation", "walking times", "nearby places", "google maps path", "launch minimap"]
   },
   {
     "title": "EasyLens Screens - Emergency Alert Custom Messages Creator",
@@ -766,8 +766,8 @@
   },
   {
     "title": "EasyLens Screens - Navigation Maps Screen Search Results listing",
-    "content": "The search results scroll panel lists matched landmarks with distance metrics. Selecting a search result plots the OSRM route path and updates the ActiveNavigationService state.",
-    "keywords": ["search results listing", "maps search result", "route plotting panel", "osrm route sync"]
+    "content": "The search results scroll panel lists matched landmarks with distance metrics. Selecting a search result plots the Google Maps route path and updates the ActiveNavigationService state.",
+    "keywords": ["search results listing", "maps search result", "route plotting panel", "google maps route sync"]
   },
   {
     "title": "EasyLens Screens - SOS Emergency Alert customization keys",
@@ -1010,13 +1010,13 @@
     "keywords": ["toothbrush", "dental health", "ceramic cup", "bathroom counter"]
   },
   {
-    "title": "OSRM Route Step Parsing and Turn Directions",
-    "content": "EasyLens parses OSRM JSON route responses to extract exact step instructions, bearings, and turn modifiers. When navigating, the system detects modifiers like 'left', 'right', 'slight left', 'slight right', 'sharp left', 'sharp right', or 'straight'. Buddy maps these to clear audio prompts, such as 'In 10 meters, turn sharp left', or 'Continue straight on the path'. This step-by-step guidance ensures that the user is always aware of upcoming path adjustments well before they reach the intersection.",
-    "keywords": ["osrm parsing", "turn instructions", "left turn", "right turn", "bearing", "direction prompts", "navigation steps"]
+    "title": "Google Maps Route Step Parsing and Turn Directions",
+    "content": "EasyLens parses Google Maps route step responses to extract exact step instructions, bearings, and turn modifiers. When navigating, the system detects modifiers like 'left', 'right', 'slight left', 'slight right', 'sharp left', 'sharp right', or 'straight'. Buddy maps these to clear audio prompts, such as 'In 10 meters, turn sharp left', or 'Continue straight on the path'. This step-by-step guidance ensures that the user is always aware of upcoming path adjustments well before they reach the intersection.",
+    "keywords": ["google maps parsing", "turn instructions", "left turn", "right turn", "bearing", "direction prompts", "navigation steps"]
   },
   {
     "title": "GPS Accuracy Thresholds and Filtering",
-    "content": "To prevent route jumps and coordinates flickering, EasyLens implements strict Geolocator accuracy filtering. The system checks the horizontal accuracy (in meters) of incoming position updates. GPS updates with an accuracy rating of over 15 meters are discarded as noise. Only stable coordinates with high-precision accuracy (under 10 meters) are sent to the navigation engine and OSRM route synchronization pipelines, keeping the PIP minimap marker stable and preventing incorrect turn announcements.",
+    "content": "To prevent route jumps and coordinates flickering, EasyLens implements strict Geolocator accuracy filtering. The system checks the horizontal accuracy (in meters) of incoming position updates. GPS updates with an accuracy rating of over 15 meters are discarded as noise. Only stable coordinates with high-precision accuracy (under 10 meters) are sent to the navigation engine and Google Maps route synchronization pipelines, keeping the PIP minimap marker stable and preventing incorrect turn announcements.",
     "keywords": ["gps accuracy", "geolocator filtering", "horizontal accuracy", "gps noise", "location precision", "minimap stability"]
   },
   {
@@ -1031,8 +1031,8 @@
   },
   {
     "title": "Dynamic Route Recalculation Thresholds",
-    "content": "If the user deviates from the active path, EasyLens performs dynamic route recalculation. The system continuously calculates the perpendicular distance between the user's current GPS position and the nearest segment of the route polyline. If this distance exceeds a threshold of 15 meters for more than 5 seconds, Buddy announces: 'Woof! Recalculating your route to keep you on track, arf!' and sends a new HTTP request to the OSRM API using the new coordinates.",
-    "keywords": ["recalculation", "off-route", "polyline deviation", "osrm request", "route update", "navigation recovery"]
+    "content": "If the user deviates from the active path, EasyLens performs dynamic route recalculation. The system continuously calculates the perpendicular distance between the user's current GPS position and the nearest segment of the route polyline. If this distance exceeds a threshold of 15 meters for more than 5 seconds, Buddy announces: 'Woof! Recalculating your route to keep you on track, arf!' and sends a new HTTP request to the Google Maps Directions API using the new coordinates.",
+    "keywords": ["recalculation", "off-route", "polyline deviation", "google maps request", "route update", "navigation recovery"]
   },
   {
     "title": "Indoor BLE Beacon Integration and Navigation",
@@ -1081,8 +1081,8 @@
   },
   {
     "title": "Offline Maps Cache and Fallback Navigation",
-    "content": "To ensure navigation remains operational in dead zones, EasyLens caches map tile layers and OSRM node lists. When internet access is disconnected during a walk, the navigation engine falls back to cached route geometry, using raw Geolocator GPS coordinates and compass bearings to maintain orientation indicators on the PIP minimap and voice prompts.",
-    "keywords": ["offline navigation", "map cache", "osrm fallback", "dead zone", "gps tracking", "offline bearing"]
+    "content": "To ensure navigation remains operational in dead zones, EasyLens caches map tile layers and route node lists. When internet access is disconnected during a walk, the navigation engine falls back to cached route geometry, using raw Geolocator GPS coordinates and compass bearings to maintain orientation indicators on the PIP minimap and voice prompts.",
+    "keywords": ["offline navigation", "map cache", "google maps fallback", "dead zone", "gps tracking", "offline bearing"]
   },
   {
     "title": "EasyLens App Guide and How to Use",
@@ -1091,7 +1091,7 @@
   },
   {
     "title": "EasyLens Core Features Catalogue",
-    "content": "EasyLens is packed with cutting-edge assistive features: 1. Real-time Object Detection with fine-tuned MobileNetV2 (bounding boxes and obstacle alerts). 2. Continuous Speech Navigation (OSRM routing, custom map pinning, tiered anti-spam alerts, and global arrival confetti). 3. OCR Text Scanner (ML Kit) for reading documents. 4. Local RAG Assistant (Gemma 2B / Gemini). 5. One-tap SOS Emergency SMS. 6. Multi-Persona Voice feedback (6 personas including Maya for Tagalog).",
+    "content": "EasyLens is packed with cutting-edge assistive features: 1. Real-time Object Detection with fine-tuned MobileNetV2 (bounding boxes and obstacle alerts). 2. Continuous Speech Navigation (Google Maps routing, custom map pinning, tiered anti-spam alerts, and global arrival confetti). 3. OCR Text Scanner (ML Kit) for reading documents. 4. Local RAG Assistant (Gemma 2B / Gemini). 5. One-tap SOS Emergency SMS. 6. Multi-Persona Voice feedback (6 personas including Maya for Tagalog).",
     "keywords": ["features", "app capabilities", "what can easylens do", "confetti on arrival", "pin map", "maya persona", "gemma RAG", "ml kit ocr", "features list"]
   },
   {
@@ -1116,7 +1116,7 @@
   },
   {
     "title": "Mga Pangunahing Tampok ng EasyLens",
-    "content": "Ang EasyLens ay puno ng mga makabagong tampok: 1. Real-time Object Detection gamit ang fine-tuned MobileNetV2 (bounding boxes at babala sa mga balakid). 2. Continuous Speech Navigation (direksyon gamit ang OSRM, map pinning, at confetti sa pagdating). 3. OCR Text Scanner (ML Kit) para sa pagbabasa ng dokumento. 4. Local RAG Assistant (Gemma 2B / Gemini). 5. One-tap SOS Emergency SMS. 6. Multi-Persona Voice feedback kasama ang Maya.",
+    "content": "Ang EasyLens ay puno ng mga makabagong tampok: 1. Real-time Object Detection gamit ang fine-tuned MobileNetV2 (bounding boxes at babala sa mga balakid). 2. Continuous Speech Navigation (direksyon gamit ang Google Maps, map pinning, at confetti sa pagdating). 3. OCR Text Scanner (ML Kit) para sa pagbabasa ng dokumento. 4. Local RAG Assistant (Gemma 2B / Gemini). 5. One-tap SOS Emergency SMS. 6. Multi-Persona Voice feedback kasama ang Maya.",
     "keywords": ["tampok", "kakayahan", "features", "confetti", "pin map", "maya", "gemma RAG", "ml kit ocr", "saklolo", "sos", "object detection", "features list"]
   },
   {
