@@ -6,7 +6,7 @@
 
 This document defines the complete technical, hardware, software, performance, and environmental specifications for **Easylens**—an advanced accessibility companion engineered for visually impaired and neurodivergent users.
 
-The system combines physical wearable optics (**ESP32-CAM-MB Development Board with CH340G Micro-USB to Serial Port**, **OV3660 Camera**, **OV2640 70° Light Wide Angle Lens**, **Heatsink Pad**, **1500 mAh Powerbank**, and **3D Printed Module Box Frame**) with a low-latency edge AI application built on **Flutter**, **TensorFlow Lite**, **Google Gemma 2B**, **Google ML Kit**, and **Cloudflare D1/R2 storage**.
+The system combines physical wearable optics (**ESP32-CAM-MB Development Board with CH340G Micro-USB to Serial Port**, **OV2640 70° Light Wide Angle Lens**, **Heatsink Pad**, **1500 mAh Powerbank**, and **3D Printed Module Box Frame**) with a low-latency edge AI application built on **Flutter**, **TensorFlow Lite**, **Google Gemma 2B**, **Google ML Kit**, and **Cloudflare D1/R2 storage**.
 
 ---
 
@@ -18,8 +18,7 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 | :--- | :--- | :--- |
 | **Development Board & Interface** | **ESP32-CAM-MB Board (CH340G)** | NodeMCU baseboard featuring integrated **CH340G Micro-USB to Serial Port** converter for direct USB flashing and debugging |
 | **System on Chip (SoC)** | Espressif ESP32-DWD0WDQ6 | Dual-core 32-bit Xtensa LX6 microprocessor @ 240 MHz |
-| **High-Res Camera Module** | **OV3660 Camera Sensor** | 3 Megapixel ($2048 \times 1536$) CMOS sensor with ISP for high-accuracy OCR document scanning |
-| **Wide-Angle Camera Module** | **OV2640 70° Light Wide Angle** | 2 Megapixel ($1600 \times 1200$) CMOS sensor with 70° light wide angle lens for spatial scene awareness |
+| **Camera Module** | **OV2640 70° Light Wide Angle** | 2 Megapixel ($1600 \times 1200$) CMOS sensor with 70° light wide angle lens for spatial scene awareness |
 | **Thermal Dissipation** | **Heatsink Pad** | High-conductivity aluminum **heatsink pad** attached directly to ESP32 SoC and PSRAM to eliminate thermal throttling |
 | **Wireless Connectivity** | Wi-Fi Transceiver | 802.11 b/g/n (Up to 150 Mbps) operating in Access Point (AP) mode |
 | **Bluetooth Subsystem** | Bluetooth v4.2 BR/EDR & BLE | Reserved for peripheral discovery and beacon pairing |
@@ -31,12 +30,7 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 
 ### 2.2 Camera Optics & Image Sensors
 
-#### A. OV3660 Camera Module (High-Resolution Sensor)
-* **Sensor Type**: OmniVision OV3660 1/5" Color CMOS Sensor.
-* **Native Resolution**: **3 Megapixels ($2048 \times 1536$ QXGA)**.
-* **Features**: Embedded ISP with auto-exposure control, auto-white balance, and high-clarity document parsing for advanced OCR.
-
-#### B. OV2640 Wide-Angle Camera Module
+#### A. OV2640 Wide-Angle Camera Module
 * **Sensor Type**: OmniVision OV2640 1/4" Color CMOS Sensor.
 * **Optical Field of View (FoV)**: **OV2640 70° Light Wide Angle Lens** (engineered for wide-angle forward spatial awareness).
 * **Maximum Native Resolution**: 2 Megapixels ($1600 \times 1200$ UXGA).
@@ -97,7 +91,7 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
  +-------------------------------------------------------------------+
  | [Housing] 3D Printed Module Box Frame Enclosure (PETG / ABS)     |
  | [Lens Aperture] Custom Frame Aperture for OV2640 70° Light Wide  |
- |                 Angle Lens & OV3660 Camera Modules                |
+ |                 Angle Lens Module                                 |
  | [Thermal] Direct-Contact Opening & Heatsink Pad for ESP32 SoC     |
  | [Port Slot] Micro-USB Port Slot for CH340G ESP32-CAM-MB Board    |
  | [Mount] Dual Hinged Zip-Tie Mounts for Glasses / Harness Clip     |
@@ -105,7 +99,7 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 ```
 
 * **Body Material**: **3D Printed Module Box Frame** (PETG or ABS polymer construction).
-* **Camera Aperture**: Precision-molded front-facing aperture hole engineered for the **OV2640 70° Light Wide Angle Lens** and **OV3660 camera module**, eliminating peripheral vignetting.
+* **Camera Aperture**: Precision-molded front-facing aperture hole engineered for the **OV2640 70° Light Wide Angle Lens**, eliminating peripheral vignetting.
 * **Thermal Management & Cooling**: 
   * **Heatsink Pad**: High-conductivity aluminum heatsink pad affixed on the ESP32 SoC and external PSRAM chips, coupled with box frame thermal convection cutouts.
 * **Interface & Debugging Access**: Dedicated slot cutouts for the **ESP32-CAM-MB CH340G Micro-USB to Serial Port** connection and power supply line.
