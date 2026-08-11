@@ -6,7 +6,7 @@
 
 This document defines the complete technical, hardware, software, performance, and environmental specifications for **Easylens**—an advanced accessibility companion engineered for visually impaired and neurodivergent users.
 
-The system combines physical wearable optics (**ESP32-CAM OV2640 with 75° FoV lens** or **Wired UVC USB-OTG camera**, **1500 mAh battery bank**, and **3D-printed modular PETG clips**) with a low-latency edge AI application built on **Flutter**, **TensorFlow Lite**, **Google Gemma 2B**, **Google ML Kit**, and **Cloudflare D1/R2 storage**.
+The system combines physical wearable optics (**ESP32-CAM-MB Development Board with CH340G Micro-USB to Serial Port**, **OV3660 Camera**, **OV2640 70° Light Wide Angle Lens**, **Heatsink Pad**, **1500 mAh Powerbank**, and **3D Printed Module Box Frame**) with a low-latency edge AI application built on **Flutter**, **TensorFlow Lite**, **Google Gemma 2B**, **Google ML Kit**, and **Cloudflare D1/R2 storage**.
 
 ---
 
@@ -16,24 +16,31 @@ The system combines physical wearable optics (**ESP32-CAM OV2640 with 75° FoV l
 
 | Component | Technical Parameter | Detailed Specification |
 | :--- | :--- | :--- |
+| **Development Board & Interface** | **ESP32-CAM-MB Board (CH340G)** | NodeMCU baseboard featuring integrated **CH340G Micro-USB to Serial Port** converter for direct USB flashing and debugging |
 | **System on Chip (SoC)** | Espressif ESP32-DWD0WDQ6 | Dual-core 32-bit Xtensa LX6 microprocessor @ 240 MHz |
 | **Co-Processor** | Ultra Low Power (ULP) RISC | Handles sleep state monitoring and battery sensing |
 | **Internal Memory** | On-Chip SRAM | 520 KB SRAM |
 | **External Memory** | Pseudo-Static RAM (PSRAM) | **4 MB External SPI PSRAM** (Required for MJPEG frame buffers) |
 | **Flash Storage** | SPI Flash Memory | 4 MB Flash memory for firmware image |
+| **Thermal Dissipation** | **Heatsink Pad** | High-conductivity aluminum **heatsink pad** attached directly to ESP32 SoC and PSRAM to eliminate thermal throttling |
 | **Wireless Connectivity** | Wi-Fi Transceiver | 802.11 b/g/n (Up to 150 Mbps) operating in Access Point (AP) mode |
 | **Bluetooth Subsystem** | Bluetooth v4.2 BR/EDR & BLE | Reserved for peripheral discovery and beacon pairing |
 | **Onboard Peripherals** | GPIO / SPI / I2C / UART / DVP | 16 GPIO pins, 10-bit ADC, dedicated DVP camera bus |
 | **Status & Illumination** | Onboard Flash LED | High-brightness white LED on GPIO 4 for low-light OCR |
-| **Operating Voltage** | Primary Supply Rail | 5.0V DC input via VPOWER, regulated to 3.3V via AMS1117 LDO |
+| **Operating Voltage** | Primary Supply Rail | 5.0V DC input via Micro-USB / VPOWER, regulated to 3.3V via LDO |
 
 ---
 
 ### 2.2 Camera Optics & Image Sensors
 
-#### A. Wireless Camera Module (ESP32-CAM OV2640)
+#### A. OV3660 Camera Module (High-Resolution Sensor)
+* **Sensor Type**: OmniVision OV3660 1/5" Color CMOS Sensor.
+* **Native Resolution**: **3 Megapixels ($2048 \times 1536$ QXGA)**.
+* **Features**: Embedded ISP with auto-exposure control, auto-white balance, and high-clarity document parsing for advanced OCR.
+
+#### B. OV2640 Wide-Angle Camera Module
 * **Sensor Type**: OmniVision OV2640 1/4" Color CMOS Sensor.
-* **Optical Field of View (FoV)**: **75° Diagonal Field of View lens** (optimized for human forward spatial field).
+* **Optical Field of View (FoV)**: **OV2640 70° Light Wide Angle Lens** (engineered for wide-angle forward spatial awareness).
 * **Maximum Native Resolution**: 2 Megapixels ($1600 \times 1200$ UXGA).
 * **Operating Capture Resolutions**:
   * VGA ($640 \times 480$) @ 25 – 30 FPS (Default runtime stream format).
@@ -43,9 +50,9 @@ The system combines physical wearable optics (**ESP32-CAM OV2640 with 75° FoV l
 * **Output Color Space**: YUV422, YCbCr422, RGB565, and Compressed Raw JPEG.
 * **Dynamic Range**: 50 dB signal-to-noise ratio (SNR).
 
-#### B. Wired UVC Camera Module (USB-OTG Direct Interface)
+#### C. Wired UVC Camera Module (USB-OTG Direct Interface)
 * **Interface Standard**: USB 2.0 High-Speed / UVC (USB Video Class) 1.1 compliance.
-* **Physical Connector**: High-durability USB Type-C OTG with molded strain-relief boot.
+* **Physical Connector**: High-durability Micro-USB / USB Type-C OTG connector with molded strain-relief boot.
 * **Stream Formats**: MJPEG (Compressed) / YUY2 (Uncompressed digital raw).
 * **Bus Bandwidth Requirement**: Up to 480 Mbps USB High-Speed PHY bandwidth.
 * **Focus Profile**: Fixed Hyperfocal Focus ($0.3\text{ meters}$ to $\infty$).
@@ -85,30 +92,31 @@ The system combines physical wearable optics (**ESP32-CAM OV2640 with 75° FoV l
 
 ---
 
-### 2.4 Mechanical & 3D-Printed Modular Enclosure Specifications
+### 2.4 Mechanical & 3D-Printed Module Box Frame Specifications
 
 ```
-               MODULAR PETG ESP32 ENCLOSURE SCHEMATIC
+             3D PRINTED MODULE BOX FRAME SCHEMATIC
  +-------------------------------------------------------------------+
- | [Lens] Precision OV2640 Camera Aperture Hole                     |
- | [Ventilation] Adjustable Air Ventilation Sliding Door             |
- | [Thermal] Conductive Thermal Cooling Pads for ESP32 SoC & PSRAM   |
- | [Mount] Dual Hinged Zip-Tie Slots for Eyeglasses Frame Mounting   |
- | [Housing] Weather-Resistant PETG Shell (0.2mm layer height)       |
+ | [Housing] 3D Printed Module Box Frame Enclosure (PETG / ABS)     |
+ | [Lens Aperture] Custom Frame Aperture for OV2640 70° Light Wide  |
+ |                 Angle Lens & OV3660 Camera Modules                |
+ | [Thermal] Direct-Contact Opening & Heatsink Pad for ESP32 SoC     |
+ | [Port Slot] Micro-USB Port Slot for CH340G ESP32-CAM-MB Board    |
+ | [Mount] Dual Hinged Zip-Tie Mounts for Glasses / Harness Clip     |
  +-------------------------------------------------------------------+
 ```
 
-* **Body Material**: **PETG (Polyethylene Terephthalate Glycol)** or **ABS**.
-* **Camera Aperture**: Precision-molded front-facing aperture hole engineered for the OV2640 75° FoV lens module, preventing peripheral vignetting.
+* **Body Material**: **3D Printed Module Box Frame** (PETG or ABS polymer construction).
+* **Camera Aperture**: Precision-molded front-facing aperture hole engineered for the **OV2640 70° Light Wide Angle Lens** and **OV3660 camera module**, eliminating peripheral vignetting.
 * **Thermal Management & Cooling**: 
-  * **Thermal Cooling Pads**: Direct-contact high-conductivity silicone thermal pads mounted onto the ESP32 SoC and external PSRAM chips.
-  * **Air Ventilation Sliding Door**: Manual/slotted sliding door mechanism allowing users to open ventilation channels for active convection cooling during long vision streams, or close them for weather protection.
-* **Eyeglasses Integration**: 
-  * **Hinged Zip-Tie Mounts**: Dual articulated side hinges with integrated 2.5mm zip-tie channels, allowing quick and secure lock-mounting to any standard spectacle or safety glasses frames without slipping.
-* **Weight**: **22 grams** (Enclosure & mount assembly).
+  * **Heatsink Pad**: High-conductivity aluminum heatsink pad affixed on the ESP32 SoC and external PSRAM chips, coupled with box frame thermal convection cutouts.
+* **Interface & Debugging Access**: Dedicated slot cutouts for the **ESP32-CAM-MB CH340G Micro-USB to Serial Port** connection and power supply line.
+* **Eyeglasses & Harness Integration**: 
+  * **Hinged Zip-Tie Mounts**: Articulated side mounting frame with integrated 2.5mm zip-tie channels, enabling fast and secure clip attachment to eyeglasses or chest harnesses.
+* **Weight**: **24 grams** (Module box frame & mounting assembly).
 * **Print Settings**: 0.2mm layer height, 30% tri-hexagon structural infill, 4 perimeter wall layers.
 * **Thermal Endurance**: Heat deflection temperature up to **75°C**.
-* **Cable Routing**: Integrated cable channel guide for 90° USB-C / power cable strain relief.
+* **Cable Routing**: Integrated cable channel guide for 90° Micro-USB / USB-C power cable strain relief.
 
 ---
 
