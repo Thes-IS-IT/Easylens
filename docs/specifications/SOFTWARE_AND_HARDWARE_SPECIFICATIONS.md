@@ -18,10 +18,8 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 | :--- | :--- | :--- |
 | **Development Board & Interface** | **ESP32-CAM-MB Board (CH340G)** | NodeMCU baseboard featuring integrated **CH340G Micro-USB to Serial Port** converter for direct USB flashing and debugging |
 | **System on Chip (SoC)** | Espressif ESP32-DWD0WDQ6 | Dual-core 32-bit Xtensa LX6 microprocessor @ 240 MHz |
-| **Co-Processor** | Ultra Low Power (ULP) RISC | Handles sleep state monitoring and battery sensing |
-| **Internal Memory** | On-Chip SRAM | 520 KB SRAM |
-| **External Memory** | Pseudo-Static RAM (PSRAM) | **4 MB External SPI PSRAM** (Required for MJPEG frame buffers) |
-| **Flash Storage** | SPI Flash Memory | 4 MB Flash memory for firmware image |
+| **High-Res Camera Module** | **OV3660 Camera Sensor** | 3 Megapixel ($2048 \times 1536$) CMOS sensor with ISP for high-accuracy OCR document scanning |
+| **Wide-Angle Camera Module** | **OV2640 70° Light Wide Angle** | 2 Megapixel ($1600 \times 1200$) CMOS sensor with 70° light wide angle lens for spatial scene awareness |
 | **Thermal Dissipation** | **Heatsink Pad** | High-conductivity aluminum **heatsink pad** attached directly to ESP32 SoC and PSRAM to eliminate thermal throttling |
 | **Wireless Connectivity** | Wi-Fi Transceiver | 802.11 b/g/n (Up to 150 Mbps) operating in Access Point (AP) mode |
 | **Bluetooth Subsystem** | Bluetooth v4.2 BR/EDR & BLE | Reserved for peripheral discovery and beacon pairing |
