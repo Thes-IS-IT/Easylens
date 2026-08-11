@@ -1,10 +1,12 @@
 # EasyLens: CI/CD Pipeline & Automated OTA Updates
 
-This document describes the automated build, integration, and Over-The-Air (OTA) updates architecture implemented in EasyLens. The system combines GitHub Actions builds with on-device REST API updates checking.
+This document describes the automated build, integration, security verification, and Over-The-Air (OTA) updates architecture implemented in EasyLens.
+
+Our CI/CD pipeline, powered by GitHub Actions ([release.yml](file:///Users/arronkianparejas/easylens/.github/workflows/release.yml)), provides end-to-end automation, strict code quality enforcement, and secure deployment by running automated static analysis (`flutter analyze`) and unit testing (`flutter test`) on every push to the `main` branch to guarantee clean, crash-free code before securely compiling the production release APK using encrypted environment secrets, publishing the Docker container to GHCR, and attaching the build to GitHub Releases—enabling safe, hands-free Over-The-Air (OTA) updates directly within the app.
 
 ---
 
-## 1. CI/CD Build Flow (GitHub Actions)
+## 1. CI/CD Build Flow & Quality Guardrails (GitHub Actions)
 
 The build pipeline is configured inside [.github/workflows/release.yml](file:///Users/arronkianparejas/easylens/.github/workflows/release.yml). It is executed on every push to the `main` branch.
 
