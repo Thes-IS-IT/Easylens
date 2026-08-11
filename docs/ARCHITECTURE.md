@@ -166,7 +166,7 @@ sequenceDiagram
         Coordinator->>LocalGemma: Run Offline Inference (Gemma-IT 2B)
         LocalGemma-->>User: TTS Output Response
     else Local model missing & Ollama active
-        Coordinator->>Ollama: Query Local Ollama Server (llama3.2/gemma2)
+        Coordinator->>Ollama: Query Local Ollama Server (gemma2)
         Ollama-->>User: TTS Output Response
     else No Local Models
         Coordinator->>Gemini: Query Cloud Gemini API
