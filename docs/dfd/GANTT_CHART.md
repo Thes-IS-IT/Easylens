@@ -4,15 +4,16 @@
 
 ## 1. Overview & Project Roadmap
 
-This document outlines the formal project development timeline for **EasyLens**, spanning **December 1, 2025 to August 5, 2026**.
+This document outlines the formal project development and evaluation timeline for **EasyLens**, spanning **December 1, 2025 to August 28, 2026**.
 
-The key project phases follow a chronological engineering roadmap:
+The key project phases follow an expanded engineering and validation roadmap:
 1. **Phase 1: Project Initiation, Literature Review & Hardware Sourcing** *(Dec 1, 2025 – Feb 15, 2026)*
 2. **Phase 2: 3D Box Frame Design & Physical Prototyping** *(Feb 1, 2026 – Mar 31, 2026)*
 3. **Phase 3: Dataset Curation & MobileNetV2 Model Training** *(Apr 1, 2026 – May 31, 2026)*
 4. **Phase 4: Flutter App Development, Edge AI Engine & Multimodal Accessibility** *(May 1, 2026 – Jul 15, 2026)*
-5. **Phase 5: Cloud Integration (Cloudflare D1/R2 & Firebase)** *(Jun 15, 2026 – Jul 25, 2026)*
-6. **Phase 6: Empirical Usability Evaluation, System Benchmarking & Release** *(Jul 1, 2026 – Aug 5, 2026)*
+5. **Phase 5: Cloud Integration (Cloudflare D1/R2 & Firebase)** *(Jun 15, 2026 – Jul 20, 2026)*
+6. **Phase 6: Empirical User Testing & System Benchmarking Phase** *(Jul 1, 2026 – Aug 15, 2026)*
+7. **Phase 7: Final Document Polish, Thesis Refinement & Final Defense** *(Aug 1, 2026 – Aug 28, 2026)*
 
 ---
 
@@ -20,7 +21,7 @@ The key project phases follow a chronological engineering roadmap:
 
 ```mermaid
 gantt
-    title EasyLens Project Timeline (Dec 1, 2025 – Aug 5, 2026)
+    title EasyLens Project Timeline (Dec 1, 2025 – Aug 28, 2026)
     dateFormat  YYYY-MM-DD
     axisFormat  %b %Y
 
@@ -36,11 +37,14 @@ gantt
     section Phase 4: Mobile App Development
     Flutter Core, Edge AI & Accessibility  :p4, 2026-05-01, 2026-07-15
 
-    section Phase 5: Cloud & Telemetry Sync
-    Cloudflare D1/R2 & Firebase Setup      :p5, 2026-06-15, 2026-07-25
+    section Phase 5: Cloud Integration
+    Cloudflare D1/R2 & Firebase Setup      :p5, 2026-06-15, 2026-07-20
 
-    section Phase 6: Evaluation & Final Release
-    Usability Testing & Final Defense v1.0 :p6, 2026-07-01, 2026-08-05
+    section Phase 6: Empirical User Testing
+    User Evaluation & Latency Benchmarks   :p6, 2026-07-01, 2026-08-15
+
+    section Phase 7: Document Polish & Final Release
+    Thesis Refinement & Final Defense v1.0 :p7, 2026-08-01, 2026-08-28
 ```
 
 ---
@@ -49,7 +53,7 @@ gantt
 
 ```mermaid
 gantt
-    title EasyLens Detailed Engineering Execution Schedule (Dec 2025 - Aug 2026)
+    title EasyLens Detailed Execution & Verification Schedule (Dec 2025 - Aug 2026)
     dateFormat  YYYY-MM-DD
     axisFormat  %b %d
 
@@ -81,13 +85,20 @@ gantt
     section 5. Cloud Integration & Backend Sync
     Cloudflare D1 Serverless SQL Telemetry & Contact Binding    :e1, 2026-06-15, 2026-07-05
     Cloudflare R2 Bucket & AWS SigV4 Direct Signed Uploads      :e2, 2026-06-25, 2026-07-15
-    Firebase Auth (Google Sign-In) & Firestore Sync Integration  :e3, 2026-07-05, 2026-07-25
+    Firebase Auth (Google Sign-In) & Firestore Sync Integration  :e3, 2026-07-05, 2026-07-20
 
-    section 6. Evaluation, Testing & Final Release (Jul - Aug 2026)
-    System Latency Benchmarking (UVC <10ms, Wi-Fi <30ms)         :f1, 2026-07-01, 2026-07-18
-    Empirical Usability Testing (ISO 25010 / WEAR Scale Evaluation):f2, 2026-07-10, 2026-07-28
-    Final Bug Fixes, Code Polish & APK/IPA Build Release (v1.0) :f3, 2026-07-20, 2026-08-02
-    Thesis Defense & Final Project Sign-off                      :f4, 2026-08-01, 2026-08-05
+    section 6. Empirical User Testing Phase (Jul - Aug 2026)
+    Participant Onboarding & Ethical Consent Protocols (Blind/Low-Vision):f1, 2026-07-01, 2026-07-12
+    Task Completion Time (TCT) & Learnability Evaluation       :f2, 2026-07-08, 2026-07-22
+    WEAR Scale Hardware Comfort & Thermal Performance Testing   :f3, 2026-07-18, 2026-08-02
+    ISO/IEC 5055 Signal Fault Tolerance & System Latency Tests  :f4, 2026-07-25, 2026-08-08
+    WCAG 2.2 AAA Multilingual Spatial Audio Intelligibility Audit:f5, 2026-08-01, 2026-08-15
+
+    section 7. Document Polish & Final Release (Aug 1 - 28, 2026)
+    Empirical Data Analysis & Statistical Likert Scoring        :g1, 2026-08-01, 2026-08-10
+    Thesis Manuscript Revision, Appendix Formatting & Citations :g2, 2026-08-08, 2026-08-18
+    Final Code Cleanup, Optimization & APK/IPA Release v1.0     :g3, 2026-08-15, 2026-08-22
+    Final Oral Defense Presentation & Academic Sign-off          :g4, 2026-08-20, 2026-08-28
 ```
 
 ---
@@ -100,5 +111,6 @@ gantt
 | **Phase 2** | Feb 1, 2026 – Mar 31, 2026 | 3D Printed Box Frame Prototyping & Thermal Verification | PETG Enclosure with Heatsink Pad Mounting |
 | **Phase 3** | **Apr 1, 2026 – May 31, 2026** | **AI Model Training & INT8 Quantization** | **MobileNetV2 SSD (>85% Top-1) Exported to TFLite** |
 | **Phase 4** | **May 1, 2026 – Jul 15, 2026** | **Flutter Mobile App Development & Vision Pipeline** | **60 FPS Accessible UI, TFLite, ML Kit OCR & Spatial TTS** |
-| **Phase 5** | Jun 15, 2026 – Jul 25, 2026 | Cloud Infrastructure Integration | Cloudflare D1/R2 & Firebase Auth Sync Active |
-| **Phase 6** | **Jul 1, 2026 – Aug 5, 2026** | **Empirical Evaluation, Thesis Defense & v1.0 Release** | **Usability Verification & Production Build Release** |
+| **Phase 5** | Jun 15, 2026 – Jul 20, 2026 | Cloud Infrastructure Integration | Cloudflare D1/R2 & Firebase Auth Sync Active |
+| **Phase 6** | **Jul 1, 2026 – Aug 15, 2026** | **Empirical User Testing & Verification Phase** | **Learnability, WEAR Scale, ISO 5055 & WCAG 2.2 Audits** |
+| **Phase 7** | **Aug 1, 2026 – Aug 28, 2026** | **Document Polish, Thesis Refinement & v1.0 Release** | **Final Manuscript, Production APK/IPA & Defense Sign-off** |
