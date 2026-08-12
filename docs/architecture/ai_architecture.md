@@ -18,10 +18,10 @@ EasyLens implements a hybrid on-device and cloud AI assistant system (Buddy) des
   - Releases resources cleanly on chat dialog destruction via `clearGemmaSession()` in the widget dispose cycle.
 * **Data Flow**: On startup, `RagService` searches the local app directory for `model.bin` (~1.3 GB). If not found, users can push it manually via Android Debug Bridge (ADB) or stream it using the built-in downloader.
 
-### Cloud Online Model: Google Gemini 2.0 Flash
+### Cloud Online Model: Google Gemini 3.6 Flash (Low)
 * **Library**: `google_generative_ai: ^0.4.4`
 * **Usage**: Primary engine for Filipino/Tagalog queries, and acting as a high-fidelity fallback when the local model file is missing or when the user has active internet access.
-* **Localization**: When the user's language is set to Tagalog, Gemini 2.0 Flash synthesizes natural Tagalog prompts based on Tagalog RAG contexts, acting as a highly fluent assistant.
+* **Localization**: When the user's language is set to Tagalog, Gemini 3.6 Flash (Low) synthesizes natural Tagalog prompts based on Tagalog RAG contexts, acting as a highly fluent assistant.
 
 ### Local Server Daemon Fallback: Ollama (`gemma2:2b`)
 * **Endpoint**: `http://10.0.2.2:11434` (Android emulator) or `http://localhost:11434` (iOS/Desktop).
@@ -106,7 +106,7 @@ graph TD
     %% Model Processing
     subgraph ModelSelection ["LLM Processing Layer"]
         LangCheck{"Is Language Filipino?"}
-        Gemini["Gemini 2.0 Flash API<br/>Cloud / Online"]
+        Gemini["Gemini 3.6 Flash (Low) API<br/>Cloud / Online"]
         Gemma["Gemma 2B Offline<br/>Local TFLite Engine"]
         LlmOutput["LLM Response:<br/>'Binubuksan ang settings... [NAVIGATE: settings]'"]
     end

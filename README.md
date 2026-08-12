@@ -10,7 +10,7 @@ EasyLens is a state-of-the-art accessibility assistant mobile application design
 |---|---|
 | **Custom Object Detector** | **Core Component:** Custom fine-tuned MobileNetV2 SSD drawing real-time bounding boxes via Dart Isolate background threads for instant obstacle TTS alerts. |
 | **Speech Navigation** | Advanced turn-by-turn guidance controlled fully via continuous speech (STT). Includes Filipino/Tagalog support, dynamic map pinning, and global arrival confetti celebrations. |
-| **Buddy Local AI** | On-device Gemma-IT 2B LLM for English; Google Gemini 2.0 Flash for Filipino. Full voice I/O and RAG knowledge base. |
+| **Buddy Local AI** | On-device Gemma-IT 2B LLM for English; Google Gemini 3.6 Flash (Low) for Filipino. Full voice I/O and RAG knowledge base. |
 | **Nearby Text Scanner** | Supported by ML Kit OCR; reads text aloud; forwards to Buddy for intelligent context explanation. |
 | **SOS & Emergency** | One-tap SMS dispatch to active emergency contacts via MensaHero gateway. |
 | **Voice Personas** | 6 personas (including Maya for native Tagalog) with distinct pitch/rate. Applied universally across all TTS output. |
@@ -30,7 +30,7 @@ EasyLens is a state-of-the-art accessibility assistant mobile application design
 
 ### AI / ML
 - **`flutter_gemma: ^0.13.6`** — On-device Gemma-IT 2B (English Buddy, offline)
-- **`google_generative_ai: ^0.4.4`** — Gemini 2.0 Flash API (Filipino Buddy)
+- **`google_generative_ai: ^0.4.4`** — Gemini 3.6 Flash (Low) API (Filipino Buddy)
 - **`google_mlkit_text_recognition: ^0.15.1`** — On-device OCR (Text Scanner)
 - **`google_mlkit_image_labeling: ^0.14.2`** — On-device image labeling
 - **`tflite_flutter: ^0.12.1`** — MobileNetV2 SSD object detection
@@ -151,7 +151,7 @@ flutter analyze
 | Language | Code | UI | Buddy | TTS Voice |
 |---|---|---|---|---|
 | English | `en` | ✅ | Gemma (offline) | en-US persona |
-| Filipino / Tagalog | `fil` | ✅ | Gemini 2.0 Flash | en-US persona (Filipino text pronounced correctly) |
+| Filipino / Tagalog | `fil` | ✅ | Gemini 3.6 Flash (Low) | en-US persona (Filipino text pronounced correctly) |
 
 ---
 

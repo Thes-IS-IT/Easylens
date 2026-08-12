@@ -62,7 +62,7 @@ Buddy is EasyLens's primary conversational AI, presented as a golden retriever m
 | Language Mode | Backend | Behaviour |
 |---|---|---|
 | **English** | Gemma-IT 2B (on-device) | Fully offline, no network required |
-| **Filipino / Tagalog** | Google Gemini 2.0 Flash (cloud) | Natively fluent Tagalog responses |
+| **Filipino / Tagalog** | Google Gemini 3.6 Flash (Low) (cloud) | Natively fluent Tagalog responses |
 
 ### Features
 - **Voice input (STT)** — Tap the microphone button to speak; transcription feeds directly into the chat.
