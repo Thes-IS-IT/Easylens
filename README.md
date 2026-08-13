@@ -59,7 +59,7 @@ EasyLens is a state-of-the-art accessibility assistant mobile application design
 
 ## 📐 Architecture
 
-For a complete breakdown of the project layout, database systems, and data flow, see the [Full Architecture Document](docs/ARCHITECTURE.md).
+For a complete breakdown of the project layout, database systems, and data flow, see the [Full Architecture Document](docs/architecture/ARCHITECTURE.md).
 
 ```mermaid
 graph TD
@@ -76,12 +76,20 @@ graph TD
 
 | Document | Description |
 |---|---|
-| [object_detection_architecture.md](docs/object_detection_architecture.md) | Deep dive into the core MobileNetV2 pipeline, ML Kit, and Speech Navigation |
-| [ai_architecture.md](docs/ai_architecture.md) | Deep dive into Local LLM (Gemma), Gemini integration, RAG system, and Autopilot routing |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Complete technical architecture, data flow, database schemas |
-| [FEATURES.md](docs/FEATURES.md) | Full feature catalogue with screen-by-screen breakdown |
-| [cloudflare_r2_setup.md](docs/cloudflare_r2_setup.md) | Cloudflare R2 bucket setup and CORS configuration |
-| [local_storage_architecture.md](docs/local_storage_architecture.md) | Local storage strategy, Firestore sync, and security rules |
+| [object_detection_architecture.md](docs/architecture/object_detection_architecture.md) | Deep dive into the core MobileNetV2 pipeline, ML Kit, and Speech Navigation |
+| [ai_architecture.md](docs/architecture/ai_architecture.md) | Deep dive into Local LLM (Gemma), Gemini integration, RAG system, and Autopilot routing |
+| [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | Complete technical architecture, data flow, database schemas |
+| [FEATURES.md](docs/features_and_modules/FEATURES.md) | Full feature catalogue with screen-by-screen breakdown |
+| [SOFTWARE_AND_HARDWARE_SPECIFICATIONS.md](docs/specifications/SOFTWARE_AND_HARDWARE_SPECIFICATIONS.md) | Software, hardware, thermal, and mobile device specifications |
+| [USABILITY_QUALITY_METRICS.md](docs/specifications/USABILITY_QUALITY_METRICS.md) | ISO/IEC 25010 and WCAG 2.2 usability testing criteria |
+| [FACE_REGISTRATION_AND_RECOGNITION.md](docs/vision_and_ai/FACE_REGISTRATION_AND_RECOGNITION.md) | 25D geometric landmark feature vector extraction & face recognition |
+| [DATA_FLOW_DIAGRAMS.md](docs/dfd/DATA_FLOW_DIAGRAMS.md) | Current vs. Proposed Level-1 & Level-2 Data Flow Diagrams (DFD) |
+| [USE_CASE_DIAGRAMS.md](docs/dfd/USE_CASE_DIAGRAMS.md) | Simplified & Detailed Use Case Diagrams (UCD) |
+| [ENTITY_RELATIONSHIP_DIAGRAM.md](docs/dfd/ENTITY_RELATIONSHIP_DIAGRAM.md) | Conceptual & Relational ERD database models |
+| [DATA_DICTIONARY.md](docs/dfd/DATA_DICTIONARY.md) | Table schemas, data types, and key constraints |
+| [GANTT_CHART.md](docs/dfd/GANTT_CHART.md) | Project implementation Gantt chart timeline (Dec 2025 - Aug 2026) |
+| [cloudflare_r2_setup.md](docs/setup/cloudflare_r2_setup.md) | Cloudflare R2 bucket setup and CORS configuration |
+| [local_storage_architecture.md](docs/architecture/local_storage_architecture.md) | Local storage strategy, Firestore sync, and security rules |
 
 ---
 
