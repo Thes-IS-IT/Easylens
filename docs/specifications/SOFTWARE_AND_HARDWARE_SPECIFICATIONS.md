@@ -230,12 +230,14 @@ graph TD
         D1["Cloudflare D1 SQL DB\n(Relational Telemetry & Emergency Sync)"]
         R2["Cloudflare R2 Bucket\n(S3-Compatible Object Store)"]
         FIREBASE["Firebase Authentication & Firestore"]
+        NOTION["Notion REST API\n(Settings Feedback Sync)"]
     end
 
     APP <--> SQLITE
     APP <--> D1
     APP -->|"Signed AWS SigV4 Direct Upload"| R2
     APP <--> FIREBASE
+    APP -->|"Dual Sync Feedback"| NOTION
 ```
 
 1. **Cloudflare D1 SQL Database**:
@@ -246,6 +248,8 @@ graph TD
    * **Security Protocol**: Custom client-side **AWS Signature Version 4** implementation using HMAC-SHA256 (`crypto: ^3.0.3`) for secure direct uploads without embedding master secrets in the app binary.
 3. **Firebase Services (`firebase_core: ^3.1.1`, `firebase_auth: ^5.1.2`)**:
    * Secure user authentication, token management, and real-time document synchronization.
+4. **Notion API Integration (`NotionService`)**:
+   * Synchronizes user survey feedback from **Settings $\rightarrow$ Send Feedback** directly into Notion database tables (`/v1/pages`) alongside Firestore. Includes user UIDs, emails, subject categories, 1–5 star ratings, and comments.
 
 ---
 

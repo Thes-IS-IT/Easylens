@@ -71,6 +71,7 @@ This document provides complete software specifications, supported Android and i
 | **Serverless Database** | **Cloudflare D1** | Serverless SQLite relational database for user profile metadata, emergency contacts, and incident logs. |
 | **Cloud Object Storage** | **Cloudflare R2** (S3-Compatible) | Diagnostic image store, avatar hosting, and direct uploads signed via HMAC **AWS SigV4** (`crypto: ^3.0.3`). |
 | **Authentication & Document Sync** | **Firebase Suite** (`firebase_auth`, `cloud_firestore`) | User session authentication, Google Sign-In (`google_sign_in`), real-time Firestore sync, and Firebase Storage. |
+| **User Feedback & Database Sync** | **Notion REST API** (`NotionService`) | Synchronizes settings survey feedback directly into Notion database pages (`/v1/pages`) alongside Firestore. |
 | **Hardware & Environment Sensors** | **Sensors Plus**, **Battery Plus**, **Wakelock Plus** | Accelerometer/gyroscope orientation tracking, real-time power level sensing, and screen wake lock management. |
 | **Android Deployment Package** | **Android APK** (`app-release.apk` ~475 MB) | Multi-arch FAT binary (`arm64-v8a`, `armeabi-v7a`, `x86_64`) for direct sideloading and Google Play Store deployment. |
 | **iOS Deployment Package** | **iOS IPA** (`easylens.ipa` ~154 MB / ~250 MB `.app`) | Single 64-bit ARM (`arm64`) binary package for AltStore, TestFlight, and Apple App Store deployment. |

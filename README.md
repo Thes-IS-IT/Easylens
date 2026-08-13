@@ -47,6 +47,7 @@ EasyLens is a state-of-the-art accessibility assistant mobile application design
 
 ### Cloud & Storage
 - **Firebase Auth + Firestore + Storage** — Auth, profile sync, avatar storage
+- **Notion REST API (`NotionService`)** — Direct dual sync of user feedback to Notion Database
 - **Cloudflare R2** — Object storage (captures, backups)
 - **Cloudflare D1** — Serverless SQL (relational sync)
 - **`shared_preferences: ^2.2.3`** — Local on-device key-value store
