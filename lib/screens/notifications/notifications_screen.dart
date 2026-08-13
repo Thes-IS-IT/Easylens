@@ -179,17 +179,21 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF3F1D1D) : const Color(0xFFFEE2E2),
+                      color: AppColors.primaryButton,
                       borderRadius: BorderRadius.circular(22),
-                      border: isDark
-                          ? Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.4))
-                          : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryButton.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
                     child: Text(
                       'Clear All',
                       style: GoogleFonts.inter(
-                        color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryButtonText,
+                        fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
                     ),
@@ -320,6 +324,18 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     final color = _typeColor(n.type);
     final icon = _typeIcon(n.type);
     final isDark = SettingsService().isDarkMode;
+    final theme = SettingsService().selectedContrastTheme;
+    final isHighContrast = theme != 'Default';
+
+    final cardBg = n.isRead
+        ? AppColors.lightBackground
+        : (isHighContrast
+            ? AppColors.lightBackground
+            : color.withValues(alpha: isDark ? 0.18 : 0.08));
+
+    final cardBorder = n.isRead
+        ? AppColors.cardBorder.withValues(alpha: 0.3)
+        : (isHighContrast ? AppColors.cardBorder : color.withValues(alpha: 0.6));
 
     return Dismissible(
       key: Key(n.id),
@@ -344,14 +360,10 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: n.isRead
-                ? AppColors.lightBackground
-                : color.withValues(alpha: isDark ? 0.18 : 0.08),
+            color: cardBg,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: n.isRead
-                  ? AppColors.cardBorder.withValues(alpha: 0.3)
-                  : color.withValues(alpha: 0.4),
+              color: cardBorder,
               width: n.isRead ? 1 : 1.5,
             ),
             boxShadow: [
@@ -370,10 +382,15 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: isDark ? 0.25 : 0.12),
+                  color: isHighContrast
+                      ? AppColors.primaryButton.withValues(alpha: 0.15)
+                      : color.withValues(alpha: isDark ? 0.25 : 0.12),
                   borderRadius: BorderRadius.circular(12),
+                  border: isHighContrast
+                      ? Border.all(color: AppColors.primaryButton, width: 1.5)
+                      : null,
                 ),
-                child: Icon(icon, color: color, size: 22),
+                child: Icon(icon, color: isHighContrast ? AppColors.primaryButton : color, size: 22),
               ),
               const SizedBox(width: 12),
               // Content
@@ -398,7 +415,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: color,
+                              color: isHighContrast ? AppColors.primaryButton : color,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -419,15 +436,20 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: color.withValues(alpha: isDark ? 0.20 : 0.10),
+                            color: isHighContrast
+                                ? AppColors.primaryButton.withValues(alpha: 0.15)
+                                : color.withValues(alpha: isDark ? 0.20 : 0.10),
                             borderRadius: BorderRadius.circular(8),
+                            border: isHighContrast
+                                ? Border.all(color: AppColors.primaryButton, width: 1)
+                                : null,
                           ),
                           child: Text(
                             _typeLabel(n.type),
                             style: GoogleFonts.inter(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: color,
+                              color: isHighContrast ? AppColors.primaryButton : color,
                             ),
                           ),
                         ),
@@ -498,12 +520,14 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   // ─── Clear All Confirm ────────────────────────────────────────────────────
 
   Future<void> _confirmClearAll() async {
-    final isDark = SettingsService().isDarkMode;
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.primaryBackground,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.4)),
+        ),
         title: Text(
           'Clear all notifications?',
           style: GoogleFonts.inter(
@@ -532,8 +556,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             child: Text(
               'Clear All',
               style: GoogleFonts.inter(
-                color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                fontWeight: FontWeight.w700,
+                color: AppColors.primaryButton,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
