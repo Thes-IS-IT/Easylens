@@ -76,35 +76,35 @@ graph TD
 
 | Category / Folder | Document File | Description |
 |---|---|---|
-| **Architecture** | [`docs/architecture/ARCHITECTURE.md`](file:///Users/arronkianparejas/easylens/docs/architecture/ARCHITECTURE.md) | Comprehensive technical system architecture, Provider state flow, and database models. |
-| | [`docs/architecture/ai_architecture.md`](file:///Users/arronkianparejas/easylens/docs/architecture/ai_architecture.md) | On-device Gemma-IT 2B LLM, Gemini 3.6 Flash (Low), RAG engine, and Ollama fallback. |
-| | [`docs/architecture/local_storage_architecture.md`](file:///Users/arronkianparejas/easylens/docs/architecture/local_storage_architecture.md) | SQLite database caching, SharedPreferences key-value store, and Firestore sync. |
-| | [`docs/architecture/object_detection_architecture.md`](file:///Users/arronkianparejas/easylens/docs/architecture/object_detection_architecture.md) | Real-time TFLite MobileNetV2 SSD pipeline, ML Kit, and Speech Navigation logic. |
-| **System & UML Diagrams** | [`docs/system_architecture/SYSTEM_ARCHITECTURE_AND_UML.md`](file:///Users/arronkianparejas/easylens/docs/system_architecture/SYSTEM_ARCHITECTURE_AND_UML.md) | Complete UML Class, Component, Sequence, and State Machine diagrams. |
-| **Data Flow & Diagrams (DFD)**| [`docs/dfd/DATA_FLOW_DIAGRAMS.md`](file:///Users/arronkianparejas/easylens/docs/dfd/DATA_FLOW_DIAGRAMS.md) | Current vs. Proposed Level-1 and Level-2 Data Flow Diagrams (DFD). |
-| | [`docs/dfd/USE_CASE_DIAGRAMS.md`](file:///Users/arronkianparejas/easylens/docs/dfd/USE_CASE_DIAGRAMS.md) | Simplified & Detailed Architectural Use Case Diagrams (UCD) & specifications. |
-| | [`docs/dfd/ENTITY_RELATIONSHIP_DIAGRAM.md`](file:///Users/arronkianparejas/easylens/docs/dfd/ENTITY_RELATIONSHIP_DIAGRAM.md) | Conceptual & Relational ERD models for Cloudflare D1 and local SQLite. |
-| | [`docs/dfd/DATA_DICTIONARY.md`](file:///Users/arronkianparejas/easylens/docs/dfd/DATA_DICTIONARY.md) | Database schemas, field data types, nullability, and primary/foreign key constraints. |
-| | [`docs/dfd/GANTT_CHART.md`](file:///Users/arronkianparejas/easylens/docs/dfd/GANTT_CHART.md) | Project implementation timeline and execution schedule (Dec 2025 – Aug 2026). |
-| | [`docs/dfd/dataset_specifications.md`](file:///Users/arronkianparejas/easylens/docs/dfd/dataset_specifications.md) | COCO 26-to-24 class dataset curation, ML Kit object detection comparison & support. |
-| **Vision & AI Engines** | [`docs/vision_and_ai/FACE_REGISTRATION_AND_RECOGNITION.md`](file:///Users/arronkianparejas/easylens/docs/vision_and_ai/FACE_REGISTRATION_AND_RECOGNITION.md) | 25-dimensional geometric landmark feature vector extraction & face recognition pipeline. |
-| | [`docs/vision_and_ai/ai_memory_and_guardrails.md`](file:///Users/arronkianparejas/easylens/docs/vision_and_ai/ai_memory_and_guardrails.md) | Conversational context memory windowing, system prompts, and Gemini guardrails. |
-| | [`docs/vision_and_ai/algorithm.md`](file:///Users/arronkianparejas/easylens/docs/vision_and_ai/algorithm.md) | Mathematical spatial hazard scoring, IoU algorithms, and bounding box math. |
-| **Specifications & Quality** | [`docs/specifications/SOFTWARE_AND_HARDWARE_SPECIFICATIONS.md`](file:///Users/arronkianparejas/easylens/docs/specifications/SOFTWARE_AND_HARDWARE_SPECIFICATIONS.md) | Hardware specifications, ESP32-CAM-MB, OV2640 70°, thermal dissipation, and device requirements. |
-| | [`docs/specifications/USABILITY_QUALITY_METRICS.md`](file:///Users/arronkianparejas/easylens/docs/specifications/USABILITY_QUALITY_METRICS.md) | Empirical ISO/IEC 25010, ISO/IEC 5055, and WCAG 2.2 AAA usability evaluation targets. |
-| | [`docs/specifications/software.md`](file:///Users/arronkianparejas/easylens/docs/specifications/software.md) | Full software component & technology stack table, Android APK, and iOS IPA specs. |
-| **Features & Modules** | [`docs/features_and_modules/FEATURES.md`](file:///Users/arronkianparejas/easylens/docs/features_and_modules/FEATURES.md) | Screen-by-screen application feature catalog and accessibility controls. |
-| | [`docs/features_and_modules/navigation_warning_system.md`](file:///Users/arronkianparejas/easylens/docs/features_and_modules/navigation_warning_system.md) | Multimodal spatial audio & tactile haptic obstacle proximity warning engine. |
-| **Training & Notebooks** | [`docs/training/mobilenetv2_transfer_learning_workflow.md`](file:///Users/arronkianparejas/easylens/docs/training/mobilenetv2_transfer_learning_workflow.md) | Figure 4.1 Multi-Phase transfer learning & unfreezing workflow flowcharts. |
-| | [`docs/training/MOBILENETV2_FINETUNING_REPORT.md`](file:///Users/arronkianparejas/easylens/docs/training/MOBILENETV2_FINETUNING_REPORT.md) | MobileNetV2 fine-tuning empirical evaluation report (>85% Top-1 / 2.48ms latency). |
-| | [`docs/training/HYBRID_AI_FUSION_APP_INTEGRATION.md`](file:///Users/arronkianparejas/easylens/docs/training/HYBRID_AI_FUSION_APP_INTEGRATION.md) | Multi-tier AI fusion architecture combining TFLite, ML Kit, and Gemma LLM. |
-| | [`docs/training/EasyLens.ipynb`](file:///Users/arronkianparejas/easylens/docs/training/EasyLens.ipynb) | Jupyter Notebook with complete 4-phase MobileNetV2 fine-tuning training code. |
-| **Setup & Cloud Config** | [`docs/setup/SECURITY_CONFIGURATION.md`](file:///Users/arronkianparejas/easylens/docs/setup/SECURITY_CONFIGURATION.md) | Security key management, `.env` file templates, and credential isolation. |
-| | [`docs/setup/cloudflare_r2_setup.md`](file:///Users/arronkianparejas/easylens/docs/setup/cloudflare_r2_setup.md) | Cloudflare R2 bucket setup, CORS policy, and AWS SigV4 signing configuration. |
-| | [`docs/setup/cicd_pipeline.md`](file:///Users/arronkianparejas/easylens/docs/setup/cicd_pipeline.md) | Continuous Integration and release build pipeline specifications. |
-| **Releases & Navigation** | [`docs/RELEASES.md`](file:///Users/arronkianparejas/easylens/docs/RELEASES.md) | Official release notes & version changelog history (v1.0 - v20.0). |
-| | [`docs/README.md`](file:///Users/arronkianparejas/easylens/docs/README.md) | Documentation index map & topic directory guide. |
-| **Canonical Reference** | [`docs/source-of-truth/README.md`](file:///Users/arronkianparejas/easylens/docs/source-of-truth/README.md) | Canonical source-of-truth technical specifications (Chapters 01 - 10). |
+| **Architecture** | [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | Comprehensive technical system architecture, Provider state flow, and database models. |
+| | [ai_architecture.md](docs/architecture/ai_architecture.md) | On-device Gemma-IT 2B LLM, Gemini 3.6 Flash (Low), RAG engine, and Ollama fallback. |
+| | [local_storage_architecture.md](docs/architecture/local_storage_architecture.md) | SQLite database caching, SharedPreferences key-value store, and Firestore sync. |
+| | [object_detection_architecture.md](docs/architecture/object_detection_architecture.md) | Real-time TFLite MobileNetV2 SSD pipeline, ML Kit, and Speech Navigation logic. |
+| **System & UML Diagrams** | [SYSTEM_ARCHITECTURE_AND_UML.md](docs/system_architecture/SYSTEM_ARCHITECTURE_AND_UML.md) | Complete UML Class, Component, Sequence, and State Machine diagrams. |
+| **Data Flow & Diagrams (DFD)**| [DATA_FLOW_DIAGRAMS.md](docs/dfd/DATA_FLOW_DIAGRAMS.md) | Current vs. Proposed Level-1 and Level-2 Data Flow Diagrams (DFD). |
+| | [USE_CASE_DIAGRAMS.md](docs/dfd/USE_CASE_DIAGRAMS.md) | Simplified & Detailed Architectural Use Case Diagrams (UCD) & specifications. |
+| | [ENTITY_RELATIONSHIP_DIAGRAM.md](docs/dfd/ENTITY_RELATIONSHIP_DIAGRAM.md) | Conceptual & Relational ERD models for Cloudflare D1 and local SQLite. |
+| | [DATA_DICTIONARY.md](docs/dfd/DATA_DICTIONARY.md) | Database schemas, field data types, nullability, and primary/foreign key constraints. |
+| | [GANTT_CHART.md](docs/dfd/GANTT_CHART.md) | Project implementation timeline and execution schedule (Dec 2025 – Aug 2026). |
+| | [dataset_specifications.md](docs/dfd/dataset_specifications.md) | COCO 26-to-24 class dataset curation, ML Kit object detection comparison & support. |
+| **Vision & AI Engines** | [FACE_REGISTRATION_AND_RECOGNITION.md](docs/vision_and_ai/FACE_REGISTRATION_AND_RECOGNITION.md) | 25-dimensional geometric landmark feature vector extraction & face recognition pipeline. |
+| | [ai_memory_and_guardrails.md](docs/vision_and_ai/ai_memory_and_guardrails.md) | Conversational context memory windowing, system prompts, and Gemini guardrails. |
+| | [algorithm.md](docs/vision_and_ai/algorithm.md) | Mathematical spatial hazard scoring, IoU algorithms, and bounding box math. |
+| **Specifications & Quality** | [SOFTWARE_AND_HARDWARE_SPECIFICATIONS.md](docs/specifications/SOFTWARE_AND_HARDWARE_SPECIFICATIONS.md) | Hardware specifications, ESP32-CAM-MB, OV2640 70°, thermal dissipation, and device requirements. |
+| | [USABILITY_QUALITY_METRICS.md](docs/specifications/USABILITY_QUALITY_METRICS.md) | Empirical ISO/IEC 25010, ISO/IEC 5055, and WCAG 2.2 AAA usability evaluation targets. |
+| | [software.md](docs/specifications/software.md) | Full software component & technology stack table, Android APK, and iOS IPA specs. |
+| **Features & Modules** | [FEATURES.md](docs/features_and_modules/FEATURES.md) | Screen-by-screen application feature catalog and accessibility controls. |
+| | [navigation_warning_system.md](docs/features_and_modules/navigation_warning_system.md) | Multimodal spatial audio & tactile haptic obstacle proximity warning engine. |
+| **Training & Notebooks** | [mobilenetv2_transfer_learning_workflow.md](docs/training/mobilenetv2_transfer_learning_workflow.md) | Figure 4.1 Multi-Phase transfer learning & unfreezing workflow flowcharts. |
+| | [MOBILENETV2_FINETUNING_REPORT.md](docs/training/MOBILENETV2_FINETUNING_REPORT.md) | MobileNetV2 fine-tuning empirical evaluation report (>85% Top-1 / 2.48ms latency). |
+| | [HYBRID_AI_FUSION_APP_INTEGRATION.md](docs/training/HYBRID_AI_FUSION_APP_INTEGRATION.md) | Multi-tier AI fusion architecture combining TFLite, ML Kit, and Gemma LLM. |
+| | [EasyLens.ipynb](docs/training/EasyLens.ipynb) | Jupyter Notebook with complete 4-phase MobileNetV2 fine-tuning training code. |
+| **Setup & Cloud Config** | [SECURITY_CONFIGURATION.md](docs/setup/SECURITY_CONFIGURATION.md) | Security key management, `.env` file templates, and credential isolation. |
+| | [cloudflare_r2_setup.md](docs/setup/cloudflare_r2_setup.md) | Cloudflare R2 bucket setup, CORS policy, and AWS SigV4 signing configuration. |
+| | [cicd_pipeline.md](docs/setup/cicd_pipeline.md) | Continuous Integration and release build pipeline specifications. |
+| **Releases & Navigation** | [RELEASES.md](docs/RELEASES.md) | Official release notes & version changelog history (v1.0 - v20.0). |
+| | [README.md](docs/README.md) | Documentation index map & topic directory guide. |
+| **Canonical Reference** | [README.md](docs/source-of-truth/README.md) | Canonical source-of-truth technical specifications (Chapters 01 - 10). |
 
 ---
 
