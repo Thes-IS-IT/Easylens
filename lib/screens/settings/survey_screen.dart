@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/notion_service.dart';
 
 class SurveyScreen extends StatefulWidget {
   const SurveyScreen({super.key});
@@ -14,6 +15,7 @@ class SurveyScreen extends StatefulWidget {
 
 class _SurveyScreenState extends State<SurveyScreen> {
   final _firebaseService = FirebaseService();
+  final _notionService = NotionService();
   final _commentController = TextEditingController();
   
   int _selectedRating = -1; // 1 to 5 mapping to emojis
@@ -76,6 +78,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
       final userId = user?.uid ?? 'anonymous';
       final email = user?.email ?? 'anonymous@easylens.com';
       final displayName = user?.displayName ?? 'Anonymous';
+      final commentText = _commentController.text.trim();
 
       final feedbackData = {
         'userId': userId,
@@ -83,10 +86,11 @@ class _SurveyScreenState extends State<SurveyScreen> {
         'displayName': displayName,
         'rating': _selectedRating,
         'subject': _selectedSubject,
-        'comment': _commentController.text.trim(),
+        'comment': commentText,
         'timestamp': FieldValue.serverTimestamp(),
       };
 
+      // 1. Submit to Firestore Database
       if (_firebaseService.isFirebaseAvailable) {
         await FirebaseFirestore.instance
             .collection('users')
@@ -95,9 +99,19 @@ class _SurveyScreenState extends State<SurveyScreen> {
             .add(feedbackData);
       } else {
         // Fallback for offline/mock mode
-        await Future.delayed(const Duration(seconds: 1));
+        await Future.delayed(const Duration(milliseconds: 300));
         print('Mock saved feedback to firestore: $feedbackData');
       }
+
+      // 2. Submit / Sync to Notion Database
+      await _notionService.submitFeedbackToNotion(
+        userId: userId,
+        displayName: displayName,
+        email: email,
+        subject: _selectedSubject,
+        rating: _selectedRating,
+        comment: commentText,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
