@@ -207,10 +207,10 @@ graph LR
 ```mermaid
 flowchart TD
     UserMsg[User Message] --> IsFilipino{Language == Filipino?}
-    IsFilipino -- Yes --> Gemini[Gemini 3.6 Flash (Low) API\nSystem prompt in Tagalog\nNatively responds in Filipino]
+    IsFilipino -- Yes --> Gemini["Gemini 3.6 Flash (Low) API<br/>System prompt in Tagalog<br/>Natively responds in Filipino"]
     IsFilipino -- No --> GemmaCheck{model.bin present?}
-    GemmaCheck -- Yes --> Gemma[Gemma-IT 2B On-Device\nFully offline\nEnglish response]
-    GemmaCheck -- No --> Offline[Offline Instructions\nADB push guide shown]
+    GemmaCheck -- Yes --> Gemma["Gemma-IT 2B On-Device<br/>Fully offline<br/>English response"]
+    GemmaCheck -- No --> Offline["Offline Instructions<br/>ADB push guide shown"]
     Gemini --> NavParse[Parse NAVIGATE tags]
     Gemma --> NavParse
     NavParse --> TTS[TtsService.speak]
