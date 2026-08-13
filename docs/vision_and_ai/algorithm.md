@@ -70,7 +70,7 @@ Constants: CONFIDENCE_THRESHOLD = 0.50, PROXIMITY_THRESHOLD = 0.60
 ```mermaid
 graph LR
     GPS[GPS Location Update] --> Distance[Compute Haversine Distance to Waypoint]
-    Distance --> Cooldown{Cooldown Elapsed? (> 8000ms)}
+    Distance --> Cooldown{"Cooldown Elapsed? (> 8000ms)"}
     Cooldown -- Yes --> Announce[Speak Turn Step & Reset Cooldown]
     Cooldown -- No --> Suppress[Suppress Audio Output]
 ```

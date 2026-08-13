@@ -120,7 +120,7 @@ To prevent the LLM from executing non-assistive computations, hallucinating, or 
 #### Simplified Safety Guardrails Flow
 ```mermaid
 graph LR
-    Input[Raw Input] --> Filter{Matches Whitelist / Assistive Scope?}
+    Input[Raw Input] --> Filter{Matches Whitelist or Assistive Scope?}
     Filter -- Off-Topic --> Reject[Friendly Rejection Speech]
     Filter -- Valid --> LLM[Local LLM / Cloud Inference]
 ```
@@ -132,7 +132,7 @@ flowchart TD
     
     subgraph GuardrailLayer ["Assistive Guardrails Layer"]
         VerifyTopic{"Matches Visual Whitelist?"}
-        FilterCheck{"Contains Math/Coding/Trivia Blacklist?"}
+        FilterTopic{"Is Query Off-Topic?"}
         Rejection["Yield Mascot Rejection Message<br/>(English/Tagalog)"]
     end
     
@@ -147,7 +147,7 @@ flowchart TD
     RawInput --> VerifyTopic
     
     VerifyTopic -->|Yes| CapContext
-    VerifyTopic -->|No| FilterTopic{"Is Query Off-Topic?"}
+    VerifyTopic -->|No| FilterTopic
     
     FilterTopic -->|Yes| Rejection
     FilterTopic -->|No| CapContext
@@ -156,8 +156,8 @@ flowchart TD
     TurnTemplate --> Inference
     Inference --> FallbackCheck
     
-    FallbackCheck -->|Yes / Timeout| LocalResponse
-    FallbackCheck -->|No / Success| ReturnText["Return AI Response"]
+    FallbackCheck -->|Yes| LocalResponse
+    FallbackCheck -->|No| ReturnText["Return AI Response"]
 ```
 
 ### Guardrail Definitions & Implementations
