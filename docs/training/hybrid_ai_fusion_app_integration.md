@@ -63,7 +63,7 @@ Instead of relying on a single vision model, EasyLens dynamically combines:
 ---
 
 ### 2.3 Tier 3: Custom Fine-Tuned 24-Class MobileNetV2 Model
-* **Model Spec**: 4-Phase Transfer Learning Trained Model ([`docs/training/MOBILENETV2_FINETUNING_REPORT.md`](file:///Users/arronkianparejas/easylens/docs/training/MOBILENETV2_FINETUNING_REPORT.md))
+* **Model Spec**: 4-Phase Transfer Learning Trained Model ([`docs/training/mobilenetv2_finetuning_report.md`](file:///Users/arronkianparejas/easylens/docs/training/mobilenetv2_finetuning_report.md))
 * **Scope**: 24 high-priority navigation hazards and accessibility targets:
   `Bus`, `Bushes`, `Person`, `Truck`, `bicycle`, `branch`, `car`, `crosswalk`, `door`, `elevator`, `fire_hydrant`, `green_light`, `gun`, `motorcycle`, `pothole`, `rat`, `red_light`, `scooter`, `stairs`, `stop_sign`, `traffic_cone`, `train`, `tree`, `yellow_light`.
 * **Role in App**:
@@ -115,7 +115,7 @@ To ensure 60 FPS UI responsiveness and avoid thermal throttling, frame processin
 ## 5. Architectural References
 
 * **AI/ML Pipeline Source of Truth**: [`docs/source-of-truth/05_ai_ml_pipeline.md`](file:///Users/arronkianparejas/easylens/docs/source-of-truth/05_ai_ml_pipeline.md)
-* **MobileNetV2 Training Report**: [`docs/training/MOBILENETV2_FINETUNING_REPORT.md`](file:///Users/arronkianparejas/easylens/docs/training/MOBILENETV2_FINETUNING_REPORT.md)
+* **MobileNetV2 Training Report**: [`docs/training/mobilenetv2_finetuning_report.md`](file:///Users/arronkianparejas/easylens/docs/training/mobilenetv2_finetuning_report.md)
 * **TFLite Processor Implementation**: [`lib/services/tflite_processor.dart`](file:///Users/arronkianparejas/easylens/lib/services/tflite_processor.dart)
 * **ML Kit Service Implementation**: [`lib/services/ml_kit_service.dart`](file:///Users/arronkianparejas/easylens/lib/services/ml_kit_service.dart)
 * **Object Detector Service**: [`lib/services/object_detector_service.dart`](file:///Users/arronkianparejas/easylens/lib/services/object_detector_service.dart)

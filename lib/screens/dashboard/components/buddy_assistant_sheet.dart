@@ -367,14 +367,14 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
   String _getMascotAsset() {
     switch (_buddyState) {
       case 'thinking':
-        return 'assets/Mascots/06 Thinking.gif';
+        return 'assets/mascots/06_thinking.gif';
       case 'speaking':
-        return 'assets/Mascots/01 Happy.gif';
+        return 'assets/mascots/01_happy.gif';
       case 'error':
-        return 'assets/Mascots/02 Error.gif';
+        return 'assets/mascots/02_error.gif';
       case 'idle':
       default:
-        return 'assets/Mascots/05 Welcome.gif';
+        return 'assets/mascots/05_welcome.gif';
     }
   }
 

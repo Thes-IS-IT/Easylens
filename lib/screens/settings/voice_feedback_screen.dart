@@ -292,7 +292,7 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
                     child: Column(
                       children: [
                         Image.asset(
-                          'assets/Mascots/App Mascot.png',
+                          'assets/mascots/app_mascot.png',
                           width: 64,
                           height: 64,
                           fit: BoxFit.contain,

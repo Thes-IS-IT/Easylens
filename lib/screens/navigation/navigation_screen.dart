@@ -418,7 +418,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         tutorialKey: 'navigation',
         titleKey: 'tutorial_navigation_title',
         descriptionKey: 'tutorial_navigation_desc',
-        mascotAsset: 'assets/Mascots/03 Loading.gif',
+        mascotAsset: 'assets/mascots/03_loading.gif',
       );
 
       final activeNav = ActiveNavigationService();

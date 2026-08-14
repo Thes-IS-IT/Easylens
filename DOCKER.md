@@ -1,12 +1,12 @@
-# 🐳 EasyLens Docker & Containerization Guide
+# EasyLens Docker & Containerization Guide
 
-Welcome to the **EasyLens Docker Setup & Deployment Guide**. This document explains how the EasyLens container image is built, tested, and published automatically as a Docker Package to **GitHub Container Registry (GHCR)**.
+This document explains how the EasyLens container image is built, tested, and published automatically as a Docker package to the **GitHub Container Registry (GHCR)**.
 
 ---
 
-## 📐 Architecture Overview
+### 01 — ARCHITECTURE OVERVIEW
 
-The container setup uses a lightweight, high-performance NGINX production server:
+The container setup uses an NGINX production server:
 
 ```mermaid
 graph TD
@@ -16,46 +16,45 @@ graph TD
     D --> E[ghcr.io/thes-is-it/easylens:latest]
 ```
 
-### Key Components
+#### Key Components
 
-- **`Dockerfile`**: Lightweight NGINX container serving the application portal (`nginx:1.25-alpine`).
-- **`nginx.conf`**: Optimized NGINX server configuration with Gzip compression and asset caching headers.
-- **`docker-compose.yml`**: One-command local container orchestration.
+- **`Dockerfile`**: NGINX container serving the application portal (`nginx:1.25-alpine`).
+- **`nginx.conf`**: NGINX server configuration with Gzip compression and asset caching headers.
+- **`docker-compose.yml`**: Local container orchestration.
 - **`.dockerignore`**: Excludes build caches, native OS folders, and large binary models (`model.bin`).
 
 ---
 
-## ⚡ Quick Start: Running Locally with Docker
+### 02 — QUICK START: RUNNING LOCALLY WITH DOCKER
 
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+#### Prerequisites
 
-### 1. Using Docker Compose (Recommended)
+> - `Docker Desktop` installed and running.
 
-To build and launch the containerized application locally with a single command:
+#### Using Docker Compose (Recommended)
+
+To build and launch the containerized application locally:
 
 ```bash
 docker compose up --build
 ```
 
-Once started, open your browser and navigate to:
-👉 **`http://localhost:8080`**
+Once started, navigate to:
+`http://localhost:8080`
 
 To stop the container:
 ```bash
 docker compose down
 ```
 
----
+#### Using Docker CLI Manually
 
-### 2. Using Docker CLI Manually
-
-#### A. Build the Docker Image
+##### Build the Docker Image
 ```bash
 docker build -t easylens:latest .
 ```
 
-#### B. Run the Container
+##### Run the Container
 ```bash
 docker run -d \
   --name easylens_app \
@@ -64,14 +63,14 @@ docker run -d \
   easylens:latest
 ```
 
-#### C. Test Container Health
+##### Test Container Health
 ```bash
 curl -f http://localhost:8080/
 ```
 
 ---
 
-## 📦 Pulling Pre-Built Package Image from GitHub Packages (GHCR)
+### 03 — PULLING PRE-BUILT PACKAGE IMAGE FROM GITHUB PACKAGES (GHCR)
 
 On every push to `main`, GitHub Actions compiles and publishes the official Docker package image directly to **GitHub Container Registry (GHCR)**. You can pull and run the package without building locally:
 
@@ -89,16 +88,19 @@ docker run -d \
 
 ---
 
-## 🔄 Automated CI/CD Workflow (`.github/workflows/ci_cd.yml`)
+### 04 — AUTOMATED CI/CD WORKFLOW (`.github/workflows/ci_cd.yml`)
 
 1. **`analyze_and_test`**:
    - Runs static code analysis (`flutter analyze --no-fatal-warnings --no-fatal-infos`).
    - Executes all unit tests (`flutter test`).
 2. **`docker_build_and_publish`**:
    - Builds Docker image and verifies container health (`curl http://localhost:8080/`).
-   - Publishes Docker Package to **GitHub Packages** (`ghcr.io/thes-is-it/easylens:latest`).
+   - Publishes Docker package to **GitHub Packages** (`ghcr.io/thes-is-it/easylens:latest`).
 
 ---
 
-## 📄 License & Maintainers
+### 05 — LICENSE & MAINTAINERS
+
 Maintained by **Thes-IS-IT EasyLens Team**.
+
+> TODO: Add license information.

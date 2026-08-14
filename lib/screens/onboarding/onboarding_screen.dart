@@ -127,7 +127,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                               clipBehavior: Clip.antiAlias,
                               child: Image.asset(
-                                'assets/Mascots/App Logo.png',
+                                'assets/mascots/app_logo.png',
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, err, st) => const Icon(
                                   Icons.pets,

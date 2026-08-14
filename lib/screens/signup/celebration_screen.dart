@@ -136,7 +136,7 @@ class _CelebrationScreenState extends State<CelebrationScreen>
                         width: 180,
                         height: 180,
                         child: Image.asset(
-                          'assets/Mascots/04 Congratulations.gif',
+                          'assets/mascots/04_congratulations.gif',
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => Icon(
                             Icons.celebration_outlined,

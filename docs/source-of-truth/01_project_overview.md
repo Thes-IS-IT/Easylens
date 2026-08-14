@@ -77,8 +77,8 @@ easylens/
 │   └── sounds/               # Audio files (bark, alerts)
 ├── docs/
 │   ├── source-of-truth/      # 📘 THIS FOLDER — the single source of truth
-│   ├── ARCHITECTURE.md        # Detailed technical architecture
-│   ├── FEATURES.md            # Complete feature catalogue
+│   ├── architecture.md        # Detailed technical architecture
+│   ├── features.md            # Complete feature catalogue
 │   └── ...                    # Additional topic-specific docs
 ├── lib/
 │   ├── main.dart              # App entry point

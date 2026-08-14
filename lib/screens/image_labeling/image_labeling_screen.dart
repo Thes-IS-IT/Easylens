@@ -39,7 +39,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
   bool _isExplaining = false;
 
   // Mascot GIF Asset & Dynamic Speech state
-  String _mascotAsset = 'assets/Mascots/01 Happy.gif';
+  String _mascotAsset = 'assets/mascots/01_happy.gif';
   String _buddySpeech =
       "Woof! Point your camera at any text — menus, signs, labels — and I'll read it aloud for you!";
 
@@ -65,7 +65,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
         tutorialKey: 'labeling',
         titleKey: 'tutorial_labeling_title',
         descriptionKey: 'tutorial_labeling_desc',
-        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        mascotAsset: 'assets/mascots/05_welcome.gif',
       );
     });
   }
@@ -147,7 +147,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
         _isLoading = true;
         _isSpeaking = false;
         _isExplaining = false;
-        _mascotAsset = 'assets/Mascots/03 Loading.gif';
+        _mascotAsset = 'assets/mascots/03_loading.gif';
         _buddySpeech = "Looking closely at the text... hold on a second!";
       });
 
@@ -164,7 +164,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
         setState(() {
           _extractedText = text;
           _isLoading = false;
-          _mascotAsset = 'assets/Mascots/01 Happy.gif';
+          _mascotAsset = 'assets/mascots/01_happy.gif';
           _buddySpeech =
               "Woof! I found text! Here is what I read for you:";
           _isSpeaking = true;
@@ -178,7 +178,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
       } else {
         setState(() {
           _isLoading = false;
-          _mascotAsset = 'assets/Mascots/02 Error.gif';
+          _mascotAsset = 'assets/mascots/02_error.gif';
           _buddySpeech =
               "Oops! I couldn't find any clear text in this image. Try taking another picture closer up!";
         });
@@ -189,7 +189,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
       print('OCR error: $e');
       setState(() {
         _isLoading = false;
-        _mascotAsset = 'assets/Mascots/02 Error.gif';
+        _mascotAsset = 'assets/mascots/02_error.gif';
         _buddySpeech = "Oh no! Something went wrong while reading the image.";
       });
       await TtsService().speak('An error occurred while reading the image.');
@@ -200,7 +200,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
     if (_extractedText.isEmpty) return;
     setState(() {
       _isSpeaking = true;
-      _mascotAsset = 'assets/Mascots/01 Happy.gif';
+      _mascotAsset = 'assets/mascots/01_happy.gif';
       _buddySpeech = "Reading out loud for you...";
     });
     await TtsService().speak(_extractedText);
@@ -223,7 +223,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
     if (_extractedText.isEmpty) return;
     setState(() {
       _isExplaining = true;
-      _mascotAsset = 'assets/Mascots/06 Thinking.gif';
+      _mascotAsset = 'assets/mascots/06_thinking.gif';
       _buddySpeech =
           "Buddy is thinking real hard about what this text means...";
     });
@@ -239,7 +239,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
       setState(() {
         _explanation = result;
         _isExplaining = false;
-        _mascotAsset = 'assets/Mascots/01 Happy.gif';
+        _mascotAsset = 'assets/mascots/01_happy.gif';
         _buddySpeech = "Here is my simple explanation for you!";
         _isSpeaking = true;
       });
@@ -287,7 +287,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
       _displayedExplanation = '';
       _isSpeaking = false;
       _isExplaining = false;
-      _mascotAsset = 'assets/Mascots/01 Happy.gif';
+      _mascotAsset = 'assets/mascots/01_happy.gif';
       _buddySpeech =
           "Woof! Point your camera at any text — menus, signs, labels — and I'll read it aloud for you!";
     });

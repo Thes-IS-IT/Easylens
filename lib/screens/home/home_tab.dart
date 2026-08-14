@@ -46,11 +46,11 @@ class HomeTab extends StatelessWidget {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Image.asset(
-                    'assets/Mascots/01 Happy.gif',
+                    'assets/mascots/01_happy.gif',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Image.asset(
-                        'assets/Mascots/App Mascot.png',
+                        'assets/mascots/app_mascot.png',
                         fit: BoxFit.contain,
                       );
                     },

@@ -46,7 +46,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         tutorialKey: 'contacts',
         titleKey: 'tutorial_contacts_title',
         descriptionKey: 'tutorial_contacts_desc',
-        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        mascotAsset: 'assets/mascots/05_welcome.gif',
       );
     });
   }

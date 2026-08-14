@@ -37,7 +37,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         tutorialKey: 'notifications',
         titleKey: 'tutorial_notifications_title',
         descriptionKey: 'tutorial_notifications_desc',
-        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        mascotAsset: 'assets/mascots/05_welcome.gif',
       );
     });
   }

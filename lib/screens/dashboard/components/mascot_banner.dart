@@ -19,7 +19,7 @@ class MascotBanner extends StatefulWidget {
     this.mascotTop = -15,     // Negative offset to overlap/exit the top S01
     this.mascotBottom = -45,  // Pushes the mascot down to crop the bottom inside the banner S01
     this.mascotWidth = 145,   // Large width S01
-    this.mascotAsset = 'assets/Mascots/05 Welcome.gif',
+    this.mascotAsset = 'assets/mascots/05_welcome.gif',
   });
 
   @override

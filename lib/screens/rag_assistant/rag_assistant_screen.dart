@@ -54,7 +54,7 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
         tutorialKey: 'chat',
         titleKey: 'tutorial_chat_title',
         descriptionKey: 'tutorial_chat_desc',
-        mascotAsset: 'assets/Mascots/06 Thinking.gif',
+        mascotAsset: 'assets/mascots/06_thinking.gif',
       );
     });
   }
@@ -456,7 +456,7 @@ class _RagAssistantScreenState extends State<RagAssistantScreen> {
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: Image.asset(
-                        'assets/Mascots/06 Thinking.gif',
+                        'assets/mascots/06_thinking.gif',
                         fit: BoxFit.cover,
                         errorBuilder: (c, e, s) => const Icon(Icons.pets, size: 20),
                       ),

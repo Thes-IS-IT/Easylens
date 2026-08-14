@@ -684,7 +684,7 @@ class _DraggableBuddyButtonState extends State<DraggableBuddyButton> {
           ),
           child: ClipOval(
             child: Image.asset(
-              'assets/Mascots/App Mascot.png',
+              'assets/mascots/app_mascot.png',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => const Icon(
                 Icons.pets,
