@@ -14,11 +14,11 @@ EasyLens is an accessibility assistant mobile application designed for visually 
 | **Nearby Text Scanner** | Supported by ML Kit OCR; reads text aloud; forwards to Buddy for intelligent context explanation. |
 | **SOS & Emergency** | SMS dispatch to active emergency contacts via the MensaHero gateway. |
 | **Voice Personas** | 6 personas (including Maya for native Tagalog) with distinct pitch/rate. Applied universally across all TTS output. |
-| **Filipino Language** | Full application localization — UI strings, greetings, Buddy, Navigation, Settings — applied dynamically. |
-| **Dynamic Theming** | Default (light) and Black (AMOLED) themes with 8 accent color choices applied globally. |
-| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over WiFi directly into the object detection pipeline. |
-| **Shake to Undo** | Accelerometer gesture (>2.5g) triggers undo action and TTS confirmation. |
-| **Bark Sound Cue** | `bark_dashboard.mp3` plays once when returning to the Home tab. |
+| **Filipino Language** | Full app localization — UI strings, greetings, Buddy, Navigation, Settings — all switch live. |
+| **Dynamic Theming** | Default (light) and Black (AMOLED) themes with 8 accent color choices applied globally in real time. |
+| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over WiFi directly into the Object Detection pipeline. |
+| **Shake to Undo** | Accelerometer gesture (>2.5g) triggers undo action + TTS confirmation. |
+| **Bark Sound Cue** | `bark_dashboard.mp3` plays once on welcome/startup and tab interactions. |
 
 ---
 

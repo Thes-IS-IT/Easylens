@@ -21,27 +21,29 @@ class SoundService {
     return _transitionPlayer!;
   }
 
-  /// Play the Buddy dog bark sound effect on app startup or interaction.
+  /// Play the Buddy dog bark sound effect (bark_dashboard.mp3) on app startup with maximum volume.
   static Future<void> playBark() async {
     try {
       final player = _getBarkPlayer();
       await player.stop();
+      await player.setVolume(1.0);
       await player.play(AssetSource('sounds/bark_dashboard.mp3'));
     } catch (e) {
-      print('Bark sound notice: $e');
+      print('Sound notice: $e');
       try {
         SystemSound.play(SystemSoundType.click);
       } catch (_) {}
     }
   }
 
-  /// Play the Spongebob bubble transition sound effect synchronized with tab changes.
+  /// Play the bubble transition sound effect synchronized with tab changes with maximum volume.
   static Future<void> playBubbleTransition() async {
     if (!SettingsService().bubbleTransitionSound) return;
     try {
       final player = _getTransitionPlayer();
       await player.stop();
-      await player.play(AssetSource('sounds/spongebob_bubble_transition.mp3'));
+      await player.setVolume(1.0);
+      await player.play(AssetSource('sounds/spongebob-bubble-transition.mp3'));
     } catch (e) {
       print('Bubble transition sound notice: $e');
       try {
