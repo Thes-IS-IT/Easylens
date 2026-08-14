@@ -59,7 +59,7 @@ class _DevicesScreenState extends State<DevicesScreen>
         tutorialKey: 'devices',
         titleKey: 'tutorial_devices_title',
         descriptionKey: 'tutorial_devices_desc',
-        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        mascotAsset: 'assets/mascots/05_welcome.gif',
       );
     });
   }

@@ -161,7 +161,7 @@ class PairingWizard extends StatelessWidget {
             child: Container(
               color: Colors.white,
               child: Image.asset(
-                'assets/images/easylensprototype.png',
+                'assets/images/easylens_prototype.png',
                 width: double.infinity,
                 height: 220,
                 fit: BoxFit.cover,
@@ -278,7 +278,7 @@ class PairingWizard extends StatelessWidget {
                 child: Container(
                   color: Colors.white,
                   child: Image.asset(
-                    'assets/images/easylensprototype.png',
+                    'assets/images/easylens_prototype.png',
                     width: 280,
                     height: 200,
                     fit: BoxFit.contain,
@@ -342,7 +342,7 @@ class PairingWizard extends StatelessWidget {
         ),
         const Spacer(),
         Image.asset(
-          'assets/Mascots/03 Loading.gif',
+          'assets/mascots/03_loading.gif',
           width: 180,
           height: 180,
           fit: BoxFit.contain,

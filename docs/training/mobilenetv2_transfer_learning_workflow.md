@@ -4,7 +4,7 @@
 
 ## Overview & Figure Citation
 
-**Figure 4.1: The Multi-Phase Transfer Learning and Unfreezing Workflow for the MobileNetV2 SSD Network Architecture** *(Source: "EasyLens Training Notebook" pipeline stages in `docs/training/EasyLens.ipynb`)*
+**Figure 4.1: The Multi-Phase Transfer Learning and Unfreezing Workflow for the MobileNetV2 SSD Network Architecture** *(Source: "EasyLens Training Notebook" pipeline stages in `docs/training/easylens.ipynb`)*
 
 This document provides both a **Simplified High-Level Architectural Flowchart** and a **Detailed Empirical Engineering Flowchart** illustrating the multi-phase transfer learning, unfreezing strategy, data-centric preprocessing, hyperparameter scheduling, and quantization workflow used to train the EasyLens MobileNetV2 classification model.
 

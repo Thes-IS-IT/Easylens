@@ -64,7 +64,7 @@ class _DashboardHomeState extends State<DashboardHome> {
         tutorialKey: 'home',
         titleKey: 'tutorial_home_title',
         descriptionKey: 'tutorial_home_desc',
-        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        mascotAsset: 'assets/mascots/05_welcome.gif',
       );
     });
   }

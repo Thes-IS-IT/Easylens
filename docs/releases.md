@@ -55,7 +55,7 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 - **Focus:** System architectural design, technical documentation, and baseline accessibility tokens.
 
 #### Changes & Features
-- [x] Published comprehensive technical `README.md` and `ARCHITECTURE.md` documentation.
+- [x] Published comprehensive technical `readme.md` and `architecture.md` documentation.
 - [x] Standardized color palette for high-contrast accessibility (Yellow/Black, Blue/White, Dark Mode).
 - [x] Established component modularity guidelines for screens, widgets, and background services.
 - [x] Configured system-wide font scaling support for screen readers.
@@ -298,7 +298,7 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 - [x] Automated GitHub Actions pipeline compiling release Android APK natively on runner.
 - [x] Configured automated image push to GitHub Container Registry (`ghcr.io/thes-is-it/easylens:latest`).
 - [x] Forced Java/Kotlin JVM target 17 across all subproject plugin dependencies to resolve Gradle errors.
-- [x] Created `DOCKER.md` documentation detailing container execution and CI/CD operations.
+- [x] Created `docker.md` documentation detailing container execution and CI/CD operations.
 
 ---
 
@@ -321,8 +321,8 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 - **Focus:** 4-Phase Transfer Learning technical report, 24-class custom MobileNetV2 model validation, and Multi-Tier Hybrid AI Vision Fusion architecture.
 
 #### Changes & Features
-- [x] Published technical report `MOBILENETV2_FINETUNING_REPORT.md` documenting 4-Phase Transfer Learning pipeline (Warm-up $\rightarrow$ Mid-Level Unfreezing with Class Weights $\rightarrow$ Deep Full Unfreezing $\rightarrow$ Ultra-Low LR Optimization).
+- [x] Published technical report `mobilenetv2_finetuning_report.md` documenting 4-Phase Transfer Learning pipeline (Warm-up $\rightarrow$ Mid-Level Unfreezing with Class Weights $\rightarrow$ Deep Full Unfreezing $\rightarrow$ Ultra-Low LR Optimization).
 - [x] Validated custom 24-class MobileNetV2 model achieving **85.55% Top-1**, **92.10% Top-2**, and **94.54% Top-3** accuracy with **2.48 ms** per-image latency (>400 FPS throughput).
 - [x] Documented **97% recall on potholes**, **95% F1 on crosswalks**, **92% recall on stairs**, and **99% recall on fire hydrants**.
-- [x] Published architecture document `HYBRID_AI_FUSION_APP_INTEGRATION.md` detailing the integration of Google ML Kit (400+ categories), TFLite SSD MobileNetV2 (91 COCO classes), fine-tuned MobileNetV2 (24 hazard classes), and Multimodal RAG (Gemma 2B / Gemini Flash).
-- [x] Updated canonical AI/ML source-of-truth document `05_ai_ml_pipeline.md` and root `README.md`.
+- [x] Published architecture document `hybrid_ai_fusion_app_integration.md` detailing the integration of Google ML Kit (400+ categories), TFLite SSD MobileNetV2 (91 COCO classes), fine-tuned MobileNetV2 (24 hazard classes), and Multimodal RAG (Gemma 2B / Gemini Flash).
+- [x] Updated canonical AI/ML source-of-truth document `05_ai_ml_pipeline.md` and root `readme.md`.

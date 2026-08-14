@@ -41,7 +41,7 @@ class SoundService {
     try {
       final player = _getTransitionPlayer();
       await player.stop();
-      await player.play(AssetSource('sounds/spongebob-bubble-transition.mp3'));
+      await player.play(AssetSource('sounds/spongebob_bubble_transition.mp3'));
     } catch (e) {
       print('Bubble transition sound notice: $e');
       try {

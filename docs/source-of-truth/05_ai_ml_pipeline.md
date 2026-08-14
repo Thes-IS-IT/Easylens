@@ -89,8 +89,8 @@ EasyLens integrates a custom fine-tuned **MobileNetV2** model trained on **38,17
 * **Balanced Accuracy**: **85.02%** | **Macro ROC AUC**: **0.9902**
 * **Hazard Sensitivity**: **97% Recall on Potholes**, **95% F1 on Crosswalks**, **92% Recall on Stairs**.
 * **Inference Speed**: **2.48 ms** per image (**>400 FPS** latency profile).
-* **Technical Report**: See [`docs/training/MOBILENETV2_FINETUNING_REPORT.md`](file:///Users/arronkianparejas/easylens/docs/training/MOBILENETV2_FINETUNING_REPORT.md)
-* **Hybrid Fusion Architecture**: See [`docs/training/HYBRID_AI_FUSION_APP_INTEGRATION.md`](file:///Users/arronkianparejas/easylens/docs/training/HYBRID_AI_FUSION_APP_INTEGRATION.md)
+* **Technical Report**: See [`docs/training/mobilenetv2_finetuning_report.md`](file:///Users/arronkianparejas/easylens/docs/training/mobilenetv2_finetuning_report.md)
+* **Hybrid Fusion Architecture**: See [`docs/training/hybrid_ai_fusion_app_integration.md`](file:///Users/arronkianparejas/easylens/docs/training/hybrid_ai_fusion_app_integration.md)
 
 ### Processing Pipeline
 1. Camera frame (YUV420 or Smart Glasses stream) → `compute()` isolate → NV21 bytes

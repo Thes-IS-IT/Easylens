@@ -94,7 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         tutorialKey: 'settings',
         titleKey: 'tutorial_settings_title',
         descriptionKey: 'tutorial_settings_desc',
-        mascotAsset: 'assets/Mascots/01 Happy.gif',
+        mascotAsset: 'assets/mascots/01_happy.gif',
       );
     });
   }
@@ -1518,7 +1518,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Image.asset(
-                              'assets/Mascots/App Mascot.png',
+                              'assets/mascots/app_mascot.png',
                               width: 80,
                               height: 80,
                               fit: BoxFit.contain,

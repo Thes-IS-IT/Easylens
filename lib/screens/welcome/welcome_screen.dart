@@ -31,11 +31,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     
     Future.microtask(() {
       if (mounted) {
-        precacheImage(const AssetImage('assets/Mascots/01 Happy.gif'), context);
-        precacheImage(const AssetImage('assets/Mascots/02 Error.gif'), context);
-        precacheImage(const AssetImage('assets/Mascots/03 Loading.gif'), context);
-        precacheImage(const AssetImage('assets/Mascots/05 Welcome.gif'), context);
-        precacheImage(const AssetImage('assets/Mascots/06 Thinking.gif'), context);
+        precacheImage(const AssetImage('assets/mascots/01_happy.gif'), context);
+        precacheImage(const AssetImage('assets/mascots/02_error.gif'), context);
+        precacheImage(const AssetImage('assets/mascots/03_loading.gif'), context);
+        precacheImage(const AssetImage('assets/mascots/05_welcome.gif'), context);
+        precacheImage(const AssetImage('assets/mascots/06_thinking.gif'), context);
       }
     });
 
@@ -103,7 +103,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               children: [
                 // Mascot GIF
                 Image.asset(
-                  'assets/Mascots/05 Welcome.gif',
+                  'assets/mascots/05_welcome.gif',
                   width: 240,
                   height: 240,
                   fit: BoxFit.contain,

@@ -315,7 +315,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         tutorialKey: 'camera',
         titleKey: 'tutorial_camera_title',
         descriptionKey: 'tutorial_camera_desc',
-        mascotAsset: 'assets/Mascots/03 Loading.gif',
+        mascotAsset: 'assets/mascots/03_loading.gif',
       );
     });
   }
@@ -3412,10 +3412,10 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                   // Mascot Image
                   Image.asset(
                     _isThinking 
-                        ? 'assets/Mascots/06 Thinking.gif' 
+                        ? 'assets/mascots/06_thinking.gif' 
                         : _isGeminiListening 
-                            ? 'assets/Mascots/03 Loading.gif'
-                            : 'assets/Mascots/01 Happy.gif',
+                            ? 'assets/mascots/03_loading.gif'
+                            : 'assets/mascots/01_happy.gif',
                     width: 140,
                     height: 140,
                     fit: BoxFit.contain,

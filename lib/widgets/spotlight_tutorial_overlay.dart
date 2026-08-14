@@ -360,7 +360,7 @@ class _SpotlightTutorialOverlayState extends State<SpotlightTutorialOverlay>
                                     currentStep.mascotAsset,
                                     fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) => Image.asset(
-                                      'assets/Mascots/01 Happy.gif',
+                                      'assets/mascots/01_happy.gif',
                                       fit: BoxFit.contain,
                                     ),
                                   ),

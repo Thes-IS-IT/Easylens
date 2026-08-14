@@ -82,7 +82,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isProcessingCommand = false;
 
   String get _activeMascotAsset {
-    return 'assets/Mascots/03 Loading.gif';
+    return 'assets/mascots/03_loading.gif';
   }
 
   @override

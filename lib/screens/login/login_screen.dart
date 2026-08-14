@@ -90,11 +90,11 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage('assets/Mascots/01 Happy.gif'), context);
-    precacheImage(const AssetImage('assets/Mascots/02 Error.gif'), context);
-    precacheImage(const AssetImage('assets/Mascots/03 Loading.gif'), context);
-    precacheImage(const AssetImage('assets/Mascots/05 Welcome.gif'), context);
-    precacheImage(const AssetImage('assets/Mascots/06 Thinking.gif'), context);
+    precacheImage(const AssetImage('assets/mascots/01_happy.gif'), context);
+    precacheImage(const AssetImage('assets/mascots/02_error.gif'), context);
+    precacheImage(const AssetImage('assets/mascots/03_loading.gif'), context);
+    precacheImage(const AssetImage('assets/mascots/05_welcome.gif'), context);
+    precacheImage(const AssetImage('assets/mascots/06_thinking.gif'), context);
   }
 
   void _setupFocusListeners() {
@@ -479,11 +479,11 @@ class _LoginScreenState extends State<LoginScreen>
 
   // ── Determine which mascot GIF to display ──
   String get _activeMascotAsset {
-    if (_loginSuccess) return 'assets/Mascots/01 Happy.gif';
-    if (_isLoading) return 'assets/Mascots/03 Loading.gif';
-    if (_errorMessage != null) return 'assets/Mascots/02 Error.gif';
-    if (_isAnyFieldFocused) return 'assets/Mascots/06 Thinking.gif';
-    return 'assets/Mascots/05 Welcome.gif';
+    if (_loginSuccess) return 'assets/mascots/01_happy.gif';
+    if (_isLoading) return 'assets/mascots/03_loading.gif';
+    if (_errorMessage != null) return 'assets/mascots/02_error.gif';
+    if (_isAnyFieldFocused) return 'assets/mascots/06_thinking.gif';
+    return 'assets/mascots/05_welcome.gif';
   }
 
   Widget _buildCachedMascot(String assetPath, bool isVisible) {
@@ -616,11 +616,11 @@ class _LoginScreenState extends State<LoginScreen>
                             width: 140,
                             child: Stack(
                               children: [
-                                _buildCachedMascot('assets/Mascots/05 Welcome.gif', _activeMascotAsset == 'assets/Mascots/05 Welcome.gif'),
-                                _buildCachedMascot('assets/Mascots/03 Loading.gif', _activeMascotAsset == 'assets/Mascots/03 Loading.gif'),
-                                _buildCachedMascot('assets/Mascots/02 Error.gif', _activeMascotAsset == 'assets/Mascots/02 Error.gif'),
-                                _buildCachedMascot('assets/Mascots/06 Thinking.gif', _activeMascotAsset == 'assets/Mascots/06 Thinking.gif'),
-                                _buildCachedMascot('assets/Mascots/01 Happy.gif', _activeMascotAsset == 'assets/Mascots/01 Happy.gif'),
+                                _buildCachedMascot('assets/mascots/05_welcome.gif', _activeMascotAsset == 'assets/mascots/05_welcome.gif'),
+                                _buildCachedMascot('assets/mascots/03_loading.gif', _activeMascotAsset == 'assets/mascots/03_loading.gif'),
+                                _buildCachedMascot('assets/mascots/02_error.gif', _activeMascotAsset == 'assets/mascots/02_error.gif'),
+                                _buildCachedMascot('assets/mascots/06_thinking.gif', _activeMascotAsset == 'assets/mascots/06_thinking.gif'),
+                                _buildCachedMascot('assets/mascots/01_happy.gif', _activeMascotAsset == 'assets/mascots/01_happy.gif'),
                               ],
                             ),
                           ),
@@ -1011,7 +1011,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.asset(
-                    'assets/Mascots/02 Error.gif',
+                    'assets/mascots/02_error.gif',
                     width: 40,
                     height: 40,
                     fit: BoxFit.cover,
@@ -1307,7 +1307,7 @@ class _LoginScreenState extends State<LoginScreen>
                       child: Transform.scale(
                         scale: _mascotZoomScale.value,
                         child: Image.asset(
-                          'assets/Mascots/01 Happy.gif',
+                          'assets/mascots/01_happy.gif',
                           height: 140,
                           fit: BoxFit.contain,
                         ),

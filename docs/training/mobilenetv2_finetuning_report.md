@@ -201,7 +201,7 @@ To validate our architectural choice, we benchmarked the fine-tuned MobileNetV2 
 
 ## 5. Artifact & Resource References
 
-* **Jupyter Notebook**: [`docs/training/EasyLens.ipynb`](file:///Users/arronkianparejas/easylens/docs/training/EasyLens.ipynb)
+* **Jupyter Notebook**: [`docs/training/easylens.ipynb`](file:///Users/arronkianparejas/easylens/docs/training/easylens.ipynb)
 * **Google Colab Notebook**: [Colab Link](https://colab.research.google.com/drive/1n7WDy7TaFBkD_KCkB8ocrr8nnl92ulLa?usp=sharing)
 * **Kaggle Dataset**: [26-Class Dataset](https://www.kaggle.com/datasets/mohamedgobara/26-class-object-detection-dataset)
 * **Exported Trained Weights**: [Google Drive Model Folder](https://drive.google.com/drive/folders/1v23GQxQ2HZsXsThF7am3ZnwNp5guqDX0?usp=sharing)

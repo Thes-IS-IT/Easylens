@@ -305,7 +305,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         tutorialKey: 'faces',
         titleKey: 'tutorial_faces_title',
         descriptionKey: 'tutorial_faces_desc',
-        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        mascotAsset: 'assets/mascots/05_welcome.gif',
       );
     });
   }
@@ -579,7 +579,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             ),
             child: ClipOval(
               child: Image.asset(
-                'assets/Mascots/05 Welcome.gif',
+                'assets/mascots/05_welcome.gif',
                 width: 116,
                 height: 116,
                 fit: BoxFit.contain,
@@ -696,7 +696,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           ),
         const SizedBox(height: 24),
         Image.asset(
-          'assets/Mascots/03 Loading.gif',
+          'assets/mascots/03_loading.gif',
           width: 100,
           height: 100,
           fit: BoxFit.contain,
@@ -981,7 +981,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         const SizedBox(height: 28),
         // Mascot guiding turn angle
         Image.asset(
-          'assets/Mascots/06 Thinking.gif',
+          'assets/mascots/06_thinking.gif',
           width: 120,
           height: 120,
           fit: BoxFit.contain,
@@ -1078,7 +1078,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       children: [
         // Mascot Congratulations Animation
         Image.asset(
-          'assets/Mascots/04 Congratulations.gif',
+          'assets/mascots/04_congratulations.gif',
           width: 140,
           height: 140,
           fit: BoxFit.contain,

@@ -107,6 +107,6 @@ EasyLens combines **Google ML Kit** and the **Custom MobileNetV2 SSD** in a hybr
 ## 4. References & Documentation Links
 
 * [Kaggle 26-Class Dataset Source](https://www.kaggle.com/datasets/mohamedgobara/26-class-object-detection-dataset)
-* [MobileNetV2 Fine-Tuning Technical Report](file:///Users/arronkianparejas/easylens/docs/training/MOBILENETV2_FINETUNING_REPORT.md)
+* [MobileNetV2 Fine-Tuning Technical Report](file:///Users/arronkianparejas/easylens/docs/training/mobilenetv2_finetuning_report.md)
 * [Object Detection Architecture Document](file:///Users/arronkianparejas/easylens/docs/object_detection_architecture.md)
 * [AI Architecture Overview](file:///Users/arronkianparejas/easylens/docs/ai_architecture.md)

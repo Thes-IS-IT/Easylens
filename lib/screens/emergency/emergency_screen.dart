@@ -36,7 +36,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         tutorialKey: 'emergency',
         titleKey: 'tutorial_emergency_title',
         descriptionKey: 'tutorial_emergency_desc',
-        mascotAsset: 'assets/Mascots/05 Welcome.gif',
+        mascotAsset: 'assets/mascots/05_welcome.gif',
       );
     });
   }

@@ -72,7 +72,7 @@ class LocalAiInstructionsDialog extends StatelessWidget {
                       ),
                       child: ClipOval(
                         child: Image.asset(
-                          'assets/Mascots/01 Happy.gif',
+                          'assets/mascots/01_happy.gif',
                           fit: BoxFit.cover,
                         ),
                       ),
