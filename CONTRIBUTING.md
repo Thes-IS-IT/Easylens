@@ -150,4 +150,4 @@ For questions regarding research collaboration, academic reproduction, or thesis
 - **Arron Kian M. Parejas**
 - **Jenica Sarah B. Tongol**
 
-*Holy Angel University — Department of Computer Science*
+*Holy Angel University — School of Computing (Computer Science)*

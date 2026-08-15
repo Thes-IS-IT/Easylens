@@ -242,7 +242,7 @@ EasyLens is licensed under the **MIT License**. See the [LICENSE.md](LICENSE.md)
 ```text
 Copyright (c) 2026 Graciella Mhervie D. Jimenez, Jian Kalel D. Marquez,
 Arron Kian M. Parejas, Jenica Sarah B. Tongol
-Holy Angel University — College of Information and Communications Technology
+Holy Angel University — School of Computing
 ```
 
 ---
