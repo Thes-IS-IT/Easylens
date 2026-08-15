@@ -231,9 +231,40 @@ easylens/
 - Cloudflare R2 uploads use client-side **AWS Signature Version 4** (HMAC-SHA256) — no secrets transmitted in plaintext
 - Firebase Security Rules enforce per-user read/write isolation
 - Gemma runs fully **on-device** for English — no user query data leaves the device
+- For complete security policies, threat models, and vulnerability reporting procedures, see [SECURITY.md](SECURITY.md).
 
 ---
 
 ### 08 — LICENSE
 
-> TODO: Add license information.
+EasyLens is licensed under the **MIT License**. See the [LICENSE.md](LICENSE.md) file for full details and third-party license notices.
+
+```text
+Copyright (c) 2026 Graciella Mhervie D. Jimenez, Jian Kalel D. Marquez,
+Arron Kian M. Parejas, Jenica Sarah B. Tongol
+Holy Angel University — College of Information and Communications Technology
+```
+
+---
+
+### 09 — RESEARCH TEAM & THESIS
+
+EasyLens was conceptualized, researched, and engineered as an undergraduate thesis project at **Holy Angel University (HAU)**, Angeles City, Pampanga, Philippines by the **Thes-IS-IT** research team:
+
+| Researcher / Author | Role / Area of Focus |
+|---|---|
+| **Graciella Mhervie D. Jimenez** | Research Co-Author & Development Team |
+| **Jian Kalel D. Marquez** | Research Co-Author & Development Team & Hardware Engineering |
+| **Arron Kian M. Parejas** | Lead Software Architect & AI/Machine Learning Engineer |
+| **Jenica Sarah B. Tongol** | Research Co-Author & Development Team |
+
+- **Institution:** Holy Angel University (HAU)
+- **College:** College of Information and Communications Technology (CICT)
+- **Department:** Department of Computer Science
+- **Organization / Repository:** [Thes-IS-IT/Easylens](https://github.com/Thes-IS-IT/Easylens)
+
+---
+
+### 10 — CONTRIBUTING
+
+We welcome community contributions, academic collaborations, and feature enhancements. Please read our [CONTRIBUTING.md](CONTRIBUTING.md) guide for coding conventions, test requirements, and pull request procedures.

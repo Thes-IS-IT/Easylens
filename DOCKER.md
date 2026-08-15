@@ -101,6 +101,10 @@ docker run -d \
 
 ### 05 — LICENSE & MAINTAINERS
 
-Maintained by **Thes-IS-IT EasyLens Team**.
+Maintained by the **Thes-IS-IT Research Team** (Holy Angel University):
+- **Graciella Mhervie D. Jimenez**
+- **Jian Kalel D. Marquez**
+- **Arron Kian M. Parejas**
+- **Jenica Sarah B. Tongol**
 
-> TODO: Add license information.
+EasyLens is licensed under the **MIT License**. See [LICENSE.md](LICENSE.md) for full terms.
