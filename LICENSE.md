@@ -1,4 +1,4 @@
-# MIT License
+# Modified MIT License with Academic Thesis Conditions
 
 **Copyright (c) 2026 Graciella Mhervie D. Jimenez, Jian Kalel D. Marquez, Arron Kian M. Parejas, Jenica Sarah B. Tongol**  
 **Holy Angel University (HAU) — School of Computing**  
@@ -7,22 +7,50 @@
 ---
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+of this software, machine learning models, hardware schematics, and associated
+documentation files (the "Software"), to inspect, study, and evaluate the Software
+for **academic, educational, and non-commercial research purposes**, subject to
+the following mandatory conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+### 1. Retention of Copyright & Authorship Attribution
+The above copyright notice, this list of conditions, and the researcher credits
+shall be prominently included in all copies, forks, or substantial portions of
+the Software.
+
+### 2. Academic Integrity & Anti-Plagiarism Clause
+Under no circumstances may this Software, its source code, deep learning model
+architectures, datasets, system diagrams, or thesis manuscripts be submitted,
+in whole or in part, as another individual's or institution's undergraduate,
+graduate, or capstone thesis project without explicit prior written authorization
+and formal institutional approval.
+
+### 3. Explicit Written Permission for Commercial Use
+No commercial use, sale, paid licensing, monetization, or integration of the
+Software into proprietary commercial platforms is permitted without the
+**express prior written consent** of the copyright holders.
+
+### 4. Machine Learning Model Weights & Dataset Protection
+The custom 4-phase fine-tuned MobileNetV2 SSD weights (`assets/models/`),
+the 24-class curated dataset annotations, the Buddy RAG knowledge base, and
+ESP32 hardware firmware are proprietary research artifacts of the authors and
+may not be extracted, scraped, or republished for commercial deployment without
+explicit written permission.
+
+### 5. Compliance with Data Privacy Regulations
+Any academic reproduction or extension of this work must strictly comply with
+the **Data Privacy Act of 2012 (Republic Act No. 10173)** of the Philippines
+and applicable global data privacy regulations regarding biometric facial vectors
+and camera stream processing.
+
+---
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+AUTHORS, RESEARCHERS, OR HOLY ANGEL UNIVERSITY BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ---
 
@@ -49,7 +77,7 @@ SOFTWARE.
 
 ## 📑 Citation & Academic Attribution
 
-If you use this software, its underlying fine-tuned machine learning models, datasets, architectural designs, algorithms, or documentation in academic coursework, scholarly papers, research publications, or derived software, please provide appropriate academic attribution and cite this work as follows:
+If you reference this software, its underlying fine-tuned machine learning models, datasets, architectural designs, algorithms, or documentation in academic coursework, scholarly papers, research publications, or derived software, please cite this work as follows:
 
 ### BibTeX Format
 
@@ -69,22 +97,6 @@ If you use this software, its underlying fine-tuned machine learning models, dat
 ### APA Format
 
 > Jimenez, G. M. D., Marquez, J. K. D., Parejas, A. K. M., & Tongol, J. S. B. (2026). *EasyLens: Real-Time Edge Computer Vision and Multimodal AI Assistive System for Visually Impaired Spatial Navigation* (Undergraduate Thesis). School of Computing, Holy Angel University, Angeles City, Pampanga, Philippines. https://github.com/Thes-IS-IT/Easylens
-
----
-
-## 📜 Thesis Research Terms & Intellectual Property Guidelines
-
-1. **Open Academic & Educational Use:**
-   This project is released under the permissive MIT License to foster accessibility research, open-source assistive technology innovation, and educational replication. Academic institutions and researchers are freely encouraged to fork, reproduce, and build upon this work.
-
-2. **Derivative Works & Model Weight Attribution:**
-   Any derivative works incorporating the custom 4-phase fine-tuned MobileNetV2 SSD weights (`assets/models/`), 24-class curated dataset annotations, Buddy RAG knowledge base (`assets/models/buddy_knowledge.json`), or ESP32-CAM firmware (`hardware/esp32_cam_wifi_ap/`) must retain the original copyright notice and cite the research authors above.
-
-3. **Data Privacy & Ethical Use:**
-   In adherence to user privacy and ethical computer vision guidelines, all sample datasets and facial recognition vectors provided in this repository are strictly synthetic or collected with explicit research consent. Users of this codebase must uphold strict data privacy standards and comply with the **Data Privacy Act of 2012 (Republic Act No. 10173)** of the Philippines and applicable global data protection laws.
-
-4. **Commercial Use Disclosure:**
-   While the MIT License permits commercial utilization of the source code, commercial entities utilizing this architecture or trained weights are encouraged to credit the original research team and contribute accessibility enhancements back to the open-source community.
 
 ---
 
@@ -117,9 +129,9 @@ EasyLens is built upon and integrates world-class open-source frameworks, machin
 
 ---
 
-## 📬 Contact & Research Inquiries
+## 📬 Contact & Research Permissions
 
-For academic inquiries, thesis manuscript access, dataset questions, or collaboration proposals:
+To request explicit written permission for commercial use, external dataset licensing, or thesis reproduction inquiries:
 
 - **Lead Software Architect & AI Engineer:** Arron Kian M. Parejas ([parejasarronkian@gmail.com](mailto:parejasarronkian@gmail.com))
 - **Research Repository:** [https://github.com/Thes-IS-IT/Easylens](https://github.com/Thes-IS-IT/Easylens)

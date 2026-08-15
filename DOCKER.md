@@ -107,4 +107,4 @@ Maintained by the **Thes-IS-IT Research Team** (Holy Angel University):
 - **Arron Kian M. Parejas**
 - **Jenica Sarah B. Tongol**
 
-EasyLens is licensed under the **MIT License**. See [LICENSE.md](LICENSE.md) for full terms.
+EasyLens is licensed under a **Modified MIT License with Academic Thesis Conditions**. See [LICENSE.md](LICENSE.md) for full terms.

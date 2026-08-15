@@ -60,6 +60,6 @@ Machine learning notebooks and fine-tuning reports:
 * Canonical technical references & numbered specification set: [readme.md](file:///Users/arronkianparejas/easylens/docs/source-of-truth/readme.md)
 
 ### 10. 📄 Project Governance, Research Team & Policies
-* [LICENSE.md](file:///Users/arronkianparejas/easylens/LICENSE.md) - MIT License, copyright notices, and academic citation
+* [LICENSE.md](file:///Users/arronkianparejas/easylens/LICENSE.md) - Modified MIT License with Academic Thesis Conditions & copyright
 * [CONTRIBUTING.md](file:///Users/arronkianparejas/easylens/CONTRIBUTING.md) - Thesis contribution guidelines, code standards & PR workflows
 * [SECURITY.md](file:///Users/arronkianparejas/easylens/SECURITY.md) - Edge AI privacy model, credential isolation & vulnerability reporting
