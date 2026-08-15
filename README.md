@@ -237,7 +237,7 @@ easylens/
 
 ### 08 — LICENSE
 
-EasyLens is licensed under the **MIT License**. See the [LICENSE.md](LICENSE.md) file for full details and third-party license notices.
+EasyLens is licensed under a **Modified MIT License with Academic Thesis Conditions**. It permits academic study, research, and non-commercial educational review, but requires explicit prior written permission for commercial use and strictly prohibits academic plagiarism. See the [LICENSE.md](LICENSE.md) file for full details and third-party license notices.
 
 ```text
 Copyright (c) 2026 Graciella Mhervie D. Jimenez, Jian Kalel D. Marquez,
