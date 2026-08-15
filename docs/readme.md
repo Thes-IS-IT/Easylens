@@ -57,4 +57,9 @@ Machine learning notebooks and fine-tuning reports:
 * [system_architecture_and_uml.md](file:///Users/arronkianparejas/easylens/docs/system_architecture/system_architecture_and_uml.md) - Comprehensive UML diagrams & hardware specifications
 
 ### 9. 📌 `/source-of-truth`
-* Canonical technical references & numbered specification set.
+* Canonical technical references & numbered specification set: [readme.md](file:///Users/arronkianparejas/easylens/docs/source-of-truth/readme.md)
+
+### 10. 📄 Project Governance, Research Team & Policies
+* [LICENSE.md](file:///Users/arronkianparejas/easylens/LICENSE.md) - MIT License, copyright notices, and academic citation
+* [CONTRIBUTING.md](file:///Users/arronkianparejas/easylens/CONTRIBUTING.md) - Thesis contribution guidelines, code standards & PR workflows
+* [SECURITY.md](file:///Users/arronkianparejas/easylens/SECURITY.md) - Edge AI privacy model, credential isolation & vulnerability reporting
