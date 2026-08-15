@@ -17,12 +17,13 @@ The above copyright notice, this list of conditions, and the researcher credits
 shall be prominently included in all copies, forks, or substantial portions of
 the Software.
 
-### 2. Academic Integrity & Anti-Plagiarism Clause
+### 2. Academic Integrity & Anti-Plagiarism Clause (HAU & External)
 Under no circumstances may this Software, its source code, deep learning model
-architectures, datasets, system diagrams, or thesis manuscripts be submitted,
-in whole or in part, as another individual's or institution's undergraduate,
-graduate, or capstone thesis project without explicit prior written authorization
-and formal institutional approval.
+architectures, datasets, system diagrams, or thesis manuscripts be copied,
+cloned, repurposed, or submitted, in whole or in part, as another student's,
+faculty member's, professor's, or third-party entity's coursework, capstone,
+or thesis project (within Holy Angel University or any other academic institution)
+without express prior written authorization and formal institutional approval.
 
 ### 3. Explicit Written Permission for Commercial Use
 No commercial use, sale, paid licensing, monetization, or integration of the
@@ -72,6 +73,41 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 - **Academic Program:** Bachelor of Science in Computer Science (BSCS)
 - **Location:** #1 Holy Angel Avenue, Sto. Rosario, Angeles City, Pampanga 2009, Philippines
 - **Repository Organization:** [Thes-IS-IT/Easylens](https://github.com/Thes-IS-IT/Easylens)
+
+---
+
+## ⚖️ Legal Enforcement, Anti-Plagiarism & Prosecution Policy
+
+The authors strictly enforce all intellectual property rights and statutory protections under applicable Philippine and international laws.
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                     Legal & Institutional Protections                  │
+├───────────────────────────────────┬────────────────────────────────────┤
+│ ⚖️ Statutory Laws (Philippines)    │ 🏛️ Institutional & Academic Policy  │
+│ - RA 8293 (Intellectual Property) │ - HAU Academic Integrity Code      │
+│ - RA 10175 (Cybercrime Prevention)│ - CHED Academic Ethics Policy      │
+│ - RA 10173 (Data Privacy Act)     │ - HAU Disciplinary Tribunal Board  │
+│ - Berne Convention (International)│ - Degree Revocation & Nullification│
+└───────────────────────────────────┴────────────────────────────────────┘
+```
+
+### 1. Zero Tolerance for Plagiarism & Cloning
+Any attempt by **students, faculty members, professors, researchers, or external entities** (whether affiliated with Holy Angel University or any other institution) to clone, copy, plagiarize, paraphrase without citation, or submit this software, models, or documentation as their own work will be met with immediate legal, institutional, and disciplinary action.
+
+### 2. Legal Recourse & Civil/Criminal Prosecution
+Violators of these license terms and conditions are subject to:
+* **Civil Lawsuits:** Legal action in court for copyright infringement, breach of contract, actual damages, statutory damages, and permanent injunctive relief.
+* **Criminal Prosecution:** Action under the **Intellectual Property Code of the Philippines (Republic Act No. 8293)** and the **Cybercrime Prevention Act of 2012 (Republic Act No. 10175)** for willful unauthorized reproduction and distribution.
+* **DMCA & Platform Takedowns:** Immediate filing of Digital Millennium Copyright Act (DMCA) takedown notices to permanently remove unauthorized repositories, app store submissions, and online publications.
+
+### 3. Academic Sanctions & Disciplinary Escalation
+Unauthorized reproduction or misrepresentation within an academic institution will be escalated directly to:
+* **The Holy Angel University Administration & School of Computing Dean's Office**
+* **The University Ethics Committee & Student Disciplinary Board**
+* **The Commission on Higher Education (CHED)**
+
+Such violations constitute severe academic fraud and can result in **immediate thesis disqualification, failure of academic courses, suspension, expulsion, or revocation of granted academic degrees**.
 
 ---
 
