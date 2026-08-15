@@ -259,8 +259,8 @@ EasyLens was conceptualized, researched, and engineered as an undergraduate thes
 | **Jenica Sarah B. Tongol** | Research Co-Author & Development Team |
 
 - **Institution:** Holy Angel University (HAU)
-- **College:** College of Information and Communications Technology (CICT)
-- **Department:** Department of Computer Science
+- **College:** School of Computing
+- **Course:** Computer Science
 - **Organization / Repository:** [Thes-IS-IT/Easylens](https://github.com/Thes-IS-IT/Easylens)
 
 ---
