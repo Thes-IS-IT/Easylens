@@ -121,6 +121,6 @@ EasyLens is built upon and integrates world-class open-source frameworks, machin
 
 For academic inquiries, thesis manuscript access, dataset questions, or collaboration proposals:
 
-- **Lead Software Architect & AI Engineer:** Arron Kian M. Parejas ([arronkianparejas@gmail.com](mailto:arronkianparejas@gmail.com))
+- **Lead Software Architect & AI Engineer:** Arron Kian M. Parejas ([parejasarronkian@gmail.com](mailto:parejasarronkian@gmail.com))
 - **Research Repository:** [https://github.com/Thes-IS-IT/Easylens](https://github.com/Thes-IS-IT/Easylens)
 - **Academic Institution:** Holy Angel University — School of Computing, Angeles City, Pampanga, Philippines

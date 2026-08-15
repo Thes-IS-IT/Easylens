@@ -72,7 +72,7 @@ If you discover a security vulnerability, privacy leak, or critical bug in EasyL
 
 1. **Do NOT open a public GitHub issue.**
 2. Please report your findings privately via GitHub Security Advisories or by emailing the project maintainers:
-   - **Lead Researcher / Architect:** `arronkianparejas@gmail.com`
+   - **Lead Researcher / Architect:** `parejasarronkian@gmail.com`
    - Subject line: `[SECURITY] EasyLens Vulnerability Report - <Brief Description>`
 3. Please include in your report:
    - A description of the vulnerability and its potential impact.
