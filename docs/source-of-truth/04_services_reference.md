@@ -1,6 +1,6 @@
 # 04 — Services Reference
 
-All services use the **Dart singleton factory pattern**:
+All services use the Dart singleton factory pattern:
 
 ```dart
 class ExampleService {
@@ -14,9 +14,9 @@ No dependency injection is used. Services are accessed globally via their factor
 
 ---
 
-## Service Catalogue
+### 01 — SERVICE CATALOGUE
 
-### SettingsService
+#### SettingsService
 | | |
 |---|---|
 | **File** | `lib/services/settings_service.dart` |
@@ -25,20 +25,16 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Purpose** | Central settings hub. Stores language, theme, voice persona, notification preferences, contrast theme. All UI reacts to changes via `notifyListeners()`. |
 | **Key Properties** | `selectedLanguage`, `selectedContrastTheme`, `voicePersonaId`, `speechRate`, `pitch`, `hapticFeedback`, `globalNotifications` |
 
----
-
-### TtsService
+#### TtsService
 | | |
 |---|---|
 | **File** | `lib/services/tts_service.dart` |
 | **Pattern** | Singleton |
 | **Purpose** | Text-to-Speech wrapper with voice persona support (Max, Aria, Nova, Leo). Manages pitch, rate, and language switching. |
 | **Key Methods** | `speak(String text)`, `stop()`, `setVoicePersona(String id)` |
-| **⚠️ Android & Persona Enhancements** | - **Lazy Engine Binding**: Defers `getVoices()` loading on Android using `setStartHandler`, `setCompletionHandler`, and `setErrorHandler` callback triggers. Voices are loaded in background after the first speech finishes, preventing engine binding `NullPointerException` crashes.<br>- **Pitch Safety Clamping**: Enforces strict pitch safety boundaries `[0.5, 2.0]` on Android to prevent service binder crashes (`DeadObjectException` / error -22).<br>- **Masculine Voice Emulation**: Overrides pitch values for Max and Echo personas on Android for optimal masculine tone.<br>- **Leo Child Voice Selection**: Features native child voice selection hooks for the Leo persona.<br>- **Locale Fallback**: Implements dynamic gender resolution and locale fallback mechanisms to prevent female voice stuck issues when changing personas. |
+| **Android & Persona Enhancements** | - **Lazy Engine Binding**: Defers `getVoices()` loading on Android using `setStartHandler`, `setCompletionHandler`, and `setErrorHandler` callback triggers. Voices are loaded in background after the first speech finishes, preventing engine binding `NullPointerException` crashes.<br>- **Pitch Safety Clamping**: Enforces strict pitch safety boundaries `[0.5, 2.0]` on Android to prevent service binder crashes (`DeadObjectException` / error -22).<br>- **Masculine Voice Emulation**: Overrides pitch values for Max and Echo personas on Android for optimal masculine tone.<br>- **Leo Child Voice Selection**: Features native child voice selection hooks for the Leo persona.<br>- **Locale Fallback**: Implements dynamic gender resolution and locale fallback mechanisms to prevent female voice stuck issues when changing personas. |
 
----
-
-### SttService
+#### SttService
 | | |
 |---|---|
 | **File** | `lib/services/stt_service.dart` |
@@ -46,9 +42,7 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Purpose** | Speech-to-Text input for Buddy chat and voice commands. |
 | **Key Methods** | `startListening(Function(String) onResult)`, `stopListening(Function(String) onFinal)` |
 
----
-
-### RagService
+#### RagService
 | | |
 |---|---|
 | **File** | `lib/services/rag_service.dart` |
@@ -59,9 +53,7 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Guardrails** | Off-topic filter (math, trivia rejection), curated Q&A database, keyword-based context retrieval |
 | **Key Methods** | `processQuery(String query)`, `initializeGemma()` |
 
----
-
-### FirebaseService
+#### FirebaseService
 | | |
 |---|---|
 | **File** | `lib/services/firebase_service.dart` |
@@ -69,9 +61,7 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Purpose** | Firebase Auth + Firestore CRUD. Gracefully falls back to mock mode if Firebase config is missing. Restores and preserves custom profile attributes including `isForMyself` and `selectedConditions` during user registration. |
 | **Key Methods** | `initialize()`, `signIn()`, `signUp()`, `getUserProfile()`, `updateUserProfile()` |
 
----
-
-### NotificationService
+#### NotificationService
 | | |
 |---|---|
 | **File** | `lib/services/notification_service.dart` |
@@ -79,9 +69,7 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Purpose** | High-performance notification system. Persists only critical safety alerts (like `"STOP"`, `"FIRE"`, `"HAZARD"`, or `"EMERGENCY"`) to SharedPreferences to prevent frame-skipping disk I/O lag. |
 | **Key Methods** | `initialize()`, `pushObstacleAlert()`, `pushWarning()`, `getUnreadCount()` |
 
----
-
-### TranslationService
+#### TranslationService
 | | |
 |---|---|
 | **File** | `lib/services/translation_service.dart` |
@@ -89,9 +77,7 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Purpose** | Provides translated strings for English and Tagalog (Filipino). Uses a static `Map<String, Map<String, String>>` lookup. Works alongside `SignupStrings` for full app localization. |
 | **Key Method** | `TranslationService.translate(String key, String language)` |
 
----
-
-### WeatherService
+#### WeatherService
 | | |
 |---|---|
 | **File** | `lib/services/weather_service.dart` |
@@ -99,9 +85,7 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Purpose** | Fetches current weather using Open-Meteo API via device GPS. Used by Buddy for weather-related questions. |
 | **Key Method** | `fetchWeather()` → returns temperature, weather code, and storm status |
 
----
-
-### Esp32Service
+#### Esp32Service
 | | |
 |---|---|
 | **File** | `lib/services/esp32_service.dart` |
@@ -110,72 +94,56 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Default URL** | `http://192.168.4.1:81/stream` |
 | **Key Methods** | `initialize()`, `connect(String url)`, `setFlash(bool on)` |
 
----
-
-### FaceRegistrationService
+#### FaceRegistrationService
 | | |
 |---|---|
 | **File** | `lib/services/face_registration_service.dart` |
 | **Pattern** | Singleton + `ChangeNotifier` |
 | **Purpose** | Stores registered face embeddings for face recognition HUD mode. |
 
----
-
-### EmergencyContactService
+#### EmergencyContactService
 | | |
 |---|---|
 | **File** | `lib/services/emergency_contact_service.dart` |
 | **Pattern** | Singleton |
 | **Purpose** | CRUD for emergency contacts. Integrates with native contact pickers during signup and SOS management. |
 
----
-
-### SmsService
+#### SmsService
 | | |
 |---|---|
 | **File** | `lib/services/sms_service.dart` |
 | **Pattern** | Singleton |
 | **Purpose** | Formats and sends SMS messages for emergency SOS. Handles Philippine phone number formatting (`09xx` → `+639xx`). |
 
----
-
-### ActiveNavigationService
+#### ActiveNavigationService
 | | |
 |---|---|
 | **File** | `lib/services/active_navigation_service.dart` |
 | **Pattern** | Singleton |
 | **Purpose** | Manages active walking navigation state and audio turn-by-turn cues. |
 
----
-
-### JournalService
+#### JournalService
 | | |
 |---|---|
 | **File** | `lib/services/journal_service.dart` |
 | **Pattern** | Singleton |
 | **Purpose** | Buddy conversation journal logging and history management. |
 
----
-
-### UndoService
+#### UndoService
 | | |
 |---|---|
 | **File** | `lib/services/undo_service.dart` |
 | **Pattern** | Singleton |
 | **Purpose** | Manages undo stack for shake-to-undo. Records user actions (tab switches, navigation) and reverses them on shake gesture. |
 
----
-
-### ObjectDetectorService
+#### ObjectDetectorService
 | | |
 |---|---|
 | **File** | `lib/services/object_detector_service.dart` |
 | **Pattern** | Singleton |
 | **Purpose** | Wrapper for Google ML Kit object detector initialization and configuration. |
 
----
-
-### TfliteProcessor
+#### TfliteProcessor
 | | |
 |---|---|
 | **File** | `lib/services/tflite_processor.dart` |
@@ -183,39 +151,33 @@ No dependency injection is used. Services are accessed globally via their factor
 | **Purpose** | TensorFlow Lite interpreter for SSD MobileNetV2. Loads the model, runs inference, and returns bounding boxes + class IDs. |
 | **Model** | `assets/models/ssd_mobilenet_v2.tflite` (300×300 RGB input) |
 
----
-
-### IsolateRunner
+#### IsolateRunner
 | | |
 |---|---|
 | **File** | `lib/services/isolate_runner.dart` |
 | **Purpose** | Utility for running heavy computation in Dart isolates (used by YUV→NV21 conversion). |
 
----
-
-### MlKitService
+#### MlKitService
 | | |
 |---|---|
 | **File** | `lib/services/ml_kit_service.dart` |
 | **Purpose** | Shared ML Kit initialization helpers. |
 
----
+#### Storage Services
 
-### Storage Services
-
-#### CloudflareD1Service
+##### CloudflareD1Service
 | | |
 |---|---|
 | **File** | `lib/services/storage/cloudflare_d1_service.dart` |
 | **Purpose** | HTTP client for Cloudflare D1 serverless SQL database. |
 
-#### CloudflareR2Service
+##### CloudflareR2Service
 | | |
 |---|---|
 | **File** | `lib/services/storage/cloudflare_r2_service.dart` |
 | **Purpose** | S3-compatible object storage client with AWS Signature V4 signing (HMAC-SHA256). |
 
-#### StorageService
+##### StorageService
 | | |
 |---|---|
 | **File** | `lib/services/storage/storage_service.dart` |

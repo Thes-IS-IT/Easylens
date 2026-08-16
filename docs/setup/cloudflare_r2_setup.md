@@ -4,7 +4,8 @@ Cloudflare R2 is an S3-compatible, zero-egress-fee object storage service. This 
 
 ---
 
-## 1. Environment Variable Configuration
+### 01 — ENVIRONMENT VARIABLE CONFIGURATION
+
 The following variables have been appended to your [.env](file:///Users/arronkianparejas/easylens/.env) file. You must populate these with your credentials:
 
 ```env
@@ -17,15 +18,15 @@ CLOUDFLARE_R2_PUBLIC_URL=https://your-custom-subdomain.r2.dev
 
 ---
 
-## 2. Cloudflare Dashboard Setup
+### 02 — CLOUDFLARE DASHBOARD SETUP
 
-### Step A: Create an R2 Bucket
+#### Step A: Create an R2 Bucket
 1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com/).
 2. Navigate to **R2 Object Storage** from the left-hand sidebar.
 3. Click **Create Bucket**.
 4. Name the bucket `easylens-profile-photos` and click **Create Bucket**.
 
-### Step B: Generate S3 Credentials (API Tokens)
+#### Step B: Generate S3 Credentials (API Tokens)
 To interact with R2 via S3-compatible APIs, you must generate access keys:
 1. On the R2 page, click **Manage R2 API Tokens** on the right side.
 2. Click **Create API Token**.
@@ -39,7 +40,7 @@ To interact with R2 via S3-compatible APIs, you must generate access keys:
    * **Secret Access Key** (maps to `CLOUDFLARE_R2_SECRET_ACCESS_KEY`)
    * **Account ID** (find this on the main R2 page or S3 Endpoint URL, maps to `CLOUDFLARE_R2_ACCOUNT_ID`)
 
-### Step C: Configure Public Access (To View Images)
+#### Step C: Configure Public Access (To View Images)
 To display uploaded avatars in the app, you need a public URL:
 1. Open your bucket settings (`easylens-profile-photos`).
 2. Go to the **Settings** tab.
@@ -50,7 +51,8 @@ To display uploaded avatars in the app, you need a public URL:
 
 ---
 
-## 3. CORS Policy Configuration
+### 03 — CORS POLICY CONFIGURATION
+
 Since Flutter applications upload images directly from client devices, you must allow Cross-Origin Resource Sharing (CORS).
 1. Go to your bucket **Settings** tab.
 2. Scroll down to **CORS Policy** and click **Add CORS Policy**.
@@ -70,7 +72,7 @@ Since Flutter applications upload images directly from client devices, you must 
 
 ---
 
-## 4. Simplified R2 Direct Upload Flow
+### 04 — SIMPLIFIED R2 DIRECT UPLOAD FLOW
 
 ```mermaid
 graph LR
@@ -81,13 +83,14 @@ graph LR
 
 ---
 
-## 5. Code Implementation Example (Dart / Flutter)
+### 05 — CODE IMPLEMENTATION EXAMPLE (DART / FLUTTER)
+
 When implementing uploads in Dart, R2 acts exactly like an S3 endpoint. You can perform S3 Signature V4 uploads or use simple presigned URLs.
 
-### S3 Endpoint URL Format
+#### S3 Endpoint URL Format
 * `https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<BUCKET_NAME>`
 
-### Sample Raw HTTP Put Request (Using Presigned URLs)
+#### Sample Raw HTTP Put Request (Using Presigned URLs)
 If using a serverless helper to generate presigned URLs:
 ```dart
 import 'dart:io';

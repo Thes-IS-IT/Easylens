@@ -1,43 +1,45 @@
 # 06 — Walking Navigation System
 
-## Overview
+---
 
-The walking navigation system provides real-time obstacle warnings, non-critical architectural cues, and turn-by-turn guidance for visually impaired users. It uses Google ML Kit's object detector to track objects in the camera feed and maps their positions to **4 distinct guidance states** alongside GPS-based directional waypoint cues.
+### 01 — OVERVIEW
+
+The walking navigation system provides real-time obstacle warnings, non-critical architectural cues, and turn-by-turn guidance for visually impaired users. It uses Google ML Kit's object detector to track objects in the camera feed and maps their positions to 4 distinct guidance states alongside GPS-based directional waypoint cues.
 
 ---
 
-## Routing, Location Tracking & Navigation Algorithms
+### 02 — ROUTING, LOCATION TRACKING & NAVIGATION ALGORITHMS
 
 EasyLens integrates global map routing with localized safety metrics to construct a safe walking corridor:
 
-### 1. Pedestrian Shortest Path Routing: Dijkstra's / A* Search Algorithm
+#### 1. Pedestrian Shortest Path Routing: Dijkstra's / A* Search Algorithm
 * **Algorithm**: **Dijkstra's Algorithm / A\* Search** (used internally by Google Maps Directions API).
 * **Details**: Computes the optimal walking paths along pedestrian networks, sidewalks, and crosswalk segments, returning a collection of coordinate waypoints and localized routing instructions.
 
-### 2. Distance Calculations: The Haversine Formula
+#### 2. Distance Calculations: The Haversine Formula
 * **Algorithm**: **Haversine Formula**.
 * **Details**: To calculate the exact real-time great-circle distance (arc distance over the Earth's spherical surface) between the user's current GPS location $(lat_1, lon_1)$ and the next navigation waypoint step $(lat_2, lon_2)$, the system solves the Haversine equation on-device:
   $$d = 2R \cdot \arcsin\left(\sqrt{\sin^2\left(\frac{lat_2 - lat_1}{2}\right) + \cos(lat_1) \cdot \cos(lat_2) \cdot \sin^2\left(\frac{lon_2 - lon_1}{2}\right)}\right)$$
   Where $R$ is the mean radius of the Earth (6,371,000 meters). This ensures accurate coordinate distance mapping.
 
-### 3. Dynamic 30-Meter Turn Warning System
+#### 3. Dynamic 30-Meter Turn Warning System
 * **Trigger Mechanism**:
   - The `ActiveNavigationService` continuously polls the device GPS provider and computes the Haversine distance to the next path node.
-  - When the user approaches a transition coordinate and the distance drops to **$\le 30$ meters**, the system preemptively announces the turn action via Text-to-Speech (e.g., *"In 30 meters, turn right on acacia street"*).
+  - When the user approaches a transition coordinate and the distance drops to $\le 30$ meters, the system preemptively announces the turn action via Text-to-Speech (e.g., "In 30 meters, turn right on acacia street").
   - The warning is repeated at smaller intervals as they approach, concluding with an immediate notification at the corner.
 
 ---
 
-## State Machine
+### 03 — STATE MACHINE
 
 #### Simplified Walking Navigation States
 ```mermaid
 graph LR
     Clear[Path Clear] --> Check{Hazard Detected?}
-    Check -- Close & Centered --> Stop[🔴 Stop Immediately]
-    Check -- Moderate Distance --> Avoid[🟠 Avoid Obstacle]
-    Check -- Side Object --> Slow[🟡 Slow Down]
-    Check -- Door/Window --> Ambient[🚪 Ambient Cue]
+    Check -- Close & Centered --> Stop[Stop Immediately]
+    Check -- Moderate Distance --> Avoid[Avoid Obstacle]
+    Check -- Side Object --> Slow[Slow Down]
+    Check -- Door/Window --> Ambient[Ambient Cue]
 ```
 
 #### Detailed Navigation State Diagram
@@ -60,9 +62,9 @@ stateDiagram-v2
 
 ---
 
-## 4 Guidance States & Non-Critical Cues
+### 04 — 4 GUIDANCE STATES & NON-CRITICAL CUES
 
-### 1. 🔴 Stop Immediately (`area > 0.20` + centered)
+#### 1. Stop Immediately (`area > 0.20` + centered)
 | Property | English | Tagalog |
 |---|---|---|
 | Title | Stop immediately | Huminto agad |
@@ -71,7 +73,7 @@ stateDiagram-v2
 | Icon | `Icons.report_problem` (red) |
 | Haptic | Critical (strong vibration) |
 
-### 2. 🟠 Avoid Obstacle (`0.05 < area ≤ 0.20` + centered)
+#### 2. Avoid Obstacle (`0.05 < area ≤ 0.20` + centered)
 | Property | English | Tagalog |
 |---|---|---|
 | Title | Avoid Obstacle | Iwasan ang Harang |
@@ -81,7 +83,7 @@ stateDiagram-v2
 | Haptic | Normal |
 | Escape Direction | Checks all other detected objects to find the clearer side |
 
-### 3. 🟡 Slow Down (`area > 0.08` + NOT centered)
+#### 3. Slow Down (`area > 0.08` + NOT centered)
 | Property | English | Tagalog |
 |---|---|---|
 | Title | Slow Down | Dahan-dahan |
@@ -90,7 +92,7 @@ stateDiagram-v2
 | Icon | `Icons.speed` (yellow) |
 | Haptic | None |
 
-### 4. 🟢 Path Clear (default — all other cases)
+#### 4. Path Clear (default — all other cases)
 | Property | English | Tagalog |
 |---|---|---|
 | Title | Path Clear | Malinis ang Daan |
@@ -99,9 +101,7 @@ stateDiagram-v2
 | Icon | `Icons.check_circle_outline` (green) |
 | Haptic | None |
 
----
-
-### 🚪 Non-Critical Architectural Cues (Door & Window Detection)
+#### Non-Critical Architectural Cues (Door & Window Detection)
 | Property | English | Tagalog |
 |---|---|---|
 | Trigger | Detection of doors or windows in frame | Detection of doors or windows in frame |
@@ -111,23 +111,23 @@ stateDiagram-v2
 
 ---
 
-## Coordinate Math
+### 05 — COORDINATE MATH
 
-### Centering Detection
+#### Centering Detection
 An object is "centered" when it occupies the middle ~24% of the screen horizontally:
 
 ```dart
 final isCentered = normCenterX >= 0.38 && normCenterX <= 0.62;
 ```
 
-### Portrait Rotation Correction
+#### Portrait Rotation Correction
 Phone cameras in portrait mode have a 90° sensor rotation. The raw image Y axis corresponds to the screen X axis:
 
 ```dart
 final normCenterX = 1.0 - (((obj.boundingBox.top + obj.boundingBox.bottom) / 2.0) / height);
 ```
 
-### Area Calculation
+#### Area Calculation
 Object size is measured as normalized area (fraction of total frame):
 
 ```dart
@@ -138,7 +138,7 @@ final area = normW * normH;
 
 ---
 
-## Escape Direction Logic
+### 06 — ESCAPE DIRECTION LOGIC
 
 When an obstacle is centered (Avoid state), the system checks all other detected objects to determine which side is clearer:
 
@@ -156,7 +156,7 @@ final escapeDir = (leftBlocked && !rightBlocked) ? 'right' : 'left';
 
 ---
 
-## Speech Cooldowns
+### 07 — SPEECH COOLDOWNS
 
 | State | Repeat same message | New message |
 |---|---|---|
@@ -170,7 +170,7 @@ The `_wasPathBlocked` flag ensures "Path Clear" is only spoken once when transit
 
 ---
 
-## Key Variables
+### 08 — KEY VARIABLES
 
 | Variable | Type | Purpose |
 |---|---|---|
@@ -181,7 +181,7 @@ The `_wasPathBlocked` flag ensures "Path Clear" is only spoken once when transit
 
 ---
 
-## Key Files
+### 09 — KEY FILES
 
 All navigation logic and UI components live in:
 - `lib/screens/hardware/hardware_screen.dart` → `_processObjectResults()` and `_clearPath()`

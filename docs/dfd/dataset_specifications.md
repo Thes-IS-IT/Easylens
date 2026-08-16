@@ -4,11 +4,11 @@ This document provides a comprehensive technical reference for the vision datase
 
 ---
 
-## 1. EasyLens Custom Vision Dataset
+### 01 — EASYLENS CUSTOM VISION DATASET
 
 EasyLens uses a fine-tuned MobileNetV2 Single Shot Detector (SSD) edge vision pipeline tailored for real-time obstacle avoidance for visually impaired users.
 
-### 1.1 Primary Training Dataset
+#### Primary Training Dataset
 * **Source Dataset**: [Kaggle 26-Class Object Detection Dataset](https://www.kaggle.com/datasets/mohamedgobara/26-class-object-detection-dataset) (`Senior-Design-VIAD-4`)
 * **Original Annotations**: 38,922 JPEG images annotated in COCO JSON format.
 * **Domain Focus**: Urban navigation hazards, accessibility obstacles, pedestrian path markers, and common indoor/outdoor items.
@@ -21,12 +21,12 @@ graph TD
     Purge --> Final[24-Class EasyLens Vision Dataset<br/>38,176 Clean Images]
 ```
 
-### 1.2 Data Cleaning & 24-Class Consolidation
+#### Data Cleaning & 24-Class Consolidation
 The raw Kaggle dataset underwent data-centric preprocessing prior to model training:
 1. **Class Consolidation**: Overlapping label categories (such as `person` and `Person`) were merged into unified canonical representations.
 2. **Ghost Class Removal**: Removed 5 low-frequency "ghost classes" (`bench`, `chair`, `handbag`, `umbrella`, `traffic_light`) that had $\le 3$ annotated images across the dataset, eliminating gradient noise during training.
 
-### 1.3 Target Class Taxonomy (24 Classes)
+#### Target Class Taxonomy (24 Classes)
 
 | Category Index | Class Label | Domain Type | Risk Level |
 |---|---|---|---|
@@ -57,7 +57,7 @@ The raw Kaggle dataset underwent data-centric preprocessing prior to model train
 
 ---
 
-## 2. Google ML Kit Datasets vs. Custom EasyLens Dataset
+### 02 — GOOGLE ML KIT DATASETS VS. CUSTOM EASYLENS DATASET
 
 Google ML Kit provides built-in mobile vision SDKs, but operates on different underlying datasets compared to EasyLens's fine-tuned model.
 
@@ -78,7 +78,7 @@ graph LR
     end
 ```
 
-### 2.1 Comparative Matrix
+#### Comparative Matrix
 
 | Dataset / Pipeline | Primary Creator / Source | Scale & Classes | Annotation Type | EasyLens Usage |
 |---|---|---|---|---|
@@ -90,7 +90,7 @@ graph LR
 
 ---
 
-## 3. Dual Vision Architecture in EasyLens
+### 03 — DUAL VISION ARCHITECTURE IN EASYLENS
 
 EasyLens combines **Google ML Kit** and the **Custom MobileNetV2 SSD** in a hybrid edge architecture:
 
@@ -104,7 +104,7 @@ EasyLens combines **Google ML Kit** and the **Custom MobileNetV2 SSD** in a hybr
 
 ---
 
-## 4. References & Documentation Links
+### 04 — REFERENCES & DOCUMENTATION LINKS
 
 * [Kaggle 26-Class Dataset Source](https://www.kaggle.com/datasets/mohamedgobara/26-class-object-detection-dataset)
 * [MobileNetV2 Fine-Tuning Technical Report](file:///Users/arronkianparejas/easylens/docs/training/mobilenetv2_finetuning_report.md)

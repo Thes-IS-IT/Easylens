@@ -1,29 +1,27 @@
 # Notion Feedback API Integration & Setup Guide
 
-This guide details how to integrate and configure **Notion API** in **EasyLens** so user feedback submitted from `Settings -> Send Feedback` is automatically saved and synchronized directly into a **Notion Database** (alongside Firestore).
+This guide details how to integrate and configure Notion API in EasyLens so user feedback submitted from Settings -> Send Feedback is automatically saved and synchronized directly into a Notion Database (alongside Firestore).
 
 ---
 
-## 🛠️ Step-by-Step Notion API Setup Guide
+### 01 — STEP-BY-STEP NOTION API SETUP GUIDE
 
-### Step 1: Create a Notion Integration (API Key)
+#### Step 1: Create a Notion Integration (API Key)
 1. Go to [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations).
 2. Log in with your Notion account.
-3. Click the **"+ New integration"** button.
+3. Click the "+ New integration" button.
 4. Fill in the integration details:
    - **Name**: `EasyLens Feedback Bot`
    - **Associated workspace**: Select your workspace.
    - **Type**: `Internal`
 5. Under **Capabilities**, ensure the following permissions are checked:
-   - ✅ **Read content**
-   - ✅ **Update content**
-   - ✅ **Insert content**
+   - Read content
+   - Update content
+   - Insert content
 6. Click **Save** / **Submit**.
 7. Copy the **Internal Integration Secret** (Starts with `ntn_...` or `secret_...`). This is your `NOTION_API_KEY`.
 
----
-
-### Step 2: Create the Notion Database
+#### Step 2: Create the Notion Database
 1. Open Notion and create a new **Database Page** (or a **Table View** page).
 2. Name the database **`EasyLens Feedbacks`**.
 3. Create the following **7 exact columns (properties)** in your database table:
@@ -38,22 +36,19 @@ This guide details how to integrate and configure **Notion API** in **EasyLens**
 | **`Comment`** | **Text** *(Rich Text)* | Detailed user comment / message |
 | **`Timestamp`** | **Date** | Date and time submitted |
 
-> ⚠️ **Important**: Property names are case-sensitive. Make sure they match the exact names: `User ID`, `Name`, `Email`, `Subject`, `Rating`, `Comment`, `Timestamp`.
+> [!IMPORTANT]
+> Property names are case-sensitive. Make sure they match the exact names: `User ID`, `Name`, `Email`, `Subject`, `Rating`, `Comment`, `Timestamp`.
 
----
-
-### Step 3: Share the Database with your Integration
+#### Step 3: Share the Database with your Integration
 By default, Notion integrations cannot access pages unless explicitly granted access.
 
 1. Open your **`EasyLens Feedbacks`** database page in Notion.
-2. Click the **`...`** (three dots) icon at the top-right corner of the page.
-3. Scroll down and click **`+ Add connections`** (or **`Connect to`**).
+2. Click the **...** (three dots) icon at the top-right corner of the page.
+3. Scroll down and click **+ Add connections** (or **Connect to**).
 4. Search for **`EasyLens Feedback Bot`** (the integration created in Step 1).
 5. Click **Confirm** / **Allow**.
 
----
-
-### Step 4: Extract your Database ID
+#### Step 4: Extract your Database ID
 1. Look at the URL of your Notion database page in your browser address bar:
    ```text
    https://www.notion.so/workspace/3a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d?v=123456...
@@ -61,9 +56,7 @@ By default, Notion integrations cannot access pages unless explicitly granted ac
 2. Copy the **32-character ID string** located between your workspace name and `?v=`:
    - Example Database ID: `3a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d`
 
----
-
-### Step 5: Add Keys to `.env`
+#### Step 5: Add Keys to `.env`
 Open your local `.env` file in the root directory of the project and add your keys:
 
 ```env
@@ -74,9 +67,9 @@ NOTION_DATABASE_ID=3a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d
 
 ---
 
-## 🔄 How the Dual Firestore + Notion Sync Works
+### 02 — HOW THE DUAL FIRESTORE + NOTION SYNC WORKS
 
-When a user opens **Settings -> Send Feedback** (`SurveyScreen`) and clicks **Submit**:
+When a user opens Settings -> Send Feedback (`SurveyScreen`) and clicks Submit:
 
 ```mermaid
 sequenceDiagram

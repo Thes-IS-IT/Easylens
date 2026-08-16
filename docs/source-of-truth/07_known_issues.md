@@ -1,12 +1,12 @@
 # 07 — Known Issues & Workarounds
 
-This document tracks all known platform-specific bugs, workarounds, and gotchas that developers must be aware of.
+This document tracks all known platform-specific bugs, workarounds, and nuances that developers must be aware of.
 
 ---
 
-## 🔴 Critical — Active Workarounds in Code
+### 01 — CRITICAL: ACTIVE WORKAROUNDS IN CODE
 
-### 1. Android TTS `setVoice` NullPointerException & Binder Disconnects (Resolved with Lazy Binding & Pitch Safety)
+#### 1. Android TTS `setVoice` NullPointerException & Binder Disconnects (Resolved with Lazy Binding & Pitch Safety)
 | | |
 |---|---|
 | **Severity** | Resolved / Mitigated |
@@ -17,9 +17,7 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 | **File** | `lib/services/tts_service.dart` |
 | **Impact** | Voice persona switching (Max/Aria/Nova/Leo) now dynamically selects actual native male, female, or child voiceover files on Android without binder crashes. |
 
----
-
-### 1b. Notification Database Disk Write Lag (Resolved with Disk Filtering)
+#### 1b. Notification Database Disk Write Lag (Resolved with Disk Filtering)
 | | |
 |---|---|
 | **Severity** | Resolved / Mitigated |
@@ -30,9 +28,7 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 | **File** | `lib/services/notification_service.dart` |
 | **Impact** | Zero jank or main thread lag during continuous object scanning and navigation. |
 
----
-
-### 1c. Smart Glasses Stream Disconnection (Resolved with Auto Mobile Fallback)
+#### 1c. Smart Glasses Stream Disconnection (Resolved with Auto Mobile Fallback)
 | | |
 |---|---|
 | **Severity** | Resolved / Mitigated |
@@ -43,9 +39,7 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 | **File** | `lib/services/esp32_service.dart`, `lib/screens/hardware/hardware_screen.dart` |
 | **Impact** | Uninterrupted vision assistance for users even when wearable hardware loses battery or signal. |
 
----
-
-### 2. Google ML Kit Custom TFLite Model Metadata Crash
+#### 2. Google ML Kit Custom TFLite Model Metadata Crash
 | | |
 |---|---|
 | **Severity** | Critical (detector fails to initialize) |
@@ -56,9 +50,7 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 | **File** | `lib/screens/hardware/hardware_screen.dart` → `_loadObjectDetectionModel()` |
 | **Impact** | Object detection uses Google's default model instead of the custom SSD MobileNetV2. The custom TFLite model is still used separately via `TfliteProcessor` for additional inference. |
 
----
-
-### 3. Camera Image Stream Memory Leak on Dispose
+#### 3. Camera Image Stream Memory Leak on Dispose
 | | |
 |---|---|
 | **Severity** | Critical (OOM crash) |
@@ -68,9 +60,7 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 | **Fix** | `dispose()` now calls `stopImageStream()` before `_cameraController?.dispose()`. Added `mounted` guards in all async frame callbacks. |
 | **File** | `lib/screens/hardware/hardware_screen.dart` → `dispose()` |
 
----
-
-### 4. Navigation Mode Double Processing
+#### 4. Navigation Mode Double Processing
 | | |
 |---|---|
 | **Severity** | Resolved / Mitigated |
@@ -82,9 +72,9 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 
 ---
 
-## 🟡 Medium — Platform Quirks
+### 02 — MEDIUM: PLATFORM QUIRKS
 
-### 5. Choreographer Frame Skipping
+#### 5. Choreographer Frame Skipping
 | | |
 |---|---|
 | **Severity** | Medium (jank) |
@@ -93,9 +83,7 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 | **Cause** | Heavy ML inference on the main thread combined with `setState` calls |
 | **Mitigation** | 400ms frame processing cooldown, isolate for YUV conversion, skip labeling in navigation mode |
 
----
-
-### 6. Google Maps Tile Thread Contention
+#### 6. Google Maps Tile Thread Contention
 | | |
 |---|---|
 | **Severity** | Low (cosmetic warning) |
@@ -104,9 +92,7 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 | **Cause** | Google Maps SDK tile preparation threads contend with ML Kit processing |
 | **Impact** | Minor thread blocking, no user-facing issue |
 
----
-
-### 7. Flogger Log Overflow
+#### 7. Flogger Log Overflow
 | | |
 |---|---|
 | **Severity** | Low (cosmetic warning) |
@@ -117,13 +103,13 @@ This document tracks all known platform-specific bugs, workarounds, and gotchas 
 
 ---
 
-## 🟢 Informational
+### 03 — INFORMATIONAL
 
-### 8. Firebase Mock Mode
-When Firebase configuration files (`google-services.json` / `GoogleService-Info.plist`) are not present, `FirebaseService` gracefully falls back to **mock mode** with local-only data. This is by design for development environments.
+#### 8. Firebase Mock Mode
+When Firebase configuration files (`google-services.json` / `GoogleService-Info.plist`) are not present, `FirebaseService` gracefully falls back to mock mode with local-only data. This is by design for development environments.
 
-### 9. Weather Service Geolocator in Tests
+#### 9. Weather Service Geolocator in Tests
 `WeatherService.fetchWeather()` throws `MissingPluginException` in unit tests because `geolocator` requires a native platform channel. This is expected and does not affect test results.
 
-### 10. `_isProcessingFrame` Lock Race Condition
+#### 10. `_isProcessingFrame` Lock Race Condition
 The frame processing lock is a simple boolean, not a mutex. In theory, two `Future.microtask` callbacks could both read `false` before either sets it to `true`. In practice, Dart's single-threaded event loop prevents this because `startImageStream` callbacks are serialized on the platform channel.

@@ -1,53 +1,53 @@
 # Easylens - Comprehensive Technical Architecture
 
-Easylens is a state-of-the-art accessibility assistant designed to empower visually impaired and neurodivergent users. By blending local computer vision, on-device and cloud generative models, unified storage layers, and ESP32 hardware streaming, Easylens acts as a real-time voice and visual companion.
+Easylens is an accessibility assistant designed for visually impaired and neurodivergent users. By blending local computer vision, on-device and cloud generative models, unified storage layers, and ESP32 hardware streaming, Easylens acts as a real-time voice and visual companion.
 
 ---
 
-## 1. Complete Technology Stack & Specifications
+### 01 — COMPLETE TECHNOLOGY STACK & SPECIFICATIONS
 
-### Core Framework & State Management
-*   **Flutter (Dart SDK `^3.11.5`):** Serves as the cross-platform application runtime.
-*   **Provider Pattern (`provider: ^6.1.2`):** Handles reactive state management, linking hardware event triggers, ML classification labels, and settings adjustments across UI widgets.
-*   **Declarative Navigation:** Custom router wrapper in `app_route.dart` facilitating transition configurations suitable for accessibility focus frames.
+#### Core Framework & State Management
+- **Flutter (Dart SDK `^3.11.5`):** Serves as the cross-platform application runtime.
+- **Provider Pattern (`provider: ^6.1.2`):** Handles reactive state management, linking hardware event triggers, ML classification labels, and settings adjustments across UI widgets.
+- **Declarative Navigation:** Custom router wrapper in `app_route.dart` facilitating transition configurations suitable for accessibility focus frames.
 
-### Artificial Intelligence & On-Device Models
-1.  **Object Detection Pipeline (`tflite_flutter: ^0.12.1`):**
-    *   **Inference Engine:** TensorFlow Lite C-API bindings for Dart.
-    *   **Execution Model:** MobileNetV2 SSD trained on the MS-COCO dataset. Takes `300x300` RGB arrays and generates class IDs, bounding boxes, and scores. Runs on 4 threads via CPU interpreter options.
-2.  **On-Device LLM - Google Gemma (`flutter_gemma: ^0.13.6`):**
-    *   **Model:** Gemma-IT 2B (Instruction Tuned).
-    *   **Interface:** Google AI Edge SDK. Uses hardware acceleration (NNAPI/GPU delegates where available) to perform offline prompts using context extracted locally.
-3.  **Local Ollama Server Fallback:**
-    *   Connects to an external local Ollama daemon using HTTP protocols on `http://10.0.2.2:11434` (Android) or `http://localhost:11434` (iOS).
-    *   Supports `gemma2:2b` for local developer testing.
-4.  **Cloud LLM - Google Gemini (`google_generative_ai: ^0.4.4`):**
-    *   Targets remote `gemini-1.5-flash` or similar models for rich conversational tasks when Internet access is detected.
-5.  **Text Recognition & Image Labeling (`google_mlkit_text_recognition: ^0.15.1`, `google_mlkit_image_labeling: ^0.14.2`):**
-    *   Performs low-latency on-device Optical Character Recognition (OCR) to parse labels, prescription text, and warning signs.
+#### Artificial Intelligence & On-Device Models
+1. **Object Detection Pipeline (`tflite_flutter: ^0.12.1`):**
+   - **Inference Engine:** TensorFlow Lite C-API bindings for Dart.
+   - **Execution Model:** MobileNetV2 SSD trained on the MS-COCO dataset. Takes `300x300` RGB arrays and generates class IDs, bounding boxes, and scores. Runs on 4 threads via CPU interpreter options.
+2. **On-Device LLM - Google Gemma (`flutter_gemma: ^0.13.6`):**
+   - **Model:** Gemma-IT 2B (Instruction Tuned).
+   - **Interface:** Google AI Edge SDK. Uses hardware acceleration (NNAPI/GPU delegates where available) to perform offline prompts using context extracted locally.
+3. **Local Ollama Server Fallback:**
+   - Connects to an external local Ollama daemon using HTTP protocols on `http://10.0.2.2:11434` (Android) or `http://localhost:11434` (iOS).
+   - Supports `gemma2:2b` for local developer testing.
+4. **Cloud LLM - Google Gemini (`google_generative_ai: ^0.4.4`):**
+   - Targets remote `gemini-1.5-flash` or similar models for rich conversational tasks when Internet access is detected.
+5. **Text Recognition & Image Labeling (`google_mlkit_text_recognition: ^0.15.1`, `google_mlkit_image_labeling: ^0.14.2`):**
+   - Performs low-latency on-device Optical Character Recognition (OCR) to parse labels, prescription text, and warning signs.
 
-### Hardware & Peripherals (ESP32-CAM)
-*   **Local Networking Server:** The ESP32 hosts a local open WiFi Access Point (AP) named `EasyLens-Camera`.
-*   **MJPEG Video Receiver:** `Esp32Service` establishes an HTTP persistent boundary stream to `http://192.168.4.1:81/stream`, chunk-decodes raw JPEG frames, and updates visual frames.
-*   **Hardware Control Endpoint:** Sends micro-control GET requests to adjust flash LED levels (`/led?val=1` or `/led?val=0`).
+#### Hardware & Peripherals (ESP32-CAM)
+- **Local Networking Server:** The ESP32 hosts a local open WiFi Access Point (AP) named `EasyLens-Camera`.
+- **MJPEG Video Receiver:** `Esp32Service` establishes an HTTP persistent boundary stream to `http://192.168.4.1:81/stream`, chunk-decodes raw JPEG frames, and updates visual frames.
+- **Hardware Control Endpoint:** Sends micro-control GET requests to adjust flash LED levels (`/led?val=1` or `/led?val=0`).
 
-### Audio & Accessibility Engagements
-*   **Text-to-Speech (`flutter_tts: ^4.2.5`):** Reads parsed OCR texts, warning labels, and companion remarks. Supports pitch, rate, and volume configurations.
-*   **Speech-to-Text (`speech_to_text: ^7.4.0`):** Listens for user queries to feed directly into the local RAG assistant.
+#### Audio & Accessibility Engagements
+- **Text-to-Speech (`flutter_tts: ^4.2.5`):** Reads parsed OCR texts, warning labels, and companion remarks. Supports pitch, rate, and volume configurations.
+- **Speech-to-Text (`speech_to_text: ^7.4.0`):** Listens for user queries to feed directly into the local RAG assistant.
 
-### Databases & Cloud Storage
-1.  **Cloudflare D1 (D1 SQL Database):**
-    *   Serverless database running on Cloudflare Workers.
-    *   Stores relational data, sync history, and emergency contact mappings. Communicates securely via API HTTP request payloads.
-2.  **Cloudflare R2 Bucket (S3-Compatible Object Store):**
-    *   Stores profile avatars, captured hazard reports, and diagnostic clips.
-    *   **Security Protocol:** Custom client-side AWS Signature Version 4 implementation using HMAC-SHA256 (`crypto: ^3.0.3`) to directly sign payload requests on-device without exposing secrets.
-3.  **Firebase Services (`firebase_core: ^3.1.1`, `firebase_auth: ^5.1.2`):**
-    *   Provides token-based secure authentication and real-time document synchronization.
+#### Databases & Cloud Storage
+1. **Cloudflare D1 (D1 SQL Database):**
+   - Serverless database running on Cloudflare Workers.
+   - Stores relational data, sync history, and emergency contact mappings. Communicates securely via API HTTP request payloads.
+2. **Cloudflare R2 Bucket (S3-Compatible Object Store):**
+   - Stores profile avatars, captured hazard reports, and diagnostic clips.
+   - **Security Protocol:** Custom client-side AWS Signature Version 4 implementation using HMAC-SHA256 (`crypto: ^3.0.3`) to directly sign payload requests on-device without exposing secrets.
+3. **Firebase Services (`firebase_core: ^3.1.1`, `firebase_auth: ^5.1.2`):**
+   - Provides token-based secure authentication and real-time document synchronization.
 
 ---
 
-## 2. High-Level Architecture Flowchart
+### 02 — HIGH-LEVEL ARCHITECTURE FLOWCHART
 
 #### Simplified Architecture Overview
 ```mermaid
@@ -93,9 +93,9 @@ graph TD
 
 ---
 
-## 3. Directory Layout & Core Modules
+### 03 — DIRECTORY LAYOUT & CORE MODULES
 
-```
+```text
 lib/
 ├── main.dart                      # Multi-provider initialization & services startup
 ├── constants/
@@ -137,12 +137,12 @@ lib/
 
 ---
 
-## 4. Subsystem Specifications
+### 04 — SUBSYSTEM SPECIFICATIONS
 
-### A. RAG Engine & LLM Integrations
+#### A. RAG Engine & LLM Integrations
 Easylens uses `RagService` as a multi-tier fallback generation coordinator to handle user queries offline and online:
 
-#### Simplified RAG Inference Flow
+##### Simplified RAG Inference Flow
 ```mermaid
 graph LR
     Query[User Voice Query] --> Coordinator[RAG Service Coordinator]
@@ -152,7 +152,7 @@ graph LR
     Gemma & Ollama & Gemini --> Speech[TTS Audio Output]
 ```
 
-#### Detailed RAG Sequence Diagram
+##### Detailed RAG Sequence Diagram
 ```mermaid
 sequenceDiagram
     participant User as User Voice Input
@@ -174,25 +174,25 @@ sequenceDiagram
     end
 ```
 
-### B. Computer Vision & Isolate Threads
+#### B. Computer Vision & Isolate Threads
 To prevent dropping frames on the main UI thread during video capture, heavy tasks are delegated to `IsolateRunner`:
-*   **TFLite Model:** `ssd_mobilenet_v2.tflite` (64 MB) detects 80 standard classes from the MS-COCO dataset.
-*   **Input Handling:** Crops and resizes frame buffers to `300x300` pixels.
-*   **OCR Model:** ML Kit Text Recognition processes camera buffers to find labels and hazard signs.
+- **TFLite Model:** `ssd_mobilenet_v2.tflite` (64 MB) detects 80 standard classes from the MS-COCO dataset.
+- **Input Handling:** Crops and resizes frame buffers to `300x300` pixels.
+- **OCR Model:** ML Kit Text Recognition processes camera buffers to find labels and hazard signs.
 
-### C. Hardware Integration (ESP32-CAM)
+#### C. Hardware Integration (ESP32-CAM)
 Easylens connects directly to a custom head-mounted ESP32-CAM device:
-*   **WiFi AP Mode:** ESP32 acts as an Access Point (SSID: `EasyLens-Camera`).
-*   **MJPEG Stream Reader:** `Esp32Service` parses the MJPEG raw boundary streams from `http://192.168.4.1:81/stream` and emits parsed frame updates to observers.
-*   **GPIO Controls:** Controls the hardware flash LED remotely through HTTP endpoints:
-    *   LED On: `GET http://192.168.4.1:81/led?val=1`
-    *   LED Off: `GET http://192.168.4.1:81/led?val=0`
+- **WiFi AP Mode:** ESP32 acts as an Access Point (SSID: `EasyLens-Camera`).
+- **MJPEG Stream Reader:** `Esp32Service` parses the MJPEG raw boundary streams from `http://192.168.4.1:81/stream` and emits parsed frame updates to observers.
+- **GPIO Controls:** Controls the hardware flash LED remotely through HTTP endpoints:
+  - LED On: `GET http://192.168.4.1:81/led?val=1`
+  - LED Off: `GET http://192.168.4.1:81/led?val=0`
 
 ---
 
-## 6. Buddy AI Language Routing
+### 05 — BUDDY AI LANGUAGE ROUTING
 
-`RagService` acts as a smart router that selects the correct LLM backend based on the active app language:
+`RagService` acts as a router that selects the correct LLM backend based on the active app language:
 
 #### Simplified Language Routing Flow
 ```mermaid
@@ -217,22 +217,22 @@ flowchart TD
     NavParse --> Route[Navigate to screen]
 ```
 
-### Filipino Gemini Prompt Design
-The `askBuddyGemini` method sends a **system instruction written entirely in Tagalog** to Gemini. This guarantees the model responds in Filipino regardless of the user's question language. Navigation tags (`[NAVIGATE: x]`) are embedded in the system prompt so Buddy can still open any screen.
+#### Filipino Gemini Prompt Design
+The `askBuddyGemini` method sends a system instruction written entirely in Tagalog to Gemini. This ensures the model responds in Filipino regardless of the user's question language. Navigation tags (`[NAVIGATE: x]`) are embedded in the system prompt so Buddy can open designated screens.
 
-### TTS Locale for Filipino
+#### TTS Locale for Filipino
 The TTS voice locale is set to `en-US` even when Filipino is active, because:
-- Filipino (Tagalog) contains many English loanwords that `en-US` pronounces correctly
-- Android's `fil-PH` TTS voice is robotic and unintelligible on most devices
-- The selected voice persona's pitch/rate applies normally on the English voice engine
+- Filipino (Tagalog) contains many English loanwords that `en-US` pronounces correctly.
+- Android's `fil-PH` TTS voice is frequently unintelligible on most devices.
+- The selected voice persona's pitch/rate applies normally on the English voice engine.
 
 ---
 
-## 7. Translation & Localization Architecture
+### 06 — TRANSLATION & LOCALIZATION ARCHITECTURE
 
 UI string translation is handled by `TranslationService`, a static class with a map of language keys to English/Filipino strings.
 
-### Live Update Pattern
+#### Live Update Pattern
 Every screen that displays translated content is wrapped in:
 ```dart
 ListenableBuilder(
@@ -245,7 +245,7 @@ ListenableBuilder(
 ```
 This ensures that changing the language in Settings instantly re-renders all visible text without navigating away.
 
-### Translation Key Map (core keys)
+#### Translation Key Map (core keys)
 | Key | English | Filipino |
 |---|---|---|
 | `talk_to_buddy` | Talk to Buddy (Local AI) | Kausapin si Buddy (Lokal AI) |
@@ -258,14 +258,14 @@ This ensures that changing the language in Settings instantly re-renders all vis
 
 ---
 
-## 8. Proximity Navigation TTS System
+### 07 — PROXIMITY NAVIGATION TTS SYSTEM
 
 During active navigation (`_navState == 1`), the GPS position stream triggers `_checkNavigationProgress()` on every location update.
 
-### Anti-spam mechanism
-A timestamp-based cooldown (`_navAlertCooldownMs = 8000 ms`) ensures TTS is never spoken more than once per 8 seconds regardless of GPS update frequency.
+#### Anti-Spam Mechanism
+A timestamp-based cooldown (`_navAlertCooldownMs = 8000 ms`) ensures TTS is not spoken more than once per 8 seconds regardless of GPS update frequency.
 
-### Distance thresholds
+#### Distance Thresholds
 | Distance | Action |
 |---|---|
 | < 200 m to next waypoint | Repeats current step instruction |
@@ -274,11 +274,11 @@ A timestamp-based cooldown (`_navAlertCooldownMs = 8000 ms`) ensures TTS is neve
 | < 80 m to destination | "Almost there! X meters away" |
 | < 20 m to destination | "You have arrived!" + transitions to navState 2 |
 
-Step waypoints are estimated by interpolating the Google Maps `_routePoints` array using the current step index fraction. This gives a smooth positional estimate even when step coordinate data is not available.
+Step waypoints are estimated by interpolating the Google Maps `_routePoints` array using the current step index fraction. This provides a positional estimate even when step coordinate data is not available.
 
 ---
 
-## 9. Dynamic Theming Architecture
+### 08 — DYNAMIC THEMING ARCHITECTURE
 
 All color values in the app are resolved at runtime through `AppColors` — a class of static getters that query `SettingsService` on every access:
 
@@ -289,9 +289,9 @@ static Color get primaryBackground =>
         : Colors.white;
 ```
 
-This means no widget needs to be rebuilt from the root when the theme changes. Any widget that reads `AppColors.*` will display the correct color on its next paint cycle. Combined with `ListenableBuilder`, theme switches are instant app-wide.
+This prevents the need for widgets to be rebuilt from the root when the theme changes. Any widget that reads `AppColors.*` will display the correct color on its next paint cycle. Combined with `ListenableBuilder`, theme switches occur app-wide.
 
-### Theme Token Table
+#### Theme Token Table
 | Token | Default (light) | Black (dark) |
 |---|---|---|
 | `lightBackground` | `#F5F7FF` | `#000000` |
@@ -303,31 +303,31 @@ This means no widget needs to be rebuilt from the root when the theme changes. A
 
 ---
 
-## 10. Audio Cue System
+### 09 — AUDIO CUE SYSTEM
 
 EasyLens uses `audioplayers` (separate from `flutter_tts`) for non-speech audio feedback:
 
-*   **`AudioPlayer`** is instantiated per screen that needs sound cues and disposed with the widget lifecycle.
-*   All tab switches in `DashboardScreen` are routed through `_onTabChanged(index)` — the single authoritative handler for tab navigation. This ensures the bark cue fires exactly once regardless of whether the user tapped the navbar, a dashboard button, or Buddy navigated them home.
+- **`AudioPlayer`** is instantiated per screen that needs sound cues and disposed with the widget lifecycle.
+- All tab switches in `DashboardScreen` are routed through `_onTabChanged(index)` — the single authoritative handler for tab navigation. This ensures the bark cue fires exactly once regardless of whether the user tapped the navbar, a dashboard button, or Buddy navigated them home.
 
-### Registered Sound Assets
-```
+#### Registered Sound Assets
+```text
 assets/sounds/
 └── bark_dashboard.mp3   # Plays once when returning to Dashboard Home tab
 ```
 
 ---
 
-## 5. Storage & Sync Layers
+### 10 — STORAGE & SYNC LAYERS
 
-*   **Cloudflare D1 Database:** Serverless SQLite database. Synchronizes user profiles, configurations, and contacts securely using token authorized HTTP payloads.
-*   **Cloudflare R2 Bucket:** Stores larger media captures, backups, and user avatars. Built with client-side AWS Signature Version 4 HMAC generation (`sha256` payload hashes).
-*   **Firebase Store:** Manages credentials via Firebase Auth and stores quick settings variables.
-*   **SharedPreferences:** Holds localized device flags (e.g. contrast choices, speech rate).
+- **Cloudflare D1 Database:** Serverless SQLite database. Synchronizes user profiles, configurations, and contacts securely using token authorized HTTP payloads.
+- **Cloudflare R2 Bucket:** Stores larger media captures, backups, and user avatars. Built with client-side AWS Signature Version 4 HMAC generation (`sha256` payload hashes).
+- **Firebase Store:** Manages credentials via Firebase Auth and stores quick settings variables.
+- **SharedPreferences:** Holds localized device flags (e.g., contrast choices, speech rate).
 
 ---
 
-## 6. Data Synchronization Flowchart
+### 11 — DATA SYNCHRONIZATION FLOWCHART
 
 The following flowchart describes the pipeline of reading user profile settings, hardware frame streams, and offline RAG queries, along with how state is synchronized across Local Storage and Cloud Storage:
 
@@ -364,11 +364,11 @@ graph TD
 
 ---
 
-## 7. Database Schemas
+### 12 — DATABASE SCHEMAS
 
 Below are the detailed layout structures implemented across local devices and remote servers:
 
-### A. Local SharedPreferences Schema
+#### A. Local SharedPreferences Schema
 Fast, key-value variables cached directly on the physical mobile device:
 
 | Key Name | Data Type | Default Value | Description |
@@ -381,10 +381,10 @@ Fast, key-value variables cached directly on the physical mobile device:
 | `speech_rate` | Double (Float) | `0.5` | Pace factor used in speech synthesis. |
 | `voice_persona_id` | String | `aria` | Current voice character profile selected. |
 
-### B. Firebase Firestore Schema
+#### B. Firebase Firestore Schema
 Main document schemas storing active profile information under the `/users` collection:
 
-#### Document: `/users/{userId}`
+##### Document: `/users/{userId}`
 ```json
 {
   "email": "String (e.g. user@easylens.com)",
@@ -420,10 +420,10 @@ Main document schemas storing active profile information under the `/users` coll
 }
 ```
 
-### C. Cloudflare D1 SQL Schema
+#### C. Cloudflare D1 SQL Schema
 The relational layout deployed globally in Cloudflare's serverless D1 engine:
 
-#### Table 1: `users`
+##### Table 1: `users`
 ```sql
 CREATE TABLE users (
   id TEXT PRIMARY KEY,               -- Matches Firebase Authentication UID
@@ -434,7 +434,7 @@ CREATE TABLE users (
 );
 ```
 
-#### Table 2: `contacts`
+##### Table 2: `contacts`
 ```sql
 CREATE TABLE contacts (
   id TEXT PRIMARY KEY,               -- Unique contact UUID

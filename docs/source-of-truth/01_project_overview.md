@@ -1,22 +1,24 @@
 # 01 — Project Overview
 
-## Mission
+---
 
-**EasyLens** is a real-time accessibility assistant for visually impaired and neurodivergent users. It combines on-device computer vision, local and cloud AI, voice interaction, and optional ESP32 hardware to give users a "smart companion" that can:
+### 01 — MISSION
+
+EasyLens is a real-time accessibility assistant for visually impaired and neurodivergent users. It combines on-device computer vision, local and cloud AI, voice interaction, and optional ESP32 hardware to give users an assistant that can:
 
 - Identify objects, read text, and recognize faces through the phone camera
 - Provide walking navigation warnings (Stop, Avoid, Slow Down, Path Clear)
 - Issue non-critical ambient architectural warnings (Door and Window detection)
-- Answer questions through an offline-capable AI assistant called **Buddy**
+- Answer questions through an offline-capable AI assistant called Buddy
 - Send emergency SOS alerts with location data and native contact selection
 - Connect to an ESP32-CAM or Smart Glasses for an external camera feed with automatic mobile camera fallback
 - Maintain display wakefulness (`wakelock_plus`) during continuous navigation and active onboarding
 
 ---
 
-## Technology Stack
+### 02 — TECHNOLOGY STACK
 
-### Core
+#### Core
 | Layer | Technology | Version |
 |---|---|---|
 | Framework | Flutter (Dart) | SDK `^3.11.5` |
@@ -27,7 +29,7 @@
 | Device Contacts | `flutter_contacts: ^1.1.9` | Native device contact picker for emergency SOS contact selection |
 | Permissions | `permission_handler: ^11.3.1` | Runtime permission management (Contacts, Camera, Location, Audio) |
 
-### AI & Machine Learning
+#### AI & Machine Learning
 | Component | Package | Purpose |
 |---|---|---|
 | Object Detection | `google_mlkit_object_detection: ^0.15.1` | Real-time bounding box detection |
@@ -38,7 +40,7 @@
 | Offline LLM | `flutter_gemma: ^0.13.6` | Gemma 2B Instruction-Tuned (on-device) |
 | Cloud LLM | `google_generative_ai: ^0.4.4` | Gemini 1.5 Flash (online) |
 
-### Storage & Auth
+#### Storage & Auth
 | Component | Package | Purpose |
 |---|---|---|
 | Authentication | `firebase_auth: ^5.1.2` | User login (email, Google Sign-In) |
@@ -47,7 +49,7 @@
 | SQL Database | Cloudflare D1 (Workers) | Relational data, emergency contacts |
 | Local Prefs | `shared_preferences: ^2.2.3` | Settings persistence, tutorial flags |
 
-### Audio & Accessibility
+#### Audio & Accessibility
 | Component | Package | Purpose |
 |---|---|---|
 | Text-to-Speech | `flutter_tts: ^4.2.5` | Voice feedback with personas (Max, Aria, Nova, Leo) & pitch safety [0.5, 2.0] |
@@ -55,7 +57,7 @@
 | Sound Effects | `audioplayers: ^6.1.0` | Bark sounds, alert chimes |
 | Haptics | `sensors_plus: ^5.0.1` | Vibration for obstacle alerts |
 
-### Hardware
+#### Hardware
 | Component | Package | Purpose |
 |---|---|---|
 | ESP32-CAM / Glasses | Custom `Esp32Service` | MJPEG video stream, LED flash control, mobile camera auto-fallback |
@@ -65,9 +67,9 @@
 
 ---
 
-## Repository Layout
+### 03 — REPOSITORY LAYOUT
 
-```
+```text
 easylens/
 ├── .github/workflows/       # CI/CD pipeline (ci_cd.yml)
 ├── assets/
@@ -76,7 +78,7 @@ easylens/
 │   ├── images/               # UI images
 │   └── sounds/               # Audio files (bark, alerts)
 ├── docs/
-│   ├── source-of-truth/      # 📘 THIS FOLDER — the single source of truth
+│   ├── source-of-truth/      # THIS FOLDER — the single source of truth
 │   ├── architecture.md        # Detailed technical architecture
 │   ├── features.md            # Complete feature catalogue
 │   └── ...                    # Additional topic-specific docs
@@ -106,7 +108,7 @@ easylens/
 
 ---
 
-## Environment Variables (`.env`)
+### 04 — ENVIRONMENT VARIABLES (.env)
 
 The app loads `.env` at startup via `flutter_dotenv`. Required keys:
 
@@ -120,11 +122,11 @@ The app loads `.env` at startup via `flutter_dotenv`. Required keys:
 | `CLOUDFLARE_D1_API_TOKEN` | D1 database API token |
 | `CLOUDFLARE_D1_DATABASE_ID` | D1 database ID |
 
-> ⚠️ **Never commit `.env` to version control.** It is listed in `.gitignore`.
+> **WARNING:** Never commit `.env` to version control. It is listed in `.gitignore`.
 
 ---
 
-## App Initialization Order (`main.dart`)
+### 05 — APP INITIALIZATION ORDER (MAIN.DART)
 
 1. Lock orientation to portrait
 2. Enable immersive sticky mode (hide system bars)

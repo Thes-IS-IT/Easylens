@@ -1,6 +1,6 @@
 # EasyLens Docker & Containerization Guide
 
-This document explains how the EasyLens container image is built, tested, and published automatically as a Docker package to the **GitHub Container Registry (GHCR)**.
+This document explains how the EasyLens container image is built, tested, and published automatically as a Docker package to the GitHub Container Registry (GHCR).
 
 ---
 
@@ -18,10 +18,10 @@ graph TD
 
 #### Key Components
 
-- **`Dockerfile`**: NGINX container serving the application portal (`nginx:1.25-alpine`).
-- **`nginx.conf`**: NGINX server configuration with Gzip compression and asset caching headers.
-- **`docker-compose.yml`**: Local container orchestration.
-- **`.dockerignore`**: Excludes build caches, native OS folders, and large binary models (`model.bin`).
+- `Dockerfile`: NGINX container serving the application portal (`nginx:1.25-alpine`).
+- `nginx.conf`: NGINX server configuration with Gzip compression and asset caching headers.
+- `docker-compose.yml`: Local container orchestration.
+- `.dockerignore`: Excludes build caches, native OS folders, and large binary models (`model.bin`).
 
 ---
 
@@ -72,7 +72,7 @@ curl -f http://localhost:8080/
 
 ### 03 — PULLING PRE-BUILT PACKAGE IMAGE FROM GITHUB PACKAGES (GHCR)
 
-On every push to `main`, GitHub Actions compiles and publishes the official Docker package image directly to **GitHub Container Registry (GHCR)**. You can pull and run the package without building locally:
+On every push to the `main` branch, GitHub Actions compiles and publishes the official Docker package image directly to GitHub Container Registry (GHCR). You can pull and run the package without building locally:
 
 ```bash
 # Pull the latest Docker package
@@ -95,16 +95,16 @@ docker run -d \
    - Executes all unit tests (`flutter test`).
 2. **`docker_build_and_publish`**:
    - Builds Docker image and verifies container health (`curl http://localhost:8080/`).
-   - Publishes Docker package to **GitHub Packages** (`ghcr.io/thes-is-it/easylens:latest`).
+   - Publishes Docker package to GitHub Packages (`ghcr.io/thes-is-it/easylens:latest`).
 
 ---
 
 ### 05 — LICENSE & MAINTAINERS
 
-Maintained by the **Thes-IS-IT Research Team** (Holy Angel University):
+Maintained by the Thes-IS-IT Research Team (Holy Angel University):
 - **Graciella Mhervie D. Jimenez**
 - **Jian Kalel D. Marquez**
 - **Arron Kian M. Parejas**
 - **Jenica Sarah B. Tongol**
 
-EasyLens is licensed under a **Modified MIT License with Academic Thesis Conditions**. See [LICENSE.md](LICENSE.md) for full terms.
+EasyLens is licensed under a Modified MIT License with Academic Thesis Conditions. See [`LICENSE.md`](LICENSE.md) for full terms.

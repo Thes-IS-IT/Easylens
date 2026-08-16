@@ -6,7 +6,7 @@ Our CI/CD pipeline, powered by GitHub Actions ([release.yml](file:///Users/arron
 
 ---
 
-## 1. CI/CD Build Flow & Quality Guardrails (GitHub Actions)
+### 01 — CI/CD BUILD FLOW & QUALITY GUARDRAILS (GITHUB ACTIONS)
 
 The build pipeline is configured inside [.github/workflows/release.yml](file:///Users/arronkianparejas/easylens/.github/workflows/release.yml). It is executed on every push to the `main` branch.
 
@@ -37,7 +37,7 @@ sequenceDiagram
     App-->>App: Compare versions & download update
 ```
 
-### Build Specifications
+#### Build Specifications
 * **Runner Environment**: `ubuntu-latest`
 * **Java Version**: `17` (Zulu distribution)
 * **SDK Delegate**: `subosito/flutter-action@v2` (caching enabled for faster builds)
@@ -47,7 +47,7 @@ sequenceDiagram
 
 ---
 
-## 2. On-Device OTA Updates Check Architecture
+### 02 — ON-DEVICE OTA UPDATES CHECK ARCHITECTURE
 
 Instead of routing updates through third-party app stores (which can be difficult to navigate for screen readers), EasyLens embeds a lightweight, native update checker directly into Settings.
 
@@ -83,7 +83,7 @@ graph TD
     ShowDialog --> |User taps Download| LaunchBrowser
 ```
 
-### Implementation Specifications
+#### Implementation Specifications
 
 1. **Current App Version tag**: Hardcoded constant in [settings_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/settings/settings_screen.dart):
    ```dart
