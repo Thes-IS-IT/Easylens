@@ -2,7 +2,7 @@
 
 ---
 
-## 1. Overview & System Evolution
+### 01 — OVERVIEW & SYSTEM EVOLUTION
 
 This document presents the **Current Data Flow Diagram** (Baseline Assistance Model without integrated edge-AI hardware) versus the **Proposed Data Flow Diagram** (The complete **EasyLens** Wearable Edge-AI System). 
 
@@ -10,9 +10,9 @@ Both **Simplified High-Level** and **Detailed Architectural Level-1/Level-2 Data
 
 ---
 
-## 2. Simplified Data Flow Diagrams
+### 02 — SIMPLIFIED DATA FLOW DIAGRAMS
 
-### 2.1 Current Data Flow Diagram (Baseline / Existing System)
+#### Current Data Flow Diagram (Baseline / Existing System)
 In traditional assistive apps, visual input relies entirely on manual phone camera framing, single-frame cloud API calls, and standard voice output without edge processing or real-time spatial awareness.
 
 ```mermaid
@@ -31,7 +31,7 @@ flowchart LR
 
 ---
 
-### 2.2 Proposed Data Flow Diagram (EasyLens System)
+#### Proposed Data Flow Diagram (EasyLens System)
 The proposed EasyLens system introduces continuous wearable camera streaming via an **ESP32-CAM-MB (OV2640 70° Light Wide Angle)** inside a **3D-printed module box frame** powered by a **1500 mAh powerbank**, processing real-time video frames on-device using **TensorFlow Lite (MobileNetV2 SSD)**, **Google Gemma 2B**, and **Google ML Kit**, with spatial TTS, haptics, and serverless Cloudflare D1/R2 sync.
 
 ```mermaid
@@ -49,9 +49,9 @@ flowchart LR
 
 ---
 
-## 3. Detailed Data Flow Diagrams
+### 03 — DETAILED DATA FLOW DIAGRAMS
 
-### 3.1 Current System Detailed Data Flow Diagram (Level-1 DFD)
+#### Current System Detailed Data Flow Diagram (Level-1 DFD)
 
 ```mermaid
 flowchart TB
@@ -81,7 +81,7 @@ flowchart TB
 
 ---
 
-### 3.2 Proposed System Detailed Data Flow Diagram (Level-1 & Level-2 DFD)
+#### Proposed System Detailed Data Flow Diagram (Level-1 & Level-2 DFD)
 
 ```mermaid
 flowchart TB
@@ -157,7 +157,7 @@ flowchart TB
 
 ---
 
-## 4. Key Improvements Summary (Current vs. Proposed)
+### 04 — KEY IMPROVEMENTS SUMMARY (CURRENT VS. PROPOSED)
 
 | Architectural Parameter | Current Baseline System | Proposed EasyLens System |
 | :--- | :--- | :--- |

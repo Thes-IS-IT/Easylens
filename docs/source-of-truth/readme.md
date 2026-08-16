@@ -1,4 +1,4 @@
-# 📘 EasyLens — Source of Truth
+# EasyLens — Source of Truth
 
 > **Last Updated:** July 20, 2026  
 > **Flutter SDK:** `^3.11.5` · **Dart 3**  
@@ -8,7 +8,7 @@ This folder is the single source of truth for the EasyLens project. Every archit
 
 ---
 
-## 📑 Document Index
+### 01 — DOCUMENT INDEX
 
 | Document | Description |
 |---|---|
@@ -25,7 +25,7 @@ This folder is the single source of truth for the EasyLens project. Every archit
 
 ---
 
-## 🔑 Quick Reference
+### 02 — QUICK REFERENCE
 
 - **Primary Color:** `#002663` (Deep Blue)
 - **Entry Point:** `lib/main.dart` → `WelcomeScreen`

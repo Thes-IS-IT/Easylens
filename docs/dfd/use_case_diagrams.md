@@ -2,13 +2,13 @@
 
 ---
 
-## 1. Overview & System Scope
+### 01 — OVERVIEW & SYSTEM SCOPE
 
 This document provides both **Simplified High-Level** and **Detailed Architectural Use Case Diagrams** for **EasyLens**. It models interactions between the primary actor (**Visually Impaired / Neurodivergent User**), secondary actors (**Emergency Contacts**, **Caregivers / System Administrators**), and system boundaries spanning **Wearable Physical Hardware**, **Edge Application Core**, and **Cloud Infrastructure Tier**.
 
 ---
 
-## 2. Simplified Use Case Diagram
+### 02 — SIMPLIFIED USE CASE DIAGRAM
 
 The high-level Use Case Diagram illustrates core interactions between the primary user and the primary system capabilities:
 
@@ -39,7 +39,7 @@ flowchart LR
 
 ---
 
-## 3. Detailed Architectural Use Case Diagram
+### 03 — DETAILED ARCHITECTURAL USE CASE DIAGRAM
 
 The detailed Use Case Diagram captures system inclusions (`<<include>>`), extensions (`<<extend>>`), hardware sensor triggers, and cloud backend interfaces.
 
@@ -110,9 +110,9 @@ flowchart TB
 
 ---
 
-## 4. Use Case Specifications & Actor Descriptions
+### 04 — USE CASE SPECIFICATIONS & ACTOR DESCRIPTIONS
 
-### 4.1 Actor Catalog
+#### Actor Catalog
 
 | Actor | Category | Description |
 | :--- | :--- | :--- |
@@ -123,7 +123,7 @@ flowchart TB
 
 ---
 
-### 4.2 Core Use Case Descriptions
+#### Core Use Case Descriptions
 
 | Use Case ID | Use Case Name | Primary Trigger | Key Operational Flow |
 | :--- | :--- | :--- | :--- |

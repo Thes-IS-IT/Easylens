@@ -4,7 +4,7 @@ This document details the formal names, mathematical models, simplified flowchar
 
 ---
 
-## 1. Perspective Projection Depth Approximation & Spatial-Relative Steering Algorithm (PP-DA-SRS)
+### 01 — PERSPECTIVE PROJECTION DEPTH APPROXIMATION & SPATIAL-RELATIVE STEERING ALGORITHM (PP-DA-SRS)
 
 * **Functional Module**: [hardware_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/hardware/hardware_screen.dart)
 * **Formal Name**: SSD MobileNetV2 with Trajectory-Relative Lane Occupancy Analysis.
@@ -19,7 +19,7 @@ graph TD
     PosCheck -- No --> Side[Announce Side Hazard or Path Clear]
 ```
 
-### Mathematical Formulation
+#### Mathematical Formulation
 Let the camera input frame width and height be $W$ and $H$. The object detector outputs normalized bounding box coordinates for each object $i$:
 $$Box_i = [y_{min}, x_{min}, y_{max}, x_{max}] \quad \text{where} \quad y, x \in [0, 1]$$
 
@@ -27,7 +27,7 @@ The horizontal center $x_c$ and the total screen area proportion $A$ are calcula
 $$x_c = \frac{x_{min} + x_{max}}{2}$$
 $$A = (x_{max} - x_{min}) \times (y_{max} - y_{min})$$
 
-### Algorithmic Logic (Pseudocode)
+#### Algorithmic Logic (Pseudocode)
 ```
 Input: BoundingBox coordinates Box[ymin, xmin, ymax, xmax], ConfidenceScore S
 Constants: CONFIDENCE_THRESHOLD = 0.50, PROXIMITY_THRESHOLD = 0.60
@@ -60,7 +60,7 @@ Constants: CONFIDENCE_THRESHOLD = 0.50, PROXIMITY_THRESHOLD = 0.60
 
 ---
 
-## 2. Temporal Cooldown Proximity Alert Filtering (TC-PAF) Algorithm
+### 02 — TEMPORAL COOLDOWN PROXIMITY ALERT FILTERING (TC-PAF) ALGORITHM
 
 * **Functional Module**: [navigation_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/navigation/navigation_screen.dart)
 * **Formal Name**: Adaptive Proximity Announcement Cooldown (APAC) for GPS Navigation.
@@ -75,14 +75,14 @@ graph LR
     Cooldown -- No --> Suppress[Suppress Audio Output]
 ```
 
-### Mathematical Formulation
+#### Mathematical Formulation
 Let $P_{user} = (\text{lat}_{user}, \text{lng}_{user})$ be the user's current GPS coordinates, and $P_{wp} = (\text{lat}_{wp}, \text{lng}_{wp})$ be the coordinate of the next target route node.
 The distance $D$ in meters is computed using the Haversine formula:
 $$a = \sin^2\left(\frac{\Delta \text{lat}}{2}\right) + \cos(\text{lat}_{user})\cos(\text{lat}_{wp})\sin^2\left(\frac{\Delta \text{lng}}{2}\right)$$
 $$d = 2r \cdot \text{atan2}(\sqrt{a}, \sqrt{1-a})$$
 where $r = 6,371,000$ meters (Earth's radius).
 
-### Algorithmic Logic
+#### Algorithmic Logic
 ```
 Input: UserLocation P_user, TargetWaypoint P_wp, List of Steps steps, CurrentStepIndex idx
 State: LastAlertTime t_last, Cooldown t_cooldown = 8000ms
@@ -114,7 +114,7 @@ State: LastAlertTime t_last, Cooldown t_cooldown = 8000ms
 
 ---
 
-## 3. Dynamic Acceleration Magnitude Thresholding (DAMT) Algorithm
+### 03 — DYNAMIC ACCELERATION MAGNITUDE THRESHOLDING (DAMT) ALGORITHM
 
 * **Functional Module**: [settings_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/settings/settings_screen.dart) (using `sensors_plus`)
 * **Formal Name**: State-Persistent Shake-to-Undo Gesture Engine.
@@ -128,7 +128,7 @@ graph LR
     Check -- Yes --> Undo[Execute Undo & Voice Feedback]
 ```
 
-### Mathematical Heuristics
+#### Mathematical Heuristics
 Let the instantaneous acceleration values along the three axes be $x, y, z$ in $\text{m/s}^2$. 
 The total acceleration magnitude $G$ (including gravity) is calculated as:
 $$G = \sqrt{x^2 + y^2 + z^2}$$
@@ -151,7 +151,7 @@ State: LastShakeTime t_last
 
 ---
 
-## 4. Sub-linear Keyword-Frequency Semantic Matching (SKF-SM) Algorithm
+### 04 — SUB-LINEAR KEYWORD-FREQUENCY SEMANTIC MATCHING (SKF-SM) ALGORITHM
 
 * **Functional Module**: [rag_service.dart](file:///Users/arronkianparejas/easylens/lib/services/rag_service.dart)
 * **Formal Name**: Keyword-Indexed Local Retrieval-Augmented Generation (RAG).
@@ -165,7 +165,7 @@ graph LR
     Rank --> Inject[Inject Top Context into Prompt]
 ```
 
-### Algorithmic Logic
+#### Algorithmic Logic
 ```
 Input: UserQuery query, KnowledgeDatabase db (JSON Array of facts)
 Output: ContextString context
@@ -189,7 +189,7 @@ Output: ContextString context
 
 ---
 
-## 5. Delimited JPEG Frame Boundary Segmentation (DJF-BS) Algorithm
+### 05 — DELIMITED JPEG FRAME BOUNDARY SEGMENTATION (DJF-BS) ALGORITHM
 
 * **Functional Module**: [esp32_service.dart](file:///Users/arronkianparejas/easylens/lib/services/esp32_service.dart)
 * **Formal Name**: Wi-Fi TCP Packet Stream Segmenter (SOI/EOI Boundary Decoder).
@@ -203,7 +203,7 @@ graph LR
     FindSOI -- Incomplete --> Buffer[Wait for Next Chunk]
 ```
 
-### Algorithmic Logic
+#### Algorithmic Logic
 ```
 Input: TCP Network stream chunks (bytes)
 State: Buffer buffer = []
@@ -239,7 +239,7 @@ Constants:
 
 ---
 
-## 6. Biometric Facial Landmark Signature & Spatial Luminance Grid Algorithm (BFLS-SLG)
+### 06 — BIOMETRIC FACIAL LANDMARK SIGNATURE & SPATIAL LUMINANCE GRID ALGORITHM (BFLS-SLG)
 
 * **Functional Module**: [face_registration_service.dart](file:///Users/arronkianparejas/easylens/lib/services/face_registration_service.dart) & `object_detector_service.dart`
 * **Formal Name**: Biometric Landmark Signature & Spatial Luminance Grid Matcher.
@@ -256,14 +256,14 @@ graph TD
     Threshold -- No --> UnknownUser[Announce Unknown Person Alert]
 ```
 
-### Mathematical Formulation
+#### Mathematical Formulation
 Let $V_A$ and $V_B$ be normalized facial biometric feature vectors extracted from Google ML Kit face landmarks and luminance grid histograms:
 $$D(V_A, V_B) = \sqrt{\sum_{k=1}^{N} w_k \cdot (V_A[k] - V_B[k])^2}$$
 where $w_k$ represents feature weighting applied across eye positions, nose tip, mouth corners, and spatial luminance bins.
 
 A match is confirmed if and only if $D(V_A, V_B) < 0.28$.
 
-### Algorithmic Logic
+#### Algorithmic Logic
 ```
 Input: Live ImageFrame, RegisteredFaces Database
 Constants: RECOGNITION_THRESHOLD = 0.28

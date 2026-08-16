@@ -4,11 +4,11 @@ This document outlines the real-time hazard mapping, classification logic, alert
 
 ---
 
-## 1. Warning & Hazard Categories
+### 01 — WARNING & HAZARD CATEGORIES
 
 EasyLens classifies environmental features detected in the camera view into three hazard priority levels:
 
-### 🔴 Priority 1: Critical Hazards (Immediate Action Required)
+#### Priority 1: Critical Hazards (Immediate Action Required)
 - **Haptic Alert**: Double high-intensity vibration sequence (vibrate, pause 150ms, vibrate).
 - **Audio Feedback**: Priority Text-to-Speech (TTS) command interrupting previous speech.
 - **UI Styling**: Crimson Red background card (`Color(0xFFFFEBEE)`) with error icon.
@@ -18,7 +18,7 @@ EasyLens classifies environmental features detected in the camera view into thre
   - **Sharp / Weapon Hazard!**: Knives, weapons, or blades in path.
   - **Live Wires / Electrical Danger**: Exposed high-voltage lines, generators, or loose cables.
 
-### 🟡 Priority 2: Moderate Hazards (Precautionary Actions)
+#### Priority 2: Moderate Hazards (Precautionary Actions)
 - **Haptic Alert**: Single medium-impact haptic feedback impulse.
 - **Audio Feedback**: Spoken guidance advising user on steering/speed adjustments.
 - **UI Styling**: Amber/Orange background cards (`Color(0xFFFFF8E1)` or `Color(0xFFFFFDE7)`).
@@ -30,7 +30,7 @@ EasyLens classifies environmental features detected in the camera view into thre
   - **Multiple Hazards**: Extremely complex environment with multiple active threat items.
   - **Moving Too Fast**: Device motion exceeds accelerometer tracking limits for accurate visual scan.
 
-### 🔵 Priority 3: Informational & Assistive Events
+#### Priority 3: Informational & Assistive Events
 - **Haptic Alert**: None.
 - **Audio Feedback**: Conversational announcements.
 - **UI Styling**: Indigo/Blue background cards (`Color(0xFFE8EAF6)`).
@@ -43,7 +43,7 @@ EasyLens classifies environmental features detected in the camera view into thre
 
 ---
 
-## 2. Simplified Hazard Pipeline
+### 02 — SIMPLIFIED HAZARD PIPELINE
 
 ```mermaid
 graph TD
@@ -56,7 +56,7 @@ graph TD
 
 ---
 
-## 3. Threat Calculation Logic
+### 03 — THREAT CALCULATION LOGIC
 
 Threat scoring is computed dynamically for every detected object based on three primary factors:
 
@@ -68,7 +68,7 @@ $$\text{Threat Score} = (\text{Base Risk} \times 0.4) + (\text{Proximity Score} 
 
 ---
 
-## 3. The 24 Custom Trained Navigation Objects
+### 04 — THE 24 CUSTOM TRAINED NAVIGATION OBJECTS
 
 These are the 24 specific target classes trained for the core EasyLens visual classification and warning model, along with their empirical validation metrics:
 
@@ -101,7 +101,7 @@ These are the 24 specific target classes trained for the core EasyLens visual cl
 
 ---
 
-## 4. The 80 COCO Dataset Classes
+### 05 — THE 80 COCO DATASET CLASSES
 
 These standard classes are loaded from `ssd_labels.txt` / `coco_labels.txt` to run SSD MobileNetV2 inference:
 
@@ -188,11 +188,11 @@ These standard classes are loaded from `ssd_labels.txt` / `coco_labels.txt` to r
 
 ---
 
-## 5. Google ML Kit Image Labeler Categories (400+ Classes)
+### 06 — GOOGLE ML KIT IMAGE LABELER CATEGORIES (400+ CLASSES)
 
 The default on-device Google ML Kit Image Labeling model categorizes images into over 400 groups. This model categorizes entities across standard domains:
 
-### Core Taxonomic Groups
+#### Core Taxonomic Groups
 - **Common Animals & Pets**: Cat, Dog, Bird, Horse, Rabbit, Elephant, Squirrel, Fish, Insect, etc.
 - **Household Furniture & Decor**: Bed, Couch, Stool, Table, Chair, Desk, Cabinet, Drawer, Pillow, Vase, Clock, Lamp, Curtain, Rug.
 - **Electronic Devices & Accessories**: Laptop, Computer, Monitor, Screen, Keyboard, Mouse, Telephone, Mobile Phone, Cable, Camera, Headphone, Speaker.
@@ -202,7 +202,7 @@ The default on-device Google ML Kit Image Labeling model categorizes images into
 - **Office & Stationary**: Book, Paper, Pen, Pencil, Notebook, Scissors, Backpack, Suitcase, Envelope.
 - **Apparel & Sports Gear**: Clothing, Shoes, Hat, Tie, Bag, Watch, Umbrella, Ball, Racket, Skateboard, Surfboard, Kite.
 
-### On-Device Label Refinement Mapping
+#### On-Device Label Refinement Mapping
 To prevent speech navigation clutter and unify vocabulary, EasyLens passes raw label strings through `_refineLabel()`:
 
 | Raw Label | Refined Label | Category |

@@ -2,7 +2,7 @@
 
 ---
 
-## 1. Overview & Project Roadmap
+### 01 — OVERVIEW & PROJECT ROADMAP
 
 This document outlines the formal project development and evaluation timeline for **EasyLens**, spanning **December 1, 2025 to August 28, 2026**.
 
@@ -17,7 +17,7 @@ The key project phases follow an expanded engineering and validation roadmap:
 
 ---
 
-## 2. Simplified Gantt Chart (Phase-Level Overview)
+### 02 — SIMPLIFIED GANTT CHART (PHASE-LEVEL OVERVIEW)
 
 ```mermaid
 gantt
@@ -49,7 +49,7 @@ gantt
 
 ---
 
-## 3. Detailed Gantt Chart (Task & Deliverable Breakdown)
+### 03 — DETAILED GANTT CHART (TASK & DELIVERABLE BREAKDOWN)
 
 ```mermaid
 gantt
@@ -103,7 +103,7 @@ gantt
 
 ---
 
-## 4. Phase Milestone Summary
+### 04 — PHASE MILESTONE SUMMARY
 
 | Phase | Target Date Range | Key Milestone Deliverable | Status / Output |
 | :--- | :--- | :--- | :--- |

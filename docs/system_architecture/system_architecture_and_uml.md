@@ -2,17 +2,17 @@
 
 ---
 
-## 1. Overview & System Objectives
+### 01 — OVERVIEW & SYSTEM OBJECTIVES
 
-**Easylens** is an advanced assistive accessibility system engineered to provide real-time environment perception, obstacle and object detection, text recognition (OCR), and conversational AI assistance for visually impaired and neurodivergent users. 
+Easylens is an assistive accessibility system designed to provide real-time environment perception, obstacle and object detection, text recognition (OCR), and conversational AI assistance for visually impaired and neurodivergent users. 
 
-The system operates via a **Hybrid Build**: a wearable physical unit (smart glasses or chest-mounted harness featuring a 3D-printed modular clip, an **ESP32-CAM with OV2640 75° FoV lens**, or a **Wired UVC USB OTG camera**, powered by a compact **1500 mAh powerbank**) linked to a high-performance edge application built with Flutter, TensorFlow Lite, Google Gemma 2B, and Cloud services.
+The system operates via a Hybrid Build: a wearable physical unit (smart glasses or chest-mounted harness featuring a 3D-printed modular clip, an ESP32-CAM with OV2640 75° FoV lens, or a Wired UVC USB OTG camera, powered by a compact 1500 mAh powerbank) linked to an edge application built with Flutter, TensorFlow Lite, Google Gemma 2B, and Cloud services.
 
 ---
 
-## 2. System Architecture Diagrams
+### 02 — SYSTEM ARCHITECTURE DIAGRAMS
 
-### 2.1 Simplified High-Level Technical Flowchart
+#### Simplified High-Level Technical Flowchart
 
 ```mermaid
 graph TD
@@ -39,9 +39,7 @@ graph TD
     AI -.->|"Hazard Logs / Telemetry"| CLOUD
 ```
 
----
-
-### 2.2 Detailed Technical Flowchart & Data Flow Pipeline
+#### Detailed Technical Flowchart & Data Flow Pipeline
 
 ```mermaid
 flowchart TB
@@ -112,9 +110,9 @@ flowchart TB
 
 ---
 
-## 3. Unified Modeling Language (UML) Diagrams
+### 03 — UNIFIED MODELING LANGUAGE (UML) DIAGRAMS
 
-### 3.1 Simplified UML Class & Architecture Diagram
+#### Simplified UML Class & Architecture Diagram
 
 ```mermaid
 classDiagram
@@ -163,9 +161,7 @@ classDiagram
     ObjectDetectorService --> AudioNotificationManager : Detection Trigger
 ```
 
----
-
-### 3.2 Detailed UML Component Diagram
+#### Detailed UML Component Diagram
 
 ```mermaid
 flowchart TB
@@ -208,9 +204,7 @@ flowchart TB
     APP --> FB
 ```
 
----
-
-### 3.3 Detailed UML Sequence Diagram (Wired UVC & Wireless Camera Pipeline)
+#### Detailed UML Sequence Diagram (Wired UVC & Wireless Camera Pipeline)
 
 ```mermaid
 sequenceDiagram
@@ -250,9 +244,7 @@ sequenceDiagram
     end
 ```
 
----
-
-### 3.4 Detailed UML State Machine Diagram (System Behavior & Power States)
+#### Detailed UML State Machine Diagram (System Behavior & Power States)
 
 ```mermaid
 stateDiagram-v2
@@ -308,9 +300,9 @@ stateDiagram-v2
 
 ---
 
-## 4. Hardware Specifications & Physical Technical Breakdown
+### 04 — HARDWARE SPECIFICATIONS & PHYSICAL TECHNICAL BREAKDOWN
 
-### 4.1 ESP32-CAM Module & OV2640 Sensor Specs
+#### ESP32-CAM Module & OV2640 Sensor Specs
 
 | Parameter | Specification | Notes / Impact |
 | :--- | :--- | :--- |
@@ -324,9 +316,7 @@ stateDiagram-v2
 | **Onboard Flash LED** | High-Brightness White LED (GPIO 4) | Toggled dynamically via software for low-light OCR |
 | **Operating Voltage** | 5V DC via VPOWER pin / 3.3V Core logic | Regulated onboard via AMS1117 3.3V LDO |
 
----
-
-### 4.2 Wired UVC Camera Specifications & USB OTG Interface
+#### Wired UVC Camera Specifications & USB OTG Interface
 
 | Feature | Technical Specification | Operational Benefits |
 | :--- | :--- | :--- |
@@ -338,11 +328,9 @@ stateDiagram-v2
 | **Power Consumption** | 5V DC @ 150mA – 220mA active streaming | Powered directly via OTG port or shared power bank |
 | **Focus Type** | Fixed Hyperfocal Focus (0.3m to Infinity) | Ensures sharp focus for obstacles and handheld text |
 
----
+#### Hybrid Build Architecture
 
-### 4.3 Hybrid Build Architecture
-
-The physical assembly follows a **Hybrid Modular Design** combining wearable ergonomics with rugged physical stability:
+The physical assembly follows a Hybrid Modular Design combining wearable ergonomics with physical stability:
 
 1. **Glasses Mount Integration**:
    - Camera module positioned at temple height or center bridge.
@@ -351,14 +339,12 @@ The physical assembly follows a **Hybrid Modular Design** combining wearable erg
    - Universal clip attachment for backpack straps, shirt collars, or body harnesses.
    - Reduces head-motion jitter during fast walking or running.
 3. **Wired Cable Routing**:
-   - Ultra-flexible braided USB cable with right-angle 90° strain-relief connectors.
+   - Flexible braided USB cable with right-angle 90° strain-relief connectors.
    - Prevents accidental snagging and cable fatigue.
 
----
+#### 3D-Printed Modular Clips Design & Mechanical Specifications
 
-### 4.4 3D-Printed Modular Clips Design & Mechanical Specifications
-
-```
+```text
                      +---------------------------------------+
                      |   Ergonomic Quick-Release Top Lever   |
                      +-------------------+-------------------+
@@ -380,25 +366,23 @@ The physical assembly follows a **Hybrid Modular Design** combining wearable erg
                      +---------------------------------------+
 ```
 
-* **Material Composition**: **PETG (Polyethylene Terephthalate Glycol)** or **ABS**. Selected for high impact resistance, flexural strength, and temperature tolerance up to 75°C.
-* **Manufacturing Specifications**: 0.2mm layer height, 30% tri-hexagon infill, 4 wall perimeter layers for structural rigidity.
-* **Total Clip Weight**: **22 grams** (excluding camera PCB and battery).
-* **Vibration Dampening**: Internal TPU (Thermoplastic Polyurethane) gasket inserts absorb body movement jitter.
-* **Thermal Management**: Integrated passive ventilation channels adjacent to ESP32 regulator chip to dissipate operational heat.
+- **Material Composition**: **PETG (Polyethylene Terephthalate Glycol)** or **ABS**. Selected for high impact resistance, flexural strength, and temperature tolerance up to 75°C.
+- **Manufacturing Specifications**: 0.2mm layer height, 30% tri-hexagon infill, 4 wall perimeter layers for structural rigidity.
+- **Total Clip Weight**: 22 grams (excluding camera PCB and battery).
+- **Vibration Dampening**: Internal TPU (Thermoplastic Polyurethane) gasket inserts absorb body movement jitter.
+- **Thermal Management**: Integrated passive ventilation channels adjacent to ESP32 regulator chip to dissipate operational heat.
 
 ---
 
-## 5. Power & Battery Consumption Constraints
+### 05 — POWER & BATTERY CONSUMPTION CONSTRAINTS
 
-### 5.1 Power Supply Specifications
+#### Power Supply Specifications
 
-* **Power Reservoir**: Ultra-Compact **1500 mAh** (5.55 Wh at nominal 3.7V) Lithium-Polymer Power Bank / Battery Pack.
-* **Output Conversion Efficiency**: Step-up boost converter delivers regulated **5.0V DC output** at **88% efficiency**.
-* **Usable Battery Energy Capacity**: $1500\text{ mAh} \times 0.88 = 1320\text{ mAh}$ effective output @ 3.7V equivalent ($976.8\text{ mAh}$ @ 5V rail).
+- **Power Reservoir**: Compact 1500 mAh (5.55 Wh at nominal 3.7V) Lithium-Polymer Power Bank / Battery Pack.
+- **Output Conversion Efficiency**: Step-up boost converter delivers regulated 5.0V DC output at 88% efficiency.
+- **Usable Battery Energy Capacity**: $1500\text{ mAh} \times 0.88 = 1320\text{ mAh}$ effective output @ 3.7V equivalent ($976.8\text{ mAh}$ @ 5V rail).
 
----
-
-### 5.2 Component Power Drain Breakdown
+#### Component Power Drain Breakdown
 
 | Component | Operational State | Voltage (V) | Current Draw (mA) | Power Draw (mW) |
 | :--- | :--- | :--- | :--- | :--- |
@@ -410,39 +394,35 @@ The physical assembly follows a **Hybrid Modular Design** combining wearable erg
 | **Peak Total System Hardware Load**| **Wi-Fi Stream + Camera + Flash LED Active** | **5.0V Rail** | **~480 – 520 mA** | **2400 – 2600 mW** |
 | **Nominal Total Hardware Load**| **Wi-Fi Stream + Camera (LED Off)** | **5.0V Rail** | **~260 – 330 mA** | **1300 – 1650 mW** |
 
----
+#### Battery Drain Calculations & Runtime Models
 
-### 5.3 Battery Drain Calculations & Runtime Models
-
-#### Mathematical Model for Continuous Battery Runtime:
+**Mathematical Model for Continuous Battery Runtime:**
 
 $$T_{\text{runtime}} (\text{hours}) = \frac{\text{Battery Capacity (mAh)} \times \eta_{\text{efficiency}}}{\text{Total System Drain Rate (mA)}}$$
 
-#### Operating Mode Analysis (1500 mAh Powerbank Base):
+**Operating Mode Analysis (1500 mAh Powerbank Base):**
 
 1. **Nominal Continuous Mode (ESP32-CAM Wireless MJPEG Stream, LED Off)**:
-   * **System Current Drain**: ~300 mA (at 5V equivalent)
-   * **Calculated Battery Runtime**:
+   - **System Current Drain**: ~300 mA (at 5V equivalent)
+   - **Calculated Battery Runtime**:
      $$\text{Runtime} = \frac{1500\text{ mAh} \times 0.88}{300\text{ mA}} = \mathbf{4.40\text{ Hours}}\quad (264\text{ Minutes})$$
 
 2. **Wired UVC Camera Mode (USB OTG Directly Powered via Bank)**:
-   * **System Current Drain**: ~200 mA (at 5V rail)
-   * **Calculated Battery Runtime**:
+   - **System Current Drain**: ~200 mA (at 5V rail)
+   - **Calculated Battery Runtime**:
      $$\text{Runtime} = \frac{1500\text{ mAh} \times 0.88}{200\text{ mA}} = \mathbf{6.60\text{ Hours}}\quad (396\text{ Minutes})$$
 
 3. **High-Stress Night Mode (Wi-Fi Streaming + Continuous Flash LED Illumination)**:
-   * **System Current Drain**: ~480 mA
-   * **Calculated Battery Runtime**:
+   - **System Current Drain**: ~480 mA
+   - **Calculated Battery Runtime**:
      $$\text{Runtime} = \frac{1500\text{ mAh} \times 0.88}{480\text{ mA}} = \mathbf{2.75\text{ Hours}}\quad (165\text{ Minutes})$$
 
 4. **Duty-Cycled Power Saving Mode (50% Active Stream, 50% Standby)**:
-   * **Average System Drain**: ~160 mA
-   * **Calculated Battery Runtime**:
+   - **Average System Drain**: ~160 mA
+   - **Calculated Battery Runtime**:
      $$\text{Runtime} = \frac{1500\text{ mAh} \times 0.88}{160\text{ mA}} = \mathbf{8.25\text{ Hours}}\quad (495\text{ Minutes})$$
 
----
-
-### 5.4 Hourly Power Consumption Summary Table
+#### Hourly Power Consumption Summary Table
 
 | Operational Profile | Hourly Battery Drain | Total Battery Lifetime (1500 mAh Bank) | Thermal Profile |
 | :--- | :--- | :--- | :--- |
@@ -453,21 +433,19 @@ $$T_{\text{runtime}} (\text{hours}) = \frac{\text{Battery Capacity (mAh)} \times
 
 ---
 
-## 6. Software Specifications & Performance Benchmarks
+### 06 — SOFTWARE SPECIFICATIONS & PERFORMANCE BENCHMARKS
 
-### 6.1 Software Tech Stack Specifications
+#### Software Tech Stack Specifications
 
-* **App Framework**: Flutter SDK (`^3.11.5`) running Dart (`^3.5.0`).
-* **State Management**: Provider Architecture (`provider: ^6.1.2`).
-* **On-Device Vision Inference**: TensorFlow Lite C-API wrapper (`tflite_flutter: ^0.12.1`).
-* **Default Vision Model**: **MobileNetV2 SSD (MS-COCO dataset)** quantised to UINT8 / FP16 (`300x300x3` input format).
-* **On-Device LLM Integration**: Google Gemma-IT 2B via `flutter_gemma: ^0.13.6` & Google AI Edge Engine.
-* **Optical Character Recognition**: `google_mlkit_text_recognition: ^0.15.1`.
-* **Audio Synthesis Engine**: Native Android TextToSpeech / iOS AVSpeechSynthesizer via `flutter_tts: ^4.2.5`.
+- **App Framework**: Flutter SDK (`^3.11.5`) running Dart (`^3.5.0`).
+- **State Management**: Provider Architecture (`provider: ^6.1.2`).
+- **On-Device Vision Inference**: TensorFlow Lite C-API wrapper (`tflite_flutter: ^0.12.1`).
+- **Default Vision Model**: **MobileNetV2 SSD (MS-COCO dataset)** quantised to UINT8 / FP16 (`300x300x3` input format).
+- **On-Device LLM Integration**: Google Gemma-IT 2B via `flutter_gemma: ^0.13.6` & Google AI Edge Engine.
+- **Optical Character Recognition**: `google_mlkit_text_recognition: ^0.15.1`.
+- **Audio Synthesis Engine**: Native Android TextToSpeech / iOS AVSpeechSynthesizer via `flutter_tts: ^4.2.5`.
 
----
-
-### 6.2 Data Pipeline Latency & Benchmark Matrix
+#### Data Pipeline Latency & Benchmark Matrix
 
 | Execution Stage | Resolution / Model | CPU Thread Count | Average Latency (ms) | Frames Per Sec (FPS) |
 | :--- | :--- | :--- | :--- | :--- |
@@ -482,11 +460,9 @@ $$T_{\text{runtime}} (\text{hours}) = \frac{\text{Battery Capacity (mAh)} \times
 | **TTS Audio Alert Generation** | Text Payload to Wave | System Audio | 35 ms | N/A |
 | **End-to-End Pipeline (Camera to Audio Alert)** | **Wired UVC + TFLite** | **4 Threads** | **~88 ms total** | **~11 FPS E2E Target** |
 
----
+#### Hardware & Mobile Resource Consumption Summary
 
-### 6.3 Hardware & Mobile Resource Consumption Summary
-
-```
+```text
                       RESOURCE CONSUMPTION BREAKDOWN
   +--------------------------------------------------------------------+
   |  Memory (RAM) Allocation                                           |
@@ -504,6 +480,6 @@ $$T_{\text{runtime}} (\text{hours}) = \frac{\text{Battery Capacity (mAh)} \times
 
 ---
 
-## 7. Summary & Verification
+### 07 — SUMMARY & VERIFICATION
 
-This system architecture document establishes the technical blueprint for the **Easylens Hybrid Wearable System**. By combining a **1500 mAh battery powerbudget model**, **3D-printed modular PETG clips**, **OV2640 75° FoV camera optics**, **Wired UVC low-latency transport**, and an **on-device edge AI Flutter engine**, Easylens delivers high-speed obstacle detection and visual assistance within strict energy and latency constraints.
+This system architecture document establishes the technical blueprint for the Easylens Hybrid Wearable System. By combining a 1500 mAh battery powerbudget model, 3D-printed modular PETG clips, OV2640 75° FoV camera optics, Wired UVC low-latency transport, and an on-device edge AI Flutter engine, Easylens delivers high-speed obstacle detection and visual assistance within strict energy and latency constraints.

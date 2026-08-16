@@ -2,13 +2,13 @@
 
 ---
 
-## 1. Overview & Schema Standard
+### 01 — OVERVIEW & SCHEMA STANDARD
 
 This data dictionary outlines all field definitions, data types, nullability constraints, and architectural descriptions for entities stored across **Local SQLite**, **Cloudflare D1 SQL**, **Cloudflare R2 Storage**, and **Firebase Firestore**.
 
 ---
 
-## 2. Simplified Data Dictionary Summary
+### 02 — SIMPLIFIED DATA DICTIONARY SUMMARY
 
 | Entity / Table | Core Purpose | Key Attributes | Data Tier |
 | :--- | :--- | :--- | :--- |
@@ -20,9 +20,9 @@ This data dictionary outlines all field definitions, data types, nullability con
 
 ---
 
-## 3. Detailed Data Dictionary Tables
+### 03 — DETAILED DATA DICTIONARY TABLES
 
-### 3.1 Entity: `users`
+#### Entity: `users`
 * **Description**: Holds user authentication metadata and accessibility preferences (speech rate, pitch, language).
 * **Storage Location**: Cloudflare D1 (`users` table) & Firebase Auth.
 
@@ -41,7 +41,7 @@ This data dictionary outlines all field definitions, data types, nullability con
 
 ---
 
-### 3.2 Entity: `emergency_contacts`
+#### Entity: `emergency_contacts`
 * **Description**: Registered emergency contacts notified during SOS triggers.
 * **Storage Location**: Cloudflare D1 & Local SQLite cache (`emergency_contacts`).
 
@@ -57,7 +57,7 @@ This data dictionary outlines all field definitions, data types, nullability con
 
 ---
 
-### 3.3 Entity: `incident_logs`
+#### Entity: `incident_logs`
 * **Description**: Records real-time navigational hazard detections and SOS alerts.
 * **Storage Location**: Cloudflare D1 (`incident_logs`) & Local SQLite.
 
@@ -75,7 +75,7 @@ This data dictionary outlines all field definitions, data types, nullability con
 
 ---
 
-### 3.4 Entity: `storage_assets`
+#### Entity: `storage_assets`
 * **Description**: Maps uploaded diagnostic images and snapshots stored in Cloudflare R2 bucket.
 * **Storage Location**: Cloudflare R2 Bucket & Cloudflare D1 metadata index.
 
@@ -91,7 +91,7 @@ This data dictionary outlines all field definitions, data types, nullability con
 
 ---
 
-### 3.5 Entity: `saved_places`
+#### Entity: `saved_places`
 * **Description**: Geocoded destination targets for turn-by-turn navigation.
 * **Storage Location**: Local SQLite & Cloudflare D1.
 
