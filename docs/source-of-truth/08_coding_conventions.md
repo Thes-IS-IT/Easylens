@@ -1,8 +1,10 @@
 # 08 — Coding Conventions
 
-## Patterns to Follow
+---
 
-### 1. Singleton Services
+### 01 — PATTERNS TO FOLLOW
+
+#### 1. Singleton Services
 All services use the Dart singleton factory pattern:
 
 ```dart
@@ -13,19 +15,15 @@ class MyService {
 }
 ```
 
-**Never** use `new MyService()` — always use `MyService()` which returns the singleton.
+Never use `new MyService()` — always use `MyService()` which returns the singleton.
 
----
-
-### 2. State Management
+#### 2. State Management
 - `SettingsService` extends `ChangeNotifier` and is the **only** service that notifies the UI directly
 - Screens use `ListenableBuilder(listenable: SettingsService(), ...)` for reactive rebuilds
 - Other services store state internally and expose it via getters
 - Camera screen uses `setState()` directly for frame-by-frame UI updates (bounding boxes, labels)
 
----
-
-### 3. Navigation & Screen Modularization
+#### 3. Navigation & Screen Modularization
 Always use the custom route wrapper:
 
 ```dart
@@ -40,24 +38,20 @@ When navigating away from `HardwareScreen`, always use `_navigateTo()` which:
 
 For large screens like `HardwareScreen`, split UI modules into separate components inside a `components/` subfolder (e.g., `hud_controls_panel.dart`, `hud_mode_selector.dart`, `hud_camera_view.dart`, `pairing_wizard.dart`).
 
----
+#### 4. Camera Frame Processing & Power Management
+Critical rules — violating these causes OOM crashes or frame drops:
 
-### 4. Camera Frame Processing & Power Management
-**Critical rules** — violating these causes OOM crashes or frame drops:
+- Always check `if (_isProcessingFrame) return;` before processing
+- Always check `if (!mounted) return;` in async callbacks
+- Always call `stopImageStream()` before `dispose()`
+- Navigation mode: alternate object detection and labeling on separate frames (staggered 400ms cycles)
+- Use 400ms cooldown between frames
+- Enable `WakelockPlus` during continuous camera monitoring and multi-step onboarding
+- Never run two ML Kit detectors concurrently on the exact same frame in navigation mode
+- Never remove the `_isProcessingFrame` lock
+- Never reduce the 400ms cooldown below 300ms
 
-- ✅ Always check `if (_isProcessingFrame) return;` before processing
-- ✅ Always check `if (!mounted) return;` in async callbacks
-- ✅ Always call `stopImageStream()` before `dispose()`
-- ✅ Navigation mode: alternate object detection and labeling on separate frames (staggered 400ms cycles)
-- ✅ Use 400ms cooldown between frames
-- ✅ Enable `WakelockPlus` during continuous camera monitoring and multi-step onboarding
-- ❌ Never run two ML Kit detectors concurrently on the exact same frame in navigation mode
-- ❌ Never remove the `_isProcessingFrame` lock
-- ❌ Never reduce the 400ms cooldown below 300ms
-
----
-
-### 5. TTS Speech & Pitch Safety
+#### 5. TTS Speech & Pitch Safety
 Always use `TtsService().speak()` — never directly call `FlutterTts`:
 
 ```dart
@@ -70,9 +64,7 @@ if (!_isContinuousVoiceEnabled) {
 - Use speech cooldowns to prevent spamming (see Walking Navigation doc)
 - On Android, enforce pitch range limits between `0.5` and `2.0` to avoid native binder connection crashes (`DeadObjectException`)
 
----
-
-### 6. Localization & Signup Strings
+#### 6. Localization & Signup Strings
 Use `TranslationService.translate()` for general app strings and `SignupStrings` for onboarding wizard steps:
 
 ```dart
@@ -87,17 +79,13 @@ final isTagalog = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().c
 final message = isTagalog ? 'Tagalog text' : 'English text';
 ```
 
----
-
-### 7. Notification Persistence Rules
+#### 7. Notification Persistence Rules
 To maintain zero-lag main thread performance:
-- ✅ Transient obstacle warnings and ambient scenery descriptions are memory/UI only
-- ✅ Write **only** critical safety alerts containing `"STOP"`, `"FIRE"`, `"HAZARD"`, or `"EMERGENCY"` to `SharedPreferences`
-- ❌ Do not write frame-by-frame walking guidance or obstacle state changes to persistent disk storage
+- Transient obstacle warnings and ambient scenery descriptions are memory/UI only
+- Write **only** critical safety alerts containing `"STOP"`, `"FIRE"`, `"HAZARD"`, or `"EMERGENCY"` to `SharedPreferences`
+- Do not write frame-by-frame walking guidance or obstacle state changes to persistent disk storage
 
----
-
-### 8. SharedPreferences Keys
+#### 8. SharedPreferences Keys
 Tutorial dismissal flags follow this pattern:
 
 ```
@@ -106,9 +94,7 @@ tutorial_dismissed_<screenKey>
 
 Examples: `tutorial_dismissed_dashboard`, `tutorial_dismissed_camera`, `tutorial_dismissed_rag_chat`, `tutorial_dismissed_settings`
 
----
-
-### 9. Error Handling
+#### 9. Error Handling
 - Wrap ML Kit calls in `try/catch` — they can throw on malformed images
 - Wrap Firebase calls in `try/catch` — network failures are expected
 - Use `print()` for debug logging (acceptable since this is a mobile app, not production server code)
@@ -116,9 +102,9 @@ Examples: `tutorial_dismissed_dashboard`, `tutorial_dismissed_camera`, `tutorial
 
 ---
 
-## Anti-Patterns to Avoid
+### 02 — ANTI-PATTERNS TO AVOID
 
-| ❌ Anti-Pattern | ✅ Correct Approach |
+| Anti-Pattern | Correct Approach |
 |---|---|
 | Calling `_cameraController?.dispose()` without stopping the stream first | Call `stopImageStream()` → then `dispose()` |
 | Running image labeling + object detection concurrently on same frame | Stagger processing on alternating 400ms frames |
@@ -130,7 +116,7 @@ Examples: `tutorial_dismissed_dashboard`, `tutorial_dismissed_camera`, `tutorial
 
 ---
 
-## Naming Conventions
+### 03 — NAMING CONVENTIONS
 
 | Element | Convention | Example |
 |---|---|---|

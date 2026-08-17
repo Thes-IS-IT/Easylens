@@ -2,17 +2,17 @@
 
 ---
 
-## 1. Document Overview & System Scope
+### 01 — DOCUMENT OVERVIEW & SYSTEM SCOPE
 
-This document defines the complete technical, hardware, software, performance, and environmental specifications for **Easylens**—an advanced accessibility companion engineered for visually impaired and neurodivergent users.
+This document defines the complete technical, hardware, software, performance, and environmental specifications for Easylens—an advanced accessibility companion engineered for visually impaired and neurodivergent users.
 
-The system combines physical wearable optics (**ESP32-CAM-MB Development Board with CH340G Micro-USB to Serial Port**, **OV2640 70° Light Wide Angle Lens**, **Heatsink Pad**, **1500 mAh Powerbank**, and **3D Printed Module Box Frame**) with a low-latency edge AI application built on **Flutter**, **TensorFlow Lite**, **Google Gemma 2B**, **Google ML Kit**, and **Cloudflare D1/R2 storage**.
+The system combines physical wearable optics (ESP32-CAM-MB Development Board with CH340G Micro-USB to Serial Port, OV2640 70° Light Wide Angle Lens, Heatsink Pad, 1500 mAh Powerbank, and 3D Printed Module Box Frame) with a low-latency edge AI application built on Flutter, TensorFlow Lite, Google Gemma 2B, Google ML Kit, and Cloudflare D1/R2 storage.
 
 ---
 
-## 2. Hardware Specifications
+### 02 — HARDWARE SPECIFICATIONS
 
-### 2.1 Microcontroller & Edge Compute Module
+#### 2.1 Microcontroller & Edge Compute Module
 
 | Component | Technical Parameter | Detailed Specification |
 | :--- | :--- | :--- |
@@ -26,11 +26,9 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 | **Status & Illumination** | Onboard Flash LED | High-brightness white LED on GPIO 4 for low-light OCR |
 | **Operating Voltage** | Primary Supply Rail | 5.0V DC input via Micro-USB / VPOWER, regulated to 3.3V via LDO |
 
----
+#### 2.2 Camera Optics & Image Sensors
 
-### 2.2 Camera Optics & Image Sensors
-
-#### A. OV2640 Wide-Angle Camera Module
+**A. OV2640 Wide-Angle Camera Module**
 * **Sensor Type**: OmniVision OV2640 1/4" Color CMOS Sensor.
 * **Optical Field of View (FoV)**: **OV2640 70° Light Wide Angle Lens** (engineered for wide-angle forward spatial awareness).
 * **Maximum Native Resolution**: 2 Megapixels ($1600 \times 1200$ UXGA).
@@ -42,7 +40,7 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 * **Output Color Space**: YUV422, YCbCr422, RGB565, and Compressed Raw JPEG.
 * **Dynamic Range**: 50 dB signal-to-noise ratio (SNR).
 
-#### C. Wired UVC Camera Module (USB-OTG Direct Interface)
+**C. Wired UVC Camera Module (USB-OTG Direct Interface)**
 * **Interface Standard**: USB 2.0 High-Speed / UVC (USB Video Class) 1.1 compliance.
 * **Physical Connector**: High-durability Micro-USB / USB Type-C OTG connector with molded strain-relief boot.
 * **Stream Formats**: MJPEG (Compressed) / YUY2 (Uncompressed digital raw).
@@ -50,9 +48,7 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 * **Focus Profile**: Fixed Hyperfocal Focus ($0.3\text{ meters}$ to $\infty$).
 * **Power Draw**: Powered via USB VBUS ($5.0\text{V} \pm 5\%$, $150\text{ mA} - 220\text{ mA}$ active current draw).
 
----
-
-### 2.3 Power & Battery System Specifications
+#### 2.3 Power & Battery System Specifications
 
 | Parameter | Specification | Engineering Impact |
 | :--- | :--- | :--- |
@@ -63,9 +59,9 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 | **Protection Circuitry** | Over-charge, Over-discharge, Short-Circuit | Integrated BMS (Battery Management System) IC |
 | **Charging Port** | USB Type-C Fast Charge | 5V 1A charge rate ($1.5\text{ hours}$ full recharge cycle) |
 
-#### Component Power Budget & Operational Drain Analysis:
+**Component Power Budget & Operational Drain Analysis:**
 
-```
+```text
                COMPONENT CURRENT DRAW BREAKDOWN (5.0V Rail)
   +-------------------------------------------------------------------+
   |  ESP32 SoC (Active Wi-Fi AP Transmit): 180 - 240 mA               |
@@ -76,17 +72,15 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
   +-------------------------------------------------------------------+
 ```
 
-#### Battery Runtime Modes (Calculated via $T = \frac{Capacity \times \eta}{I_{\text{total}}}$):
+**Battery Runtime Modes (Calculated via $T = \frac{Capacity \times \eta}{I_{\text{total}}}$):**
 1. **Wired UVC Direct Mode** (USB OTG Stream): **~200 mA drain** $\rightarrow$ **6.60 Hours** continuous runtime.
 2. **Wireless ESP32-CAM Standard Mode** (Wi-Fi Stream, LED Off): **~300 mA drain** $\rightarrow$ **4.40 Hours** continuous runtime.
 3. **High-Stress Low-Light Mode** (Wi-Fi Stream + Continuous Flash LED): **~480 mA drain** $\rightarrow$ **2.75 Hours** continuous runtime.
 4. **Smart Power-Saving Mode** (50% Active Duty Cycle): **~160 mA average drain** $\rightarrow$ **8.25 Hours** continuous runtime.
 
----
+#### 2.4 Mechanical & 3D-Printed Module Box Frame Specifications
 
-### 2.4 Mechanical & 3D-Printed Module Box Frame Specifications
-
-```
+```text
              3D PRINTED MODULE BOX FRAME SCHEMATIC
  +-------------------------------------------------------------------+
  | [Housing] 3D Printed Module Box Frame Enclosure (PETG / ABS)     |
@@ -110,17 +104,15 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 * **Thermal Endurance**: Heat deflection temperature up to **75°C**.
 * **Cable Routing**: Integrated cable channel guide for 90° Micro-USB / USB-C power cable strain relief.
 
----
+#### 2.5 Host Mobile Device System Requirements (Android & iPhone)
 
-### 2.5 Host Mobile Device System Requirements (Android & iPhone)
-
-#### A. Supported Operating Systems & Device Compatibility
+**A. Supported Operating Systems & Device Compatibility**
 | Platform | Minimum Supported OS | Recommended OS | Compatible Devices |
 | :--- | :--- | :--- | :--- |
 | **Android** | **Android 10** (API Level 29) | **Android 13+** (API Level 33–35) | Android smartphones with 64-bit ARM (`arm64-v8a`) architecture & USB-OTG support |
 | **iPhone (iOS)** | **iOS 16.0** | **iOS 17.0 – iOS 18+** | iPhone 8, iPhone X, iPhone 11, 12, 13, 14, 15, and 16 series (A11 Bionic chip or newer) |
 
-#### B. Hardware Specifications Matrix (Minimum, Recommended & Maximum)
+**B. Hardware Specifications Matrix (Minimum, Recommended & Maximum)**
 
 | System Resource | Minimum Specs | Recommended Specs | Maximum / Ultra Specs |
 | :--- | :--- | :--- | :--- |
@@ -131,7 +123,7 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 | **Free Storage Space** | **2.5 GB** NVMe/UFS (For local Gemma 2B weights & OCR) | **5.0 GB** NVMe/UFS 3.1 | **10.0 GB+** High-Speed NVMe/UFS 4.0 |
 | **Wireless Camera Stream** | Dual-band Wi-Fi 802.11 b/g/n (2.4 GHz AP Mode) | Wi-Fi 6 (802.11ax) Dual-Band | Wi-Fi 6E / Wi-Fi 7 (802.11be) |
 
-#### C. Platform Build Packages & Binary Footprint
+**C. Platform Build Packages & Binary Footprint**
 | Platform | Build Package Format | Package Size | Architecture Breakdown | Installation Method |
 | :--- | :--- | :--- | :--- | :--- |
 | **Android** | `app-release.apk` | **~475 MB** | Multi-Arch FAT binary (`arm64-v8a`, `armeabi-v7a`, `x86_64` for maximum device compatibility) | Direct APK installation / ADB sideload / Google Play |
@@ -139,9 +131,9 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
 
 ---
 
-## 3. Software Specifications
+### 03 — SOFTWARE SPECIFICATIONS
 
-### 3.1 Application Framework & Core Architecture
+#### 3.1 Application Framework & Core Architecture
 
 * **Framework**: Flutter SDK (`^3.11.5`) built on Dart (`^3.5.0`).
 * **State Management**: Provider Pattern (`provider: ^6.1.2`) managing reactive updates between sensor data streams, vision classifiers, settings models, and accessibility UI layouts.
@@ -150,9 +142,7 @@ The system combines physical wearable optics (**ESP32-CAM-MB Development Board w
   * **Dart Isolate Workers**: Offloads heavy byte conversions, RGB image matrix resizing ($300 \times 300$), and array normalization to prevent UI frame drops.
 * **Declarative Router**: Custom router in `lib/routes/app_route.dart` facilitating rapid focus management for screen readers.
 
----
-
-### 3.2 Artificial Intelligence & Computer Vision Stack
+#### 3.2 Artificial Intelligence & Computer Vision Stack
 
 ```mermaid
 graph LR
@@ -177,33 +167,31 @@ graph LR
     GEMMA --> TTS
 ```
 
-#### 1. TensorFlow Lite Object Detection Pipeline (`tflite_flutter: ^0.12.1`)
+**1. TensorFlow Lite Object Detection Pipeline (`tflite_flutter: ^0.12.1`)**
 * **Engine**: TensorFlow Lite C-API Dart Native bindings.
-* **Custom MobileNetV2 SSD Model**: Includes a custom fine-tuned **MobileNetV2 SSD** object detection model (`ssd_mobilenet_v2.tflite`) trained to detect and classify **24 specialized accessibility object categories** (such as doors, stairs, chairs, tables, vehicles, pedestrians, crosswalks, traffic signals, curbs, and navigational hazards).
+* **Custom MobileNetV2 SSD Model**: Includes a custom fine-tuned **MobileNetV2 SSD** object detection model (`ssd_mobilenet_v2.tflite`) trained to detect and classify 24 specialized accessibility object categories (such as doors, stairs, chairs, tables, vehicles, pedestrians, crosswalks, traffic signals, curbs, and navigational hazards).
 * **COCO Dataset Fallback**: Supports multi-class COCO object detection (up to 80 standard categories) for general scene parsing.
 * **Tensor Configuration**: Input shape `[1, 300, 300, 3]`, output tensors for bounding box coordinates, class IDs, detection scores, and total count.
-* **Execution Acceleration**: 4-thread CPU interpreter options with fallback to **NNAPI** (Android) or **Metal/GPU Delegate** (iOS).
+* **Execution Acceleration**: 4-thread CPU interpreter options with fallback to NNAPI (Android) or Metal/GPU Delegate (iOS).
 
-#### 2. On-Device Generative LLM - Google Gemma (`flutter_gemma: ^0.13.6`)
+**2. On-Device Generative LLM - Google Gemma (`flutter_gemma: ^0.13.6`)**
 * **Model**: **Gemma-IT 2B** (Instruction Tuned 2-Billion Parameter Model).
 * **Runtime Infrastructure**: Google AI Edge C++ Native SDK.
 * **Functionality**: Performs offline natural language context synthesis, scene description, and accessibility query answering without internet connection.
 * **Quantization**: INT4 quantised weights requiring ~1.4 GB memory allocation.
 
-#### 3. Optical Character Recognition & Image Labeling
+**3. Optical Character Recognition & Image Labeling**
 * **Packages**: `google_mlkit_text_recognition: ^0.15.1`, `google_mlkit_image_labeling: ^0.14.2`.
 * **Capabilities**: Low-latency parsing of street signs, medicine labels, document text, and warning indicators.
 
-#### 4. Local Server Fallback (Ollama Integration)
+**4. Local Server Fallback (Ollama Integration)**
 * **Protocol**: HTTP REST Client communicating with local Ollama daemon at `http://10.0.2.2:11434` (Android Emulator/Bridge) or `http://localhost:11434` (iOS).
 * **Supported Fallback Model**: `gemma2:2b`.
 
-#### 5. Cloud Conversational Assistant (`google_generative_ai: ^0.4.4`)
+**5. Cloud Conversational Assistant (`google_generative_ai: ^0.4.4`)**
 * **Remote Model**: Google **Gemini 3.6 Flash (Low)** for low-latency cloud-backed multi-turn reasoning and conversational assistance when online connectivity is active.
 
----
-
-### 3.3 Audio, Haptic & Accessibility Subsystems
+#### 3.3 Audio, Haptic & Accessibility Subsystems
 
 * **Text-to-Speech (`flutter_tts: ^4.2.5`)**:
   * Drives spatial voice output for parsed OCR, detected hazards, and system notifications.
@@ -214,9 +202,7 @@ graph LR
 * **Haptic Directional Engine (`vibration: ^3.2.0`)**:
   * Triggers tactile vibration pulse patterns for touch feedback and obstacle proximity warnings.
 
----
-
-### 3.4 Storage & Cloud Synchronization Architecture
+#### 3.4 Storage & Cloud Synchronization Architecture
 
 ```mermaid
 graph TD
@@ -253,25 +239,23 @@ graph TD
 
 ---
 
-## 4. Performance Specifications & Benchmark Matrix
+### 04 — PERFORMANCE SPECIFICATIONS & BENCHMARK MATRIX
 
-### 4.1 System Benchmarks & Latency Matrix
+#### 4.1 System Benchmarks & Latency Matrix
 
 | Benchmark Metric | Execution Environment | Target Value | Measured Average | Status / Pass Criteria |
 | :--- | :--- | :--- | :--- | :--- |
-| **Wi-Fi Frame Ingestion Latency** | ESP32 AP (VGA @ 30 FPS) | $< 30\text{ ms}$ | **22 ms** | ✅ Optimal |
-| **Wired UVC Ingestion Latency** | USB-OTG High-Speed | $< 10\text{ ms}$ | **6 ms** | ✅ Ultra-Fast |
-| **Isolate Preprocessing Time** | Dart Isolate Thread | $< 10\text{ ms}$ | **7 ms** | ✅ Zero UI Blocking |
-| **TFLite MobileNetV2 SSD (CPU)** | 4-Thread CPU (ARM64) | $< 35\text{ ms}$ | **28 ms** (35 FPS capacity) | ✅ Pass |
-| **TFLite MobileNetV2 SSD (GPU)** | GPU Delegate / NNAPI | $< 15\text{ ms}$ | **12 ms** (80 FPS capacity) | ✅ Pass |
-| **Google ML Kit OCR Processing** | VGA High-Res Frame | $< 60\text{ ms}$ | **45 ms** | ✅ Pass |
-| **Gemma 2B First Token Latency** | Local GPU / NNAPI | $< 300\text{ ms}$ | **210 ms** | ✅ Fast Response |
-| **TTS Speech Audio Latency** | Flutter TTS Driver | $< 50\text{ ms}$ | **35 ms** | ✅ Pass |
-| **End-to-End Latency (UVC Mode)**| Camera Frame $\rightarrow$ Voice Alert | $< 120\text{ ms}$ | **~88 ms** | ✅ Real-Time Assist |
+| **Wi-Fi Frame Ingestion Latency** | ESP32 AP (VGA @ 30 FPS) | $< 30\text{ ms}$ | **22 ms** | Optimal |
+| **Wired UVC Ingestion Latency** | USB-OTG High-Speed | $< 10\text{ ms}$ | **6 ms** | Ultra-Fast |
+| **Isolate Preprocessing Time** | Dart Isolate Thread | $< 10\text{ ms}$ | **7 ms** | Zero UI Blocking |
+| **TFLite MobileNetV2 SSD (CPU)** | 4-Thread CPU (ARM64) | $< 35\text{ ms}$ | **28 ms** (35 FPS capacity) | Pass |
+| **TFLite MobileNetV2 SSD (GPU)** | GPU Delegate / NNAPI | $< 15\text{ ms}$ | **12 ms** (80 FPS capacity) | Pass |
+| **Google ML Kit OCR Processing** | VGA High-Res Frame | $< 60\text{ ms}$ | **45 ms** | Pass |
+| **Gemma 2B First Token Latency** | Local GPU / NNAPI | $< 300\text{ ms}$ | **210 ms** | Fast Response |
+| **TTS Speech Audio Latency** | Flutter TTS Driver | $< 50\text{ ms}$ | **35 ms** | Pass |
+| **End-to-End Latency (UVC Mode)**| Camera Frame $\rightarrow$ Voice Alert | $< 120\text{ ms}$ | **~88 ms** | Real-Time Assist |
 
----
-
-### 4.2 Resource Utilization Summary
+#### 4.2 Resource Utilization Summary
 
 | System Resource | Allocation During Idle | Allocation During Vision Stream | Allocation During LLM Prompt |
 | :--- | :--- | :--- | :--- |
@@ -282,9 +266,9 @@ graph TD
 
 ---
 
-## 5. Security, Privacy & Environmental Constraints
+### 05 — SECURITY, PRIVACY & ENVIRONMENTAL CONSTRAINTS
 
-* **Local-First Privacy Guardrail**: Video frames are processed volatilely in memory buffers and are **never uploaded to external servers** unless explicitly triggered by the user for cloud emergency reporting.
+* **Local-First Privacy Guardrail**: Video frames are processed volatilely in memory buffers and are never uploaded to external servers unless explicitly triggered by the user for cloud emergency reporting.
 * **Encrypted API Data Transfers**: All REST communications with Cloudflare D1 and Firebase utilize **TLS 1.3 encryption**.
 * **AWS SigV4 Authentication**: Cloudflare R2 bucket transactions use ephemeral HMAC-SHA256 signing to prevent key leakage.
 * **Operating Temperature Range**: $-10^\circ\text{C}$ to $+45^\circ\text{C}$.

@@ -2,15 +2,15 @@
 
 ---
 
-## Overview & Figure Citation
+### 01 — OVERVIEW & FIGURE CITATION
 
-**Figure 4.1: The Multi-Phase Transfer Learning and Unfreezing Workflow for the MobileNetV2 SSD Network Architecture** *(Source: "EasyLens Training Notebook" pipeline stages in `docs/training/easylens.ipynb`)*
+> **Figure 4.1: The Multi-Phase Transfer Learning and Unfreezing Workflow for the MobileNetV2 SSD Network Architecture** *(Source: "EasyLens Training Notebook" pipeline stages in `docs/training/easylens.ipynb`)*
 
-This document provides both a **Simplified High-Level Architectural Flowchart** and a **Detailed Empirical Engineering Flowchart** illustrating the multi-phase transfer learning, unfreezing strategy, data-centric preprocessing, hyperparameter scheduling, and quantization workflow used to train the EasyLens MobileNetV2 classification model.
+This document provides both a Simplified High-Level Architectural Flowchart and a Detailed Empirical Engineering Flowchart illustrating the multi-phase transfer learning, unfreezing strategy, data-centric preprocessing, hyperparameter scheduling, and quantization workflow used to train the EasyLens MobileNetV2 classification model.
 
 ---
 
-## 1. Simplified Architectural Flowchart
+### 02 — SIMPLIFIED ARCHITECTURAL FLOWCHART
 
 The high-level pipeline transforms raw imbalanced spatial data into a lightweight, INT8-quantized TFLite edge model via a 4-phase training curriculum:
 
@@ -44,7 +44,7 @@ flowchart TD
 
 ---
 
-## 2. Detailed Technical & Hyperparameter Pipeline Flowchart
+### 03 — DETAILED TECHNICAL & HYPERPARAMETER PIPELINE FLOWCHART
 
 This detailed diagram specifies exact layer blocks, optimizer parameters, learning rates, callbacks, and evaluation checkpoints across each phase of training.
 
@@ -109,7 +109,7 @@ flowchart TB
 
 ---
 
-## 3. Detailed Summary of Training Phases
+### 04 — DETAILED SUMMARY OF TRAINING PHASES
 
 | Training Stage | Unfrozen Layers | Initial Learning Rate (LR) | Key Purpose / Strategy |
 | :--- | :--- | :--- | :--- |

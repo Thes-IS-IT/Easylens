@@ -1,29 +1,31 @@
 # MobileNetV2 Fine-Tuning Technical Report & Comparative Benchmark
 
-## Executive Summary
+---
 
-**EasyLens** is a multi-tier real-time computer vision and spatial assistance mobile system built for visually impaired users. At the core of our custom hazard and object recognition pipeline is a fine-tuned lightweight **MobileNetV2** deep learning architecture.
+### 01 — EXECUTIVE SUMMARY
 
-This document details the data-centric preprocessing pipeline, the novel **4-Phase Transfer Learning and Deep Fine-Tuning Strategy**, empirical validation results on a 24-class dataset, comparative benchmarking against YOLO and standard COCO models, and deployment optimization metrics.
+EasyLens is a multi-tier real-time computer vision and spatial assistance mobile system built for visually impaired users. At the core of our custom hazard and object recognition pipeline is a fine-tuned lightweight MobileNetV2 deep learning architecture.
+
+This document details the data-centric preprocessing pipeline, the novel 4-Phase Transfer Learning and Deep Fine-Tuning Strategy, empirical validation results on a 24-class dataset, comparative benchmarking against YOLO and standard COCO models, and deployment optimization metrics.
 
 ---
 
-## 1. Dataset Architecture & Data-Centric Preprocessing
+### 02 — DATASET ARCHITECTURE & DATA-CENTRIC PREPROCESSING
 
-### 1.1 Dataset Source & Conversion
-* **Raw Dataset**: Kaggle 26-Class Object Detection Dataset (`Senior-Design-VIAD-4`) comprising **38,922 JPEG images** annotated in COCO JSON format.
+#### 1.1 Dataset Source & Conversion
+* **Raw Dataset**: Kaggle 26-Class Object Detection Dataset (`Senior-Design-VIAD-4`) comprising 38,922 JPEG images annotated in COCO JSON format.
 * **Format Conversion**: Bounding box regions and full frames were reorganized into class-specific directories to frame the problem as an optimized image classification task for edge deployment.
 * **Leakage Prevention**: Implemented a global image hash/filename tracking filter (`copied_images`) to guarantee that multi-annotated images were never duplicated across class directories or split across training/validation/test sets.
 
-### 1.2 Data Cleaning & Class Consolidation
+#### 1.2 Data Cleaning & Class Consolidation
 Analysis of the raw dataset revealed severe class imbalances and redundant label definitions. A two-step data-centric transformation was executed:
 
 1. **Class Merging**: Overlapping categories (e.g., `person` and `Person`) were merged into unified canonical representations.
 2. **Ghost Class Purging**: Removed 5 "ghost classes" (`bench`, `chair`, `handbag`, `umbrella`, `traffic_light`) that had negligible sample support ($\le 3$ images across the entire dataset), eliminating gradient noise during backpropagation.
 
-This resulted in a clean, highly focused **24-Class Navigation Dataset**.
+This resulted in a clean, highly focused 24-Class Navigation Dataset.
 
-### 1.3 Dataset Train / Validation / Test Split
+#### 1.3 Dataset Train / Validation / Test Split
 The dataset was split into three non-overlapping subsets:
 
 | Dataset Split | Image Count | Percentage | Purpose |
@@ -33,7 +35,7 @@ The dataset was split into three non-overlapping subsets:
 | **Test Set** | **2,125** | 5.57% | Final unseen evaluation & metric extraction |
 | **Total Cleaned Data** | **38,176** | 100.00% | High-quality target dataset |
 
-```
+```text
                        38,176 Clean Images
                                 │
         ┌───────────────────────┼───────────────────────┐
@@ -42,7 +44,7 @@ The dataset was split into three non-overlapping subsets:
   31,866 (83.5%)          4,185 (11.0%)           2,125 (5.5%)
 ```
 
-### 1.4 Data Augmentation & Imbalance Mitigation
+#### 1.4 Data Augmentation & Imbalance Mitigation
 * **Spatial Augmentations (`ImageDataGenerator`)**:
   * Random Rotation: $\pm 20^\circ$
   * Zoom Range: $20\%$
@@ -56,12 +58,12 @@ The dataset was split into three non-overlapping subsets:
 
 ---
 
-## 2. Model Architecture & The 4-Phase Fine-Tuning Strategy
+### 03 — MODEL ARCHITECTURE & THE 4-PHASE FINE-TUNING STRATEGY
 
-### 2.1 Base Model & Custom Classification Head Architecture
-We selected **MobileNetV2** (pre-trained on ImageNet) due to its inverted residual structure and depthwise separable convolutions, which deliver state-of-the-art accuracy with minimal floating-point operations (FLOPs).
+#### 2.1 Base Model & Custom Classification Head Architecture
+We selected MobileNetV2 (pre-trained on ImageNet) due to its inverted residual structure and depthwise separable convolutions, which deliver state-of-the-art accuracy with minimal floating-point operations (FLOPs).
 
-```
+```text
 Input Image (224 x 224 x 3)
          │
  MobileNetV2 Base (Pre-trained ImageNet)
@@ -79,11 +81,9 @@ Input Image (224 x 224 x 3)
  Dense Softmax Layer (24 Output Classes)
 ```
 
----
+#### 2.2 Detailed Breakdown of the 4-Phase Fine-Tuning Strategy
 
-### 2.2 Detailed Breakdown of the 4-Phase Fine-Tuning Strategy
-
-Rather than standard single-stage transfer learning, we implemented a progressive **4-Phase Fine-Tuning Strategy** over a one-month experimental period to prevent catastrophic forgetting and ensure deep domain adaptation.
+Rather than standard single-stage transfer learning, we implemented a progressive 4-Phase Fine-Tuning Strategy over a one-month experimental period to prevent catastrophic forgetting and ensure deep domain adaptation.
 
 ```mermaid
 graph TD
@@ -92,38 +92,38 @@ graph TD
     Phase3 --> Phase4["Phase 4: Ultra-Low LR Optimization<br/>All Layers, LR: 1e-7 to 1e-8"]
 ```
 
-#### Phase 1: Warm-up (Feature Extraction)
+**Phase 1: Warm-up (Feature Extraction)**
 * **Configuration**: Frozen MobileNetV2 backbone; only the custom dense classification head was trainable.
 * **Learning Rate**: `5e-4` (Adam Optimizer).
 * **Objective**: Train the randomly initialized weights of the Dense layers (512 $\rightarrow$ 256 $\rightarrow$ 24) without distorting the pre-trained feature extractors in the base network.
 * **Result**: Rapid initial convergence to ~83% accuracy, but error analysis showed total neglect of minority classes due to unweighted loss.
 
-#### Phase 2: Mid-Level Fine-Tuning (Domain Adaptation)
+**Phase 2: Mid-Level Fine-Tuning (Domain Adaptation)**
 * **Configuration**: Unfroze the top 30 layers of the MobileNetV2 backbone. Integrated balanced class weights into the cross-entropy loss function.
 * **Learning Rate**: `1e-5` (Adam Optimizer).
 * **Objective**: Force the upper feature maps to learn domain-specific high-level representations (e.g., distinguishing pavement cracks from potholes, or stairs from escalators) while maintaining class balance.
 * **Result**: Balanced minority class gradients, boosting recall across rare navigation hazards.
 
-#### Phase 3: Deep Fine-Tuning (Full Network Optimization)
+**Phase 3: Deep Fine-Tuning (Full Network Optimization)**
 * **Configuration**: Unfroze all 154 layers of MobileNetV2.
 * **Learning Rate**: `5e-6` with `ReduceLROnPlateau` (factor=0.5, patience=5, min_lr=1e-7) and `EarlyStopping` (patience=15).
 * **Objective**: Jointly optimize all network parameters at an extremely low learning rate, allowing lower-level filters to subtly adapt to custom lighting and indoor/outdoor scene conditions.
-* **Result**: Pushed Top-1 accuracy past **85%** and Top-2 accuracy past **92%**.
+* **Result**: Pushed Top-1 accuracy past 85% and Top-2 accuracy past 92%.
 
-#### Phase 4: Ultra-Low Learning Rate Continuation (Maximum Capacity Optimization)
+**Phase 4: Ultra-Low Learning Rate Continuation (Maximum Capacity Optimization)**
 * **Configuration**: Reloaded the Phase 3 checkpoint and executed a final refinement pass.
 * **Learning Rate**: Decay schedule from `1e-7` down to `1e-8`.
 * **Patience**: Increased `EarlyStopping` patience to 20 epochs.
 * **Objective**: Squeeze out final microscopic gradient improvements and verify convergence plateau.
-* **Final Result**: Peak overall weighted accuracy achieved at **85.55%** with weighted precision reaching **86.63%**.
+* **Final Result**: Peak overall weighted accuracy achieved at 85.55% with weighted precision reaching 86.63%.
 
 ---
 
-## 3. Empirical Training Results & Metric Analysis
+### 04 — EMPIRICAL TRAINING RESULTS & METRIC ANALYSIS
 
-### 3.1 Overall Model Metrics (Phase 4 Final Test Set Evaluation)
+#### 3.1 Overall Model Metrics (Phase 4 Final Test Set Evaluation)
 
-Evaluated on **2,125 unseen test images** across 24 classes:
+Evaluated on 2,125 unseen test images across 24 classes:
 
 | Metric | Score | Analysis / Significance |
 |---|---|---|
@@ -140,9 +140,7 @@ Evaluated on **2,125 unseen test images** across 24 classes:
 | **Matthews Correlation (MCC)** | **0.8479** | Robust correlation on imbalanced multi-class dataset |
 | **Inference Latency** | **2.48 ms** | **>400 FPS** execution throughput on GPU/edge accelerators |
 
----
-
-### 3.2 Per-Class Performance Breakdown
+#### 3.2 Per-Class Performance Breakdown
 
 | Class Name | Precision | Recall | F1-Score | Support | Safety Criticality & Key Insights |
 |---|---|---|---|---|---|
@@ -173,11 +171,11 @@ Evaluated on **2,125 unseen test images** across 24 classes:
 
 ---
 
-## 4. Comparative Benchmark Analysis
+### 05 — COMPARATIVE BENCHMARK ANALYSIS
 
-To validate our architectural choice, we benchmarked the fine-tuned MobileNetV2 against popular object detection and classification models, including **YOLOv8/YOLOv5** edge variants and standard **MobileNet COCO** models.
+To validate our architectural choice, we benchmarked the fine-tuned MobileNetV2 against popular object detection and classification models, including YOLOv8/YOLOv5 edge variants and standard MobileNet COCO models.
 
-### 4.1 Benchmark Comparison Table
+#### 4.1 Benchmark Comparison Table
 
 | Architecture / Model | Parameter Count | Model Size (TFLite FP16/INT8) | On-Device Latency (Snapdragon 8 Gen 2 / T4 GPU) | Inference FPS | Custom Navigation Class Accuracy | Power & Thermal Efficiency |
 |---|---|---|---|---|---|---|
@@ -188,18 +186,18 @@ To validate our architectural choice, we benchmarked the fine-tuned MobileNetV2 
 | YOLOv5s | 7.2M | 14.1 MB | 14.30 ms | ~70 FPS | 82.30% | Moderate Battery Drain |
 | EfficientNet-B0 | 5.3M | 21.0 MB | 6.80 ms | ~147 FPS | 84.10% | Moderate |
 
-### 4.2 Why MobileNetV2 Fine-Tuning Outperforms YOLO for Assistive Edge Vision
+#### 4.2 Why MobileNetV2 Fine-Tuning Outperforms YOLO for Assistive Edge Vision
 
 1. **Ultra-Low Latency (2.48 ms vs. 8-18 ms)**:
-   Real-time voice feedback for visually impaired users requires instantaneous scene processing. MobileNetV2 delivers over **400 FPS** raw throughput, allowing EasyLens to run smooth 2.5 FPS throttled inference with zero UI lag while leaving 90%+ CPU headroom for TTS audio synthesis and RAG processing.
+   Real-time voice feedback for visually impaired users requires instantaneous scene processing. MobileNetV2 delivers over 400 FPS raw throughput, allowing EasyLens to run smooth 2.5 FPS throttled inference with zero UI lag while leaving 90%+ CPU headroom for TTS audio synthesis and RAG processing.
 2. **Thermal & Battery Optimization**:
-   Full object detection backbones like YOLO compute heavy Feature Pyramid Networks (FPN) and anchor boxes across multiple scales. MobileNetV2’s **inverted residual blocks** and **depthwise separable convolutions** dramatically reduce memory bandwidth consumption, preventing smartphone overheating during continuous camera usage.
+   Full object detection backbones like YOLO compute heavy Feature Pyramid Networks (FPN) and anchor boxes across multiple scales. MobileNetV2’s inverted residual blocks and depthwise separable convolutions dramatically reduce memory bandwidth consumption, preventing smartphone overheating during continuous camera usage.
 3. **Specialized Hazard Sensitivity vs. Generic COCO**:
-   Standard COCO models fail to distinguish specific traffic light states (`red_light` vs `green_light` vs `yellow_light`) or critical hazard surfaces (`potholes`, `stairs`). Our 4-phase fine-tuning achieved **97% recall on potholes**, **95% F1 on crosswalks**, and **92% recall on stairs**, direct wins for user safety.
+   Standard COCO models fail to distinguish specific traffic light states (`red_light` vs `green_light` vs `yellow_light`) or critical hazard surfaces (`potholes`, `stairs`). Our 4-phase fine-tuning achieved 97% recall on potholes, 95% F1 on crosswalks, and 92% recall on stairs, direct wins for user safety.
 
 ---
 
-## 5. Artifact & Resource References
+### 06 — ARTIFACT & RESOURCE REFERENCES
 
 * **Jupyter Notebook**: [`docs/training/easylens.ipynb`](file:///Users/arronkianparejas/easylens/docs/training/easylens.ipynb)
 * **Google Colab Notebook**: [Colab Link](https://colab.research.google.com/drive/1n7WDy7TaFBkD_KCkB8ocrr8nnl92ulLa?usp=sharing)

@@ -4,23 +4,23 @@ This document details the testing framework, continuous integration setup, and m
 
 ---
 
-## 1. Test Suite & Verification
+### 01 — TEST SUITE & VERIFICATION
 
 EasyLens utilizes Flutter's standard testing tools for unit, widget, and integration testing.
 
-### Running Unit & Widget Tests
+#### Running Unit & Widget Tests
 To run all tests in the test suite locally:
 ```bash
 flutter test
 ```
 
-### Running Static Code Analysis
+#### Running Static Code Analysis
 To verify code formatting, guidelines, and compilation correctness:
 ```bash
 flutter analyze --no-fatal-warnings --no-fatal-infos
 ```
 
-### Manual Pre-Release Quality Checklist
+#### Manual Pre-Release Quality Checklist
 Before committing to `main` or building release packages, verify:
 - [x] Static code analysis passes with zero severe errors (`flutter analyze`)
 - [x] Audio TTS persona switching executes cleanly on Android without binder disconnects
@@ -30,7 +30,7 @@ Before committing to `main` or building release packages, verify:
 
 ---
 
-## 2. Simplified CI/CD & Release Flowchart
+### 02 — SIMPLIFIED CI/CD & RELEASE FLOWCHART
 
 ```mermaid
 graph LR
@@ -41,30 +41,30 @@ graph LR
 
 ---
 
-## 3. CI/CD GitHub Actions Pipeline
+### 03 — CI/CD GITHUB ACTIONS PIPELINE
 
 The pipeline is defined in [.github/workflows/ci_cd.yml](file:///Users/arronkianparejas/easylens/.github/workflows/ci_cd.yml).
 
-### Triggers
+#### Triggers
 - **Push events** to the `main` branch.
 - **Pull requests** targeting the `main` branch.
 
-### Jobs & Steps
+#### Jobs & Steps
 The CI pipeline is lightweight, focusing on static code analysis to ensure changes build successfully:
 1. **Environment Setup**: Initializes standard JDK 17 (Zulu distribution) and the Flutter SDK (`^3.11.5`).
 2. **Install Dependencies**: Fetches package dependencies via `flutter pub get`.
 3. **Environment Prep**: Creates a mock `.env` file to satisfy dependency imports.
 4. **Code Analysis**: Executes `flutter analyze --no-fatal-warnings --no-fatal-infos` to verify formatting, syntax, and type safety constraints.
 
-*Note: Unit tests and automated APK builds have been removed from the CI workflow to optimize runner resources and prevent unnecessary build jank.*
+*Note: Unit tests and automated APK builds have been removed from the CI workflow to optimize runner resources and prevent unnecessary build issues.*
 
 ---
 
-## 3. Manual Deployment & Release
+### 04 — MANUAL DEPLOYMENT & RELEASE
 
 To compile and package the app for manual release:
 
-### Build Android release APK
+#### Build Android release APK
 ```bash
 flutter build apk
 ```

@@ -1,18 +1,18 @@
 # Easylens - Software & Supported Mobile Devices Specification
 
-This document provides complete software specifications, supported Android and iPhone (iOS) devices, minimum, recommended, and maximum hardware specifications, as well as build package deployment details for the **Easylens** mobile application.
+This document provides complete software specifications, supported Android and iPhone (iOS) devices, minimum, recommended, and maximum hardware specifications, as well as build package deployment details for the Easylens mobile application.
 
 ---
 
-## 1. Supported Operating Systems & Mobile Devices
+### 01 — SUPPORTED OPERATING SYSTEMS & MOBILE DEVICES
 
-### 🤖 Android Compatibility
+#### Android Compatibility
 * **Minimum Supported OS**: **Android 10** (API Level 29)
 * **Recommended OS**: **Android 13 to Android 15** (API Level 33–35)
 * **Architecture**: 64-bit ARM (`arm64-v8a`)
 * **USB Feature**: USB Host / USB-OTG (On-The-Go) support required for wired camera modules.
 
-### 🍎 iPhone (iOS) Compatibility
+#### iPhone (iOS) Compatibility
 * **Minimum Supported OS**: **iOS 16.0** (Required by native `flutter_gemma` & `MediaPipe` AI runtime dependencies)
 * **Recommended OS**: **iOS 17.0 – iOS 18+**
 * **Supported Models**: 
@@ -28,7 +28,7 @@ This document provides complete software specifications, supported Android and i
 
 ---
 
-## 2. Hardware Specifications Matrix
+### 02 — HARDWARE SPECIFICATIONS MATRIX
 
 | System Resource | Minimum Specification | Recommended Specification | Maximum / Ultra Specification |
 | :--- | :--- | :--- | :--- |
@@ -41,7 +41,7 @@ This document provides complete software specifications, supported Android and i
 
 ---
 
-## 3. Platform Build Packages & Deployment Footprint
+### 03 — PLATFORM BUILD PACKAGES & DEPLOYMENT FOOTPRINT
 
 | Parameter | Android Build (`.apk`) | iOS Build (`.ipa`) |
 | :--- | :--- | :--- |
@@ -52,7 +52,7 @@ This document provides complete software specifications, supported Android and i
 
 ---
 
-## 4. EasyLens Full Software Component & Technology Stack Table
+### 04 — EASYLENS FULL SOFTWARE COMPONENT & TECHNOLOGY STACK TABLE
 
 | Software Component | Technology Integrated | Primary Architectural Purpose |
 | :--- | :--- | :--- |

@@ -4,24 +4,24 @@ This document provides a comprehensive technical blueprint for implementing loca
 
 ---
 
-## 1. Storage Package Comparison (Local Storage)
+### 01 — STORAGE PACKAGE COMPARISON (LOCAL STORAGE)
 
 For offline-first local persistence, the following options are recommended:
 
 | Storage Option | Best Used For | Pros | Cons | Recommendation |
 | :--- | :--- | :--- | :--- | :--- |
-| **`shared_preferences`** | Simple key-value config settings. | - Extremely simple API.<br>- Built-in platform bindings. | - No relational support.<br>- Bad performance for large datasets. | **Yes** (For simple theme/language flags). |
-| **`isar`** | Complex relational collections, history tracking. | - Incredible performance.<br>- Typed query filters.<br>- Indexing support. | - Requires code generation. | **Highly Recommended** (For structured entities like Contacts/Logs). |
+| **`shared_preferences`** | Simple key-value config settings. | - Extremely simple API.<br>- Built-in platform bindings. | - No relational support.<br>- Suboptimal performance for large datasets. | **Yes** (For simple theme/language flags). |
+| **`isar`** | Complex relational collections, history tracking. | - High performance.<br>- Typed query filters.<br>- Indexing support. | - Requires code generation. | **Highly Recommended** (For structured entities like Contacts/Logs). |
 
 ---
 
-## 2. Firebase Cloud Firestore Integration (Remote Database)
+### 02 — FIREBASE CLOUD FIRESTORE INTEGRATION (REMOTE DATABASE)
 
-To make EasyLens fully collaborative and accessible across devices, we synchronize user settings, emergency contacts, and logs to **Firebase Cloud Firestore**.
+To make EasyLens collaborative and accessible across devices, user settings, emergency contacts, and logs are synchronized to Firebase Cloud Firestore.
 
-### A. Firestore Collections Schema
+#### A. Firestore Collections Schema
 
-#### `/users/{userId}` (Document)
+##### `/users/{userId}` (Document)
 Holds global user status, profile metadata, and nested preferences map:
 ```json
 {
@@ -51,7 +51,7 @@ Holds global user status, profile metadata, and nested preferences map:
 }
 ```
 
-#### `/users/{userId}/contacts/{contactId}` (Subcollection Document)
+##### `/users/{userId}/contacts/{contactId}` (Subcollection Document)
 Holds caregiver profiles linked to the primary account owner:
 ```json
 {
@@ -65,7 +65,7 @@ Holds caregiver profiles linked to the primary account owner:
 
 ---
 
-## 3. Simplified Storage & Sync Flowchart
+### 03 — SIMPLIFIED STORAGE & SYNC FLOWCHART
 
 ```mermaid
 graph LR
@@ -76,11 +76,11 @@ graph LR
 
 ---
 
-## 4. Storage & Cloud Synchronization Strategy
+### 04 — STORAGE & CLOUD SYNCHRONIZATION STRATEGY
 
-Firestore features **built-in offline persistence** that caches updates locally when offline and automatically syncs them to the cloud once network connectivity is restored.
+Firestore features built-in offline persistence that caches updates locally when offline and automatically syncs them to the cloud once network connectivity is restored.
 
-### Step 1: Enable Firestore Offline Cache
+#### Step 1: Enable Firestore Offline Cache
 Initialize Firestore settings inside `lib/main.dart`:
 ```dart
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -99,7 +99,7 @@ void main() async {
 }
 ```
 
-### Step 2: Implement Firestore Sync
+#### Step 2: Implement Firestore Sync
 Update the preferences and contacts sync service functions:
 ```dart
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -132,10 +132,10 @@ class FirestoreStorageService {
 
 ---
 
-## 4. Firebase Storage (Profile Avatar Uploads)
+### 05 — FIREBASE STORAGE (PROFILE AVATAR UPLOADS)
 
-Store user custom avatars in **Firebase Storage** under structured pathways:
-* Path: `/users/{userId}/avatar.png`
+Store user custom avatars in Firebase Storage under structured pathways:
+- Path: `/users/{userId}/avatar.png`
 
 ```dart
 import 'dart:io';
@@ -150,11 +150,11 @@ Future<String> uploadUserAvatar(String userId, File imageFile) async {
 
 ---
 
-## 5. Security Rules (Firewall Policy)
+### 06 — SECURITY RULES (FIREWALL POLICY)
 
 Deploy the following Firebase Security Rules to restrict cross-account reads and writes:
 
-### Firestore Security Rules
+#### Firestore Security Rules
 ```javascript
 rules_version = '2';
 service cloud.firestore {
@@ -171,7 +171,7 @@ service cloud.firestore {
 }
 ```
 
-### Firebase Storage Security Rules
+#### Firebase Storage Security Rules
 ```javascript
 rules_version = '2';
 service firebase.storage {

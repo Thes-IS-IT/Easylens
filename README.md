@@ -1,6 +1,6 @@
 # EasyLens
 
-EasyLens is an accessibility assistant mobile application designed for visually impaired and neurodivergent users. **At its core, EasyLens operates on a custom fine-tuned MobileNetV2 object detection pipeline.** This edge vision engine acts as the primary "lens," integrating local computer vision, on-device large language models (`Gemma`/`Gemini`), cloud storage, and wearable ESP32 smart glasses into a real-time assistant.
+EasyLens is an accessibility assistant mobile application designed for visually impaired and neurodivergent users. It operates on a fine-tuned MobileNetV2 object detection pipeline. This edge vision engine integrates local computer vision, on-device large language models (`Gemma` / `Gemini`), cloud storage, and wearable ESP32 smart glasses to function as a real-time assistant.
 
 ---
 
@@ -8,16 +8,16 @@ EasyLens is an accessibility assistant mobile application designed for visually 
 
 | Feature | Description |
 |---|---|
-| **Custom Object Detector** | **Core Component:** Custom fine-tuned MobileNetV2 SSD drawing real-time bounding boxes via Dart Isolate background threads for instant obstacle TTS alerts. |
+| **Custom Object Detector** | Custom fine-tuned MobileNetV2 SSD drawing real-time bounding boxes via Dart Isolate background threads for obstacle TTS alerts. |
 | **Speech Navigation** | Turn-by-turn guidance controlled via continuous speech (STT). Includes Filipino/Tagalog support, dynamic map pinning, and global arrival notifications. |
 | **Buddy Local AI** | On-device Gemma-IT 2B LLM for English; Google Gemini 3.6 Flash (Low) for Filipino. Full voice I/O and RAG knowledge base. |
-| **Nearby Text Scanner** | Supported by ML Kit OCR; reads text aloud; forwards to Buddy for intelligent context explanation. |
+| **Nearby Text Scanner** | Supported by ML Kit OCR; reads text aloud; forwards to Buddy for context explanation. |
 | **SOS & Emergency** | SMS dispatch to active emergency contacts via the MensaHero gateway. |
 | **Voice Personas** | 6 personas (including Maya for native Tagalog) with distinct pitch/rate. Applied universally across all TTS output. |
-| **Filipino Language** | Full app localization — UI strings, greetings, Buddy, Navigation, Settings — all switch live. |
+| **Filipino Language** | Full app localization — UI strings, greetings, Buddy, Navigation, Settings — switch live. |
 | **Dynamic Theming** | Default (light) and Black (AMOLED) themes with 8 accent color choices applied globally in real time. |
-| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over WiFi directly into the Object Detection pipeline. |
-| **Shake to Undo** | Accelerometer gesture (>2.5g) triggers undo action + TTS confirmation. |
+| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over Wi-Fi directly into the object detection pipeline. |
+| **Shake to Undo** | Accelerometer gesture (>2.5g) triggers undo action and TTS confirmation. |
 | **Bark Sound Cue** | `bark_dashboard.mp3` plays once on welcome/startup and tab interactions. |
 
 ---
@@ -60,7 +60,7 @@ EasyLens is an accessibility assistant mobile application designed for visually 
 
 ### 03 — ARCHITECTURE
 
-For a complete breakdown of the project layout, database systems, and data flow, see the [`architecture.md`](docs/architecture/architecture.md) document.
+> **Note:** For a complete breakdown of the project layout, database systems, and data flow, see the [`architecture.md`](docs/architecture/architecture.md) document.
 
 ```mermaid
 graph TD
@@ -96,7 +96,7 @@ graph TD
 | | [`software.md`](docs/specifications/software.md) | Full software component and technology stack table, Android APK, and iOS IPA specs. |
 | **Features & Modules** | [`features.md`](docs/features_and_modules/features.md) | Screen-by-screen application feature catalog and accessibility controls. |
 | | [`navigation_warning_system.md`](docs/features_and_modules/navigation_warning_system.md) | Multimodal spatial audio and tactile haptic obstacle proximity warning engine. |
-| **Training & Notebooks** | [`mobilenetv2_transfer_learning_workflow.md`](docs/training/mobilenetv2_transfer_learning_workflow.md) | Figure 4.1 Multi-Phase transfer learning and unfreezing workflow flowcharts. |
+| **Training & Notebooks** | [`mobilenetv2_transfer_learning_workflow.md`](docs/training/mobilenetv2_transfer_learning_workflow.md) | Multi-Phase transfer learning and unfreezing workflow flowcharts. |
 | | [`mobilenetv2_finetuning_report.md`](docs/training/mobilenetv2_finetuning_report.md) | MobileNetV2 fine-tuning empirical evaluation report (>85% Top-1 / 2.48ms latency). |
 | | [`hybrid_ai_fusion_app_integration.md`](docs/training/hybrid_ai_fusion_app_integration.md) | Multi-tier AI fusion architecture combining TFLite, ML Kit, and Gemma LLM. |
 | | [`easylens.ipynb`](docs/training/easylens.ipynb) | Jupyter Notebook with complete 4-phase MobileNetV2 fine-tuning training code. |
@@ -231,13 +231,13 @@ easylens/
 - Cloudflare R2 uploads use client-side **AWS Signature Version 4** (HMAC-SHA256) — no secrets transmitted in plaintext
 - Firebase Security Rules enforce per-user read/write isolation
 - Gemma runs fully **on-device** for English — no user query data leaves the device
-- For complete security policies, threat models, and vulnerability reporting procedures, see [SECURITY.md](SECURITY.md).
+- For complete security policies, threat models, and vulnerability reporting procedures, see [`SECURITY.md`](SECURITY.md).
 
 ---
 
 ### 08 — LICENSE
 
-EasyLens is licensed under a **Modified MIT License with Academic Thesis Conditions**. It permits academic study, research, and non-commercial educational review, but requires explicit prior written permission for commercial use and strictly prohibits academic plagiarism. See the [LICENSE.md](LICENSE.md) file for full details and third-party license notices.
+EasyLens is licensed under a **Modified MIT License with Academic Thesis Conditions**. It permits academic study, research, and non-commercial educational review, but requires explicit prior written permission for commercial use and strictly prohibits academic plagiarism. See the [`LICENSE.md`](LICENSE.md) file for full details and third-party license notices.
 
 ```text
 Copyright (c) 2026 Graciella Mhervie D. Jimenez, Jian Kalel D. Marquez,
@@ -253,10 +253,10 @@ EasyLens was conceptualized, researched, and engineered as an undergraduate thes
 
 | Researcher / Author | Role / Area of Focus |
 |---|---|
-| **Graciella Mhervie D. Jimenez** | Research Co-Author & Development Team |
-| **Jian Kalel D. Marquez** | Research Co-Author & Development Team & Hardware Engineering |
-| **Arron Kian M. Parejas** | Lead Software Architect & AI/Machine Learning Engineer |
-| **Jenica Sarah B. Tongol** | Research Co-Author & Development Team |
+| **Graciella Mhervie D. Jimenez** | Project Manager, Lead UI/UX Systems Designer, and Usability Testing Coordinator |
+| **Jian Kalel D. Marquez** | Lead Hardware Systems Engineer, Quality Assurance Specialist, and Field Testing Assistant |
+| **Arron Kian M. Parejas** | Lead Software Architect and Artificial Intelligence / Machine Learning Engineer |
+| **Jenica Sarah B. Tongol** | Lead Quality Analyst, and Technical Documentation Specialist |
 
 - **Institution:** Holy Angel University (HAU)
 - **College:** School of Computing
@@ -267,4 +267,4 @@ EasyLens was conceptualized, researched, and engineered as an undergraduate thes
 
 ### 10 — CONTRIBUTING
 
-We welcome community contributions, academic collaborations, and feature enhancements. Please read our [CONTRIBUTING.md](CONTRIBUTING.md) guide for coding conventions, test requirements, and pull request procedures.
+We welcome community contributions, academic collaborations, and feature enhancements. Please read our [`CONTRIBUTING.md`](CONTRIBUTING.md) guide for coding conventions, test requirements, and pull request procedures.

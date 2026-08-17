@@ -2,15 +2,15 @@
 
 ---
 
-## 1. Executive Summary & Overview
+### 01 — EXECUTIVE SUMMARY & OVERVIEW
 
-This document details the underlying engineering architecture, mathematical geometric feature extraction model, registration workflow, and live matching pipeline for **Face Recognition** in **EasyLens**.
+This document details the underlying engineering architecture, mathematical geometric feature extraction model, registration workflow, and live matching pipeline for Face Recognition in EasyLens.
 
-Instead of heavy pixel-grid alignment or cloud-dependent API calls, EasyLens utilizes a **Client-Side Geometric Landmark & Contour Vector Engine** powered by `google_mlkit_face_detection`. It extracts a normalized 25-dimensional geometric ratio vector per face, ensuring $100\%$ offline processing, zero privacy risk, and real-time execution ($<15\text{ ms}$) on live video streams.
+Instead of heavy pixel-grid alignment or cloud-dependent API calls, EasyLens utilizes a Client-Side Geometric Landmark & Contour Vector Engine powered by `google_mlkit_face_detection`. It extracts a normalized 25-dimensional geometric ratio vector per face, ensuring 100% offline processing, zero privacy risk, and real-time execution (<15 ms) on live video streams.
 
 ---
 
-## 2. Simplified High-Level Flowchart
+### 02 — SIMPLIFIED HIGH-LEVEL FLOWCHART
 
 ```mermaid
 flowchart TD
@@ -40,7 +40,7 @@ flowchart TD
 
 ---
 
-## 3. Detailed Architectural & Data Flow Pipeline
+### 03 — DETAILED ARCHITECTURAL & DATA FLOW PIPELINE
 
 ```mermaid
 flowchart TB
@@ -95,14 +95,14 @@ flowchart TB
 
 ---
 
-## 4. How Registration Works (Step-by-Step Technical Breakdown)
+### 04 — HOW REGISTRATION WORKS (STEP-BY-STEP TECHNICAL BREAKDOWN)
 
-### Step 1: Image Ingestion & Landmark Detection
-* The user opens the **Face Registration Screen** ([face_registration_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/face_registration/face_registration_screen.dart)) and captures a photo (or 3 multi-angle shots: Frontal, Left 15°, Right 15°).
+#### Step 1: Image Ingestion & Landmark Detection
+* The user opens the Face Registration Screen ([face_registration_screen.dart](file:///Users/arronkianparejas/easylens/lib/screens/face_registration/face_registration_screen.dart)) and captures a photo (or 3 multi-angle shots: Frontal, Left 15°, Right 15°).
 * The image is passed to `Google ML Kit FaceDetector` configured with `FaceDetectorOptions(performanceMode: FaceDetectorMode.accurate, enableLandmarks: true, enableContours: true)`.
 
-### Step 2: 25-Dimensional Geometric Feature Vector Extraction
-Unlike standard facial recognition that requires heavy deep neural network embeddings (e.g., FaceNet 128D/512D), EasyLens calculates **25 normalized geometric landmark ratios** via `extractFaceFeatures(Face face, Size imageSize)`:
+#### Step 2: 25-Dimensional Geometric Feature Vector Extraction
+Unlike standard facial recognition that requires heavy deep neural network embeddings (e.g., FaceNet 128D/512D), EasyLens calculates 25 normalized geometric landmark ratios via `extractFaceFeatures(Face face, Size imageSize)`:
 
 1. **Inter-Eye Distance**: $d(\text{Eye}_{\text{left}}, \text{Eye}_{\text{right}}) / \text{BBox}_{\text{width}}$
 2. **Eye-Nose Elevation**: $d(\text{Eye}_{\text{center}}, \text{Nose}_{\text{base}}) / \text{BBox}_{\text{height}}$
@@ -111,7 +111,7 @@ Unlike standard facial recognition that requires heavy deep neural network embed
 5. **Vertical Relative Positions**: Eye Y-offset, Nose Y-offset, Mouth Y-offset normalized by bounding box height $\text{BBox}_{\text{height}}$.
 6. **Contour & Facial Geometry**: 18 additional ratios including cheekbone spacing, jawline contour width, nose bridge height, lip thickness, and overall facial aspect ratio ($\text{BBox}_{\text{height}} / \text{BBox}_{\text{width}}$).
 
-### Step 3: Account-Isolated Local Persistence
+#### Step 3: Account-Isolated Local Persistence
 * The extracted 25D vector is packaged into a `FaceProfile` object containing:
   * `id`: Unique UUID
   * `name`: Person's name entered by the user
@@ -120,8 +120,8 @@ Unlike standard facial recognition that requires heavy deep neural network embed
   * `registeredAt`: Timestamp
 * Stored in `SharedPreferences` under the isolated account key `registered_face_profiles_{uid}` managed by [face_registration_service.dart](file:///Users/arronkianparejas/easylens/lib/services/face_registration_service.dart).
 
-### Step 4: Real-Time Matching & Recognition Engine
+#### Step 4: Real-Time Matching & Recognition Engine
 * During continuous vision streaming, each detected face in the frame generates a 25D live vector $V_{\text{live}}$.
-* The system computes the **Euclidean Distance** against all stored vectors $V_{\text{stored}}$:
+* The system computes the Euclidean Distance against all stored vectors $V_{\text{stored}}$:
   $$d(V_{\text{live}}, V_{\text{stored}}) = \sqrt{\sum_{i=1}^{25} (V_{\text{live}}[i] - V_{\text{stored}}[i])^2}$$
 * **Threshold Match**: If $d \le 0.45$, the match is verified, and EasyLens triggers immediate priority Spatial Text-to-Speech audio feedback: `"[Name] detected in front of you"`.

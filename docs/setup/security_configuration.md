@@ -1,10 +1,10 @@
-# Configuration and security
+# Configuration and Security
 
-EasyLens loads `.env` at startup. The file is intentionally ignored by Git;
-create it locally and never put real secrets in documentation, source code, or
-release builds.
+EasyLens loads `.env` at startup. The file is intentionally ignored by Git; create it locally and never put real secrets in documentation, source code, or release builds.
 
-## Environment variables used by the code
+---
+
+### 01 — ENVIRONMENT VARIABLES USED BY THE CODE
 
 | Integration | Variables |
 | --- | --- |
@@ -18,22 +18,21 @@ release builds.
 | Xiaomi MiMo TTS | `MIMO_API_KEY` |
 | ElevenLabs TTS (Fallback) | `ELEVEN_LABS` |
 
-`D1_DTABASE` is intentionally spelled exactly as the current implementation
-expects. Renaming it requires a code change.
+> [!NOTE]
+> `D1_DTABASE` is intentionally spelled exactly as the current implementation expects. Renaming it requires a code change.
 
-## Platform setup
+---
+
+### 02 — PLATFORM SETUP
 
 - Add the Android Google Maps key through the Android application configuration.
-- Firebase can use platform configuration files or the explicit Firebase values
-  above. If Firebase initialization fails, the app falls back to local mock
-  behavior for supported flows.
-- Android requests camera, microphone, location, contacts, vibration,
-  Bluetooth, and SMS permissions. Exercise only the permissions your build
-  actually needs and test their denial paths.
-- The ESP32 default stream is `http://192.168.4.1:81/stream`; it can be changed
-  from the Devices screen.
+- Firebase can use platform configuration files or the explicit Firebase values above. If Firebase initialization fails, the app falls back to local mock behavior for supported flows.
+- Android requests camera, microphone, location, contacts, vibration, Bluetooth, and SMS permissions. Exercise only the permissions your build actually needs and test their denial paths.
+- The ESP32 default stream is `http://192.168.4.1:81/stream`; it can be changed from the Devices screen.
 
-## Simplified Security Architecture Flowchart
+---
+
+### 03 — SIMPLIFIED SECURITY ARCHITECTURE FLOWCHART
 
 ```mermaid
 graph TD
@@ -43,16 +42,16 @@ graph TD
     Auth --> CloudServices[Restricted Third-Party & Cloudflare API Services]
 ```
 
-## Important security note
+---
 
-The repository currently contains credential-like defaults in application and
-Android configuration. Treat those values as exposed: rotate them, restrict
-their API permissions and origins, and move the replacement values to managed
-secrets before publishing the app. In particular, do not ship R2 long-lived
-S3 credentials in a mobile client. Use a server-side signing service or
-short-lived scoped upload URLs for production.
+### 04 — IMPORTANT SECURITY NOTE
 
-## Suggested local `.env` shape
+> [!WARNING]
+> The repository currently contains credential-like defaults in application and Android configuration. Treat those values as exposed: rotate them, restrict their API permissions and origins, and move the replacement values to managed secrets before publishing the app. In particular, do not ship R2 long-lived S3 credentials in a mobile client. Use a server-side signing service or short-lived scoped upload URLs for production.
+
+---
+
+### 05 — SUGGESTED LOCAL .ENV SHAPE
 
 ```dotenv
 GEMINI_API_KEY=

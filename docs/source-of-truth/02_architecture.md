@@ -1,17 +1,19 @@
 # 02 — Architecture
 
-## Design Principles
+---
+
+### 01 — DESIGN PRINCIPLES
 
 1. **Offline-First** — Core features (object detection, OCR, face recognition, Buddy AI) work without internet using on-device ML models.
 2. **Singleton Services** — All services use the `factory` singleton pattern for global access without dependency injection.
 3. **Reactive UI** — `SettingsService` extends `ChangeNotifier`. The root `MaterialApp` is wrapped in `AnimatedBuilder(animation: settingsService)` so theme/language changes propagate instantly.
-4. **Accessibility by Default** — Every interaction has a TTS announcement. Contrast themes, large tap targets, and haptic feedback are first-class citizens.
+4. **Accessibility by Default** — Every interaction has a TTS announcement. Contrast themes, large tap targets, and haptic feedback are integrated standard features.
 5. **Power & Screen Persistence** — Continuous camera stream HUD modes and multi-step onboarding wizard utilize `wakelock_plus` to maintain active display power without unexpected OS dimming or screen lock.
-6. **Zero-Lag Disk Filtering** — High-frequency transient notifications (such as rapid obstacle warnings) are announced via speech and rendered in UI but filtered out of `SharedPreferences` write queues; only critical alerts are persisted to disk to eliminate main-thread I/O jank.
+6. **Zero-Lag Disk Filtering** — High-frequency transient notifications (such as rapid obstacle warnings) are announced via speech and rendered in UI but filtered out of `SharedPreferences` write queues; only critical alerts are persisted to disk to eliminate main-thread I/O latency.
 
 ---
 
-## System Architecture Diagram
+### 02 — SYSTEM ARCHITECTURE DIAGRAM
 
 #### Simplified Architecture Overview
 ```mermaid
@@ -98,11 +100,11 @@ graph TD
 
 ---
 
-## Service Dependency Graph
+### 03 — SERVICE DEPENDENCY GRAPH
 
-All services are singletons accessed via their factory constructor (e.g., `TtsService()`). There is **no** DI framework.
+All services are singletons accessed via their factory constructor (e.g., `TtsService()`). There is no dependency injection framework.
 
-```
+```text
 SettingsService (root — no service dependencies)
   ├── read by: TtsService, TranslationService, all screens
   └── persists to: SharedPreferences
@@ -132,9 +134,9 @@ Esp32Service
 
 ---
 
-## Data Flow: Camera Frame Processing
+### 04 — DATA FLOW: CAMERA FRAME PROCESSING
 
-This is the most performance-critical pipeline in the app.
+This is the most performance-critical pipeline in the application.
 
 #### Simplified Camera Processing Flow
 ```mermaid
@@ -172,20 +174,20 @@ sequenceDiagram
     end
 ```
 
-### Key Design Decisions
+#### Key Design Decisions
 - **Single-frame lock** (`_isProcessingFrame`): Only one frame is processed at a time. All other frames are dropped. This prevents memory accumulation.
 - **400ms cooldown**: After each processed frame, a 400ms delay ensures ~2.5 FPS processing rate, preventing CPU saturation.
-- **Navigation mode skips image labeling**: In `HudMode.navigation`, only `_detectObjectsOnFrame` runs — NOT `_processCameraImage`. This halves per-frame memory and CPU load.
+- **Navigation mode skips image labeling**: In `HudMode.navigation`, only `_detectObjectsOnFrame` runs — NOT `_processCameraImage`. This reduces per-frame memory and CPU load.
 - **YUV→NV21 in isolate**: The byte conversion runs in a `compute()` isolate to avoid blocking the main thread.
-- **`stopImageStream()` in `dispose()`**: Critical — the camera stream MUST be stopped before the controller is disposed to prevent native memory leaks.
-- **Smart Glasses Fallback**: If the external ESP32 stream drops, the system seamlessly falls back to the device's native camera preview, keeping HUD features active.
-- **Disk I/O Optimization**: Transient obstacle warnings write only to memory and UI state. Storage persistence is reserved for critical safety alerts (`"STOP"`, `"FIRE"`, `"HAZARD"`, `"EMERGENCY"`) to ensure zero main-thread jank.
+- **`stopImageStream()` in `dispose()`**: Critical — the camera stream must be stopped before the controller is disposed to prevent native memory leaks.
+- **Smart Glasses Fallback**: If the external ESP32 stream drops, the system falls back to the device's native camera preview, keeping HUD features active.
+- **Disk I/O Optimization**: Transient obstacle warnings write only to memory and UI state. Storage persistence is reserved for critical safety alerts (`"STOP"`, `"FIRE"`, `"HAZARD"`, `"EMERGENCY"`) to ensure minimal main-thread processing blocks.
 
 ---
 
-## Widget Tree Overview
+### 05 — WIDGET TREE OVERVIEW
 
-```
+```text
 MaterialApp
   └── AnimatedBuilder (listens to SettingsService)
       └── ConfettiOverlay
