@@ -16,6 +16,7 @@ import '../../emergency/emergency_screen.dart';
 import '../hardware_screen.dart';
 import '../../../utils/app_route.dart';
 import 'camera_loading_overlay.dart';
+import '../../../services/sound_service.dart';
 
 class HudCameraView extends StatelessWidget {
   final HudMode selectedHudMode;
@@ -48,36 +49,47 @@ class HudCameraView extends StatelessWidget {
   });
 
   String _refineLabel(String rawLabel) {
-    final label = rawLabel.replaceAll('_', ' ').toLowerCase();
+    final label = rawLabel.replaceAll('_', ' ').trim().toLowerCase();
     if (label.contains('hair drier') || label.contains('hairdryer')) {
       return 'hair drier';
     }
-    if (label.contains('musical instrument') || 
-        label.contains('piano') || 
-        label.contains('musical keyboard') ||
-        label.contains('electronic keyboard')) {
-      return 'laptop or keyboard';
-    }
-    if (label.contains('wall') || label.contains('partition') || label.contains('divider') || label.contains('pattern')) {
-      return 'wall';
-    }
-    if (label.contains('door') || label.contains('doorway') || label.contains('entrance') || label.contains('exit') || label.contains('elevator') || label.contains('lift') || label.contains('metal') || label.contains('gate')) {
+    if (label.contains('doorway') || 
+        label.contains('entrance') || 
+        label.contains('exit') || 
+        label.contains('elevator') || 
+        label.contains('lift') || 
+        label.contains('gate')) {
       return 'door';
     }
     if (label.contains('window') || label.contains('glass window') || label.contains('pane')) {
       return 'window';
     }
-    if (label.contains('chair') || label.contains('stool') || label.contains('sofa') || label.contains('couch') || label.contains('armchair')) {
+    if (label.contains('chair') || label.contains('stool') || label.contains('armchair')) {
       return 'chair';
     }
-    if (label.contains('table') || label.contains('desk') || label.contains('tabletop') || label.contains('countertop')) {
+    if (label.contains('sofa') || label.contains('couch')) {
+      return 'sofa';
+    }
+    if (label.contains('dining table') || label.contains('desk') || label.contains('tabletop') || label.contains('countertop')) {
       return 'table';
     }
-    if (label.contains('computer') || label.contains('screen') || label.contains('monitor') || label.contains('laptop')) {
-      return 'laptop or computer screen';
+    if (label.contains('laptop')) {
+      return 'laptop';
     }
-    if (label.contains('bottle') || label.contains('cup') || label.contains('mug') || label.contains('glass') || label.contains('tableware')) {
-      return 'cup or tableware';
+    if (label.contains('computer') || label.contains('screen') || label.contains('monitor')) {
+      return 'computer screen';
+    }
+    if (label.contains('cell phone') || label.contains('mobile phone') || label.contains('phone')) {
+      return 'cell phone';
+    }
+    if (label.contains('bottle')) {
+      return 'bottle';
+    }
+    if (label.contains('wine glass')) {
+      return 'wine glass';
+    }
+    if (label.contains('cup') || label.contains('mug')) {
+      return 'cup';
     }
     if (label.contains('person') || label.contains('human') || label.contains('man') || label.contains('woman') || 
         label.contains('child') || label.contains('boy') || label.contains('girl') || label.contains('pedestrian') || 
@@ -92,7 +104,7 @@ class HudCameraView extends StatelessWidget {
         label.contains('portrait')) {
       return 'person';
     }
-    return rawLabel;
+    return rawLabel.replaceAll('_', ' ').trim();
   }
 
   @override
@@ -108,6 +120,7 @@ class HudCameraView extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: () {
+                SoundService.playClick();
                 Navigator.push(context, AppRoute.to(const EmergencyScreen()));
               },
               child: Container(
@@ -155,7 +168,10 @@ class HudCameraView extends StatelessWidget {
                             size: 20,
                             color: unread > 0 ? const Color(0xFFDC2626) : null,
                           ),
-                          onPressed: () => Navigator.push(context, AppRoute.to(const NotificationsScreen())),
+                          onPressed: () {
+                            SoundService.playClick();
+                            Navigator.push(context, AppRoute.to(const NotificationsScreen()));
+                          },
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                         ),
@@ -164,13 +180,19 @@ class HudCameraView extends StatelessWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.people_outline, size: 20),
-                    onPressed: () => Navigator.push(context, AppRoute.to(const ContactsScreen())),
+                    onPressed: () {
+                      SoundService.playClick();
+                      Navigator.push(context, AppRoute.to(const ContactsScreen()));
+                    },
                     constraints: const BoxConstraints(),
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                   ),
                   IconButton(
                     icon: const Icon(Icons.settings_outlined, size: 20),
-                    onPressed: () => Navigator.push(context, AppRoute.to(const SettingsScreen())),
+                    onPressed: () {
+                      SoundService.playClick();
+                      Navigator.push(context, AppRoute.to(const SettingsScreen()));
+                    },
                     constraints: const BoxConstraints(),
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                   ),
@@ -208,14 +230,11 @@ class HudCameraView extends StatelessWidget {
                         ...tfliteDetections.asMap().entries.map((entry) {
                             final idx = entry.key;
                             final r = entry.value;
-                            // SSDResult coordinates are already normalized (0..1)
-                            // Rotate coordinates: raw Y (yMin, yMax) maps to screen X (left, width)
-                            double left = ((1.0 - r.yMax) * constraints.maxWidth).clamp(0.0, constraints.maxWidth);
-                            double width = ((r.yMax - r.yMin) * constraints.maxWidth).clamp(0.0, constraints.maxWidth - left);
-                            
-                            // Rotate coordinates: raw X (xMin, xMax) maps to screen Y (top, height)
-                            double top = (r.xMin * constraints.maxHeight).clamp(0.0, constraints.maxHeight);
-                            double height = ((r.xMax - r.xMin) * constraints.maxHeight).clamp(0.0, constraints.maxHeight - top);
+                            // SSDResult coordinates are normalized (0..1) in portrait space (x=horizontal, y=vertical)
+                            double left = (r.xMin * constraints.maxWidth).clamp(0.0, constraints.maxWidth);
+                            double width = ((r.xMax - r.xMin) * constraints.maxWidth).clamp(0.0, constraints.maxWidth - left);
+                            double top = (r.yMin * constraints.maxHeight).clamp(0.0, constraints.maxHeight);
+                            double height = ((r.yMax - r.yMin) * constraints.maxHeight).clamp(0.0, constraints.maxHeight - top);
                             
                             final label = _refineLabel(r.label);
                             final displayLabel = '${label[0].toUpperCase()}${label.substring(1)} (${(r.confidence * 100).toInt()}%)';

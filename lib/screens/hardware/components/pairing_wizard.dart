@@ -7,6 +7,8 @@ import '../../../services/settings_service.dart';
 import '../../notifications/notifications_screen.dart';
 import '../../contacts/contacts_screen.dart';
 import '../../settings/settings_screen.dart';
+import '../../emergency/emergency_screen.dart';
+import '../../../services/sound_service.dart';
 import '../../../utils/app_route.dart';
 
 class PairingWizard extends StatelessWidget {
@@ -52,18 +54,24 @@ class PairingWizard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Text(
-                  'SOS',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+              GestureDetector(
+                onTap: () {
+                  SoundService.playClick();
+                  Navigator.push(context, AppRoute.to(const EmergencyScreen()));
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  child: Text(
+                    'SOS',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -96,7 +104,10 @@ class PairingWizard extends StatelessWidget {
                               size: 20,
                               color: unread > 0 ? const Color(0xFFDC2626) : AppColors.primaryText,
                             ),
-                            onPressed: () => Navigator.push(context, AppRoute.to(const NotificationsScreen())),
+                            onPressed: () {
+                              SoundService.playClick();
+                              Navigator.push(context, AppRoute.to(const NotificationsScreen()));
+                            },
                             constraints: const BoxConstraints(),
                             padding: const EdgeInsets.symmetric(horizontal: 6),
                           ),
@@ -105,7 +116,10 @@ class PairingWizard extends StatelessWidget {
                     ),
                     IconButton(
                       icon: Icon(Icons.people_outline, size: 20, color: AppColors.primaryText),
-                      onPressed: () => Navigator.push(context, AppRoute.to(const ContactsScreen())),
+                      onPressed: () {
+                        SoundService.playClick();
+                        Navigator.push(context, AppRoute.to(const ContactsScreen()));
+                      },
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                     ),
@@ -119,7 +133,10 @@ class PairingWizard extends StatelessWidget {
                             size: 20,
                             color: connected ? const Color(0xFF10B981) : AppColors.primaryText,
                           ),
-                          onPressed: () => Navigator.push(context, AppRoute.to(const SettingsScreen())),
+                          onPressed: () {
+                            SoundService.playClick();
+                            Navigator.push(context, AppRoute.to(const SettingsScreen()));
+                          },
                           constraints: const BoxConstraints(),
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                           tooltip: connected ? 'Glasses connected' : 'Connect glasses',
@@ -128,7 +145,10 @@ class PairingWizard extends StatelessWidget {
                     ),
                     IconButton(
                       icon: Icon(Icons.settings_outlined, size: 20, color: AppColors.primaryText),
-                      onPressed: () => Navigator.push(context, AppRoute.to(const SettingsScreen())),
+                      onPressed: () {
+                        SoundService.playClick();
+                        Navigator.push(context, AppRoute.to(const SettingsScreen()));
+                      },
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../../services/settings_service.dart';
+import '../../services/sound_service.dart';
 
 class GuideSection {
   final int index;
@@ -494,7 +495,10 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () {
+                          SoundService.playClick();
+                          Navigator.of(context).pop();
+                        },
                         child: Container(
                           width: 95,
                           height: 44,

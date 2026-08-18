@@ -6,6 +6,7 @@ import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
+import '../../services/sound_service.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../notifications/notification_settings_screen.dart';
@@ -43,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _speechNavigation = false;
   bool _bubbleTransitionSound = true;
   bool _soundEffects = true;
+  bool _hapticFeedback = true;
   bool _useLocalAI = true;
   bool _showFloatingMascot = true;
 
@@ -85,6 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _speechNavigation = settings.speechNavigation;
     _bubbleTransitionSound = settings.bubbleTransitionSound;
     _soundEffects = settings.soundEffects;
+    _hapticFeedback = settings.hapticFeedback;
     _useLocalAI = settings.useLocalAI;
     _showFloatingMascot = settings.showFloatingMascot;
 
@@ -131,6 +134,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       shakeToUndo: _shakeToUndo,
       speechNavigation: _speechNavigation,
       bubbleTransitionSound: _bubbleTransitionSound,
+      soundEffects: _soundEffects,
+      hapticFeedback: _hapticFeedback,
       useLocalAI: _useLocalAI,
       showFloatingMascot: _showFloatingMascot,
     );
@@ -147,6 +152,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'shakeToUndo': _shakeToUndo,
         'speechNavigation': _speechNavigation,
         'bubbleTransitionSound': _bubbleTransitionSound,
+        'soundEffects': _soundEffects,
+        'hapticFeedback': _hapticFeedback,
         'useLocalAI': _useLocalAI,
         'showFloatingMascot': _showFloatingMascot,
       });
@@ -648,7 +655,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () {
+                          SoundService.playClick();
+                          Navigator.of(context).pop();
+                        },
                         child: Container(
                           height: 44,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1253,6 +1263,98 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onChanged: (val) {
                             setState(() => _bubbleTransitionSound = val);
                             _saveSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('button_sfx', lang),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('button_sfx_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _soundEffects,
+                          onChanged: (val) {
+                            setState(() => _soundEffects = val);
+                            SettingsService().updateSoundEffects(val);
+                            if (val) SoundService.playClick();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('haptic_feedback', lang),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('haptic_feedback_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _hapticFeedback,
+                          onChanged: (val) {
+                            setState(() => _hapticFeedback = val);
+                            SettingsService().updateHapticFeedback(val);
+                            if (val) SoundService.playClick();
                           },
                           activeColor: Colors.white,
                           activeTrackColor: const Color(0xFF48BB78),

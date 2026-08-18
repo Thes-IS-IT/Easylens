@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../../services/settings_service.dart';
 import '../../services/firebase_service.dart';
+import '../../services/sound_service.dart';
 
 class UnitsScreen extends StatefulWidget {
   const UnitsScreen({super.key});
@@ -126,7 +127,10 @@ class _UnitsScreenState extends State<UnitsScreen> {
             children: [
               // 1. Floating Pill Back Button
               GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
+                onTap: () {
+                  SoundService.playClick();
+                  Navigator.of(context).pop();
+                },
                 child: Container(
                   width: 95,
                   height: 44,

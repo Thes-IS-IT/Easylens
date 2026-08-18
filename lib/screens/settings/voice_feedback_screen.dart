@@ -4,6 +4,7 @@ import '../../constants/colors.dart';
 import '../../services/settings_service.dart';
 import '../../services/tts_service.dart';
 import '../../services/firebase_service.dart';
+import '../../services/sound_service.dart';
 
 class VoicePersona {
   final String id;
@@ -224,7 +225,10 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
                 children: [
                   // 1. Floating Pill Back Button
                   GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      SoundService.playClick();
+                      Navigator.of(context).pop();
+                    },
                     child: Container(
                       height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 16),

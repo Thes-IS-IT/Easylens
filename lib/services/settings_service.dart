@@ -175,6 +175,7 @@ class SettingsService extends ChangeNotifier {
   Future<void> updateSettings({
     bool? voiceFeedback,
     bool? hapticFeedback,
+    bool? soundEffects,
     bool? companionSharing,
     String? selectedContrastTheme,
     String? selectedLanguage,
@@ -198,6 +199,7 @@ class SettingsService extends ChangeNotifier {
   }) async {
     if (voiceFeedback != null) this.voiceFeedback = voiceFeedback;
     if (hapticFeedback != null) this.hapticFeedback = hapticFeedback;
+    if (soundEffects != null) this.soundEffects = soundEffects;
     if (companionSharing != null) this.companionSharing = companionSharing;
     if (selectedContrastTheme != null) this.selectedContrastTheme = selectedContrastTheme;
     if (selectedLanguage != null) this.selectedLanguage = selectedLanguage;
@@ -233,6 +235,7 @@ class SettingsService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       if (voiceFeedback != null) await prefs.setBool('voiceFeedback', voiceFeedback);
       if (hapticFeedback != null) await prefs.setBool('hapticFeedback', hapticFeedback);
+      if (soundEffects != null) await prefs.setBool('soundEffects', soundEffects);
       if (companionSharing != null) await prefs.setBool('companionSharing', companionSharing);
       await prefs.setString('selectedContrastTheme', this.selectedContrastTheme);
       await prefs.setString('appearanceTheme', this.appearanceTheme);
@@ -263,6 +266,13 @@ class SettingsService extends ChangeNotifier {
     soundEffects = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('soundEffects', enabled);
+    notifyListeners();
+  }
+
+  Future<void> updateHapticFeedback(bool enabled) async {
+    hapticFeedback = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hapticFeedback', enabled);
     notifyListeners();
   }
 

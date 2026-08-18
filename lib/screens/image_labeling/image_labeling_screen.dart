@@ -14,6 +14,7 @@ import '../dashboard/components/custom_navbar.dart';
 import '../hardware/hardware_screen.dart';
 import '../../utils/app_route.dart';
 import '../../widgets/screen_tutorial_card.dart';
+import '../../services/sound_service.dart';
 
 class ImageLabelingScreen extends StatefulWidget {
   final ValueChanged<int>? onTabSelected;
@@ -312,6 +313,7 @@ class _ImageLabelingScreenState extends State<ImageLabelingScreen>
           padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
           child: GestureDetector(
             onTap: () {
+              SoundService.playClick();
               TtsService().stop();
               Navigator.of(context).pop();
             },

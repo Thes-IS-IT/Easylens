@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'package:tflite_flutter/tflite_flutter.dart';
-import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'package:image/image.dart' as img;
 
@@ -32,11 +31,6 @@ class TfliteProcessor {
       _inputSize = inputTensors[0].shape[1];
       _isInputUint8 = inputTensors[0].type.toString().toLowerCase().contains('uint8');
       
-      print('[SSD] Output tensors:');
-      for (int i = 0; i < outputTensors.length; i++) {
-        print('[SSD Output Tensor $i] shape=${outputTensors[i].shape}, type=${outputTensors[i].type}');
-      }
-      
       _outputShapes = [];
       _locIdx = -1;
       _clsIdx = -1;
@@ -65,7 +59,6 @@ class TfliteProcessor {
 
       if (_locIdx == -1 || _clsIdx == -1 || _scrIdx == -1 || _cntIdx == -1) {
         if (outputTensors.length >= 4) {
-          print('[SSD] Shape-based indexing failed. Falling back to standard order (0, 1, 2, 3).');
           _locIdx = 0;
           _clsIdx = 1;
           _scrIdx = 2;
@@ -75,13 +68,11 @@ class TfliteProcessor {
             _maxDetections = outputTensors[0].shape[1];
           }
         } else {
-          print('[SSD] Model has ${outputTensors.length} outputs — not a valid SSD model. Aborting init.');
           _interpreter?.close();
           _interpreter = null;
           return;
         }
       }
-      print('[SSD] Mapped output indexes: loc=$_locIdx, cls=$_clsIdx, scr=$_scrIdx, cnt=$_cntIdx');
       
       _labels = labelsContent.split('\n')
           .where((l) => l.trim().isNotEmpty)
@@ -89,7 +80,7 @@ class TfliteProcessor {
           .toList();
           
       _isReady = true;
-      print('[SSD] TFLite Processor ready. Input size: $_inputSize');
+      print('[SSD] TFLite Processor ready. Labels count: ${_labels.length}, Input size: $_inputSize');
     } catch (e) {
       print('[SSD] Init error: $e');
     }
@@ -99,36 +90,60 @@ class TfliteProcessor {
   int get inputSize => _inputSize;
 
   /// Converts NV21 camera bytes to a 300×300 RGB Uint8List ready for [runInference].
-  /// Performs downsampling inline without the `image` package.
-  Uint8List prepareInputFromNv21(Uint8List nv21, int srcWidth, int srcHeight) {
+  /// Applies rotation mapping (90° clockwise for standard Android portrait camera)
+  /// so the neural network processes upright images for highly accurate object classifications.
+  Uint8List prepareInputFromNv21(Uint8List nv21, int srcWidth, int srcHeight, {int rotationDegrees = 90}) {
     final int targetSize = _inputSize; // 300
     final rgb = Uint8List(targetSize * targetSize * 3);
     final int uvStart = srcWidth * srcHeight;
 
+    final bool isRotated = rotationDegrees == 90 || rotationDegrees == 270;
+    final int physW = isRotated ? srcHeight : srcWidth;
+    final int physH = isRotated ? srcWidth : srcHeight;
+
+    final double scaleX = physW / targetSize;
+    final double scaleY = physH / targetSize;
+
+    int outIdx = 0;
     for (int ty = 0; ty < targetSize; ty++) {
-      final int sy = (ty * srcHeight) ~/ targetSize;
-      final int rowOffset = sy * srcWidth;
-      final int uvRowOffset = uvStart + (sy >> 1) * srcWidth;
-
       for (int tx = 0; tx < targetSize; tx++) {
-        final int sx = (tx * srcWidth) ~/ targetSize;
+        final int px = (tx * scaleX).toInt();
+        final int py = (ty * scaleY).toInt();
 
-        final int yVal = nv21[rowOffset + sx] & 0xFF;
+        int sx, sy;
+        if (rotationDegrees == 90) {
+          sx = py;
+          sy = srcHeight - px - 1;
+        } else if (rotationDegrees == 180) {
+          sx = srcWidth - px - 1;
+          sy = srcHeight - py - 1;
+        } else if (rotationDegrees == 270) {
+          sx = srcWidth - py - 1;
+          sy = px;
+        } else {
+          sx = px;
+          sy = py;
+        }
+
+        sx = sx.clamp(0, srcWidth - 1);
+        sy = sy.clamp(0, srcHeight - 1);
+
+        final int yVal = nv21[sy * srcWidth + sx] & 0xFF;
         final int uvCol = (sx >> 1) << 1;
-        final int uvIdx = uvRowOffset + uvCol;
+        final int uvIdx = uvStart + (sy >> 1) * srcWidth + uvCol;
 
-        final int v = (uvIdx < nv21.length ? nv21[uvIdx] : 128) - 128;
-        final int u = (uvIdx + 1 < nv21.length ? nv21[uvIdx + 1] : 128) - 128;
+        // In standard NV21, V precedes U: [V0, U0, V1, U1...]
+        final int vVal = (uvIdx < nv21.length ? nv21[uvIdx] : 128) - 128;
+        final int uVal = (uvIdx + 1 < nv21.length ? nv21[uvIdx + 1] : 128) - 128;
 
-        // Fast integer fixed-point YUV to RGB (8-bit shift)
-        final int r = (yVal + ((351 * v) >> 8)).clamp(0, 255);
-        final int g = (yVal - ((86 * u + 179 * v) >> 8)).clamp(0, 255);
-        final int b = (yVal + ((443 * u) >> 8)).clamp(0, 255);
+        // Fast integer fixed-point YUV to RGB (ITU-R BT.601)
+        final int r = (yVal + ((359 * vVal) >> 8)).clamp(0, 255);
+        final int g = (yVal - ((88 * uVal + 183 * vVal) >> 8)).clamp(0, 255);
+        final int b = (yVal + ((454 * uVal) >> 8)).clamp(0, 255);
 
-        final int outIdx = (ty * targetSize + tx) * 3;
-        rgb[outIdx] = r;
-        rgb[outIdx + 1] = g;
-        rgb[outIdx + 2] = b;
+        rgb[outIdx++] = r;
+        rgb[outIdx++] = g;
+        rgb[outIdx++] = b;
       }
     }
     return rgb;
@@ -190,22 +205,22 @@ class TfliteProcessor {
       final results = <SSDResult>[];
       for (int i = 0; i < math.min(count, _maxDetections); i++) {
         final double score = _getVal(outputs[_scrIdx]!, i);
-        if (score < 0.15) continue; // standard threshold
+        if (score < 0.25) continue; // standard threshold
         
         final int classIdx = _getVal(outputs[_clsIdx]!, i).toInt();
-        if (classIdx <= 0 || classIdx >= _labels.length) continue;
+        if (classIdx < 0 || classIdx >= _labels.length) continue;
         
         final name = _labels[classIdx];
-        if (name == '???' || name.isEmpty) continue;
+        if (name == '???' || name == 'background' || name.isEmpty) continue;
         
         results.add(SSDResult(
           label: name,
           confidence: score,
           classIndex: classIdx,
-          yMin: _getBox(outputs[_locIdx]!, i, 0),
-          xMin: _getBox(outputs[_locIdx]!, i, 1),
-          yMax: _getBox(outputs[_locIdx]!, i, 2),
-          xMax: _getBox(outputs[_locIdx]!, i, 3),
+          yMin: _getBox(outputs[_locIdx]!, i, 0).clamp(0.0, 1.0),
+          xMin: _getBox(outputs[_locIdx]!, i, 1).clamp(0.0, 1.0),
+          yMax: _getBox(outputs[_locIdx]!, i, 2).clamp(0.0, 1.0),
+          xMax: _getBox(outputs[_locIdx]!, i, 3).clamp(0.0, 1.0),
         ));
       }
 

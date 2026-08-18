@@ -5,6 +5,7 @@ import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/notion_service.dart';
+import '../../services/sound_service.dart';
 
 class SurveyScreen extends StatefulWidget {
   const SurveyScreen({super.key});
@@ -161,7 +162,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.close, color: headerTextColor),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            SoundService.playClick();
+            Navigator.of(context).pop();
+          },
         ),
         title: Text(
           'Share your feedback!',

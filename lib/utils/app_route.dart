@@ -64,6 +64,60 @@ class AppRoute {
     );
   }
 
+  /// 🔍 CINEMATIC ZOOM-IN & FADE-IN TRANSITION
+  /// The current screen smoothly zooms forward (expanding from 1.0 to 1.25 towards the camera with soft dissolve),
+  /// while the incoming screen smoothly fades in and settles from 0.92 to 1.0!
+  static PageRouteBuilder<T> zoomFadeIn<T>(Widget screen) {
+    return PageRouteBuilder<T>(
+      transitionDuration: const Duration(milliseconds: 550),
+      reverseTransitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, animation, secondaryAnimation) => screen,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final incomingScale = Tween<double>(begin: 0.92, end: 1.0).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+        final incomingFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0.1, 0.85, curve: Curves.easeOut),
+          ),
+        );
+
+        final outgoingScale = Tween<double>(begin: 1.0, end: 1.25).animate(
+          CurvedAnimation(
+            parent: secondaryAnimation,
+            curve: Curves.easeInOutCubic,
+          ),
+        );
+
+        final outgoingFade = Tween<double>(begin: 1.0, end: 0.0).animate(
+          CurvedAnimation(
+            parent: secondaryAnimation,
+            curve: const Interval(0.0, 0.75, curve: Curves.easeIn),
+          ),
+        );
+
+        return FadeTransition(
+          opacity: outgoingFade,
+          child: ScaleTransition(
+            scale: outgoingScale,
+            child: FadeTransition(
+              opacity: incomingFade,
+              child: ScaleTransition(
+                scale: incomingScale,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   /// 🐶 HERO MASCOT ZOOM TRANSITION
   /// Used upon successful login when navigating to Dashboard.
   /// The Buddy Mascot GIF expands towards the user camera with a happy glow reveal,

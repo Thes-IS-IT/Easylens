@@ -65,6 +65,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
+  bool _isInitializingCamera = false;
   ImageLabeler? _imageLabeler;
   final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   bool _isProcessingFrame = false;
@@ -642,7 +643,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
       final modelBytes = await rootBundle.load('assets/models/ssd_mobilenet.tflite');
       final labelsContent = await rootBundle.loadString('assets/models/ssd_labels.txt');
       await _tfliteProcessor.init(modelBytes.buffer.asUint8List(), labelsContent);
-      print("[SSD] SSD MobileNet V1 initialized successfully. isReady=${_tfliteProcessor.isReady}");
+      print("[SSD] SSD MobileNet V1 initialized successfully with SSD labels. isReady=${_tfliteProcessor.isReady}");
     } catch (e) {
       print("[SSD] Non-fatal: SSD MobileNet model not loaded: $e");
     }
@@ -1105,6 +1106,18 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   }
 
   Future<void> _initializeCamera({bool forceMobile = false}) async {
+    if (_isInitializingCamera) return;
+    _isInitializingCamera = true;
+
+    if (mounted) {
+      setState(() {
+        _pairStep = 4;
+        _isCameraInitialized = false;
+      });
+    }
+
+    final stopwatch = Stopwatch()..start();
+
     if (!forceMobile && !_useMobileCamera && !Esp32Service().isConnected && !Esp32Service().isConnecting) {
       await Esp32Service().connect().timeout(
         const Duration(seconds: 2),
@@ -1112,9 +1125,14 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
       );
     }
     if (!forceMobile && !_useMobileCamera && Esp32Service().isConnected) {
+      final elapsed = stopwatch.elapsedMilliseconds;
+      if (elapsed < 1800) {
+        await Future.delayed(Duration(milliseconds: 1800 - elapsed));
+      }
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
+          _isInitializingCamera = false;
           _pairStep = 4;
         });
       }
@@ -1122,14 +1140,21 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
     }
     
     // Instant Fallback to Phone/Mobile Camera without hanging
-    await _initializeMobileCameraOnly();
+    await _initializeMobileCameraOnly(stopwatch: stopwatch);
   }
 
-  Future<void> _initializeMobileCameraOnly() async {
+  Future<void> _initializeMobileCameraOnly({Stopwatch? stopwatch}) async {
     if (_cameraController != null && _cameraController!.value.isInitialized) {
+      if (stopwatch != null) {
+        final elapsed = stopwatch.elapsedMilliseconds;
+        if (elapsed < 1800) {
+          await Future.delayed(Duration(milliseconds: 1800 - elapsed));
+        }
+      }
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
+          _isInitializingCamera = false;
           _pairStep = 4;
         });
       }
@@ -1149,19 +1174,33 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         await controller.initialize();
         if (!mounted) {
           controller.dispose();
+          _isInitializingCamera = false;
           return;
         }
         controller.startImageStream(_onCameraFrameReceived);
-        setState(() {
-          _cameraController = controller;
-          _isCameraInitialized = true;
-          _useMobileCamera = true;
-          _pairStep = 4;
-        });
+
+        if (stopwatch != null) {
+          final elapsed = stopwatch.elapsedMilliseconds;
+          if (elapsed < 1800) {
+            await Future.delayed(Duration(milliseconds: 1800 - elapsed));
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _cameraController = controller;
+            _isCameraInitialized = true;
+            _isInitializingCamera = false;
+            _useMobileCamera = true;
+            _pairStep = 4;
+          });
+        }
       } else {
+        _isInitializingCamera = false;
         _showNoCameraMessage();
       }
     } catch (e) {
+      _isInitializingCamera = false;
       print('Camera initialization error: $e');
       _showNoCameraMessage();
     }
@@ -1359,9 +1398,8 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
       return;
     }
 
-    // Centering: In portrait mode, raw image Y maps to screen X.
-    // Normalized horizontal center on screen is: 1.0 - (yMin + yMax) / 2
-    final normCenterX = 1.0 - ((targetResult.yMin + targetResult.yMax) / 2.0);
+    // Centering: Normalized horizontal center on portrait screen
+    final normCenterX = (targetResult.xMin + targetResult.xMax) / 2.0;
     final isCentered = normCenterX >= 0.38 && normCenterX <= 0.62;
     final direction = normCenterX < 0.38 ? 'left' : (normCenterX > 0.62 ? 'right' : 'center');
 
@@ -2186,28 +2224,41 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   }
 
   String _refineLabel(String rawLabel) {
-    final label = rawLabel.replaceAll('_', ' ').toLowerCase();
-    if (label.contains('door') || 
-        label.contains('doorway') || 
+    final label = rawLabel.replaceAll('_', ' ').trim().toLowerCase();
+    if (label.contains('doorway') || 
         label.contains('entrance') || 
         label.contains('exit') || 
         label.contains('elevator') || 
         label.contains('lift') || 
-        label.contains('metal') || 
         label.contains('gate')) {
       return 'door';
     }
-    if (label.contains('chair') || label.contains('stool') || label.contains('sofa') || label.contains('couch') || label.contains('armchair')) {
+    if (label.contains('chair') || label.contains('stool') || label.contains('armchair')) {
       return 'chair';
     }
-    if (label.contains('table') || label.contains('desk') || label.contains('tabletop') || label.contains('countertop')) {
+    if (label.contains('sofa') || label.contains('couch')) {
+      return 'sofa';
+    }
+    if (label.contains('dining table') || label.contains('desk') || label.contains('tabletop') || label.contains('countertop')) {
       return 'table';
     }
-    if (label.contains('computer') || label.contains('screen') || label.contains('monitor') || label.contains('laptop')) {
-      return 'laptop or computer screen';
+    if (label.contains('laptop')) {
+      return 'laptop';
     }
-    if (label.contains('bottle') || label.contains('cup') || label.contains('mug') || label.contains('glass') || label.contains('tableware')) {
-      return 'cup or tableware';
+    if (label.contains('computer') || label.contains('screen') || label.contains('monitor')) {
+      return 'computer screen';
+    }
+    if (label.contains('cell phone') || label.contains('mobile phone') || label.contains('phone')) {
+      return 'cell phone';
+    }
+    if (label.contains('bottle')) {
+      return 'bottle';
+    }
+    if (label.contains('wine glass')) {
+      return 'wine glass';
+    }
+    if (label.contains('cup') || label.contains('mug')) {
+      return 'cup';
     }
     if (label.contains('person') || label.contains('human') || label.contains('man') || label.contains('woman') || 
         label.contains('child') || label.contains('boy') || label.contains('girl') || label.contains('pedestrian') || 
@@ -2222,7 +2273,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         label.contains('portrait')) {
       return 'person';
     }
-    return rawLabel;
+    return rawLabel.replaceAll('_', ' ').trim();
   }
 
   // Processes each streaming camera frame through Google ML Kit Labeler continuously

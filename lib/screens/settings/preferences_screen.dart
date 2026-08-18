@@ -20,6 +20,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   bool _voiceFeedback = true;
   bool _navigationAssistant = true;
   bool _hapticFeedback = true;
+  bool _soundEffects = true;
   double _speechRate = 0.5;
   double _pitch = 0.5;
   String _selectedVoicePersona = 'Aria (Calm)';
@@ -39,6 +40,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     setState(() {
       _voiceFeedback = settings.voiceFeedback;
       _hapticFeedback = settings.hapticFeedback;
+      _soundEffects = settings.soundEffects;
       _selectedVoicePersona = settings.selectedVoicePersona;
       _speechRate = settings.speechRate;
       _pitch = settings.speechPitch;
@@ -47,11 +49,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     });
   }
 
-  void _saveSettings({bool? voice, bool? haptics, double? rate, double? pitch}) {
+  void _saveSettings({bool? voice, bool? haptics, bool? sounds, double? rate, double? pitch}) {
     final settings = SettingsService();
     settings.updateSettings(
       voiceFeedback: voice,
       hapticFeedback: haptics,
+      soundEffects: sounds,
       speechRate: rate,
       speechPitch: pitch,
     );
@@ -62,6 +65,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       FirebaseService().syncPreferencesToCloud(user.uid, {
         'voiceFeedback': voice ?? _voiceFeedback,
         'hapticFeedback': haptics ?? _hapticFeedback,
+        'soundEffects': sounds ?? _soundEffects,
         'speechRate': rate ?? _speechRate,
         'speechPitch': pitch ?? _pitch,
       });
@@ -563,6 +567,21 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                                 onChanged: (val) {
                                   setState(() => _hapticFeedback = val);
                                   _saveSettings(haptics: val);
+                                },
+                                titleColor: tileTextColor,
+                              ),
+                              Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
+                              _buildSwitchRow(
+                                title: isFilipino ? 'Tunog ng Click sa Pindutan' : 'Button Click Sounds',
+                                subtitle: isFilipino
+                                    ? 'Mabilis na tunog ng pag-click kapag pumipindot ng mga buton.'
+                                    : 'Plays instant low-latency click sound effects on all button clicks.',
+                                value: _soundEffects,
+                                onChanged: (val) {
+                                  setState(() => _soundEffects = val);
+                                  SettingsService().updateSoundEffects(val);
+                                  _saveSettings(sounds: val);
+                                  if (val) SoundService.playClick();
                                 },
                                 titleColor: tileTextColor,
                               ),

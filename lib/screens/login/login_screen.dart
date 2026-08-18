@@ -9,6 +9,8 @@ import '../../services/sound_service.dart';
 import '../../widgets/screen_tutorial_card.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../welcome/welcome_screen.dart';
+import '../onboarding/onboarding_screen.dart';
+import '../../widgets/drifting_clouds.dart';
 import '../../utils/app_route.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -93,8 +95,11 @@ class _LoginScreenState extends State<LoginScreen>
     precacheImage(const AssetImage('assets/mascots/01_happy.gif'), context);
     precacheImage(const AssetImage('assets/mascots/02_error.gif'), context);
     precacheImage(const AssetImage('assets/mascots/03_loading.gif'), context);
+    precacheImage(const AssetImage('assets/mascots/04_congratulations.gif'), context);
     precacheImage(const AssetImage('assets/mascots/05_welcome.gif'), context);
     precacheImage(const AssetImage('assets/mascots/06_thinking.gif'), context);
+    precacheImage(const AssetImage('assets/mascots/07_crying.gif'), context);
+    precacheImage(const AssetImage('assets/mascots/08_fetch.gif'), context);
   }
 
   void _setupFocusListeners() {
@@ -513,12 +518,16 @@ class _LoginScreenState extends State<LoginScreen>
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 0),
-          child: FadeTransition(
-            opacity: _formFadeOut,
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
+              // Main Hero Content
+              FadeTransition(
+                opacity: _formFadeOut,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               // 1. Back button row
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -531,7 +540,7 @@ class _LoginScreenState extends State<LoginScreen>
                         Navigator.of(context).pop();
                       } else {
                         Navigator.of(context).pushReplacement(
-                          AppRoute.to(const WelcomeScreen()),
+                          AppRoute.to(const OnboardingScreen()),
                         );
                       }
                     },
@@ -667,10 +676,20 @@ class _LoginScreenState extends State<LoginScreen>
             ],
           ),
         ),
-      ),
+
+        // Drifting Grey Clouds floating & looping Right-to-Left, overlaying text & mascot, fading out on login success
+        Positioned.fill(
+          child: DriftingCloudsWidget(
+            isVisible: !_loginSuccess,
+            height: 250,
+          ),
+        ),
+      ],
     ),
-  );
-  }
+  ),
+),
+);
+}
 
   Widget _buildPremiumTextField({
     required TextEditingController controller,

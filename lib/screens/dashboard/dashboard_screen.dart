@@ -663,7 +663,10 @@ class _DraggableBuddyButtonState extends State<DraggableBuddyButton> {
             );
           });
         },
-        onTap: widget.onTap,
+        onTap: () {
+          SoundService.playClick();
+          widget.onTap();
+        },
         child: Container(
           width: 72,
           height: 72,
