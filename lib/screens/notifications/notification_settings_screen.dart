@@ -86,7 +86,10 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               ),
               Switch(
                 value: value,
-                onChanged: onChanged,
+                onChanged: (val) {
+                  SoundService.playClick();
+                  onChanged(val);
+                },
                 activeColor: isDark ? AppColors.primaryButtonText : Colors.white,
                 activeTrackColor: activeColor,
                 inactiveThumbColor: Colors.white,

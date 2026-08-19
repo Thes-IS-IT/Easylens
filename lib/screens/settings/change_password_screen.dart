@@ -232,7 +232,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                 borderRadius: BorderRadius.circular(28.0),
                               ),
                             ),
-                            onPressed: _handleUpdatePassword,
+                            onPressed: () {
+                              SoundService.playClick();
+                              _handleUpdatePassword();
+                            },
                             child: Text(
                               'Update Password',
                               style: GoogleFonts.inter(

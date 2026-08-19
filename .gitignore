@@ -56,3 +56,9 @@ journals/
 *.md.tmp
 journal_*.md
 
+# Large build archives
+*.xcarchive
+*.xcarchive.zip
+*.ipa
+*.apk
+

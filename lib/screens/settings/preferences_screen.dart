@@ -198,6 +198,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 label: Text(label),
                 selected: isSelected,
                 onSelected: (selected) {
+                  SoundService.playClick();
                   if (selected) {
                     setState(() {
                       _selectedTextSize = keyStr;
@@ -364,7 +365,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           const SizedBox(width: 16),
           Switch(
             value: value,
-            onChanged: onChanged,
+            onChanged: (val) {
+              SoundService.playClick();
+              onChanged(val);
+            },
             activeColor: isDark ? AppColors.primaryButtonText : Colors.white,
             activeTrackColor: AppColors.primaryButton,
             inactiveThumbColor: Colors.white,
@@ -623,6 +627,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                                 ),
                                 trailing: Icon(Icons.chevron_right, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
                                 onTap: () async {
+                                  SoundService.playClick();
                                   await Navigator.of(context).push(
                                     AppRoute.to(const VoiceFeedbackScreen()),
                                   );

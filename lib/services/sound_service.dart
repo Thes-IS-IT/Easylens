@@ -20,6 +20,7 @@ class SoundService {
     ja.AudioPlayer(),
     ja.AudioPlayer(),
   ];
+  static final AudioPlayer _fallbackClickPlayer = AudioPlayer();
   static int _clickIndex = 0;
   static bool _soundButtonLoaded = false;
 
@@ -27,24 +28,26 @@ class SoundService {
   static final AudioPlayer _bubblePlayer = AudioPlayer();
   static final AudioPlayer _barkPlayer = AudioPlayer();
 
-  /// Pre-load flutter_sound_button DefaultSound.click sound on app boot
+  /// Pre-load button click sound on app boot into memory
   static Future<void> init() async {
     if (_soundButtonLoaded) return;
     _soundButtonLoaded = true;
     try {
-      final clickPath = defaultSoundPaths[DefaultSound.click] ??
-          'packages/flutter_sound_button/assets/sounds/click.mp3';
-      for (final player in _clickPlayers) {
-        await player.setAsset(clickPath);
-        await player.setVolume(1.0);
-      }
-      print('[SoundService] flutter_sound_button 4-player click pool preloaded');
+      await Future.wait(_clickPlayers.map((player) async {
+        try {
+          await player.setAsset('assets/sounds/button_click.mp3', preload: true);
+          await player.setVolume(1.0);
+        } catch (e) {
+          print('[SoundService] Click player asset load note: $e');
+        }
+      }));
+      print('[SoundService] 4-player click pool preloaded successfully');
     } catch (e) {
-      print('[SoundService] flutter_sound_button load error: $e');
+      print('[SoundService] Click pool init note: $e');
     }
   }
 
-  /// Play click sound with flutter_sound_button's DefaultSound.click + super-high tactile haptic punch with ZERO delay.
+  /// Play click sound with super-high tactile haptic punch with ZERO delay.
   static void playClick({bool isHeavy = true}) {
     final settings = SettingsService();
 
@@ -65,18 +68,30 @@ class SoundService {
         SystemSound.play(SystemSoundType.click);
       } catch (_) {}
 
-      // Simultaneous immediate just_audio flutter_sound_button playback (no async waiting)
+      // Immediate just_audio playback with seamless audioplayers fallback
       try {
         if (!_soundButtonLoaded) {
           init();
         }
         final player = _clickPlayers[_clickIndex++ % _clickPlayers.length];
-        player.seek(Duration.zero);
-        player.play();
+        player.seek(Duration.zero).then((_) {
+          player.play().catchError((_) {
+            _playFallbackClick();
+          });
+        }).catchError((_) {
+          _playFallbackClick();
+        });
       } catch (e) {
-        print('[SoundService] Click play notice: $e');
+        _playFallbackClick();
       }
     }
+  }
+
+  static void _playFallbackClick() {
+    try {
+      _fallbackClickPlayer.stop();
+      _fallbackClickPlayer.play(AssetSource('sounds/button_click.mp3'), volume: 1.0);
+    } catch (_) {}
   }
 
   /// Play click action with super-high haptics & instant click sound.

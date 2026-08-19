@@ -62,6 +62,7 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
   }
 
   void _selectPersona(VoicePersona vp) {
+    SoundService.playClick();
     final isFilipinoLanguage = SettingsService().selectedLanguage == 'Tagalog';
     final isFilipinoPersona = vp.id == 'maya';
     final isDisabled = (isFilipinoLanguage && !isFilipinoPersona) || (!isFilipinoLanguage && isFilipinoPersona);
@@ -92,6 +93,7 @@ class _VoiceFeedbackScreenState extends State<VoiceFeedbackScreen> {
   }
 
   void _togglePlay(String id) {
+    SoundService.playClick();
     final isFilipinoLanguage = SettingsService().selectedLanguage == 'Tagalog';
     final isFilipinoPersona = id == 'maya';
     final isDisabled = (isFilipinoLanguage && !isFilipinoPersona) || (!isFilipinoLanguage && isFilipinoPersona);

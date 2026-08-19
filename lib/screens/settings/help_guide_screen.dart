@@ -125,6 +125,7 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
   ];
 
   void _toggleSection(int index) {
+    SoundService.playClick();
     setState(() {
       if (_expandedSections.contains(index)) {
         _expandedSections.remove(index);

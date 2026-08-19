@@ -218,6 +218,7 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                           inactiveThumbColor: Colors.white,
                           inactiveTrackColor: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() {
                               if (val) {
                                 _enabledCards.add(key);

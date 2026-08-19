@@ -132,6 +132,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   }
 
   Future<void> _pickAndUploadImage() async {
+    SoundService.playClick();
     final picker = ImagePicker();
     try {
       final XFile? pickedFile = await picker.pickImage(
@@ -638,7 +639,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                                 borderRadius: BorderRadius.circular(28.0),
                               ),
                             ),
-                            onPressed: _handleSave,
+                            onPressed: () {
+                              SoundService.playClick();
+                              _handleSave();
+                            },
                             child: Text(
                               'Save Changes',
                               style: GoogleFonts.inter(

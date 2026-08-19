@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:vibration/vibration.dart';
 import '../../../constants/colors.dart';
 import '../../../services/settings_service.dart';
+import '../../../services/sound_service.dart';
 
 class CustomNavbar extends StatelessWidget {
   final int currentIndex;
@@ -22,14 +23,7 @@ class CustomNavbar extends StatelessWidget {
   });
 
   void _triggerHaptic() {
-    if (SettingsService().hapticFeedback) {
-      try {
-        Vibration.vibrate(duration: 40, amplitude: 255);
-      } catch (_) {}
-      try {
-        HapticFeedback.heavyImpact();
-      } catch (_) {}
-    }
+    SoundService.playClick();
   }
 
   @override

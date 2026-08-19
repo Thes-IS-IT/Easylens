@@ -56,6 +56,7 @@ class _UnitsScreenState extends State<UnitsScreen> {
 
     return GestureDetector(
       onTap: () {
+        SoundService.playClick();
         setState(() => _selectedUnit = title);
         _saveSettings(title);
       },

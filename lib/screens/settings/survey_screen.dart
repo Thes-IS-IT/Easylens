@@ -202,6 +202,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                   final isSelected = _selectedRating == item['value'];
                   return GestureDetector(
                     onTap: () {
+                      SoundService.playClick();
                       setState(() {
                         _selectedRating = item['value'] as int;
                       });
@@ -248,6 +249,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                   final isSelected = _selectedSubject == subj['label'];
                   return GestureDetector(
                     onTap: () {
+                      SoundService.playClick();
                       setState(() {
                         _selectedSubject = subj['label'] as String;
                       });
@@ -341,7 +343,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitFeedback,
+                  onPressed: _isSubmitting ? null : () {
+                    SoundService.playClick();
+                    _submitFeedback();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryButton,
                     foregroundColor: AppColors.primaryButtonText,

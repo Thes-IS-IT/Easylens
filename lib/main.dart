@@ -16,7 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Pre-load flutter_sound_button click sound
-  SoundService.init();
+  await SoundService.init();
 
   // Global Flutter error handler to prevent native framework crashes
   FlutterError.onError = (FlutterErrorDetails details) {

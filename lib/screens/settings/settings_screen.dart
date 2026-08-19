@@ -346,6 +346,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: const Color(0xFF94A3B8),
                         ),
                         onPressed: () {
+                          SoundService.playClick();
                           setDialogState(() {
                             obscureText = !obscureText;
                           });
@@ -393,6 +394,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               actions: [
                 TextButton(
                   onPressed: () {
+                    SoundService.playClick();
                     final keyInput = controller.text.trim();
                     if (keyInput.isEmpty) {
                       setDialogState(() {
@@ -420,7 +422,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    SoundService.playClick();
+                    Navigator.of(context).pop();
+                  },
                   child: Text(
                     isFilipino ? "Kanselahin" : "Cancel",
                     style: GoogleFonts.inter(
@@ -431,6 +436,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
+                    SoundService.playClick();
                     final val = controller.text.trim();
                     setState(() {});
                     settings.updateSettings(geminiApiKey: val);
@@ -546,7 +552,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                SoundService.playClick();
+                Navigator.of(context).pop();
+              },
               child: Text(
                 isFilipino ? "Kanselahin" : "Cancel",
                 style: GoogleFonts.inter(
@@ -557,6 +566,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             ElevatedButton(
               onPressed: () {
+                SoundService.playClick();
                 Navigator.of(context).pop();
                 _openURL(downloadUrl);
               },
@@ -725,6 +735,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const ProfileDetailsScreen()),
                       ).then((_) => setState(() {}));
@@ -739,6 +750,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const ChangePasswordScreen()),
                       );
@@ -790,6 +802,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedLanguage = 'English');
                                 _saveSettings();
                               },
@@ -817,6 +830,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedLanguage = 'Filipino');
                                 _saveSettings();
                               },
@@ -864,6 +878,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const NotificationSettingsScreen()),
                       );
@@ -888,6 +903,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const PreferencesScreen()),
                       );
@@ -930,6 +946,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedAppearance = 'Default');
                                 _saveSettings();
                               },
@@ -965,6 +982,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedAppearance = 'White');
                                 _saveSettings();
                               },
@@ -1000,6 +1018,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedAppearance = 'Black');
                                 _saveSettings();
                               },
@@ -1060,6 +1079,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                           return GestureDetector(
                             onTap: () {
+                              SoundService.playClick();
                               setState(() => _selectedAccentColorIndex = idx);
                               _saveSettings();
                             },
@@ -1108,6 +1128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const UnitsScreen()),
                       ).then((_) => setState(() {}));
@@ -1132,6 +1153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const CustomizeHomeScreen()),
                       ).then((_) => setState(() {}));
@@ -1171,6 +1193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _shakeToUndo,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _shakeToUndo = val);
                             _saveSettings();
                           },
@@ -1216,6 +1239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _speechNavigation,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _speechNavigation = val);
                             _saveSettings();
                           },
@@ -1261,6 +1285,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _bubbleTransitionSound,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _bubbleTransitionSound = val);
                             _saveSettings();
                           },
@@ -1404,6 +1429,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _useLocalAI,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _useLocalAI = val);
                             _saveSettings();
                           },
@@ -1449,6 +1475,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _showFloatingMascot,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _showFloatingMascot = val);
                             _saveSettings();
                           },
@@ -1477,6 +1504,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       _showGeminiApiKeyDialog();
                     },
                   ),
@@ -1547,6 +1575,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                 ),
                                 onPressed: () {
+                                  SoundService.playClick();
                                   Navigator.of(context).push(
                                     AppRoute.to(const HelpGuideScreen()),
                                   );
@@ -1579,6 +1608,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                 ),
                                 onPressed: () async {
+                                  SoundService.playClick();
                                   final prefs = await SharedPreferences.getInstance();
                                   await prefs.setBool('has_completed_tutorial', false);
                                   DashboardScreen.triggerTutorial();
@@ -1674,7 +1704,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     crossAxisAlignment: WrapCrossAlignment.center,
                                     children: [
                                       GestureDetector(
-                                        onTap: () => _openURL('https://easylense-website.vercel.app/'),
+                                        onTap: () {
+                                          SoundService.playClick();
+                                          _openURL('https://easylense-website.vercel.app/');
+                                        },
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
@@ -1694,7 +1727,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         ),
                                       ),
                                       GestureDetector(
-                                        onTap: () => _openURL('https://github.com/Thes-IS-IT'),
+                                        onTap: () {
+                                          SoundService.playClick();
+                                          _openURL('https://github.com/Thes-IS-IT');
+                                        },
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
@@ -1761,7 +1797,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6)),
                                   )
                                 : Icon(Icons.refresh, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
-                            onTap: _checkForUpdates,
+                            onTap: () {
+                              SoundService.playClick();
+                              _checkForUpdates();
+                            },
                           ),
                         ),
                         
@@ -1792,7 +1831,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: GoogleFonts.inter(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
                             ),
                             trailing: Icon(Icons.open_in_new, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8), size: 18),
-                            onTap: () => _openURL('https://www.facebook.com/profile.php?id=61566090583740'),
+                            onTap: () {
+                              SoundService.playClick();
+                              _openURL('https://www.facebook.com/profile.php?id=61566090583740');
+                            },
                           ),
                         ),
                         
@@ -1824,6 +1866,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             trailing: Icon(Icons.chevron_right, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8), size: 20),
                             onTap: () {
+                              SoundService.playClick();
                               Navigator.of(context).push(
                                 AppRoute.to(SurveyScreen()),
                               );
@@ -1898,6 +1941,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   onPressed: () async {
+                    SoundService.playClick();
                     await _firebaseService.signOut();
                     if (mounted) {
                       Navigator.of(context).pushAndRemoveUntil(
