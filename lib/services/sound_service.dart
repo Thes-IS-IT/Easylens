@@ -20,7 +20,6 @@ class SoundService {
     ja.AudioPlayer(),
     ja.AudioPlayer(),
   ];
-  static final AudioPlayer _fallbackClickPlayer = AudioPlayer();
   static int _clickIndex = 0;
   static bool _soundButtonLoaded = false;
 
@@ -28,26 +27,33 @@ class SoundService {
   static final AudioPlayer _bubblePlayer = AudioPlayer();
   static final AudioPlayer _barkPlayer = AudioPlayer();
 
-  /// Pre-load button click sound on app boot into memory
+  /// Pre-load flutter_sound_button DefaultSound.click sound on app boot
   static Future<void> init() async {
     if (_soundButtonLoaded) return;
     _soundButtonLoaded = true;
     try {
+      final clickPath = defaultSoundPaths[DefaultSound.click] ??
+          'packages/flutter_sound_button/assets/sounds/click.mp3';
       await Future.wait(_clickPlayers.map((player) async {
         try {
-          await player.setAsset('assets/sounds/button_click.mp3', preload: true);
+          await player.setAsset(clickPath, preload: true);
           await player.setVolume(1.0);
-        } catch (e) {
-          print('[SoundService] Click player asset load note: $e');
+        } catch (_) {
+          try {
+            await player.setAsset('assets/sounds/click.mp3', package: 'flutter_sound_button', preload: true);
+            await player.setVolume(1.0);
+          } catch (e) {
+            print('[SoundService] flutter_sound_button load note: $e');
+          }
         }
       }));
-      print('[SoundService] 4-player click pool preloaded successfully');
+      print('[SoundService] flutter_sound_button 4-player click pool preloaded');
     } catch (e) {
-      print('[SoundService] Click pool init note: $e');
+      print('[SoundService] flutter_sound_button load error: $e');
     }
   }
 
-  /// Play click sound with super-high tactile haptic punch with ZERO delay.
+  /// Play click sound with flutter_sound_button's DefaultSound.click + super-high tactile haptic punch with ZERO delay.
   static void playClick({bool isHeavy = true}) {
     final settings = SettingsService();
 
@@ -61,37 +67,28 @@ class SoundService {
       } catch (_) {}
     }
 
-    // 2. Ultra-Fast Zero-Latency Click Sound
+    // 2. Ultra-Fast Zero-Latency Click Sound from Flutter Lib
     if (settings.soundEffects) {
       // Direct synchronous Native OS Click (0ms execution time)
       try {
         SystemSound.play(SystemSoundType.click);
       } catch (_) {}
 
-      // Immediate just_audio playback with seamless audioplayers fallback
+      // Simultaneous immediate just_audio flutter_sound_button playback (no async waiting)
       try {
         if (!_soundButtonLoaded) {
           init();
         }
         final player = _clickPlayers[_clickIndex++ % _clickPlayers.length];
         player.seek(Duration.zero).then((_) {
-          player.play().catchError((_) {
-            _playFallbackClick();
-          });
+          player.play().catchError((_) {});
         }).catchError((_) {
-          _playFallbackClick();
+          player.play().catchError((_) {});
         });
       } catch (e) {
-        _playFallbackClick();
+        print('[SoundService] Click play notice: $e');
       }
     }
-  }
-
-  static void _playFallbackClick() {
-    try {
-      _fallbackClickPlayer.stop();
-      _fallbackClickPlayer.play(AssetSource('sounds/button_click.mp3'), volume: 1.0);
-    } catch (_) {}
   }
 
   /// Play click action with super-high haptics & instant click sound.
