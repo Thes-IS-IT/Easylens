@@ -73,11 +73,11 @@ EasyLens utilizes specialized, high-performance algorithms to perform real-time 
 
 ### 04 — ON-DEVICE TFLITE MODELS
 
-#### Standard SSD MobileNetV2 (91 COCO Classes)
+#### Standard SSD MobileNetV2 (80 COCO Classes)
 | Property | Value |
 |---|---|
 | File | `assets/models/ssd_mobilenet_v2.tflite` |
-| Labels | `assets/models/coco_labels.txt` (91 COCO classes) |
+| Labels | `assets/models/coco_labels.txt` (80 COCO classes) |
 | Input | `300×300` RGB float32 array |
 | Output | Bounding boxes `[ymin, xmin, ymax, xmax]`, class IDs, confidence scores |
 | Threads | 4 CPU threads |
