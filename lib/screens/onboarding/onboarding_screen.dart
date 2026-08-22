@@ -284,7 +284,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'Download the Gemma vision & speech model (~500MB) for continuous intelligence without needing internet.',
+                                        'Download the Gemma 2 vision & speech model (~2.0GB) for continuous intelligence without needing internet.',
                                         style: GoogleFonts.inter(
                                           fontSize: 13,
                                           height: 1.4,
