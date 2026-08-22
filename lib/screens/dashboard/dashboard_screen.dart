@@ -279,8 +279,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   void _stopShakeListening() {
     _accelerometerSubscription?.cancel();
-  }  void _navigateTo(Widget screen, String description) {
-    SoundService.playClick();
+  }
+
+  void _navigateTo(Widget screen, String description) {
     final nav = Navigator.of(context);
     final prev = RagService.currentScreen;
     

@@ -53,8 +53,17 @@ class SoundService {
     }
   }
 
+  static int _lastClickTimestamp = 0;
+
   /// Play click sound with flutter_sound_button's DefaultSound.click + super-high tactile haptic punch with ZERO delay.
   static void playClick({bool isHeavy = true}) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    // Guard against rapid duplicate triggers / double clicks (within 120ms)
+    if (now - _lastClickTimestamp < 120) {
+      return;
+    }
+    _lastClickTimestamp = now;
+
     final settings = SettingsService();
 
     // 1. Synchronous SUPER-HIGH Hardware Haptic Punch (Physical Vibration at 255 Amplitude + Heavy Impact)
@@ -69,12 +78,7 @@ class SoundService {
 
     // 2. Ultra-Fast Zero-Latency Click Sound from Flutter Lib
     if (settings.soundEffects) {
-      // Direct synchronous Native OS Click (0ms execution time)
-      try {
-        SystemSound.play(SystemSoundType.click);
-      } catch (_) {}
-
-      // Simultaneous immediate just_audio flutter_sound_button playback (no async waiting)
+      // Clean, single flutter_sound_button playback (no duplicate OS click overlap)
       try {
         if (!_soundButtonLoaded) {
           init();
