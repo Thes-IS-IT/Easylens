@@ -50,11 +50,10 @@ class SttService {
   }) async {
     _currentListeningStateCallback = onListeningStateChanged;
 
-    // Do not start listening if TTS engine is currently speaking or in decay period
+    // If TTS is currently speaking, wait until speech and acoustic decay finish completely before opening mic!
     if (TtsService().isSpeaking) {
-      print('[STT] TTS is currently speaking. Deferring microphone listening.');
-      onListeningStateChanged(false);
-      return;
+      print('[STT] TTS is currently speaking. Waiting for speech to finish before opening mic...');
+      await TtsService().waitForSpeechToFinish();
     }
 
     final hasPermissions = await initializeStt();

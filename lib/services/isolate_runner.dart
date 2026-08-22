@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'tflite_processor.dart';
@@ -8,6 +9,8 @@ class IsolateRunner {
   Isolate? _isolate;
   SendPort? _sendPort;
   final ReceivePort _receivePort = ReceivePort();
+  final ReceivePort _replyPort = ReceivePort();
+  Completer<List<SSDResult>>? _pendingCompleter;
   bool _isReady = false;
 
   Future<void> init(Uint8List modelBuffer, String labelsContent) async {
@@ -21,11 +24,44 @@ class IsolateRunner {
     if (res is SendPort) {
       _sendPort = res;
       _isReady = true;
-      print('[Isolate] SSD Isolate Worker ready');
+
+      // Listen on persistent zero-latency reply port
+      _replyPort.listen((dynamic data) {
+        if (_pendingCompleter != null && !_pendingCompleter!.isCompleted) {
+          if (data is List) {
+            final results = data.map((m) => SSDResult.fromMap(m as Map<String, dynamic>)).toList();
+            _pendingCompleter!.complete(results);
+          } else {
+            _pendingCompleter!.complete([]);
+          }
+          _pendingCompleter = null;
+        }
+      });
+
+      print('[Isolate] SSD Isolate Worker ready with zero-latency channel');
     } else {
       _isReady = false;
       print('[Isolate] SSD Isolate Worker failed to initialize');
     }
+  }
+
+  Future<List<SSDResult>> runInferenceRgb(Uint8List rgbData) async {
+    if (!_isReady || _sendPort == null) return [];
+    if (_pendingCompleter != null) {
+      // Isolate is currently busy executing previous frame, skip this frame to prevent lag queueing
+      return [];
+    }
+
+    final completer = Completer<List<SSDResult>>();
+    _pendingCompleter = completer;
+
+    _sendPort!.send({
+      'cmd': 'runRgb',
+      'rgb': rgbData,
+      'replyTo': _replyPort.sendPort,
+    });
+
+    return completer.future;
   }
 
   Future<List<SSDResult>> runInference({
@@ -68,6 +104,8 @@ class IsolateRunner {
     _isReady = false;
   }
 
+  bool get isReady => _isReady;
+
   static void _worker(List<dynamic> args) async {
     final mainSend = args[0] as SendPort;
     try {
@@ -80,22 +118,34 @@ class IsolateRunner {
       final port = ReceivePort();
       mainSend.send(port.sendPort);
       
+      Uint8List? workerRgbBuffer;
+
       port.listen((msg) async {
         try {
           final cmd = msg['cmd'];
           if (cmd == 'close') {
             processor.dispose();
+          } else if (cmd == 'runRgb') {
+            final replyTo = msg['replyTo'] as SendPort;
+            final Uint8List rgb = msg['rgb'] as Uint8List;
+            final results = processor.runInference(rgb);
+            replyTo.send(results.map((r) => r.toMap()).toList());
           } else if (cmd == 'run') {
             final replyTo = msg['replyTo'] as SendPort;
             final int tS = msg['tS'];
             final int rot = msg['rot'] ?? 90;
             
+            if (workerRgbBuffer == null || workerRgbBuffer!.length != tS * tS * 3) {
+              workerRgbBuffer = Uint8List(tS * tS * 3);
+            }
+
             // 1. Process YUV to RGB (with built in rotation mapping)
             final rgb = _yuvToRgb(
               msg['y'], msg['u'], msg['v'], 
               msg['w'], msg['h'], 
               msg['yS'], msg['uvS'], msg['uvP'], 
-              tS, rot
+              tS, rot,
+              workerRgbBuffer!,
             );
             
             // 2. Run SSD
@@ -114,8 +164,7 @@ class IsolateRunner {
   }
 
   static Uint8List _yuvToRgb(Uint8List yP, Uint8List uP, Uint8List vP, 
-      int w, int h, int yS, int uvS, int uvP, int tS, int rotation) {
-    final rgb = Uint8List(tS * tS * 3);
+      int w, int h, int yS, int uvS, int uvP, int tS, int rotation, Uint8List rgb) {
     int idx = 0;
     
     // The target is always tS x tS (300x300).

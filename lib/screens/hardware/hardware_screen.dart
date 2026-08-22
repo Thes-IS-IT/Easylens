@@ -19,6 +19,7 @@ import '../../services/rag_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/sound_service.dart';
 import '../../services/tflite_processor.dart';
+import '../../services/isolate_runner.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/active_navigation_service.dart';
@@ -79,7 +80,9 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   List<DetectedObject> _detectedObjectsList = [];
   List<String> _cocoLabels = [];
   final TfliteProcessor _tfliteProcessor = TfliteProcessor();
+  final IsolateRunner _isolateRunner = IsolateRunner();
   List<SSDResult> _tfliteDetections = [];
+  final ValueNotifier<List<SSDResult>> _tfliteDetectionsNotifier = ValueNotifier<List<SSDResult>>([]);
   bool _isProcessingObjectDetection = false;
   int _lastLabelerTime = 0;
   final List<String> _conversationHistory = [];
@@ -132,6 +135,8 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   bool _isPaused = false;
   bool _isStreamingPausedForBuddy = false;
   Uint8List? _latestNv21Bytes;
+  Uint8List? _latestRgbBytes;
+  List<String> _recentDetectedLabelsCache = [];
   int _latestWidth = 0;
   int _latestHeight = 0;
   String _voiceState = "idle"; // S01: Tracks speech state ('idle', 'listening', 'thinking', 'speaking')
@@ -391,44 +396,34 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
             : (isTagalog ? "Idinekoneta ang salamin." : "Glasses disconnected.")
       );
     } else if (control == 'gemini') {
-      setState(() {
-        if (_isContinuousVoiceEnabled && !_useLocalAI) {
+      if (_isContinuousVoiceEnabled && !_useLocalAI) {
+        setState(() {
           _isContinuousVoiceEnabled = false;
           _isGeminiEnabled = false;
           _silenceTimer?.cancel();
           _conversationHistory.clear();
-          SttService().stopListening((_) {});
-          TtsService().stop();
-          TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
-        } else {
-          _useLocalAI = false;
-          _isContinuousVoiceEnabled = true;
-          _isGeminiEnabled = true;
-          _conversationHistory.clear();
-          TtsService().speak(isTagalog ? "Aktibo ang Advance AI. Simulan ang tuloy-tuloy na boses." : "Advanced online AI active. Continuous voice enabled.");
-          _runContinuousVoiceLoop();
-        }
-      });
+        });
+        SttService().stopListening((_) {});
+        TtsService().stop();
+        TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+      } else {
+        _startGeminiModeWithGreeting(isTagalog);
+      }
     } else if (control == 'local_ai') {
-      setState(() {
-        if (_isContinuousVoiceEnabled && _useLocalAI) {
+      if (_isContinuousVoiceEnabled && _useLocalAI) {
+        setState(() {
           _isContinuousVoiceEnabled = false;
           _isGeminiEnabled = false;
           _silenceTimer?.cancel();
           _conversationHistory.clear();
-          SttService().stopListening((_) {});
-          TtsService().stop();
-          TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
-        } else {
-          _useLocalAI = true;
-          _isContinuousVoiceEnabled = true;
-          _isGeminiEnabled = false;
-          _conversationHistory.clear();
-          TtsService().speak(isTagalog ? "Aktibo ang Local AI. Simulan ang tuloy-tuloy na boses." : "Local offline AI active. Continuous voice enabled.");
-          _runContinuousVoiceLoop();
-          LocalAiInstructionsDialog.show(context);
-        }
-      });
+        });
+        SttService().stopListening((_) {});
+        TtsService().stop();
+        TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+      } else {
+        _startLocalAiModeWithGreeting(isTagalog);
+        LocalAiInstructionsDialog.show(context);
+      }
     } else if (control == 'audio') {
       setState(() {
         _isAudioSpeaker = !_isAudioSpeaker;
@@ -460,51 +455,108 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   }
 
   void _onCameraFrameReceived(CameraImage image) {
-    if (_isPaused) return;
-    if (!_isDetectionEnabled) return;
+    if (_isPaused || !_isDetectionEnabled || !mounted) return;
     if (_isProcessingFrame) return;
-    if (!mounted) return;
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    // Fast-skip frame processing if busy or within pacing window, keeping camera video stream running at full 60+ FPS
+    if (_selectedHudMode == HudMode.objectDetection) {
+      if (_isProcessingObjectDetection) {
+        return;
+      }
+      if (!_isolateRunner.isReady && !_tfliteProcessor.isReady) {
+        return;
+      }
+      _isProcessingObjectDetection = true;
+
+      // 1. Immediately sample YUV planes in < 0.3ms and release CameraImage buffer back to Android OS instantly!
+      final yPlane = image.planes[0];
+      final uPlane = image.planes[1];
+      final vPlane = image.planes[2];
+
+      final rgbInput = _tfliteProcessor.prepareInputFromPlanes(
+        yPlane: yPlane.bytes,
+        uPlane: uPlane.bytes,
+        vPlane: vPlane.bytes,
+        srcWidth: image.width,
+        srcHeight: image.height,
+        yRowStride: yPlane.bytesPerRow,
+        uRowStride: uPlane.bytesPerRow,
+        vRowStride: vPlane.bytesPerRow,
+        uPixelStride: uPlane.bytesPerPixel ?? 1,
+        vPixelStride: vPlane.bytesPerPixel ?? 1,
+      );
+
+      _latestRgbBytes = rgbInput;
+
+      // 2. Offload inference directly to background Isolate worker with ZERO microtask queue delay!
+      // Native camera video continues at full 60+ FPS while bounding boxes update instantly!
+      _isolateRunner.runInferenceRgb(rgbInput).then((results) {
+        if (!mounted) {
+          _isProcessingObjectDetection = false;
+          return;
+        }
+        _tfliteDetectionsNotifier.value = results;
+        _tfliteDetections = results;
+        if (results.isNotEmpty) {
+          final labels = <String>[];
+          for (final r in results) {
+            final l = _refineLabel(r.label);
+            if (l.isNotEmpty && l != '???' && !labels.contains(l)) {
+              labels.add(l);
+            }
+          }
+          if (labels.isNotEmpty) {
+            _recentDetectedLabelsCache = labels;
+          }
+        }
+        _isProcessingObjectDetection = false;
+
+        _handleObjectDetectionAnnouncements(results);
+      }).catchError((e) {
+        _isProcessingObjectDetection = false;
+      });
+      return;
+    } else if (_selectedHudMode == HudMode.faceRecognition) {
+      if (nowMs - _lastFaceDetectionTime < 800 || _faceDetector == null) {
+        return;
+      }
+    } else if (_selectedHudMode == HudMode.navigation) {
+      if (nowMs - _lastObjectDetectionTime < 800 && nowMs - _lastLabelerTime < 800) {
+        return;
+      }
+    }
 
     _isProcessingFrame = true;
 
     Future.microtask(() async {
-      if (!mounted || (_selectedHudMode == HudMode.objectDetection && !_tfliteProcessor.isReady)) {
+      if (!mounted) {
         _isProcessingFrame = false;
         return;
       }
       try {
-        final nv21Bytes = _yuvToNv21Sync(image);
-        final yBytes = Uint8List.fromList(image.planes[0].bytes);
-        final width = image.width;
-        final height = image.height;
-        _latestNv21Bytes = nv21Bytes;
-        _latestWidth = width;
-        _latestHeight = height;
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-
         if (_selectedHudMode == HudMode.faceRecognition) {
-          if (nowMs - _lastFaceDetectionTime > 800 && _faceDetector != null) {
-            _lastFaceDetectionTime = nowMs;
-            await _detectFaceOnFrame(nv21Bytes, width, height);
-          }
+          _lastFaceDetectionTime = nowMs;
+          final nv21Bytes = _yuvToNv21Sync(image);
+          await _detectFaceOnFrame(nv21Bytes, image.width, image.height);
         } else if (_selectedHudMode == HudMode.navigation) {
+          final nv21Bytes = _yuvToNv21Sync(image);
           if (nowMs - _lastObjectDetectionTime > 800 && _objectDetector != null) {
             _lastObjectDetectionTime = nowMs;
-            await _detectObjectsOnFrame(nv21Bytes, width, height);
+            await _detectObjectsOnFrame(nv21Bytes, image.width, image.height);
           } else if (nowMs - _lastLabelerTime > 800) {
             _lastLabelerTime = nowMs;
-            await _processCameraImage(nv21Bytes, yBytes, width, height);
-          }
-        } else if (_selectedHudMode == HudMode.objectDetection) {
-          if (nowMs - _lastObjectDetectionTime > 180 && !_isProcessingObjectDetection) {
-            _lastObjectDetectionTime = nowMs;
-            unawaited(_detectAndProcessTfliteOnly(nv21Bytes, width, height));
+            final yBytes = Uint8List.fromList(image.planes[0].bytes);
+            await _processCameraImage(nv21Bytes, yBytes, image.width, image.height);
           }
         } else {
-          await _processCameraImage(nv21Bytes, yBytes, width, height);
+          final nv21Bytes = _yuvToNv21Sync(image);
+          final yBytes = Uint8List.fromList(image.planes[0].bytes);
+          await _processCameraImage(nv21Bytes, yBytes, image.width, image.height);
         }
       } catch (e) {
-        print("ML Kit frame processing error: $e");
+        print("Frame processing error: $e");
       } finally {
         await Future.delayed(const Duration(milliseconds: 400));
         _isProcessingFrame = false;
@@ -555,6 +607,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
     WidgetsBinding.instance.removeObserver(this);
     _objectDetector?.close();
     _tfliteProcessor.dispose();
+    _isolateRunner.close();
     // Stop the image stream BEFORE disposing the camera controller
     // to prevent frames from piling up in native memory after disposal.
     try {
@@ -643,7 +696,8 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
       final modelBytes = await rootBundle.load('assets/models/ssd_mobilenet.tflite');
       final labelsContent = await rootBundle.loadString('assets/models/ssd_labels.txt');
       await _tfliteProcessor.init(modelBytes.buffer.asUint8List(), labelsContent);
-      print("[SSD] SSD MobileNet V1 initialized successfully with SSD labels. isReady=${_tfliteProcessor.isReady}");
+      await _isolateRunner.init(modelBytes.buffer.asUint8List(), labelsContent);
+      print("[SSD] SSD MobileNet V1 & IsolateRunner initialized successfully. isReady=${_tfliteProcessor.isReady}");
     } catch (e) {
       print("[SSD] Non-fatal: SSD MobileNet model not loaded: $e");
     }
@@ -701,6 +755,8 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   }
 
   void _applyModeChange(HudMode mode) {
+    _tfliteDetectionsNotifier.value = [];
+    _tfliteDetections = [];
     setState(() {
       _detectedObjectsList = [];
       _detectedObjectLabels = [];
@@ -1779,63 +1835,52 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
     }
   }
 
-  /// Runs TFLite SSD MobileNet inference on NV21 camera bytes for Object Detection Mode.
-  /// Sets _tfliteDetections to draw bounding boxes and announces detected items via TTS.
-  Future<void> _detectAndProcessTfliteOnly(Uint8List nv21Bytes, int width, int height) async {
-    if (!_tfliteProcessor.isReady || !mounted || _isProcessingObjectDetection) return;
-    _isProcessingObjectDetection = true;
-    try {
-      final rgbInput = _tfliteProcessor.prepareInputFromNv21(nv21Bytes, width, height);
-      final results = _tfliteProcessor.runInference(rgbInput);
-      if (!mounted) return;
-      
-      final validResults = results.where((r) => r.confidence > 0.40 && r.label != '???' && r.label.isNotEmpty).toList();
-      setState(() {
-        _tfliteDetections = validResults;
-      });
-
-      // TTS announcement in Object Detection Mode using MobileNet labels
-      final now = DateTime.now();
-      if (validResults.isNotEmpty) {
-        final detectedNames = validResults
-            .take(3)
-            .map((r) => _refineLabel(r.label))
-            .join(", ");
-        final alertKey = 'detection_list_tflite';
-        final lastSpoken = _lastSpokenMap[alertKey];
-        final isDifferent = detectedNames != _lastSpokenObjectText;
-        final cooldownElapsed = lastSpoken == null ||
-            now.difference(lastSpoken).inSeconds >= (isDifferent ? 12 : 30);
-        if (cooldownElapsed && detectedNames.isNotEmpty) {
-          _lastSpokenMap[alertKey] = now;
-          _lastSpokenObjectText = detectedNames;
-          final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-          final phrase = isTagalog ? "Nakakita ako ng $detectedNames" : "I see $detectedNames";
-          if (!_isContinuousVoiceEnabled) {
-            TtsService().speak(phrase);
-          }
-          
+  /// Handles status card updates and TTS announcements for detected objects.
+  void _handleObjectDetectionAnnouncements(List<SSDResult> results) {
+    final now = DateTime.now();
+    if (results.isNotEmpty) {
+      final detectedNames = results
+          .take(4)
+          .map((r) => _refineLabel(r.label))
+          .toSet()
+          .join(", ");
+      final alertKey = 'detection_list_tflite';
+      final lastSpoken = _lastSpokenMap[alertKey];
+      final isDifferent = detectedNames != _lastSpokenObjectText;
+      final cooldownElapsed = lastSpoken == null ||
+          now.difference(lastSpoken).inSeconds >= (isDifferent ? 10 : 25);
+      if (cooldownElapsed && detectedNames.isNotEmpty) {
+        _lastSpokenMap[alertKey] = now;
+        _lastSpokenObjectText = detectedNames;
+        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+        final phrase = isTagalog ? "Nakakita ako ng $detectedNames" : "I see $detectedNames";
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(phrase);
+        }
+        
+        if (mounted) {
           setState(() {
-            _activeTitle = "Objects Detected";
-            _activeDescription = "Detected: $detectedNames";
+            _activeTitle = isTagalog ? "May Nakitang Bagay" : "Objects Detected";
+            _activeDescription = isTagalog ? "Nakakita ng: $detectedNames" : "Detected: $detectedNames";
             _statusCardBg = const Color(0xFFE6FFFA);
             _statusIcon = Icons.search;
             _statusIconColor = const Color(0xFF38A169);
           });
         }
-      } else {
-        setState(() {
-          _activeTitle = "Scanning Objects";
-          _activeDescription = "Searching for objects in view...";
-          _statusCardBg = const Color(0xFFF1F8E9);
-          _statusIcon = Icons.radar_outlined;
-          _statusIconColor = const Color(0xFF81C784);
-        });
       }
-    } catch (e) {
-      print('[TFLite ObjectDetection] Inference error: $e');
-    } finally {
-      _isProcessingObjectDetection = false;
+    } else {
+      if (_lastSpokenObjectText.isNotEmpty && now.difference(_lastSpokenMap['detection_list_tflite'] ?? DateTime(2000)).inSeconds > 4) {
+        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+        if (mounted) {
+          setState(() {
+            _activeTitle = isTagalog ? "Naghahanap ng Bagay" : "Scanning Objects";
+            _activeDescription = isTagalog ? "Naghahanap ng mga bagay sa paligid..." : "Searching for objects in view...";
+            _statusCardBg = const Color(0xFFF1F8E9);
+            _statusIcon = Icons.radar_outlined;
+            _statusIconColor = const Color(0xFF81C784);
+          });
+        }
+      }
     }
   }
 
@@ -1847,22 +1892,21 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
       final results = _tfliteProcessor.runInference(rgbInput);
       if (!mounted) return;
       
-      final validResults = results.where((r) => r.confidence > 0.30 && r.label != '???' && r.label.isNotEmpty).toList();
-      setState(() {
-        _tfliteDetections = validResults;
-      });
+      _tfliteDetectionsNotifier.value = results;
+      _tfliteDetections = results;
 
       final now = DateTime.now();
-      if (validResults.isNotEmpty) {
-        final detectedNames = validResults
+      if (results.isNotEmpty) {
+        final detectedNames = results
             .take(3)
             .map((r) => _refineLabel(r.label))
+            .toSet()
             .join(", ");
         final alertKey = 'detection_list_tflite_esp32';
         final lastSpoken = _lastSpokenMap[alertKey];
         final isDifferent = detectedNames != _lastSpokenObjectText;
         final cooldownElapsed = lastSpoken == null ||
-            now.difference(lastSpoken).inSeconds >= (isDifferent ? 12 : 30);
+            now.difference(lastSpoken).inSeconds >= (isDifferent ? 10 : 25);
         if (cooldownElapsed && detectedNames.isNotEmpty) {
           _lastSpokenMap[alertKey] = now;
           _lastSpokenObjectText = detectedNames;
@@ -1871,16 +1915,15 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           if (!_isContinuousVoiceEnabled) {
             TtsService().speak(phrase);
           }
-        }
-        if (mounted) {
-          final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
-          setState(() {
-            _activeTitle = isTagalog ? "May Nakitang Bagay" : "Objects Detected";
-            _activeDescription = isTagalog ? "Nakakita ng: $detectedNames" : "Detected: $detectedNames";
-            _statusCardBg = const Color(0xFFE6FFFA);
-            _statusIcon = Icons.search;
-            _statusIconColor = const Color(0xFF38A169);
-          });
+          if (mounted) {
+            setState(() {
+              _activeTitle = isTagalog ? "May Nakitang Bagay" : "Objects Detected";
+              _activeDescription = isTagalog ? "Nakakita ng: $detectedNames" : "Detected: $detectedNames";
+              _statusCardBg = const Color(0xFFE6FFFA);
+              _statusIcon = Icons.search;
+              _statusIconColor = const Color(0xFF38A169);
+            });
+          }
         }
       } else {
         if (mounted) {
@@ -2740,9 +2783,78 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
     });
   }
 
-  // STT, Gemini & TTS Voice Assistant Integration
+  Future<void> _startGeminiModeWithGreeting(bool isTagalog) async {
+    _silenceTimer?.cancel();
+    await SttService().stopListening((_) {});
+    TtsService().stop();
+
+    setState(() {
+      _useLocalAI = false;
+      _isContinuousVoiceEnabled = true;
+      _isGeminiEnabled = true;
+      _conversationHistory.clear();
+      _voiceState = "speaking";
+      _activeTitle = isTagalog ? "Nagsasalita si Buddy" : "Buddy Speaking";
+      _activeDescription = isTagalog 
+          ? "Aktibo na ang Gemini AI. Ano ang maitutulong ko sa iyo?" 
+          : "Gemini AI active. How can I help you?";
+      _statusCardBg = const Color(0xFFE6FFFA);
+      _statusIcon = Icons.volume_up;
+      _statusIconColor = const Color(0xFF38A169);
+    });
+
+    final greeting = isTagalog 
+        ? "Aktibo na ang Gemini AI. Ano ang maitutulong ko sa iyo?" 
+        : "Gemini AI active. How can I help you?";
+
+    // Let Gemini finish speaking the full greeting without STT listening!
+    await TtsService().speakAwait(greeting);
+    await TtsService().waitForSpeechToFinish();
+
+    if (_isContinuousVoiceEnabled && mounted) {
+      _runContinuousVoiceLoop();
+    }
+  }
+
+  Future<void> _startLocalAiModeWithGreeting(bool isTagalog) async {
+    _silenceTimer?.cancel();
+    await SttService().stopListening((_) {});
+    TtsService().stop();
+
+    setState(() {
+      _useLocalAI = true;
+      _isContinuousVoiceEnabled = true;
+      _isGeminiEnabled = false;
+      _conversationHistory.clear();
+      _voiceState = "speaking";
+      _activeTitle = isTagalog ? "Nagsasalita si Buddy" : "Buddy Speaking";
+      _activeDescription = isTagalog 
+          ? "Aktibo na ang Local AI. Ano ang maitutulong ko sa iyo?" 
+          : "Local AI active. How can I help you?";
+      _statusCardBg = const Color(0xFFE6FFFA);
+      _statusIcon = Icons.volume_up;
+      _statusIconColor = const Color(0xFF38A169);
+    });
+
+    final greeting = isTagalog 
+        ? "Aktibo na ang Local AI. Ano ang maitutulong ko sa iyo?" 
+        : "Local AI active. How can I help you?";
+
+    await TtsService().speakAwait(greeting);
+    await TtsService().waitForSpeechToFinish();
+
+    if (_isContinuousVoiceEnabled && mounted) {
+      _runContinuousVoiceLoop();
+    }
+  }
 
   Future<void> _runContinuousVoiceLoop() async {
+    if (!_isContinuousVoiceEnabled || !mounted) return;
+
+    // Ensure TTS speech and acoustic decay are 100% completed before opening microphone
+    if (TtsService().isSpeaking) {
+      await TtsService().waitForSpeechToFinish();
+    }
     if (!_isContinuousVoiceEnabled || !mounted) return;
 
     final lang = SettingsService().selectedLanguage;
@@ -2753,48 +2865,40 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
       _voiceState = "listening";
       _activeTitle = isFilipino ? "Magsalita na..." : "Buddy Listening...";
       _activeDescription = isFilipino 
-          ? "Magsalita o manatiling tahimik upang mag-scan."
-          : "Say something or remain silent to scan.";
+          ? "Sabihin ang iyong tanong kay Buddy..."
+          : "Ask Buddy anything...";
       _statusCardBg = const Color(0xFFE8F5E9);
       _statusIcon = Icons.mic;
       _statusIconColor = Colors.green;
     });
 
     _continuousVoiceText = "";
-    _startSilenceTimer();
 
     try {
       await SttService().startListening(
         onResult: (text, isFinal) {
-          if (!_isContinuousVoiceEnabled || !mounted) return;
+          if (!_isContinuousVoiceEnabled || !mounted || _voiceState == "speaking" || _voiceState == "thinking") return;
+          if (TtsService().isSpeaking) return;
           _continuousVoiceText = text;
-          // Show live transcription in status card
           if (text.trim().isNotEmpty) {
             setState(() {
               _activeDescription = '"$text"';
             });
+            _startSpeechEndTimer();
           }
-          // Reset silence timer on every partial result so speech isn't cut off
-          _startSilenceTimer();
-          // If STT engine finalized the result, process immediately
           if (isFinal && text.trim().isNotEmpty) {
             _silenceTimer?.cancel();
             _processSilenceOrSpeech();
           }
         },
         onListeningStateChanged: (listening) {
-          if (!listening && mounted && _isContinuousVoiceEnabled) {
-            // STT stopped naturally — process whatever we captured
+          if (!listening && mounted && _isContinuousVoiceEnabled && _voiceState == "listening") {
             if (_continuousVoiceText.trim().isNotEmpty) {
               _silenceTimer?.cancel();
               _processSilenceOrSpeech();
             } else {
-              setState(() {
-                _voiceState = "idle";
-              });
-              // Restart listening loop after a brief pause
-              Future.delayed(const Duration(milliseconds: 500), () {
-                if (_isContinuousVoiceEnabled && mounted) {
+              Future.delayed(const Duration(milliseconds: 400), () {
+                if (_isContinuousVoiceEnabled && mounted && _voiceState == "listening") {
                   _runContinuousVoiceLoop();
                 }
               });
@@ -2807,11 +2911,14 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
     }
   }
 
-  void _startSilenceTimer() {
+  void _startSpeechEndTimer() {
     _silenceTimer?.cancel();
     if (!_isContinuousVoiceEnabled || !mounted) return;
-    _silenceTimer = Timer(const Duration(seconds: 4), () async {
-      await _processSilenceOrSpeech();
+    // 2.2 seconds pause after speaking indicates the user finished their question
+    _silenceTimer = Timer(const Duration(milliseconds: 2200), () async {
+      if (_continuousVoiceText.trim().isNotEmpty && _voiceState == "listening") {
+        await _processSilenceOrSpeech();
+      }
     });
   }
 
@@ -2822,7 +2929,25 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         return frame;
       }
     }
-    // Perform background in-memory frame capture without taking shutter photos or stopping camera stream
+    // 1. Fast in-memory 300x300 RGB encode (< 2ms) without camera sensor pause
+    if (_latestRgbBytes != null && _latestRgbBytes!.isNotEmpty) {
+      try {
+        final image = img.Image.fromBytes(
+          width: 300,
+          height: 300,
+          bytes: _latestRgbBytes!.buffer,
+          numChannels: 3,
+          order: img.ChannelOrder.rgb,
+        );
+        final encoded = Uint8List.fromList(img.encodeJpg(image, quality: 80));
+        if (encoded.isNotEmpty) {
+          return encoded;
+        }
+      } catch (e) {
+        print("[Gemini] In-memory RGB to JPEG encode error: $e");
+      }
+    }
+    // 2. NV21 in-memory encode (< 3ms)
     if (_latestNv21Bytes != null && _latestWidth > 0 && _latestHeight > 0) {
       try {
         final jpegBytes = await compute(_nv21ToJpegInIsolate, {
@@ -2837,14 +2962,6 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         print("[Camera] Background frame JPEG conversion error: $e");
       }
     }
-    if (_cameraController != null && _cameraController!.value.isInitialized) {
-      try {
-        final xfile = await _cameraController!.takePicture();
-        return await xfile.readAsBytes();
-      } catch (e) {
-        print("Error capturing native camera image for Gemini: $e");
-      }
-    }
     return null;
   }
 
@@ -2852,61 +2969,84 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
     _silenceTimer?.cancel();
     if (!_isContinuousVoiceEnabled || !mounted) return;
 
+    final question = _continuousVoiceText.trim().toLowerCase();
+    if (question.isEmpty || question == "listening...") {
+      // User hasn't spoken a question, keep listening quietly without unsolicited interruptions
+      if (mounted && _isContinuousVoiceEnabled && _voiceState != "speaking" && _voiceState != "thinking") {
+        _runContinuousVoiceLoop();
+      }
+      return;
+    }
+
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? false;
     if (!isCurrent) {
       TtsService().stop();
-      _silenceTimer = Timer(const Duration(seconds: 2), () {
-        _processSilenceOrSpeech();
-      });
       return;
     }
 
     final lang = SettingsService().selectedLanguage;
+    final isTagalogQuestion = question.contains("ano") ||
+        question.contains("paano") ||
+        question.contains("bakit") ||
+        question.contains("saan") ||
+        question.contains("sino") ||
+        question.contains("kamusta") ||
+        question.contains("kumusta") ||
+        question.contains("salamat") ||
+        question.contains("tulong") ||
+        question.contains("harap") ||
+        question.contains("nakikita") ||
+        question.contains("ilarawan") ||
+        question.contains("tingin") ||
+        question.contains("meron") ||
+        question.contains("mayroon") ||
+        question.contains("nasaan");
     final isFilipino = lang.toLowerCase().contains('tagalog') ||
-        lang.toLowerCase().contains('filipino');
+        lang.toLowerCase().contains('filipino') ||
+        isTagalogQuestion;
 
     try {
       await SttService().stopListening((_) {});
 
-      final question = _continuousVoiceText.trim().toLowerCase();
-      final isTagalogQuestion = question.contains("ano") ||
-          question.contains("paano") ||
-          question.contains("bakit") ||
-          question.contains("saan") ||
-          question.contains("sino") ||
-          question.contains("kamusta") ||
-          question.contains("kumusta") ||
-          question.contains("salamat") ||
-          question.contains("tulong") ||
-          question.contains("harap") ||
-          question.contains("nakikita") ||
-          question.contains("ilarawan") ||
-          question.contains("tingin") ||
-          question.contains("meron") ||
-          question.contains("mayroon") ||
-          question.contains("nasaan");
-      final isFilipino = lang.toLowerCase().contains('tagalog') ||
-          lang.toLowerCase().contains('filipino') ||
-          isTagalogQuestion;
-      
       setState(() {
         _voiceState = "thinking";
         _activeTitle = isFilipino ? "Buddy Nag-iisip..." : "Buddy Thinking...";
-        _activeDescription = isFilipino ? "Sinusuri ang paligid..." : "Analyzing view context...";
+        _activeDescription = isFilipino ? "Sinusuri ang tanong at paligid..." : "Analyzing question and view...";
         _statusCardBg = const Color(0xFFFFF8E1);
         _statusIcon = Icons.hourglass_empty;
         _statusIconColor = Colors.orange;
       });
 
       final List<String> allDetectedLabels = [];
-      if (_tfliteDetections.isNotEmpty) {
-        for (final r in _tfliteDetections) {
+
+      // 1. Check real-time TFLite detections
+      final currentDets = _tfliteDetectionsNotifier.value.isNotEmpty
+          ? _tfliteDetectionsNotifier.value
+          : _tfliteDetections;
+
+      if (currentDets.isNotEmpty) {
+        for (final r in currentDets) {
           final label = _refineLabel(r.label);
           if (label.isNotEmpty && label != '???' && !allDetectedLabels.contains(label)) {
             allDetectedLabels.add(label);
           }
         }
       }
+
+      // 2. If detection list is empty, evaluate the latest camera RGB frame on the fly (< 10ms)
+      if (allDetectedLabels.isEmpty && _latestRgbBytes != null && _tfliteProcessor.isReady) {
+        try {
+          final instantResults = _tfliteProcessor.runInference(_latestRgbBytes!);
+          for (final r in instantResults) {
+            final label = _refineLabel(r.label);
+            if (label.isNotEmpty && label != '???' && !allDetectedLabels.contains(label)) {
+              allDetectedLabels.add(label);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 3. Check ML Kit objects, labels, and registered faces
       if (_detectedObjectsList.isNotEmpty) {
         for (final d in _detectedObjectsList) {
           final rawLabel = d.labels.isNotEmpty ? d.labels.first.text : 'Object';
@@ -2924,216 +3064,135 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           }
         }
       }
-
-      final detectedItems = allDetectedLabels.join(", ");
-
-      String response = "";
-      bool handledByVoiceCommand = false;
-
-      // 1. Voice commands: Switch modes, query scene, and interact
-      if (question.isNotEmpty && question != "listening...") {
-        if (question.contains("switch to gemini") ||
-            question.contains("lumipat sa gemini") ||
-            question.contains("use gemini") ||
-            question.contains("gemini mode") ||
-            question.contains("turn on gemini")) {
-          setState(() {
-            _useLocalAI = false;
-            _isGeminiEnabled = true;
-          });
-          response = isFilipino
-              ? "Lumipat na sa Gemini AI mode. Pwedeng magtanong ng anumang malalim na bagay."
-              : "Switched to Gemini AI mode. Feel free to ask complex questions.";
-          handledByVoiceCommand = true;
-        } else if (question.contains("what's in front of me") ||
-            question.contains("what is in front of me") ||
-            question.contains("ano ang nasa harap ko") ||
-            question.contains("ano nasa harap ko") ||
-            question.contains("describe") ||
-            question.contains("ilarawan")) {
-          // Direct request for visual scene description fallback
-          if (detectedItems.trim().isEmpty) {
-            response = isFilipino
-                ? "Wala akong makitang malinaw na bagay sa iyong harapan sa ngayon."
-                : "I don't see any clear objects in front of you right now.";
-          } else {
-            response = isFilipino
-                ? "Sa iyong harapan, nakikita ko ang: $detectedItems."
-                : "In front of you, I see: $detectedItems.";
-          }
-          handledByVoiceCommand = true;
-        } else if (question.contains("object") || question.contains("bagay")) {
-          setState(() {
-            _selectedHudMode = HudMode.objectDetection;
-          });
-          _applyModeChange(HudMode.objectDetection);
-          response = isFilipino 
-              ? "Lumipat na sa Object Detection mode." 
-              : "Switched to Object Detection mode.";
-          handledByVoiceCommand = true;
-        } else if (question.contains("face") || question.contains("mukha") || question.contains("register")) {
-          setState(() {
-            _selectedHudMode = HudMode.faceRecognition;
-          });
-          _applyModeChange(HudMode.faceRecognition);
-          response = isFilipino 
-              ? "Lumipat na sa Face Recognition mode." 
-              : "Switched to Face Recognition mode.";
-          handledByVoiceCommand = true;
-        } else if (question.contains("navigation") || question.contains("lakad") || question.contains("map") || question.contains("navigate")) {
-          setState(() {
-            _selectedHudMode = HudMode.navigation;
-          });
-          _applyModeChange(HudMode.navigation);
-          response = isFilipino 
-              ? "Lumipat na sa Navigation mode." 
-              : "Switched to Navigation mode.";
-          handledByVoiceCommand = true;
-        } else if (question.contains("scenery") || question.contains("tanawin")) {
-          setState(() {
-            _selectedHudMode = HudMode.scenery;
-          });
-          _applyModeChange(HudMode.scenery);
-          response = isFilipino 
-              ? "Lumipat na sa Scenery mode." 
-              : "Switched to Scenery mode.";
-          handledByVoiceCommand = true;
-        } else if (question.contains("lock screen") || question.contains("lock mode") || question.contains("i-lock") || question.contains("susi")) {
-          setState(() {
-            _isScreenLocked = true;
-          });
-          response = isFilipino 
-              ? "Naka-lock na ang screen. Pindutin nang matagal ang screen upang i-unlock." 
-              : "Screen locked. Long press the screen to unlock.";
-          handledByVoiceCommand = true;
-        } else if (question.contains("unlock screen") || question.contains("unlock mode") || question.contains("i-unlock")) {
-          setState(() {
-            _isScreenLocked = false;
-          });
-          response = isFilipino 
-              ? "Naka-unlock na ang screen." 
-              : "Screen unlocked.";
-          handledByVoiceCommand = true;
-        } else if (question.contains("search place") || question.contains("search for") || question.contains("navigate to") ||
-                   question.contains("pumunta sa") || question.contains("hanapin ang") || question.contains("hanapin sa")) {
-          // 2. Search place by speech command S01
-          final prefixes = ["search place", "search for", "navigate to", "pumunta sa", "hanapin ang", "hanapin sa"];
-          String matchedPrefix = "";
-          for (final prefix in prefixes) {
-            if (question.contains(prefix)) {
-              matchedPrefix = prefix;
-              break;
-            }
-          }
-          String searchPlace = "";
-          if (matchedPrefix.isNotEmpty) {
-            final idx = question.indexOf(matchedPrefix) + matchedPrefix.length;
-            searchPlace = question.substring(idx).trim();
-          }
-          if (searchPlace.isNotEmpty) {
-            response = isFilipino 
-                ? "Hinahanap ang $searchPlace. Sinisimulan ang ruta patungo doon." 
-                : "Searching for $searchPlace. Starting route guidance.";
-            handledByVoiceCommand = true;
-            
-            final start = const LatLng(15.1325, 120.5901);
-            final end = LatLng(15.1325 + 0.012, 120.5901 + 0.015);
-            
-            ActiveNavigationService().startNavigation(
-              destinationName: searchPlace[0].toUpperCase() + searchPlace.substring(1),
-              destinationLocation: end,
-              routePoints: [start, end],
-            );
-            ActiveNavigationService().updateProgress(
-              currentStepText: isFilipino
-                  ? "Maglakad nang diretso patungo sa $searchPlace"
-                  : "Walk straight towards $searchPlace",
-              distanceRemaining: "1.2 km",
-              timeRemaining: "15 mins",
-              currentLocation: start,
-            );
-          }
+      if (_detectedFacesList.isNotEmpty || _detectedFaceName.isNotEmpty) {
+        final faceName = _detectedFaceName.isNotEmpty ? _detectedFaceName : "person";
+        if (!allDetectedLabels.contains(faceName)) {
+          allDetectedLabels.add(faceName);
         }
       }
 
-      if (handledByVoiceCommand) {
-        // Voice command processed S01
-      } else if (question.isEmpty || question == "listening...") {
-        if (detectedItems.trim().isEmpty && !_useLocalAI) {
-          final imageBytes = await _captureCurrentImageBytes();
-          final prompt = isFilipino
-              ? "You are Buddy, the visual assistant dog. Describe what you see in the provided image in Tagalog. Start the response with 'Nakakita ako ng...' or 'Nakikita ko ang...'. Keep the response to exactly one natural, friendly sentence."
-              : "You are Buddy, the visual assistant dog. Describe what you see in the provided image. Start the response with 'I saw...' or 'I see...' (e.g. 'I see a laptop on a table'). Keep the response to exactly one natural, friendly sentence.";
-          response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
-        } else if (detectedItems.trim().isEmpty) {
-          response = isFilipino 
-              ? "Wala akong makitang malinaw na bagay sa iyong harapan."
-              : "I don't see any clear objects in front of you.";
+      // 4. If momentary frame had no boxes, fall back to recent visual scene memory
+      if (allDetectedLabels.isEmpty && _recentDetectedLabelsCache.isNotEmpty) {
+        allDetectedLabels.addAll(_recentDetectedLabelsCache);
+      }
+
+      final detectedItems = allDetectedLabels.join(", ");
+      String response = "";
+      bool handledByVoiceCommand = false;
+
+      // 1. Voice commands: Explicit mode switches
+      if (question.contains("switch to gemini") ||
+          question.contains("lumipat sa gemini") ||
+          question.contains("use gemini") ||
+          question.contains("gemini mode") ||
+          question.contains("turn on gemini")) {
+        setState(() {
+          _useLocalAI = false;
+          _isGeminiEnabled = true;
+        });
+        response = isFilipino
+            ? "Lumipat na sa Gemini AI mode. Pwedeng magtanong ng anumang bagay."
+            : "Switched to Gemini AI mode. Feel free to ask anything.";
+        handledByVoiceCommand = true;
+      } else if (question.contains("switch to local") ||
+          question.contains("lumipat sa local") ||
+          question.contains("offline ai") ||
+          question.contains("local ai")) {
+        setState(() {
+          _useLocalAI = true;
+          _isGeminiEnabled = false;
+        });
+        response = isFilipino
+            ? "Lumipat na sa Local offline AI mode."
+            : "Switched to Local offline AI mode.";
+        handledByVoiceCommand = true;
+      } else if (question.contains("traffic light") || question.contains("ilaw trapiko") || question.contains("tawid")) {
+        final isRed = detectedItems.toLowerCase().contains("red") || detectedItems.toLowerCase().contains("stop");
+        final isGreen = detectedItems.toLowerCase().contains("green") || detectedItems.toLowerCase().contains("go");
+        if (isRed) {
+          response = isFilipino ? "Pula ang ilaw trapiko. Huminto at huwag munang tumawid." : "The traffic light is red. Please stop and do not cross.";
+        } else if (isGreen) {
+          response = isFilipino ? "Berde ang ilaw trapiko. Maaari nang tumawid nang maingat." : "The traffic light is green. You may cross carefully.";
         } else {
+          response = isFilipino ? "Walang malinaw na ilaw trapiko sa harapan. Mag-ingat sa pagtawid." : "No clear traffic light detected in view. Please proceed with caution.";
+        }
+        handledByVoiceCommand = true;
+      } else if (question.contains("switch to object") || question.contains("object detection mode") || question.contains("lumipat sa object")) {
+        setState(() {
+          _selectedHudMode = HudMode.objectDetection;
+        });
+        _applyModeChange(HudMode.objectDetection);
+        response = isFilipino 
+            ? "Lumipat na sa Object Detection mode." 
+            : "Switched to Object Detection mode.";
+        handledByVoiceCommand = true;
+      } else if (question.contains("switch to face") || question.contains("face recognition mode") || question.contains("lumipat sa face")) {
+        setState(() {
+          _selectedHudMode = HudMode.faceRecognition;
+        });
+        _applyModeChange(HudMode.faceRecognition);
+        response = isFilipino 
+            ? "Lumipat na sa Face Recognition mode." 
+            : "Switched to Face Recognition mode.";
+        handledByVoiceCommand = true;
+      } else if (question.contains("switch to navigation") || question.contains("navigation mode") || question.contains("lumipat sa navigation")) {
+        setState(() {
+          _selectedHudMode = HudMode.navigation;
+        });
+        _applyModeChange(HudMode.navigation);
+        response = isFilipino 
+            ? "Lumipat na sa Navigation mode." 
+            : "Switched to Navigation mode.";
+        handledByVoiceCommand = true;
+      } else if (question.contains("switch to scenery") || question.contains("scenery mode") || question.contains("lumipat sa scenery")) {
+        setState(() {
+          _selectedHudMode = HudMode.scenery;
+        });
+        _applyModeChange(HudMode.scenery);
+        response = isFilipino 
+            ? "Lumipat na sa Scenery mode." 
+            : "Switched to Scenery mode.";
+        handledByVoiceCommand = true;
+      }
+
+      if (!handledByVoiceCommand) {
+        // Query AI Model
+        final historyContext = _conversationHistory.isNotEmpty
+            ? "Recent conversation:\n${_conversationHistory.join('\n')}\n\n"
+            : "";
+
+        if (_useLocalAI) {
           final prompt = isFilipino
               ? """
-You are Buddy, the visual assistant dog.
-Describe these environment labels in Tagalog: $detectedItems.
-Start the response with "Nakakita ako ng..." or "Nakikita ko ang...".
-Keep the response to exactly one natural, friendly sentence.
-"""
-              : """
-You are Buddy, the visual assistant dog.
-Describe the environment based on these visual labels: $detectedItems.
-Start the response with "I saw..." or "I see..." (e.g. "I saw a park with a tree" or "I see a laptop or keyboard").
-Keep the response to exactly one natural, friendly sentence.
-""";
-          if (_useLocalAI) {
-            response = await RagService().askBuddyLocalOnly(prompt);
-          } else {
-            final imageBytes = await _captureCurrentImageBytes();
-            response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
-          }
-        }
-      } else {
-        // Complex Question Check when Local AI is active
-        final isComplexQuery = [
-          'why', 'how to', 'explain', 'detail', 'recipe', 'code', 'history',
-          'paano', 'bakit', 'ipaliwanag', 'detalye', 'complex', 'summarize'
-        ].any((kw) => question.contains(kw));
-
-        if (_useLocalAI && isComplexQuery) {
-          response = isFilipino
-              ? "Mukhang malalim ang iyong tanong. Pwedeng lumipat sa Gemini AI mode para sa mas detalyadong sagot. Sabihin lang ang 'lumipat sa Gemini'."
-              : "That question seems complex! You can switch to Gemini AI mode for deeper answers. Just say 'switch to Gemini'.";
-        } else {
-          final historyContext = _conversationHistory.isNotEmpty 
-              ? "Conversation history context for context awareness:\n${_conversationHistory.join('\n')}\n\n" 
-              : "";
-          if (_useLocalAI) {
-            final prompt = isFilipino
-                ? """
-You are Buddy, the visual assistant dog.
+You are Buddy, the friendly dog mascot and EasyLens assistant.
 ${historyContext}The user asked: "$question".
 The camera reports these environment labels: $detectedItems.
 Answer the user's question directly in Tagalog based on the labels and history context. Keep the response to 1 or 2 friendly sentences.
 """
-                : """
+              : """
 You are Buddy, the friendly dog mascot and EasyLens assistant.
 ${historyContext}The user asked: "$question".
 The camera reports these environment labels: $detectedItems.
 Answer the user's question directly based on the labels and history context. Keep the response to 1 or 2 friendly sentences.
 """;
-            response = await RagService().askBuddyLocalOnly(prompt);
-          } else {
-            final prompt = isFilipino
-                ? """
-You are Buddy, the visual assistant dog.
+          response = await RagService().askBuddyLocalOnly(prompt, visionContext: detectedItems);
+        } else {
+          // GEMINI ONLINE MULTIMODAL MODE: Always queries Google Gemini with the live camera image!
+          final prompt = isFilipino
+              ? """
 ${historyContext}The user asked: "$question".
-Answer the user's question directly in Tagalog based on the provided camera image and history context. Keep the response to 1 or 2 friendly sentences.
+Answer the user's question directly in Tagalog based on what is visible in the provided camera image. Keep the response to 1 or 2 concise, friendly sentences.
 """
-                : """
-You are Buddy, the friendly dog mascot and EasyLens assistant.
+              : """
 ${historyContext}The user asked: "$question".
-Answer the user's question directly based on the provided camera image and history context. Keep the response to 1 or 2 friendly sentences.
+Answer the user's question directly in English based on what is visible in the provided camera image. Keep the response to 1 or 2 concise, friendly sentences.
 """;
-            final imageBytes = await _captureCurrentImageBytes();
-            response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
+          final imageBytes = await _captureCurrentImageBytes();
+          response = await RagService().askBuddyOnlineGemini(prompt, imageBytes: imageBytes);
+          if (response.trim().isEmpty) {
+            response = isFilipino 
+                ? "Pasensya na, may problema sa koneksyon sa Gemini AI."
+                : "Sorry, I had trouble connecting to Gemini AI.";
           }
         }
       }
@@ -3142,12 +3201,10 @@ Answer the user's question directly based on the provided camera image and histo
         response = isFilipino ? "Pasensya na, hindi ko naintindihan." : "Sorry, I didn't catch that.";
       }
 
-      if (question.isNotEmpty && question != "listening...") {
-        _conversationHistory.add("User: $question");
-        _conversationHistory.add("Buddy: $response");
-        if (_conversationHistory.length > 10) {
-          _conversationHistory.removeRange(0, 2);
-        }
+      _conversationHistory.add("User: $question");
+      _conversationHistory.add("Buddy: $response");
+      if (_conversationHistory.length > 10) {
+        _conversationHistory.removeRange(0, 2);
       }
 
       if (mounted) {
@@ -3159,15 +3216,19 @@ Answer the user's question directly based on the provided camera image and histo
           _statusIcon = Icons.volume_up;
           _statusIconColor = const Color(0xFF38A169);
         });
+        // 1. Let Gemini/Buddy finish speaking the entire response!
         await TtsService().speakAwait(response);
       }
     } catch (e) {
       print("[Continuous Voice] Error in _processSilenceOrSpeech: $e");
     } finally {
-      setState(() {
-        _voiceState = "idle";
-      });
-      await Future.delayed(const Duration(milliseconds: 500));
+      await TtsService().waitForSpeechToFinish();
+      if (mounted) {
+        setState(() {
+          _voiceState = "idle";
+        });
+      }
+      // Automatically turn on microphone and start listening!
       if (mounted && _isContinuousVoiceEnabled) {
         _runContinuousVoiceLoop();
       }
@@ -3700,6 +3761,7 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
               child: HudCameraView(
                 selectedHudMode: _selectedHudMode,
                 tfliteDetections: _tfliteDetections,
+                tfliteDetectionsNotifier: _tfliteDetectionsNotifier,
                 detectedObjectsList: _detectedObjectsList,
                 latestMLKitLabels: _latestMLKitLabels,
                 detectedFacesList: _detectedFacesList,
@@ -3824,64 +3886,46 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
                 }
               },
               onGeminiToggled: () {
-                setState(() {
-                  if (_isContinuousVoiceEnabled && !_useLocalAI) {
+                final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                if (_isContinuousVoiceEnabled && !_useLocalAI) {
+                  setState(() {
                     _isContinuousVoiceEnabled = false;
                     _isGeminiEnabled = false;
+                    _silenceTimer?.cancel();
                     _conversationHistory.clear();
-                    TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
-                  } else {
-                    _useLocalAI = false;
-                    _isContinuousVoiceEnabled = true;
-                    _isGeminiEnabled = true;
-                    _conversationHistory.clear();
-                    TtsService().speak(isTagalog ? "Aktibo ang Advance AI. Simulan ang tuloy-tuloy na boses." : "Advanced online AI active. Continuous voice enabled.");
-                  }
-                });
-                if (_isContinuousVoiceEnabled) {
-                  _runContinuousVoiceLoop();
-                } else {
-                  _silenceTimer?.cancel();
-                  SttService().stopListening((_) {});
-                  TtsService().stop();
-                  setState(() {
                     _activeTitle = "Path Clear";
                     _activeDescription = "No hazards detected nearby.";
                     _statusCardBg = const Color(0xFFE8F5E9);
                     _statusIcon = Icons.check_circle_outline;
                     _statusIconColor = Colors.green;
                   });
+                  SttService().stopListening((_) {});
+                  TtsService().stop();
+                  TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+                } else {
+                  _startGeminiModeWithGreeting(isTagalog);
                 }
               },
               onLocalAiToggled: () {
-                setState(() {
-                  if (_isContinuousVoiceEnabled && _useLocalAI) {
+                final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+                if (_isContinuousVoiceEnabled && _useLocalAI) {
+                  setState(() {
                     _isContinuousVoiceEnabled = false;
                     _isGeminiEnabled = false;
+                    _silenceTimer?.cancel();
                     _conversationHistory.clear();
-                    TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
-                  } else {
-                    _useLocalAI = true;
-                    _isContinuousVoiceEnabled = true;
-                    _isGeminiEnabled = false;
-                    _conversationHistory.clear();
-                    TtsService().speak(isTagalog ? "Aktibo ang Local AI. Simulan ang tuloy-tuloy na boses." : "Local offline AI active. Continuous voice enabled.");
-                  }
-                });
-                if (_isContinuousVoiceEnabled) {
-                  _runContinuousVoiceLoop();
-                  LocalAiInstructionsDialog.show(context);
-                } else {
-                  _silenceTimer?.cancel();
-                  SttService().stopListening((_) {});
-                  TtsService().stop();
-                  setState(() {
                     _activeTitle = "Path Clear";
                     _activeDescription = "No hazards detected nearby.";
                     _statusCardBg = const Color(0xFFE8F5E9);
                     _statusIcon = Icons.check_circle_outline;
                     _statusIconColor = Colors.green;
                   });
+                  SttService().stopListening((_) {});
+                  TtsService().stop();
+                  TtsService().speak(isTagalog ? "Naka-off na ang tuloy-tuloy na boses." : "Continuous voice disabled.");
+                } else {
+                  _startLocalAiModeWithGreeting(isTagalog);
+                  LocalAiInstructionsDialog.show(context);
                 }
               },
               onAudioToggled: () {

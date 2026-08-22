@@ -447,8 +447,10 @@ class RagService {
   }
 
   static const List<String> _geminiModelCandidates = [
-    'gemini-3.5-flash',
     'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro',
   ];
 
   Stream<String> _queryGeminiOnlineStream(
@@ -998,7 +1000,7 @@ class RagService {
     }
   }
 
-  Future<String> askBuddyLocalOnly(String question) async {
+  Future<String> askBuddyLocalOnly(String question, {String? visionContext}) async {
     final lang = SettingsService().selectedLanguage;
     if (_isOffTopicForVisualAssistance(question)) {
       final msg = _getOffTopicRejectionMessage(lang);
@@ -1035,7 +1037,7 @@ class RagService {
       location: dynContext['location']!,
     );
 
-    final localResult = generateSmartLocalResponse(question);
+    final localResult = generateSmartLocalResponse(question, visionContext: visionContext);
     _logToJournal(question, localResult);
     return localResult;
   }
@@ -1100,12 +1102,19 @@ class RagService {
     return null;
   }
 
+  String translateLabelsToTagalog(String rawLabels) => _translateLabelsToTagalog(rawLabels);
+
   String _translateLabelsToTagalog(String rawLabels) {
     String text = rawLabels.toLowerCase();
     text = text.replaceAll('laptop or computer screen', 'laptop o computer screen');
     text = text.replaceAll('laptop or keyboard', 'laptop o keyboard');
     text = text.replaceAll('cup or tableware', 'baso o kagamitan sa kainan');
+    text = text.replaceAll('cell phone', 'cellphone');
+    text = text.replaceAll('mobile phone', 'cellphone');
+    text = text.replaceAll('computer screen', 'computer monitor');
     text = text.replaceAll('suitcase', 'maleta o bag');
+    text = text.replaceAll('backpack', 'backpack o bag');
+    text = text.replaceAll('handbag', 'bag');
     text = text.replaceAll('tv', 'telebisyon');
     text = text.replaceAll('television', 'telebisyon');
     text = text.replaceAll('chair', 'upuan');
@@ -1116,9 +1125,24 @@ class RagService {
     text = text.replaceAll('window', 'bintana');
     text = text.replaceAll('person', 'tao');
     text = text.replaceAll('bottle', 'bote');
+    text = text.replaceAll('cup', 'tasa o baso');
+    text = text.replaceAll('wine glass', 'kopita o baso');
     text = text.replaceAll('car', 'sasakyan');
+    text = text.replaceAll('bicycle', 'bisikleta');
+    text = text.replaceAll('motorcycle', 'motorsiklo');
+    text = text.replaceAll('bus', 'bus');
+    text = text.replaceAll('traffic light', 'ilaw trapiko');
+    text = text.replaceAll('stop sign', 'stop sign');
+    text = text.replaceAll('fire hydrant', 'fire hydrant');
     text = text.replaceAll('stair', 'hagdan');
     text = text.replaceAll('wall', 'pader');
+    text = text.replaceAll('bed', 'kama');
+    text = text.replaceAll('book', 'aklat o libro');
+    text = text.replaceAll('clock', 'orasan');
+    text = text.replaceAll('scissors', 'gunting');
+    text = text.replaceAll('umbrella', 'payong');
+    text = text.replaceAll('keyboard', 'keyboard');
+    text = text.replaceAll('mouse', 'mouse');
     return text;
   }
 
@@ -1134,15 +1158,31 @@ class RagService {
       }
     }
     if (question.contains('environment labels:')) {
-      final match = RegExp(r'environment labels:\s*([^\n\.]+)', caseSensitive: false).firstMatch(question);
+      final match = RegExp(r'environment labels:\s*([^\n\r]+)', caseSensitive: false).firstMatch(question);
       if (match != null) {
-        extractedLabels = match.group(1)?.trim();
+        var raw = match.group(1)?.trim() ?? '';
+        if (raw.endsWith('.')) {
+          raw = raw.substring(0, raw.length - 1).trim();
+        }
+        if (raw.isNotEmpty && raw.toLowerCase() != 'none') {
+          extractedLabels = raw;
+        }
       }
     } else if (question.contains('Describe these environment labels in Tagalog:')) {
-      final match = RegExp(r'Describe these environment labels in Tagalog:\s*([^\n\.]+)', caseSensitive: false).firstMatch(question);
+      final match = RegExp(r'Describe these environment labels in Tagalog:\s*([^\n\r]+)', caseSensitive: false).firstMatch(question);
       if (match != null) {
-        extractedLabels = match.group(1)?.trim();
+        var raw = match.group(1)?.trim() ?? '';
+        if (raw.endsWith('.')) {
+          raw = raw.substring(0, raw.length - 1).trim();
+        }
+        if (raw.isNotEmpty && raw.toLowerCase() != 'none') {
+          extractedLabels = raw;
+        }
       }
+    }
+
+    if ((extractedLabels == null || extractedLabels.isEmpty) && visionContext != null && visionContext.isNotEmpty) {
+      extractedLabels = visionContext;
     }
 
     final quick = getQuickCuratedAnswer(userQuestion);
@@ -1189,16 +1229,49 @@ class RagService {
         lowerQ.contains("nakikita") ||
         lowerQ.contains("tingin") ||
         lowerQ.contains("tanawin") ||
-        lowerQ.contains("bagay");
+        lowerQ.contains("bagay") ||
+        lowerQ.contains("meron") ||
+        lowerQ.contains("mayroon") ||
+        lowerQ.contains("what is this") ||
+        lowerQ.contains("what's this") ||
+        lowerQ.contains("ano ito") ||
+        lowerQ.contains("ano 'to");
 
     if (isVisionQuery || (extractedLabels != null && extractedLabels.isNotEmpty && question.startsWith("You are Buddy"))) {
-      if (extractedLabels != null && extractedLabels.trim().isNotEmpty && extractedLabels != "None") {
+      if (extractedLabels != null && extractedLabels.trim().isNotEmpty && extractedLabels.toLowerCase() != "none") {
         final formattedLabels = isUserFilipino
             ? _translateLabelsToTagalog(extractedLabels)
             : extractedLabels;
+        
+        // Specific query answers if user asks about a single object:
+        if (lowerQ.contains("person") || lowerQ.contains("tao")) {
+          final hasPerson = extractedLabels.toLowerCase().contains("person") || extractedLabels.toLowerCase().contains("tao");
+          if (hasPerson) {
+            return isUserFilipino
+                ? "Opo, may nakikita akong tao sa iyong harapan."
+                : "Yes, I see a person in front of you.";
+          }
+        }
+        if (lowerQ.contains("chair") || lowerQ.contains("upuan") || lowerQ.contains("seat")) {
+          final hasChair = extractedLabels.toLowerCase().contains("chair") || extractedLabels.toLowerCase().contains("sofa") || extractedLabels.toLowerCase().contains("couch");
+          if (hasChair) {
+            return isUserFilipino
+                ? "Opo, may upuan sa iyong harapan."
+                : "Yes, there is a chair in front of you.";
+          }
+        }
+        if (lowerQ.contains("phone") || lowerQ.contains("cellphone")) {
+          final hasPhone = extractedLabels.toLowerCase().contains("phone") || extractedLabels.toLowerCase().contains("cell");
+          if (hasPhone) {
+            return isUserFilipino
+                ? "Opo, may cellphone sa iyong harapan."
+                : "Yes, I see a phone in front of you.";
+          }
+        }
+
         return isUserFilipino
-            ? "Nakikita ko ang $formattedLabels sa iyong harapan. Paano pa kita matutulungan?"
-            : "I see $formattedLabels in front of you. How else can I help?";
+            ? "Sa iyong harapan, nakikita ko ang: $formattedLabels."
+            : "In front of you, I see: $formattedLabels.";
       } else {
         return isUserFilipino
             ? "Wala akong makitang malinaw na bagay sa iyong harapan sa ngayon."
@@ -1557,13 +1630,24 @@ Buddy:""";
 
   Future<String> askBuddyOnlineGemini(String prompt, {Uint8List? imageBytes}) async {
     try {
+      final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') ||
+          SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+      final systemInstruction = isFilipino
+          ? 'Ikaw si Buddy, ang magiliw at matulunging visual assistant dog para sa mga may kapansanan sa paningin sa EasyLens app. '
+            'Laging sagutin ang tanong ng user nang diretso, tumpak, at magalang sa wikang Filipino/Tagalog batay sa nakikitang larawan mula sa camera. '
+            'Panatilihing maikli ang sagot sa 1 hanggang 2 pangungusap.'
+          : 'You are Buddy, the friendly and helpful visual assistant dog for visually impaired users in the EasyLens app. '
+            'Always answer the user\'s question directly, accurately, and politely in English based on what you see in the provided camera image. '
+            'Keep your response concise, 1 to 2 sentences.';
+
       return await executeWithApiKeyFallback((apiKey, modelName) async {
         final model = GenerativeModel(
           model: modelName,
           apiKey: apiKey,
+          systemInstruction: Content.system(systemInstruction),
         );
         final content = [
-          if (imageBytes != null)
+          if (imageBytes != null && imageBytes.isNotEmpty)
             Content.multi([
               DataPart('image/jpeg', imageBytes),
               TextPart(prompt),
@@ -1572,10 +1656,14 @@ Buddy:""";
             Content.text(prompt)
         ];
         final response = await model.generateContent(content);
-        return response.text?.trim() ?? "";
+        final text = response.text?.trim() ?? "";
+        if (text.isNotEmpty) {
+          _logToJournal(prompt, text);
+        }
+        return text;
       });
     } catch (e) {
-      print('[Gemini Online] Error: $e');
+      print('[Gemini Online] Error in askBuddyOnlineGemini: $e');
       return "";
     }
   }
