@@ -102,7 +102,7 @@ class EasyLensApp extends StatelessWidget {
         final bgColor = AppColors.primaryBackground;
 
         return MaterialApp(
-          title: 'EasyLens',
+          title: 'Buddy',
           debugShowCheckedModeBanner: false,
           navigatorKey: navigatorKey,
           theme: ThemeData(

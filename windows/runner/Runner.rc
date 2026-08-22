@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.easylens" "\0"
-            VALUE "FileDescription", "easylens" "\0"
+            VALUE "FileDescription", "Buddy" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "easylens" "\0"
+            VALUE "InternalName", "Buddy" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.easylens. All rights reserved." "\0"
             VALUE "OriginalFilename", "easylens.exe" "\0"
-            VALUE "ProductName", "easylens" "\0"
+            VALUE "ProductName", "Buddy" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
