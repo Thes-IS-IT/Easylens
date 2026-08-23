@@ -33,7 +33,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _firebaseService = FirebaseService();
-  static const String currentVersionTag = 'v1.2.0';
+  static const String currentVersionTag = 'v25.0';
   bool _isCheckingUpdates = false;
 
   // Local interactive states linked to settings service
