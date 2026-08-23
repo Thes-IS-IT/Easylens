@@ -164,13 +164,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _openURL(String urlString) async {
     try {
       final Uri uri = Uri.parse(urlString);
-      if (await canLaunchUrl(uri)) {
+      final bool canLaunch = await canLaunchUrl(uri);
+      if (canLaunch) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        debugPrint("Could not launch URL: $urlString");
+        // Direct attempt for Android intent/browser handlers
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
-      debugPrint("Error launching URL: $e");
+      debugPrint("Error launching URL $urlString: $e");
     }
   }
 
@@ -178,21 +180,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (rawNotes.trim().isEmpty) {
       return "• General performance enhancements\n• Accessibility & high-contrast theme improvements\n• Bug fixes and stability updates";
     }
-    final lines = rawNotes.split('\n');
+
+    // 1. Replace common LaTeX math / Greek letter notations
+    var sanitized = rawNotes
+        .replaceAll(r'\alpha', 'α')
+        .replaceAll(r'\beta', 'β')
+        .replaceAll(r'\gamma', 'γ')
+        .replaceAll(r'\delta', 'δ')
+        .replaceAll(r'\lambda', 'λ')
+        .replaceAll(r'\mu', 'μ')
+        .replaceAll(r'\sigma', 'σ')
+        .replaceAll(r'\theta', 'θ')
+        .replaceAll(r'\approx', '≈')
+        .replaceAll(r'\le', '≤')
+        .replaceAll(r'\ge', '≥')
+        .replaceAll(r'\ne', '≠')
+        .replaceAll(r'\pm', '±')
+        .replaceAll(r'\times', '×');
+
+    // Remove LaTeX math delimiters ($...$ and $$...$$), dollar signs, and stray backslashes
+    sanitized = sanitized.replaceAll(RegExp(r'\$\$?([^$]+)\$\$?'), r'$1');
+    sanitized = sanitized.replaceAll(r'$', '');
+    sanitized = sanitized.replaceAll(r'\', '');
+
+    // Remove inline code backticks `...`
+    sanitized = sanitized.replaceAll('`', '');
+
+    // Remove HTML tags <br>, <p>, etc.
+    sanitized = sanitized.replaceAll(RegExp(r'<[^>]*>'), '');
+
+    // 2. Process line by line
+    final lines = sanitized.split('\n');
     final cleaned = <String>[];
+
     for (var line in lines) {
       var trimmed = line.trim();
       if (trimmed.isEmpty) continue;
+
+      // Remove markdown headings
       if (trimmed.startsWith('#')) {
         trimmed = trimmed.replaceAll(RegExp(r'^#+\s*'), '');
-        cleaned.add(trimmed);
-      } else if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-        final body = trimmed.replaceAll(RegExp(r'^[-*]\s*'), '').replaceAll('**', '');
-        cleaned.add('• $body');
+      }
+
+      // Convert bullet markers (* or -) into clean bullet point •
+      if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+        trimmed = trimmed.replaceAll(RegExp(r'^[-*]\s*'), '');
+        // Remove markdown bold / italic
+        trimmed = trimmed.replaceAll(RegExp(r'\*\*|__|\*|_'), '');
+        cleaned.add('• $trimmed');
       } else {
-        cleaned.add(trimmed.replaceAll('**', ''));
+        // Remove markdown bold / italic
+        trimmed = trimmed.replaceAll(RegExp(r'\*\*|__|\*|_'), '');
+        cleaned.add(trimmed);
       }
     }
+
+    if (cleaned.isEmpty) {
+      return "• General performance enhancements\n• Bug fixes and stability updates";
+    }
+
     return cleaned.join('\n');
   }
 
@@ -261,24 +307,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         final downloadUrl = apkUrl ?? (data['html_url'] as String?) ?? 'https://github.com/Thes-IS-IT/Easylens/releases/latest';
 
-        if (latestTag != currentVersionTag) {
-          if (mounted) {
-            _showUpdateDialog(latestTag, releaseNotes, downloadUrl);
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  isFilipino 
-                      ? "Nasa pinakabagong bersyon ka na! ($currentVersionTag)" 
-                      : "You are on the latest version! ($currentVersionTag)",
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                ),
-                backgroundColor: const Color(0xFF10B981),
-              ),
-            );
-          }
+        if (mounted) {
+          _showUpdateDialog(latestTag, releaseNotes, downloadUrl);
         }
       } else {
         throw Exception("Github API status code ${response.statusCode}");
@@ -537,6 +567,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
     final cleanedNotes = _cleanReleaseNotes(notes);
 
+    final normCurrent = currentVersionTag.replaceAll(RegExp(r'[^0-9.]'), '');
+    final normNew = newVersion.replaceAll(RegExp(r'[^0-9.]'), '');
+    final bool isAlreadyLatest = (normCurrent == normNew) || (currentVersionTag.trim().toLowerCase() == newVersion.trim().toLowerCase());
+
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -558,13 +592,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryButton.withOpacity(0.14),
+                  color: isAlreadyLatest 
+                      ? const Color(0xFF10B981).withOpacity(0.16) 
+                      : AppColors.primaryButton.withOpacity(0.14),
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.unselectedBorder, width: 1.0),
                 ),
                 child: Icon(
-                  Icons.system_update_rounded,
-                  color: AppColors.primaryText,
+                  isAlreadyLatest ? Icons.check_circle_rounded : Icons.system_update_rounded,
+                  color: isAlreadyLatest ? const Color(0xFF10B981) : AppColors.primaryText,
                   size: 24,
                 ),
               ),
@@ -574,7 +610,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isFilipino ? "May Bagong Update!" : "Update Available!",
+                      isAlreadyLatest
+                          ? (isFilipino ? "Nasa Pinakabago Ka Na!" : "You're on the Latest Version!")
+                          : (isFilipino ? "May Bagong Update!" : "Update Available!"),
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -582,7 +620,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     Text(
-                      isFilipino ? "Bagong bersyon ng EasyLens" : "New version of EasyLens",
+                      isAlreadyLatest
+                          ? (isFilipino ? "Naka-install ang pinakabagong bersyon ng EasyLens" : "EasyLens is fully up to date")
+                          : (isFilipino ? "Bagong bersyon ng EasyLens" : "New version of EasyLens"),
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textMuted,
@@ -624,7 +664,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                     ),
-                    Icon(Icons.arrow_forward_rounded, size: 18, color: AppColors.primaryText),
+                    Icon(
+                      isAlreadyLatest ? Icons.check_rounded : Icons.arrow_forward_rounded, 
+                      size: 18, 
+                      color: isAlreadyLatest ? const Color(0xFF10B981) : AppColors.primaryText,
+                    ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -636,13 +680,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryButton.withOpacity(0.18),
+                            color: isAlreadyLatest 
+                                ? const Color(0xFF10B981).withOpacity(0.18) 
+                                : AppColors.primaryButton.withOpacity(0.18),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: AppColors.cardBorder, width: 1.0),
+                            border: Border.all(
+                              color: isAlreadyLatest ? const Color(0xFF10B981) : AppColors.cardBorder, 
+                              width: 1.0,
+                            ),
                           ),
                           child: Text(
                             newVersion,
-                            style: GoogleFonts.inter(fontSize: 13, color: AppColors.primaryText, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.inter(
+                              fontSize: 13, 
+                              color: isAlreadyLatest ? const Color(0xFF10B981) : AppColors.primaryText, 
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -696,7 +749,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Text(
-                  isFilipino ? "Kanselahin" : "Cancel",
+                  isFilipino ? "Isara" : "Close",
                   style: GoogleFonts.inter(
                     color: AppColors.textMuted,
                     fontWeight: FontWeight.bold,
@@ -706,29 +759,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             ElevatedButton.icon(
-              icon: Icon(Icons.download_rounded, color: AppColors.primaryButtonText, size: 18),
+              icon: Icon(
+                isAlreadyLatest ? Icons.check_circle_outline_rounded : Icons.download_rounded, 
+                color: isAlreadyLatest ? AppColors.textMuted : AppColors.primaryButtonText, 
+                size: 18,
+              ),
               label: Text(
-                isFilipino ? "I-download Ngayon" : "Download Now",
+                isAlreadyLatest 
+                    ? (isFilipino ? "Nasa Pinakabago Ka Na" : "Already Up to Date")
+                    : (isFilipino ? "I-download Ngayon" : "Download Now"),
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: AppColors.primaryButtonText,
+                  color: isAlreadyLatest ? AppColors.textMuted : AppColors.primaryButtonText,
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryButton,
-                foregroundColor: AppColors.primaryButtonText,
+                backgroundColor: isAlreadyLatest ? AppColors.unselectedBorder.withOpacity(0.35) : AppColors.primaryButton,
+                foregroundColor: isAlreadyLatest ? AppColors.textMuted : AppColors.primaryButtonText,
+                disabledBackgroundColor: AppColors.unselectedBorder.withOpacity(0.35),
+                disabledForegroundColor: AppColors.textMuted,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
-                  side: BorderSide(color: AppColors.cardBorder, width: 1.0),
+                  side: BorderSide(
+                    color: isAlreadyLatest ? AppColors.unselectedBorder : AppColors.cardBorder, 
+                    width: 1.0,
+                  ),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                elevation: isAlreadyLatest ? 0 : 2,
               ),
-              onPressed: () {
-                SoundService.playClick();
-                Navigator.of(context).pop();
-                _handleDownloadUpdate(downloadUrl, newVersion, isFilipino);
-              },
+              onPressed: isAlreadyLatest
+                  ? null
+                  : () {
+                      SoundService.playClick();
+                      Navigator.of(context).pop();
+                      _handleDownloadUpdate(downloadUrl, newVersion, isFilipino);
+                    },
             ),
           ],
         );
@@ -1823,7 +1890,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Text(
-                                          'v.1.0.0',
+                                          currentVersionTag,
                                           style: GoogleFonts.inter(
                                             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                             fontSize: 10,
@@ -1932,7 +1999,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor, fontSize: 15),
                             ),
                             subtitle: Text(
-                              TranslationService.translate('updates_subtitle', lang),
+                              lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino')
+                                  ? "Nasa pinakabagong bersyon ka na, $currentVersionTag."
+                                  : "You are on the latest public version, $currentVersionTag.",
                               style: GoogleFonts.inter(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
                             ),
                             trailing: _isCheckingUpdates 
