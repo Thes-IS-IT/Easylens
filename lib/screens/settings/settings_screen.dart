@@ -7,6 +7,7 @@ import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
 import '../../services/sound_service.dart';
+import '../../services/tts_service.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../notifications/notification_settings_screen.dart';
@@ -173,6 +174,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  String _cleanReleaseNotes(String rawNotes) {
+    if (rawNotes.trim().isEmpty) {
+      return "• General performance enhancements\n• Accessibility & high-contrast theme improvements\n• Bug fixes and stability updates";
+    }
+    final lines = rawNotes.split('\n');
+    final cleaned = <String>[];
+    for (var line in lines) {
+      var trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+      if (trimmed.startsWith('#')) {
+        trimmed = trimmed.replaceAll(RegExp(r'^#+\s*'), '');
+        cleaned.add(trimmed);
+      } else if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+        final body = trimmed.replaceAll(RegExp(r'^[-*]\s*'), '').replaceAll('**', '');
+        cleaned.add('• $body');
+      } else {
+        cleaned.add(trimmed.replaceAll('**', ''));
+      }
+    }
+    return cleaned.join('\n');
+  }
+
+  Future<void> _handleDownloadUpdate(String downloadUrl, String newVersion, bool isFilipino) async {
+    final msg = isFilipino 
+        ? "Binubuksan ang link sa pag-download ng EasyLens $newVersion..." 
+        : "Opening download link for EasyLens $newVersion...";
+    
+    TtsService().speak(msg);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.downloading_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  msg,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF2563EB),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+    
+    await _openURL(downloadUrl);
+  }
+
   Future<void> _checkForUpdates() async {
     if (_isCheckingUpdates) return;
     
@@ -205,9 +259,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }
         }
 
-        if (latestTag != currentVersionTag && apkUrl != null) {
+        final downloadUrl = apkUrl ?? (data['html_url'] as String?) ?? 'https://github.com/Thes-IS-IT/Easylens/releases/latest';
+
+        if (latestTag != currentVersionTag) {
           if (mounted) {
-            _showUpdateDialog(latestTag, releaseNotes, apkUrl);
+            _showUpdateDialog(latestTag, releaseNotes, downloadUrl);
           }
         } else {
           if (mounted) {
@@ -476,8 +532,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showUpdateDialog(String newVersion, String notes, String downloadUrl) {
     final settings = SettingsService();
     final isDefault = settings.selectedContrastTheme == 'Default';
+    final isDark = settings.isDarkMode;
     final lang = settings.selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    final cleanedNotes = _cleanReleaseNotes(notes);
 
     showDialog(
       context: context,
@@ -486,20 +544,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return AlertDialog(
           backgroundColor: AppColors.primaryBackground,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: isDefault ? BorderSide.none : BorderSide(color: AppColors.cardBorder, width: 2),
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: AppColors.cardBorder,
+              width: (isDefault && !isDark) ? 1.0 : 2.0,
+            ),
           ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
           title: Row(
             children: [
-              const Icon(Icons.cloud_download, color: Color(0xFF3B82F6), size: 28),
-              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryButton.withOpacity(0.14),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.unselectedBorder, width: 1.0),
+                ),
+                child: Icon(
+                  Icons.system_update_rounded,
+                  color: AppColors.primaryText,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  isFilipino ? "May Update!" : "Update Available!",
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryText,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isFilipino ? "May Bagong Update!" : "Update Available!",
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    Text(
+                      isFilipino ? "Bagong bersyon ng EasyLens" : "New version of EasyLens",
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -508,46 +597,94 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                isFilipino 
-                    ? "Isang bagong bersyon ($newVersion) ang magagamit. Kasalukuyang bersyon: $currentVersionTag."
-                    : "A new version ($newVersion) is available. Current version: $currentVersionTag.",
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: AppColors.primaryText,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(height: 6),
+
+              // Version progression comparison pill badges
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.lightBackground,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.unselectedBorder, width: 1.0),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isFilipino ? "Kasalukuyan" : "Current Version",
+                          style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          currentVersionTag,
+                          style: GoogleFonts.inter(fontSize: 13, color: AppColors.primaryText, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    Icon(Icons.arrow_forward_rounded, size: 18, color: AppColors.primaryText),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          isFilipino ? "Pinakabago" : "Latest Version",
+                          style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryButton.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.cardBorder, width: 1.0),
+                          ),
+                          child: Text(
+                            newVersion,
+                            style: GoogleFonts.inter(fontSize: 13, color: AppColors.primaryText, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              if (notes.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  isFilipino ? "Mga Pagbabago:" : "What's New:",
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
-                  ),
+
+              const SizedBox(height: 14),
+
+              Text(
+                isFilipino ? "Mga Bagong Tampok & Pagbabago:" : "What's New in this Version:",
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryText,
                 ),
-                const SizedBox(height: 6),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 120),
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isDefault ? Colors.grey.shade50 : const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      notes,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.primaryText,
-                      ),
+              ),
+              const SizedBox(height: 6),
+
+              // Formatted Release Notes Container
+              Container(
+                constraints: const BoxConstraints(maxHeight: 140),
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.lightBackground,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.unselectedBorder, width: 1.0),
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Text(
+                    cleanedNotes,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      height: 1.45,
+                      color: AppColors.primaryText,
                     ),
                   ),
                 ),
-              ],
+              ),
             ],
           ),
           actions: [
@@ -556,34 +693,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SoundService.playClick();
                 Navigator.of(context).pop();
               },
-              child: Text(
-                isFilipino ? "Kanselahin" : "Cancel",
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF64748B),
-                  fontWeight: FontWeight.bold,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  isFilipino ? "Kanselahin" : "Cancel",
+                  style: GoogleFonts.inter(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ),
-            ElevatedButton(
+            ElevatedButton.icon(
+              icon: Icon(Icons.download_rounded, color: AppColors.primaryButtonText, size: 18),
+              label: Text(
+                isFilipino ? "I-download Ngayon" : "Download Now",
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: AppColors.primaryButtonText,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryButton,
+                foregroundColor: AppColors.primaryButtonText,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(color: AppColors.cardBorder, width: 1.0),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              ),
               onPressed: () {
                 SoundService.playClick();
                 Navigator.of(context).pop();
-                _openURL(downloadUrl);
+                _handleDownloadUpdate(downloadUrl, newVersion, isFilipino);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              ),
-              child: Text(
-                isFilipino ? "I-download" : "Download Now",
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
             ),
           ],
         );
