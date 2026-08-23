@@ -63,3 +63,6 @@ Machine learning notebooks and fine-tuning reports:
 * [LICENSE.md](file:///Users/arronkianparejas/easylens/LICENSE.md) - Modified MIT License with Academic Thesis Conditions & copyright
 * [CONTRIBUTING.md](file:///Users/arronkianparejas/easylens/CONTRIBUTING.md) - Thesis contribution guidelines, code standards & PR workflows
 * [SECURITY.md](file:///Users/arronkianparejas/easylens/SECURITY.md) - Edge AI privacy model, credential isolation & vulnerability reporting
+
+### 11. 📦 Release History & APK Architecture Specifications
+* [releases.md](file:///Users/arronkianparejas/easylens/docs/releases.md) - Complete release milestones (v1.0 - v25.0), ABI compatibility matrix (`arm64-v8a` vs. FAT APK), and size optimization guidelines.

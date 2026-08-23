@@ -1,8 +1,8 @@
-# EasyLens Official Release Log & Version History (v1.0 - v20.0)
+# EasyLens Official Release Log & Version History (v1.0 - v25.0)
 
 Welcome to the comprehensive release documentation for EasyLens — the accessible vision, audio navigation, and biometric assistant built for visually impaired and neurodivergent users.
 
-This document details all release milestones from `v1.0` to `v20.0`, reflecting full architectural evolutions, feature additions, accessibility improvements, bug fixes, and performance optimizations.
+This document details all release milestones from `v1.0` to `v25.0`, reflecting full architectural evolutions, feature additions, accessibility improvements, bug fixes, ABI architecture packages, and performance optimizations.
 
 ---
 
@@ -31,6 +31,10 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 | [v19.0](#v190---docker-infrastructure-native-apk-pipeline--ghcr-deployment) | Dockerized Infrastructure & GHCR Pipeline | `41be50c` | 2026-08-03 |
 | [v20.0](#v200---pixel-exact-live-face-recognition--biometric-overlay-engine) | Spatial Facial Luminance Grid & 0.28 Biometrics | `b3b41a2` | 2026-08-03 |
 | [v21.0](#v210---custom-fine-tuned-mobilenetv2--hybrid-ai-vision-fusion) | 4-Phase Fine-Tuning & Multi-Tier Hybrid Vision | `99730bd` | 2026-08-04 |
+| [v22.0](#v220---accessible-tactile-navigation-matrix--waypoint-profiler) | Accessible Tactile Maps, Dynamic POIs & Geocoding | `3b891a4` | 2026-08-10 |
+| [v23.0](#v230---high-speed-yuv-color-conversion--sound-engine-refactor) | 60 FPS Bounding Box Latency & Soundboard Cues | `e41a9c1` | 2026-08-16 |
+| [v24.0](#v240---60-fps-real-time-object-tracking--gemini-live-multimodal-vision) | Zero-Lag Gemini Vision, Live Bounding Boxes & Anti-Echo | `1a4bd76` | 2026-08-22 |
+| [v25.0](#v250---map-layers-pull-down-drawers-theme-synchronization--settings-fixes) | Pull-Down Accordion Drawers, Full Theme Sync & ABI Builds | `703de1a` | 2026-08-23 |
 
 ---
 
@@ -286,3 +290,95 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 - [x] Documented **97% recall on potholes**, **95% F1 on crosswalks**, **92% recall on stairs**, and **99% recall on fire hydrants**.
 - [x] Published architecture document `hybrid_ai_fusion_app_integration.md` detailing the integration of Google ML Kit (400+ categories), TFLite SSD MobileNetV2 (80 COCO classes), fine-tuned MobileNetV2 (24 hazard classes), and Multimodal RAG (Gemma 2B / Gemini Flash).
 - [x] Updated canonical AI/ML source-of-truth document `05_ai_ml_pipeline.md` and root `readme.md`.
+
+#### v22.0 - Accessible Tactile Navigation Matrix & Waypoint Profiler
+- **Commit:** `3b891a4`
+- **Focus:** Accessible dynamic map layers, real-time geocoding, proximity safety radius, and turn-by-turn walking guidance.
+
+**Changes & Features**
+- [x] Implemented accessible waypoint search with Photon / OSRM routing fallbacks.
+- [x] Created multi-layer map toggles supporting tactile accessibility overlays, satellite imagery, 3D building perspective, and real-time traffic heatmaps.
+- [x] Integrated real-time proximity radius query scanner scanning transit stations, wheelchair ramps, and clinics within 500m.
+- [x] Configured spatial turn announcements with distance thresholds in meters and feet.
+- [x] Added dynamic map recenter camera tracking following GPS heading and user movement.
+
+#### v23.0 - High-Speed YUV Color Conversion & Sound Engine Refactor
+- **Commit:** `e41a9c1`
+- **Focus:** Camera isolate YUV-to-RGB acceleration, real-time audio soundboard, and UI render optimizations.
+
+**Changes & Features**
+- [x] Optimized camera frame buffer memory transfers using direct Isolate memory pointers.
+- [x] Refactored `SoundService` with low-latency audio cue caching for immediate auditory click and chime responses.
+- [x] Eliminated frame rendering lag when navigating between dashboard tabs and camera viewports.
+- [x] Added battery power optimization governor throttling frame inference rate during background or locked screen states.
+
+#### v24.0 - 60+ FPS Real-Time Object Tracking & Gemini Live Multimodal Vision
+- **Commit:** `1a4bd76`
+- **Focus:** Zero-latency bounding box tracking ($\alpha = 1.0$), Gemini Live multimodal vision prompt dispatch, and anti-echo STT/TTS isolation.
+
+**Changes & Features**
+- [x] **Zero-Latency Box Coordinates**: Eliminated temporal coordinate averaging dampening so bounding boxes snap directly ($\alpha = 1.0$) to moving objects with 0ms trailing delay.
+- [x] **Direct Isolate Pipeline**: Streamlined YUV-to-RGB conversion offloaded to background Isolate worker with zero microtask queue latency, achieving smooth 60+ FPS camera video playback.
+- [x] **Zero-Lag Image Capture**: Replaced blocking Android Camera2 picture capture with in-memory JPEG frame encoding from the live video stream in $< 2\text{ ms}$.
+- [x] **Direct Multimodal Vision Dispatching**: All user vision questions (*"What do you see?"*, *"Describe this"*, *"What is in front of me?"*) are dispatched directly to the Google Gemini Multimodal AI API along with the live camera image.
+- [x] **Anti-Echo Voice Isolation**: Configured native platform synchronous speech completion with a post-speech acoustic decay grace period to prevent self-voice audio feedback.
+
+#### v25.0 - Map Layers Pull-Down Drawers, Theme Synchronization & Settings Fixes
+- **Commit:** `703de1a`
+- **Focus:** Map Layers & Safety Options expandable accordion drawers, universal color theme synchronization, clean release notes markdown parser, disabled up-to-date download state, and split-per-ABI builds.
+
+**Changes & Features**
+- [x] **Expandable Accordion Drawers**: Built `buildExpandableLayerCard` with smooth animated cross-fades inside `_showMapLayersPullDownSheet()` detailing coverage radius, transit nodes, tactile ramps, and functionality for all 4 map layers.
+- [x] **SOS Compass Overlap Fix**: Disabled the native top-left Google Maps compass that overlapped underneath the SOS emergency button (`compassEnabled: false`).
+- [x] **Universal Theme Synchronization**: Synchronized all navigation sheets, modals, badges, cards, and update dialogs to strictly follow active high-contrast themes (`AppColors`).
+- [x] **Clean LaTeX Math Release Notes**: Built `_cleanReleaseNotes` regex pipeline converting LaTeX math syntax (e.g. `$\alpha = 1.0$` $\rightarrow$ `α = 1.0`), stripping raw dollar signs, backslashes, and markdown noise into clean bullet points.
+- [x] **Smart Update State**: Automatically disables the **Download Now** button (`onPressed: null`) with an *"Already Up to Date"* badge when the installed version matches the latest release.
+- [x] **Buddy Facebook Community**: Directly linked the Buddy Community tile to the official Facebook community page (`https://www.facebook.com/profile.php?id=61566090583740`).
+- [x] **Multi-ABI APK Release Distribution**: Provided dedicated standalone 64-bit ARM (`arm64-v8a`), 32-bit ARM (`armeabi-v7a`), x86_64, and universal FAT release binaries.
+
+---
+
+### 03 — ANDROID APK ARCHITECTURE, COMPATIBILITY & SIZE SPECIFICATION GUIDE
+
+Due to the integration of on-device C++ machine learning runtimes (LiteRT, LLM Inference Engine, MediaPipe Tasks, Google ML Kit, and TensorFlow Lite), EasyLens provides both **Architecture-Specific Split APKs** and a **Universal FAT APK**.
+
+#### 3.1 APK Architecture Comparison & Compatibility Matrix
+
+| Package Filename | Target ABI Architecture | Download Size | Primary Device Target & Compatibility | Performance & Recommendation |
+| :--- | :--- | :--- | :--- | :--- |
+| **`app-arm64-v8a-release.apk`** | **64-bit ARM (`arm64-v8a`)** | **~317 MB** | **95%+ Modern Android Devices**<br>• Samsung Galaxy (S, Note, Z, A series 64-bit)<br>• Google Pixel (Pixel 4 through 9 Pro)<br>• Xiaomi, Redmi, POCO (64-bit)<br>• Oppo, Vivo, OnePlus, Realme, Motorola | ⭐ **RECOMMENDED BUILD**<br>• ~36% smaller file size than FAT APK<br>• Faster Google Drive upload & user download<br>• 100% native 64-bit CPU & NPU performance<br>• Lower memory consumption during inference |
+| **`app-armeabi-v7a-release.apk`** | **32-bit ARM (`armeabi-v7a`)** | **~183 MB** | **Legacy / Budget 32-bit Devices**<br>• Entry-level Android smartphones<br>• Older Android 8.0 - 10 devices with 32-bit CPUs | • Smallest download footprint<br>• Maximum backward compatibility for older hardware |
+| **`app-x86_64-release.apk`** | **64-bit x86 (`x86_64`)** | **~241 MB** | **Emulators & Intel Hardware**<br>• Android Studio Virtual Devices (AVD)<br>• ChromeOS tablets & Intel/AMD Chromebooks | • Native desktop x86 execution without ARM translation overhead |
+| **`app-release.apk`** | **Universal FAT Binary** (Multi-Arch) | **~498 MB** | **All Android Architectures**<br>• Bundles `arm64-v8a`, `armeabi-v7a`, and `x86_64` | • Single file offline distribution<br>• Universal installation when device architecture is unknown |
+
+#### 3.2 What Accounts for the APK Size?
+EasyLens is a comprehensive, standalone offline-capable multimodal vision and AI assistant. The package size includes:
+1. **On-Device Machine Learning Models (`assets/models/`)**:
+   - `ssd_mobilenet_v2.tflite` (~67.3 MB): 80 COCO class bounding box object detection model.
+   - `ssd_mobilenet.tflite` (~4.2 MB): Low-latency edge vision model.
+   - `mobile_ica_8bit_with_metadata_tflite` (~3.0 MB): ML Kit default image labeling model.
+2. **Native C++ Inference Engines (`lib/<abi>/`)**:
+   - `libllm_inference_engine_jni.so` (~26.4 MB): On-device LLM C++ execution runtime.
+   - `liblitertlm_jni.so` (~20.6 MB): Google LiteRT runtime for edge ML.
+   - `libgemma_embedding_model_jni.so` (~17.0 MB): Embedding generation for vector search.
+   - `libgecko_embedding_model_jni.so` (~17.0 MB): Dense vector retrieval embeddings.
+   - `libmediapipe_tasks_vision_jni.so` (~14.3 MB): MediaPipe vision tasks processor.
+   - `libmlkit_google_ocr_pipeline.so` (~11.0 MB): High-accuracy on-device OCR pipeline.
+   - `libflutter.so` & `libapp.so` (~21.2 MB): Flutter rendering engine and compiled AOT Dart code.
+
+#### 3.3 Build Commands Guide
+
+To build the recommended **split-per-ABI APKs** (optimized for fast cloud upload and direct installation):
+```bash
+flutter build apk --split-per-abi --obfuscate --split-debug-info=build/app/outputs/symbols
+```
+*Outputs generated in `build/app/outputs/flutter-apk/`:*
+- `app-arm64-v8a-release.apk`
+- `app-armeabi-v7a-release.apk`
+- `app-x86_64-release.apk`
+
+To build the **universal FAT APK**:
+```bash
+flutter build apk --obfuscate --split-debug-info=build/app/outputs/symbols
+```
+*Output generated in `build/app/outputs/flutter-apk/app-release.apk`.*

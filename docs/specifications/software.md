@@ -43,12 +43,12 @@ This document provides complete software specifications, supported Android and i
 
 ### 03 — PLATFORM BUILD PACKAGES & DEPLOYMENT FOOTPRINT
 
-| Parameter | Android Build (`.apk`) | iOS Build (`.ipa`) |
-| :--- | :--- | :--- |
-| **File Artifact** | `build/app/outputs/flutter-apk/app-release.apk` | `build/ios/ipa/easylens.ipa` |
-| **Package Size** | **~475 MB** | **~154 MB** (ZIP) / **~250 MB** (Uncompressed `.app`) |
-| **Architecture Profile** | Multi-Arch FAT Binary (`arm64-v8a`, `armeabi-v7a`, `x86_64`) | Single Architecture (`arm64` iOS devices) |
-| **Installation Methods** | Direct APK install / ADB sideload / Google Play Store | AltStore / Sideloadly / Xcode / Apple TestFlight |
+| Parameter | Android Split Build (`arm64-v8a`) | Android FAT Build (`app-release.apk`) | iOS Build (`.ipa`) |
+| :--- | :--- | :--- | :--- |
+| **File Artifact** | `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` | `build/app/outputs/flutter-apk/app-release.apk` | `build/ios/ipa/easylens.ipa` |
+| **Package Size** | **~317 MB** (⭐ Recommended for fast Drive upload) | **~498 MB** (Universal multi-arch container) | **~154 MB** (ZIP) / **~250 MB** (Uncompressed `.app`) |
+| **Architecture Profile** | 64-bit ARM (`arm64-v8a` optimized) | Multi-Arch FAT Binary (`arm64-v8a`, `armeabi-v7a`, `x86_64`) | Single Architecture (`arm64` iOS devices) |
+| **Installation Methods** | Direct APK install / ADB sideload / Fast Drive sharing | Direct APK install / Google Play Store | AltStore / Sideloadly / Xcode / Apple TestFlight |
 
 ---
 
@@ -73,5 +73,6 @@ This document provides complete software specifications, supported Android and i
 | **Authentication & Document Sync** | **Firebase Suite** (`firebase_auth`, `cloud_firestore`) | User session authentication, Google Sign-In (`google_sign_in`), real-time Firestore sync, and Firebase Storage. |
 | **User Feedback & Database Sync** | **Notion REST API** (`NotionService`) | Synchronizes settings survey feedback directly into Notion database pages (`/v1/pages`) alongside Firestore. |
 | **Hardware & Environment Sensors** | **Sensors Plus**, **Battery Plus**, **Wakelock Plus** | Accelerometer/gyroscope orientation tracking, real-time power level sensing, and screen wake lock management. |
-| **Android Deployment Package** | **Android APK** (`app-release.apk` ~475 MB) | Multi-arch FAT binary (`arm64-v8a`, `armeabi-v7a`, `x86_64`) for direct sideloading and Google Play Store deployment. |
+| **Android Deployment Package (v8a)** | **Android APK (`arm64-v8a`)** (~317 MB) | Optimized 64-bit ARM binary for direct installation on modern Android devices with smaller footprint. |
+| **Android Universal Package** | **Android FAT APK** (`app-release.apk` ~498 MB) | Multi-arch FAT binary (`arm64-v8a`, `armeabi-v7a`, `x86_64`) for universal distribution. |
 | **iOS Deployment Package** | **iOS IPA** (`easylens.ipa` ~154 MB / ~250 MB `.app`) | Single 64-bit ARM (`arm64`) binary package for AltStore, TestFlight, and Apple App Store deployment. |
