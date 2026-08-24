@@ -45,6 +45,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _speechNavigation = false;
   bool _bubbleTransitionSound = true;
   bool _soundEffects = true;
+  bool _buttonHaptics = true;
+  bool _navigationHaptics = true;
   bool _hapticFeedback = true;
   bool _useLocalAI = true;
   bool _showFloatingMascot = true;
@@ -88,7 +90,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _speechNavigation = settings.speechNavigation;
     _bubbleTransitionSound = settings.bubbleTransitionSound;
     _soundEffects = settings.soundEffects;
-    _hapticFeedback = settings.hapticFeedback;
+    _buttonHaptics = settings.buttonHaptics;
+    _navigationHaptics = settings.navigationHaptics;
+    _hapticFeedback = settings.buttonHaptics;
     _useLocalAI = settings.useLocalAI;
     _showFloatingMascot = settings.showFloatingMascot;
 
@@ -136,7 +140,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       speechNavigation: _speechNavigation,
       bubbleTransitionSound: _bubbleTransitionSound,
       soundEffects: _soundEffects,
-      hapticFeedback: _hapticFeedback,
+      buttonHaptics: _buttonHaptics,
+      navigationHaptics: _navigationHaptics,
+      hapticFeedback: _buttonHaptics,
       useLocalAI: _useLocalAI,
       showFloatingMascot: _showFloatingMascot,
     );
@@ -154,7 +160,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'speechNavigation': _speechNavigation,
         'bubbleTransitionSound': _bubbleTransitionSound,
         'soundEffects': _soundEffects,
-        'hapticFeedback': _hapticFeedback,
+        'buttonHaptics': _buttonHaptics,
+        'navigationHaptics': _navigationHaptics,
+        'hapticFeedback': _buttonHaptics,
         'useLocalAI': _useLocalAI,
         'showFloatingMascot': _showFloatingMascot,
       });
@@ -1566,16 +1574,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                TranslationService.translate('haptic_feedback', lang),
+                                TranslationService.translate('navigation_haptics', lang),
                                 style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: tileTextColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: tileTextColor,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                TranslationService.translate('haptic_feedback_subtitle', lang),
+                                TranslationService.translate('navigation_haptics_subtitle', lang),
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   color: const Color(0xFF64748B),
@@ -1587,10 +1595,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(width: 16),
                         Switch(
-                          value: _hapticFeedback,
+                          value: _navigationHaptics,
                           onChanged: (val) {
-                            setState(() => _hapticFeedback = val);
-                            SettingsService().updateHapticFeedback(val);
+                            setState(() => _navigationHaptics = val);
+                            SettingsService().updateNavigationHaptics(val);
+                            _saveSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('button_haptics', lang),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('button_haptics_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _buttonHaptics,
+                          onChanged: (val) {
+                            setState(() {
+                              _buttonHaptics = val;
+                              _hapticFeedback = val;
+                            });
+                            SettingsService().updateButtonHaptics(val);
+                            _saveSettings();
                             if (val) SoundService.playClick();
                           },
                           activeColor: Colors.white,

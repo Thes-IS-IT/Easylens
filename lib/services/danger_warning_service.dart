@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vibration/vibration.dart';
+import 'settings_service.dart';
 
 enum HazardSeverity {
   critical, // Knife, Fire, Weapon, Vehicle Traffic
@@ -33,6 +34,7 @@ class DangerWarningService {
 
   /// Triggers maximum physical hardware vibration on Android & iOS devices
   Future<void> triggerStrongHazardVibration({bool isCritical = true}) async {
+    if (!SettingsService().navigationHaptics) return;
     try {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator == true) {

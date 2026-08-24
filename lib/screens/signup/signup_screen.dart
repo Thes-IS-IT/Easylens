@@ -959,6 +959,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final settings = SettingsService();
       settings.updateSettings(
         voiceFeedback: _voiceFeedback,
+        buttonHaptics: _hapticFeedback,
+        navigationHaptics: true,
         hapticFeedback: _hapticFeedback,
         selectedContrastTheme: _selectedContrastTheme,
         selectedLanguage: _selectedLanguage,
@@ -970,6 +972,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // 4. Store/Sync Preferences to Firestore (and D1)
       final prefsJson = {
         'voiceFeedback': _voiceFeedback,
+        'buttonHaptics': _hapticFeedback,
+        'navigationHaptics': true,
         'hapticFeedback': _hapticFeedback,
         'selectedContrastTheme': _selectedContrastTheme,
         'selectedLanguage': _selectedLanguage,

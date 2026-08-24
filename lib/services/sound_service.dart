@@ -67,7 +67,7 @@ class SoundService {
     final settings = SettingsService();
 
     // 1. Synchronous SUPER-HIGH Hardware Haptic Punch (Physical Vibration at 255 Amplitude + Heavy Impact)
-    if (settings.hapticFeedback) {
+    if (settings.buttonHaptics) {
       try {
         Vibration.vibrate(duration: isHeavy ? 45 : 30, amplitude: 255);
       } catch (_) {}
@@ -110,7 +110,7 @@ class SoundService {
   /// Play alert action feedback with intense haptics.
   static void playAlert() {
     final settings = SettingsService();
-    if (settings.hapticFeedback) {
+    if (settings.buttonHaptics) {
       try {
         Vibration.vibrate(duration: 100, amplitude: 255);
       } catch (_) {}

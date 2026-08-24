@@ -1311,7 +1311,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   DateTime? _lastHapticAlertTime;
 
   void _triggerHapticAlert({required bool isCritical}) {
-    final hapticEnabled = SettingsService().hapticFeedback;
+    final hapticEnabled = SettingsService().navigationHaptics;
     if (!hapticEnabled) return;
 
     final now = DateTime.now();
