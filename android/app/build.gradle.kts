@@ -35,10 +35,8 @@ android {
 
     buildTypes {
         debug {
-            // Limit ABIs in debug to speed up build / emulator usage.
-            ndk {
-                abiFilters += listOf("arm64-v8a", "x86_64")
-            }
+            // Signing with debug keys
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             // Signing with the debug keys for now, so `flutter run --release` works.

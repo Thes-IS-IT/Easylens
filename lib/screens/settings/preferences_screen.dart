@@ -19,7 +19,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   // Local state toggles
   bool _voiceFeedback = true;
   bool _navigationAssistant = true;
-  bool _hapticFeedback = true;
+  bool _navigationHaptics = true;
+  bool _buttonHaptics = true;
+  bool _soundEffects = true;
   double _speechRate = 0.5;
   double _pitch = 0.5;
   String _selectedVoicePersona = 'Aria (Calm)';
@@ -38,7 +40,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     final settings = SettingsService();
     setState(() {
       _voiceFeedback = settings.voiceFeedback;
-      _hapticFeedback = settings.hapticFeedback;
+      _navigationHaptics = settings.navigationHaptics;
+      _buttonHaptics = settings.buttonHaptics;
+      _soundEffects = settings.soundEffects;
       _selectedVoicePersona = settings.selectedVoicePersona;
       _speechRate = settings.speechRate;
       _pitch = settings.speechPitch;
@@ -47,11 +51,13 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     });
   }
 
-  void _saveSettings({bool? voice, bool? haptics, double? rate, double? pitch}) {
+  void _saveSettings({bool? voice, bool? navHaptics, bool? buttonHaptics, bool? sounds, double? rate, double? pitch}) {
     final settings = SettingsService();
     settings.updateSettings(
       voiceFeedback: voice,
-      hapticFeedback: haptics,
+      navigationHaptics: navHaptics,
+      buttonHaptics: buttonHaptics,
+      soundEffects: sounds,
       speechRate: rate,
       speechPitch: pitch,
     );
@@ -61,7 +67,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (user != null) {
       FirebaseService().syncPreferencesToCloud(user.uid, {
         'voiceFeedback': voice ?? _voiceFeedback,
-        'hapticFeedback': haptics ?? _hapticFeedback,
+        'navigationHaptics': navHaptics ?? _navigationHaptics,
+        'buttonHaptics': buttonHaptics ?? _buttonHaptics,
+        'hapticFeedback': buttonHaptics ?? _buttonHaptics,
+        'soundEffects': sounds ?? _soundEffects,
         'speechRate': rate ?? _speechRate,
         'speechPitch': pitch ?? _pitch,
       });
@@ -194,6 +203,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 label: Text(label),
                 selected: isSelected,
                 onSelected: (selected) {
+                  SoundService.playClick();
                   if (selected) {
                     setState(() {
                       _selectedTextSize = keyStr;
@@ -360,7 +370,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           const SizedBox(width: 16),
           Switch(
             value: value,
-            onChanged: onChanged,
+            onChanged: (val) {
+              SoundService.playClick();
+              onChanged(val);
+            },
             activeColor: isDark ? AppColors.primaryButtonText : Colors.white,
             activeTrackColor: AppColors.primaryButton,
             inactiveThumbColor: Colors.white,
@@ -555,14 +568,43 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                               ),
                               Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
                               _buildSwitchRow(
-                                title: 'Haptic Feedback',
+                                title: isFilipino ? 'Haptics sa EasyLens Navigation' : 'EasyLens Navigation Haptics',
                                 subtitle: isFilipino
-                                    ? 'Vibration ng device para sa babala (2x pulse sa dilaw na babala, 5x pulse sa kritikal na pula).'
+                                    ? 'Vibration ng device para sa mga babala (2x pulse sa dilaw na babala, 5x pulse sa kritikal na pula).'
                                     : 'Vibrates device for hazard alerts (2x pulses for caution/yellow hazards, 5x pulses for critical/red hazards).',
-                                value: _hapticFeedback,
+                                value: _navigationHaptics,
                                 onChanged: (val) {
-                                  setState(() => _hapticFeedback = val);
-                                  _saveSettings(haptics: val);
+                                  setState(() => _navigationHaptics = val);
+                                  _saveSettings(navHaptics: val);
+                                },
+                                titleColor: tileTextColor,
+                              ),
+                              Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
+                              _buildSwitchRow(
+                                title: isFilipino ? 'Panginginig sa Pindutan at Nabigasyon' : 'Button Navigation Haptics',
+                                subtitle: isFilipino
+                                    ? 'Panginginig ng haptics kapag pumipindot ng mga buton at tab ng nabigasyon.'
+                                    : 'Feel physical tactile vibration when tapping buttons and navigation tabs.',
+                                value: _buttonHaptics,
+                                onChanged: (val) {
+                                  setState(() => _buttonHaptics = val);
+                                  _saveSettings(buttonHaptics: val);
+                                  if (val) SoundService.playClick();
+                                },
+                                titleColor: tileTextColor,
+                              ),
+                              Divider(height: 1, indent: 16, endIndent: 16, color: isDark ? const Color(0xFF262626) : const Color(0xFFE2E8F0)),
+                              _buildSwitchRow(
+                                title: isFilipino ? 'Tunog ng Click sa Pindutan' : 'Button Click Sounds',
+                                subtitle: isFilipino
+                                    ? 'Mabilis na tunog ng pag-click kapag pumipindot ng mga buton.'
+                                    : 'Plays instant low-latency click sound effects on all button clicks.',
+                                value: _soundEffects,
+                                onChanged: (val) {
+                                  setState(() => _soundEffects = val);
+                                  SettingsService().updateSoundEffects(val);
+                                  _saveSettings(sounds: val);
+                                  if (val) SoundService.playClick();
                                 },
                                 titleColor: tileTextColor,
                               ),
@@ -604,6 +646,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                                 ),
                                 trailing: Icon(Icons.chevron_right, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
                                 onTap: () async {
+                                  SoundService.playClick();
                                   await Navigator.of(context).push(
                                     AppRoute.to(const VoiceFeedbackScreen()),
                                   );

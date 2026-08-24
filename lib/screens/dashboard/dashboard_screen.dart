@@ -279,7 +279,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   void _stopShakeListening() {
     _accelerometerSubscription?.cancel();
-  }  void _navigateTo(Widget screen, String description) {
+  }
+
+  void _navigateTo(Widget screen, String description) {
     final nav = Navigator.of(context);
     final prev = RagService.currentScreen;
     
@@ -663,7 +665,10 @@ class _DraggableBuddyButtonState extends State<DraggableBuddyButton> {
             );
           });
         },
-        onTap: widget.onTap,
+        onTap: () {
+          SoundService.playClick();
+          widget.onTap();
+        },
         child: Container(
           width: 72,
           height: 72,

@@ -5,6 +5,7 @@ import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/notion_service.dart';
+import '../../services/sound_service.dart';
 
 class SurveyScreen extends StatefulWidget {
   const SurveyScreen({super.key});
@@ -161,7 +162,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.close, color: headerTextColor),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            SoundService.playClick();
+            Navigator.of(context).pop();
+          },
         ),
         title: Text(
           'Share your feedback!',
@@ -198,6 +202,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                   final isSelected = _selectedRating == item['value'];
                   return GestureDetector(
                     onTap: () {
+                      SoundService.playClick();
                       setState(() {
                         _selectedRating = item['value'] as int;
                       });
@@ -244,6 +249,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                   final isSelected = _selectedSubject == subj['label'];
                   return GestureDetector(
                     onTap: () {
+                      SoundService.playClick();
                       setState(() {
                         _selectedSubject = subj['label'] as String;
                       });
@@ -337,7 +343,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitFeedback,
+                  onPressed: _isSubmitting ? null : () {
+                    SoundService.playClick();
+                    _submitFeedback();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryButton,
                     foregroundColor: AppColors.primaryButtonText,

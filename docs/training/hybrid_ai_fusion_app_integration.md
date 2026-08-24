@@ -8,7 +8,7 @@ To deliver comprehensive spatial awareness for visually impaired users without c
 
 Instead of relying on a single vision model, EasyLens dynamically combines:
 1. **On-Device Google ML Kit Image Labeler** (400+ detectable objects & scene categories)
-2. **On-Device TFLite SSD MobileNetV2** (91 COCO classes with 2D spatial bounding boxes)
+2. **On-Device TFLite SSD MobileNetV2** (80 COCO classes with 2D spatial bounding boxes)
 3. **Custom Fine-Tuned 24-Class MobileNetV2** (High-priority navigation & safety hazard classifier)
 4. **Multimodal LLM / Offline RAG Pipeline** (Offline Gemma 2B & Cloud Gemini 3.5 Flash for natural speech & scene synthesis)
 
@@ -50,10 +50,10 @@ Instead of relying on a single vision model, EasyLens dynamically combines:
   * Refines raw labels via fuzzy matching (`_refineLabel()`) into natural language equivalents (`"partition"` $\rightarrow$ `"wall"`, `"musical instrument"` $\rightarrow$ `"keyboard or laptop"`).
   * Feeds labels to the Creative Dialogue Generator to produce natural spoken ambient summaries ("You are near a desk with a computer").
 
-#### Tier 2: Standard TFLite SSD MobileNetV2 (91 COCO Classes)
+#### Tier 2: Standard TFLite SSD MobileNetV2 (80 COCO Classes)
 * **Service**: `ObjectDetectorService` ([`lib/services/object_detector_service.dart`](file:///Users/arronkianparejas/easylens/lib/services/object_detector_service.dart)) & `TfliteProcessor` ([`lib/services/tflite_processor.dart`](file:///Users/arronkianparejas/easylens/lib/services/tflite_processor.dart))
 * **Model Asset**: `assets/models/ssd_mobilenet_v2.tflite`
-* **Labels Asset**: `assets/models/coco_labels.txt` (91 COCO classes)
+* **Labels Asset**: `assets/models/coco_labels.txt` (80 COCO classes)
 * **Scope**: Real-time object localization and tracking with normalized bounding boxes `[ymin, xmin, ymax, xmax]`.
 * **Role in App**:
   * Calculates relative object center positions in portrait mode (`normCenterX = 1.0 - (top + bottom) / (2 * height)`).
@@ -102,7 +102,7 @@ To ensure 60 FPS UI responsiveness and avoid thermal throttling, frame processin
 | Engine | Model Type | Number of Classes | Bounding Box Spatial Info? | Primary Target Use Case | Latency |
 |---|---|---|---|---|---|
 | **Tier 1: Google ML Kit** | On-Device Neural Net | **400+ Categories** | No (Global Labels) | General scene context & indoor/outdoor dialogues | ~15-25 ms |
-| **Tier 2: TFLite SSD MobileNetV2** | Single Shot Detector | **91 COCO Classes** | Yes (`[ymin, xmin, ymax, xmax]`) | Object tracking, obstacle location & HUD overlays | ~12-18 ms |
+| **Tier 2: TFLite SSD MobileNetV2** | Single Shot Detector | **80 COCO Classes** | Yes (`[ymin, xmin, ymax, xmax]`) | Object tracking, obstacle location & HUD overlays | ~12-18 ms |
 | **Tier 3: Fine-Tuned MobileNetV2** | 4-Phase Classifier | **24 Custom Classes** | Image / Region Crop | **High-hazard safety alerts (potholes, crosswalks, stairs, traffic lights)** | **2.48 ms** |
 | **Tier 4: Multimodal RAG** | Gemma 2B / Gemini Flash | Open Domain | Scene Context Synthesis | Conversational Q&A assistant ("Buddy") | Stream / Speech |
 

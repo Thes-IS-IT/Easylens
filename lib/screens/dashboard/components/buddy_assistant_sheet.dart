@@ -11,6 +11,7 @@ import '../../../services/settings_service.dart';
 import '../../../widgets/chat_history_viewer.dart';
 import '../../../services/chat_history_service.dart';
 import '../../../services/journal_service.dart';
+import '../../../services/sound_service.dart';
 
 class BuddyAssistantSheet extends StatefulWidget {
   final Function(String) onNavigate;
@@ -563,7 +564,10 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                     ),
                     IconButton(
                       icon: Icon(Icons.close, color: AppColors.primaryText),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () {
+                        SoundService.playClick();
+                        Navigator.of(context).pop();
+                      },
                     ),
                   ],
                 ),
@@ -588,6 +592,7 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                           ),
                         ),
                         onPressed: () {
+                          SoundService.playClick();
                           final newVal = !SettingsService().useLocalAI;
                           SettingsService().updateSettings(useLocalAI: newVal);
                           setState(() {});
@@ -615,13 +620,19 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                             color: AppColors.primaryText,
                           ),
                         ),
-                        onPressed: _startNewChat,
+                        onPressed: () {
+                          SoundService.playClick();
+                          _startNewChat();
+                        },
                       ),
                       const SizedBox(width: 4),
                       IconButton(
                         tooltip: 'Chat Memory & History',
                         icon: Icon(Icons.history, color: AppColors.primaryText),
-                        onPressed: () => ChatHistoryViewer.showHistorySheet(context),
+                        onPressed: () {
+                          SoundService.playClick();
+                          ChatHistoryViewer.showHistorySheet(context);
+                        },
                       ),
                     ],
                   ),
@@ -772,7 +783,10 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
-                  onTap: _toggleListening,
+                  onTap: () {
+                    SoundService.playClick();
+                    _toggleListening();
+                  },
                   child: Container(
                     width: 48,
                     height: 48,
@@ -789,7 +803,10 @@ class _BuddyAssistantSheetState extends State<BuddyAssistantSheet> with TickerPr
                 const SizedBox(width: 8),
                 IconButton(
                   icon: Icon(Icons.send, color: AppColors.primaryButton),
-                  onPressed: () => _handleSendMessage(_textController.text),
+                  onPressed: () {
+                    SoundService.playClick();
+                    _handleSendMessage(_textController.text);
+                  },
                 ),
               ],
             ),

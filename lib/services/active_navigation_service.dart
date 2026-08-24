@@ -130,6 +130,11 @@ class ActiveNavigationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateCurrentLocation(LatLng location) {
+    _currentLocation = location;
+    notifyListeners();
+  }
+
   void stopNavigation() {
     _isNavigating = false;
     _isHazardActive = false;

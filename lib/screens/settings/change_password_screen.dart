@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../constants/colors.dart';
+import '../../services/sound_service.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -81,7 +82,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () {
+                          SoundService.playClick();
+                          Navigator.of(context).pop();
+                        },
                         child: Container(
                           height: 44,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -228,7 +232,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                 borderRadius: BorderRadius.circular(28.0),
                               ),
                             ),
-                            onPressed: _handleUpdatePassword,
+                            onPressed: () {
+                              SoundService.playClick();
+                              _handleUpdatePassword();
+                            },
                             child: Text(
                               'Update Password',
                               style: GoogleFonts.inter(

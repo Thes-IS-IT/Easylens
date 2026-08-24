@@ -4,6 +4,7 @@ import '../../constants/colors.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
 import '../../services/firebase_service.dart';
+import '../../services/sound_service.dart';
 
 class CustomizeHomeScreen extends StatefulWidget {
   const CustomizeHomeScreen({super.key});
@@ -84,7 +85,10 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
             children: [
               // 1. Back button
               GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
+                onTap: () {
+                  SoundService.playClick();
+                  Navigator.of(context).pop();
+                },
                 child: Container(
                   width: 95,
                   height: 44,
@@ -214,6 +218,7 @@ class _CustomizeHomeScreenState extends State<CustomizeHomeScreen> {
                           inactiveThumbColor: Colors.white,
                           inactiveTrackColor: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() {
                               if (val) {
                                 _enabledCards.add(key);

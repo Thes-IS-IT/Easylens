@@ -13,7 +13,10 @@ class SettingsService extends ChangeNotifier {
   }
 
   bool voiceFeedback = true;
-  bool hapticFeedback = true;
+  bool buttonHaptics = true;
+  bool navigationHaptics = true;
+  bool get hapticFeedback => buttonHaptics;
+  set hapticFeedback(bool val) => buttonHaptics = val;
   bool soundEffects = true;
   bool companionSharing = false;
 
@@ -77,7 +80,8 @@ class SettingsService extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       voiceFeedback = prefs.getBool('voiceFeedback') ?? true;
-      hapticFeedback = prefs.getBool('hapticFeedback') ?? true;
+      buttonHaptics = prefs.getBool('buttonHaptics') ?? prefs.getBool('hapticFeedback') ?? true;
+      navigationHaptics = prefs.getBool('navigationHaptics') ?? true;
       soundEffects = prefs.getBool('soundEffects') ?? true;
       companionSharing = prefs.getBool('companionSharing') ?? false;
       selectedContrastTheme = prefs.getString('selectedContrastTheme') ?? 'Default';
@@ -175,6 +179,9 @@ class SettingsService extends ChangeNotifier {
   Future<void> updateSettings({
     bool? voiceFeedback,
     bool? hapticFeedback,
+    bool? buttonHaptics,
+    bool? navigationHaptics,
+    bool? soundEffects,
     bool? companionSharing,
     String? selectedContrastTheme,
     String? selectedLanguage,
@@ -197,7 +204,10 @@ class SettingsService extends ChangeNotifier {
     String? geminiApiKey,
   }) async {
     if (voiceFeedback != null) this.voiceFeedback = voiceFeedback;
-    if (hapticFeedback != null) this.hapticFeedback = hapticFeedback;
+    if (buttonHaptics != null) this.buttonHaptics = buttonHaptics;
+    if (navigationHaptics != null) this.navigationHaptics = navigationHaptics;
+    if (hapticFeedback != null) this.buttonHaptics = hapticFeedback;
+    if (soundEffects != null) this.soundEffects = soundEffects;
     if (companionSharing != null) this.companionSharing = companionSharing;
     if (selectedContrastTheme != null) this.selectedContrastTheme = selectedContrastTheme;
     if (selectedLanguage != null) this.selectedLanguage = selectedLanguage;
@@ -232,7 +242,18 @@ class SettingsService extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (voiceFeedback != null) await prefs.setBool('voiceFeedback', voiceFeedback);
-      if (hapticFeedback != null) await prefs.setBool('hapticFeedback', hapticFeedback);
+      if (buttonHaptics != null) {
+        await prefs.setBool('buttonHaptics', buttonHaptics);
+        await prefs.setBool('hapticFeedback', buttonHaptics);
+      }
+      if (navigationHaptics != null) {
+        await prefs.setBool('navigationHaptics', navigationHaptics);
+      }
+      if (hapticFeedback != null) {
+        await prefs.setBool('buttonHaptics', hapticFeedback);
+        await prefs.setBool('hapticFeedback', hapticFeedback);
+      }
+      if (soundEffects != null) await prefs.setBool('soundEffects', soundEffects);
       if (companionSharing != null) await prefs.setBool('companionSharing', companionSharing);
       await prefs.setString('selectedContrastTheme', this.selectedContrastTheme);
       await prefs.setString('appearanceTheme', this.appearanceTheme);
@@ -266,10 +287,30 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateButtonHaptics(bool enabled) async {
+    buttonHaptics = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('buttonHaptics', enabled);
+    await prefs.setBool('hapticFeedback', enabled);
+    notifyListeners();
+  }
+
+  Future<void> updateNavigationHaptics(bool enabled) async {
+    navigationHaptics = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('navigationHaptics', enabled);
+    notifyListeners();
+  }
+
+  Future<void> updateHapticFeedback(bool enabled) async {
+    await updateButtonHaptics(enabled);
+  }
+
   /// Reset preferences to defaults (called upon sign-out / new account setup)
   Future<void> resetToDefaults() async {
     voiceFeedback = true;
-    hapticFeedback = true;
+    buttonHaptics = true;
+    navigationHaptics = true;
     soundEffects = true;
     companionSharing = false;
     selectedContrastTheme = 'Default';
@@ -297,6 +338,8 @@ class SettingsService extends ChangeNotifier {
       final keysToRemove = [
         'voiceFeedback',
         'hapticFeedback',
+        'buttonHaptics',
+        'navigationHaptics',
         'companionSharing',
         'selectedContrastTheme',
         'appearanceTheme',

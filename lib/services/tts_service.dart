@@ -65,12 +65,33 @@ class TtsService {
 
   void _onSpeechFinished() {
     _decayTimer?.cancel();
-    // 1000ms post-speech decay timer for acoustic echo clearance before unmuting STT mic
-    _decayTimer = Timer(const Duration(milliseconds: 1000), () {
+    // 500ms post-speech decay timer for acoustic echo clearance before unmuting STT mic
+    _decayTimer = Timer(const Duration(milliseconds: 500), () {
       if (isSpeakingNotifier.value) {
         isSpeakingNotifier.value = false;
         print('[TTS] Speech completed & acoustic decay period passed. STT unmuted.');
       }
+    });
+  }
+
+  /// Awaits until TTS has completely finished speaking and acoustic decay has passed.
+  Future<void> waitForSpeechToFinish({Duration timeout = const Duration(seconds: 15)}) async {
+    if (!isSpeaking) return;
+    final completer = Completer<void>();
+    void listener() {
+      if (!isSpeakingNotifier.value && !completer.isCompleted) {
+        isSpeakingNotifier.removeListener(listener);
+        completer.complete();
+      }
+    }
+    isSpeakingNotifier.addListener(listener);
+    if (!isSpeakingNotifier.value && !completer.isCompleted) {
+      isSpeakingNotifier.removeListener(listener);
+      completer.complete();
+    }
+    return completer.future.timeout(timeout, onTimeout: () {
+      isSpeakingNotifier.removeListener(listener);
+      isSpeakingNotifier.value = false;
     });
   }
 
@@ -112,6 +133,7 @@ class TtsService {
 
   void _initializeTts() async {
     await _flutterTts.setSharedInstance(true);
+    await _flutterTts.awaitSpeakCompletion(true);
     if (Platform.isIOS) {
       await _flutterTts.setIosAudioCategory(
         IosTextToSpeechAudioCategory.playback,
@@ -251,6 +273,7 @@ class TtsService {
 
     await _applyLanguage();
     await _applyVoicePersona();
+    await _flutterTts.awaitSpeakCompletion(true);
 
     final completer = Completer<void>();
     _flutterTts.setCompletionHandler(() {
@@ -266,11 +289,18 @@ class TtsService {
       if (!completer.isCompleted) completer.complete();
     });
 
-    await _flutterTts.speak(text);
+    try {
+      await _flutterTts.speak(text);
+    } catch (e) {
+      print("[TTS] speak error: $e");
+    }
+
+    // Wait for native speech completion with a generous timeout so responses are never prematurely interrupted
+    final timeoutDuration = Duration(milliseconds: (text.length * 150) + 5000);
     await completer.future.timeout(
-      Duration(milliseconds: (text.length * 80) + 2000),
+      timeoutDuration,
       onTimeout: () {
-        print("[TTS] speakAwait timed out.");
+        print("[TTS] speakAwait completed via duration timeout.");
         _onSpeechFinished();
       },
     );

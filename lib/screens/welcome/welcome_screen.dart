@@ -34,8 +34,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
         precacheImage(const AssetImage('assets/mascots/01_happy.gif'), context);
         precacheImage(const AssetImage('assets/mascots/02_error.gif'), context);
         precacheImage(const AssetImage('assets/mascots/03_loading.gif'), context);
+        precacheImage(const AssetImage('assets/mascots/04_congratulations.gif'), context);
         precacheImage(const AssetImage('assets/mascots/05_welcome.gif'), context);
         precacheImage(const AssetImage('assets/mascots/06_thinking.gif'), context);
+        precacheImage(const AssetImage('assets/mascots/07_crying.gif'), context);
+        precacheImage(const AssetImage('assets/mascots/08_fetch.gif'), context);
       }
     });
 
@@ -53,17 +56,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
     _timer = Timer(const Duration(seconds: 3), () async {
       if (mounted) {
-        final prefs = await SharedPreferences.getInstance();
-        final hasCompletedOnboarding = prefs.getBool('has_completed_onboarding') ?? false;
         final firebaseService = FirebaseService();
         final user = firebaseService.currentUser;
         if (user != null) {
           Navigator.of(context).pushReplacement(
             AppRoute.to(const DashboardScreen()),
-          );
-        } else if (hasCompletedOnboarding) {
-          Navigator.of(context).pushReplacement(
-            AppRoute.to(const LoginScreen()),
           );
         } else {
           Navigator.of(context).pushReplacement(

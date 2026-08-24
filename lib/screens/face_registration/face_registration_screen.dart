@@ -13,6 +13,7 @@ import '../dashboard/components/buddy_assistant_sheet.dart';
 import 'registered_faces_screen.dart';
 import '../../utils/app_route.dart';
 import '../../widgets/screen_tutorial_card.dart';
+import '../../services/sound_service.dart';
 
 class FaceRegistrationScreen extends StatefulWidget {
   const FaceRegistrationScreen({super.key});
@@ -1143,7 +1144,10 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         ),
         const SizedBox(height: 12),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            SoundService.playClick();
+            Navigator.of(context).pop();
+          },
           child: Text(
             'Back to Dashboard',
             style: GoogleFonts.inter(
@@ -1224,7 +1228,10 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                SoundService.playClick();
+                Navigator.of(context).pop();
+              },
             ),
             title: Text(
               'Face Registration',

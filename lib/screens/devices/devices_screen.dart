@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants/colors.dart';
 import '../../services/esp32_service.dart';
 import '../../widgets/screen_tutorial_card.dart';
+import '../../services/sound_service.dart';
 
 // Pairing flow state machine
 enum _DeviceState { dashboard, enterIp, scanning, connected, deviceSettings }
@@ -168,7 +169,14 @@ class _DevicesScreenState extends State<DevicesScreen>
           Row(
             children: [
               GestureDetector(
-                onTap: onBack ?? () => Navigator.of(context).pop(),
+                onTap: () {
+                  SoundService.playClick();
+                  if (onBack != null) {
+                    onBack();
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(

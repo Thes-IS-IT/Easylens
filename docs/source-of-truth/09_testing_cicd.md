@@ -64,10 +64,18 @@ The CI pipeline is lightweight, focusing on static code analysis to ensure chang
 
 To compile and package the app for manual release:
 
-#### Build Android release APK
+#### 1. Build Split-per-ABI Release APKs (Recommended for Fast Upload & Target Devices)
 ```bash
-flutter build apk
+flutter build apk --split-per-abi --obfuscate --split-debug-info=build/app/outputs/symbols
 ```
-This compiles the application, treeshakes icons/assets, bundles local LLM assets, and outputs:
-- **Location**: `build/app/outputs/flutter-apk/app-release.apk`
-- **Output Type**: Production release package (FAT APK containing ARM and x86 binaries).
+This compiles architecture-optimized standalone binaries with stripped debug symbols:
+- **`app-arm64-v8a-release.apk`** (~317 MB): **Recommended build for 95%+ of modern Android phones** (Samsung, Pixel, Xiaomi, OnePlus, Oppo, Vivo). Offers the fastest cloud upload / download time and lowest memory consumption.
+- **`app-armeabi-v7a-release.apk`** (~183 MB): Targeted for older 32-bit budget Android devices.
+- **`app-x86_64-release.apk`** (~241 MB): Targeted for Android Studio Emulators & Intel ChromeOS devices.
+
+#### 2. Build Universal FAT Release APK
+```bash
+flutter build apk --obfuscate --split-debug-info=build/app/outputs/symbols
+```
+- **Location**: `build/app/outputs/flutter-apk/app-release.apk` (~498 MB)
+- **Output Type**: Production multi-arch FAT package containing all 3 C++ runtimes (`arm64-v8a`, `armeabi-v7a`, `x86_64`) for universal distribution.

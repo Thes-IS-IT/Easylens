@@ -9,6 +9,8 @@ class UserPreferences {
   final bool voiceFeedback;
   final bool navigationAssistant;
   final bool hapticFeedback;
+  final bool buttonHaptics;
+  final bool navigationHaptics;
   final double speechRate;
   final double pitch;
   final String voicePersonaId;
@@ -32,6 +34,8 @@ class UserPreferences {
     this.voiceFeedback = true,
     this.navigationAssistant = true,
     this.hapticFeedback = true,
+    this.buttonHaptics = true,
+    this.navigationHaptics = true,
     this.speechRate = 0.5,
     this.pitch = 0.5,
     this.voicePersonaId = 'aria',
@@ -52,6 +56,8 @@ class UserPreferences {
     bool? voiceFeedback,
     bool? navigationAssistant,
     bool? hapticFeedback,
+    bool? buttonHaptics,
+    bool? navigationHaptics,
     double? speechRate,
     double? pitch,
     String? voicePersonaId,
@@ -70,7 +76,9 @@ class UserPreferences {
       shakeToUndo: shakeToUndo ?? this.shakeToUndo,
       voiceFeedback: voiceFeedback ?? this.voiceFeedback,
       navigationAssistant: navigationAssistant ?? this.navigationAssistant,
-      hapticFeedback: hapticFeedback ?? this.hapticFeedback,
+      hapticFeedback: hapticFeedback ?? buttonHaptics ?? this.hapticFeedback,
+      buttonHaptics: buttonHaptics ?? hapticFeedback ?? this.buttonHaptics,
+      navigationHaptics: navigationHaptics ?? this.navigationHaptics,
       speechRate: speechRate ?? this.speechRate,
       pitch: pitch ?? this.pitch,
       voicePersonaId: voicePersonaId ?? this.voicePersonaId,
@@ -93,6 +101,8 @@ class UserPreferences {
       'voiceFeedback': voiceFeedback,
       'navigationAssistant': navigationAssistant,
       'hapticFeedback': hapticFeedback,
+      'buttonHaptics': buttonHaptics,
+      'navigationHaptics': navigationHaptics,
       'speechRate': speechRate,
       'pitch': pitch,
       'voicePersonaId': voicePersonaId,
@@ -106,6 +116,8 @@ class UserPreferences {
   }
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
+    final rawButtonHaptics = json['buttonHaptics'] ?? json['hapticFeedback'] ?? true;
+    final rawNavHaptics = json['navigationHaptics'] ?? true;
     return UserPreferences(
       language: json['language'] ?? 'English',
       faceIdUnlock: json['faceIdUnlock'] ?? false,
@@ -114,7 +126,9 @@ class UserPreferences {
       shakeToUndo: json['shakeToUndo'] ?? true,
       voiceFeedback: json['voiceFeedback'] ?? true,
       navigationAssistant: json['navigationAssistant'] ?? true,
-      hapticFeedback: json['hapticFeedback'] ?? true,
+      hapticFeedback: rawButtonHaptics,
+      buttonHaptics: rawButtonHaptics,
+      navigationHaptics: rawNavHaptics,
       speechRate: (json['speechRate'] as num?)?.toDouble() ?? 0.5,
       pitch: (json['pitch'] as num?)?.toDouble() ?? 0.5,
       voicePersonaId: json['voicePersonaId'] ?? 'aria',

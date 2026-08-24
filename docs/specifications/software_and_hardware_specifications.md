@@ -126,7 +126,9 @@ The system combines physical wearable optics (ESP32-CAM-MB Development Board wit
 **C. Platform Build Packages & Binary Footprint**
 | Platform | Build Package Format | Package Size | Architecture Breakdown | Installation Method |
 | :--- | :--- | :--- | :--- | :--- |
-| **Android** | `app-release.apk` | **~475 MB** | Multi-Arch FAT binary (`arm64-v8a`, `armeabi-v7a`, `x86_64` for maximum device compatibility) | Direct APK installation / ADB sideload / Google Play |
+| **Android (Recommended)** | `app-arm64-v8a-release.apk` | **~317 MB** | Single 64-bit ARM architecture (`arm64-v8a` optimized for modern smartphones) | Direct APK installation / ADB sideload / Fast Drive upload |
+| **Android (Legacy 32-bit)** | `app-armeabi-v7a-release.apk` | **~183 MB** | Single 32-bit ARM architecture (`armeabi-v7a` for older budget devices) | Direct APK installation / ADB sideload |
+| **Android (Universal FAT)** | `app-release.apk` | **~498 MB** | Multi-Arch FAT binary (`arm64-v8a`, `armeabi-v7a`, `x86_64` bundled) | Universal APK installation / Google Play Store |
 | **iPhone (iOS)** | `easylens.ipa` / `Runner.app` | **~154 MB** (IPA) / **~250 MB** (Raw `.app`) | Single 64-bit ARM architecture (`arm64` optimized for iOS devices) | AltStore / Sideloadly / Xcode / Apple TestFlight |
 
 ---

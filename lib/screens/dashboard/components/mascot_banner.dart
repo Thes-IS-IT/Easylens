@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants/colors.dart';
 import '../../../services/settings_service.dart';
+import '../../../services/sound_service.dart';
 
 class MascotBanner extends StatefulWidget {
   final double bannerHeight;
@@ -219,6 +220,7 @@ class _MascotBannerState extends State<MascotBanner> {
                   ),
                   child: GestureDetector(
                     onTap: () {
+                      SoundService.playClick();
                       setState(() {
                         _isExpanded = !_isExpanded;
                       });

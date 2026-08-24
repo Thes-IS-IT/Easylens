@@ -8,6 +8,7 @@ import '../dashboard/components/custom_navbar.dart';
 import '../dashboard/components/buddy_assistant_sheet.dart';
 import 'face_registration_screen.dart';
 import '../../utils/app_route.dart';
+import '../../services/sound_service.dart';
 
 class RegisteredFacesScreen extends StatefulWidget {
   const RegisteredFacesScreen({super.key});
@@ -94,7 +95,10 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                SoundService.playClick();
+                Navigator.of(context).pop();
+              },
             ),
             title: Text(
               'Registered Faces',

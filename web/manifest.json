@@ -1,6 +1,6 @@
 {
-    "name": "easylens",
-    "short_name": "easylens",
+    "name": "Buddy",
+    "short_name": "Buddy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

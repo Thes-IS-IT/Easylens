@@ -8,6 +8,7 @@ import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/emergency_contact_service.dart';
 import '../../constants/colors.dart';
+import '../../services/sound_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -131,6 +132,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   }
 
   Future<void> _pickAndUploadImage() async {
+    SoundService.playClick();
     final picker = ImagePicker();
     try {
       final XFile? pickedFile = await picker.pickImage(
@@ -320,7 +322,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             GestureDetector(
-                              onTap: () => Navigator.of(context).pop(),
+                              onTap: () {
+                                SoundService.playClick();
+                                Navigator.of(context).pop();
+                              },
                               child: Container(
                                 height: 44,
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -634,7 +639,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                                 borderRadius: BorderRadius.circular(28.0),
                               ),
                             ),
-                            onPressed: _handleSave,
+                            onPressed: () {
+                              SoundService.playClick();
+                              _handleSave();
+                            },
                             child: Text(
                               'Save Changes',
                               style: GoogleFonts.inter(

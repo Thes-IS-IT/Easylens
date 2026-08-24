@@ -6,6 +6,8 @@ import '../../constants/colors.dart';
 import '../../services/firebase_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/translation_service.dart';
+import '../../services/sound_service.dart';
+import '../../services/tts_service.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../notifications/notification_settings_screen.dart';
@@ -31,7 +33,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _firebaseService = FirebaseService();
-  static const String currentVersionTag = 'v1.2.0';
+  static const String currentVersionTag = 'v25.0';
   bool _isCheckingUpdates = false;
 
   // Local interactive states linked to settings service
@@ -43,6 +45,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _speechNavigation = false;
   bool _bubbleTransitionSound = true;
   bool _soundEffects = true;
+  bool _buttonHaptics = true;
+  bool _navigationHaptics = true;
+  bool _hapticFeedback = true;
   bool _useLocalAI = true;
   bool _showFloatingMascot = true;
 
@@ -85,6 +90,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _speechNavigation = settings.speechNavigation;
     _bubbleTransitionSound = settings.bubbleTransitionSound;
     _soundEffects = settings.soundEffects;
+    _buttonHaptics = settings.buttonHaptics;
+    _navigationHaptics = settings.navigationHaptics;
+    _hapticFeedback = settings.buttonHaptics;
     _useLocalAI = settings.useLocalAI;
     _showFloatingMascot = settings.showFloatingMascot;
 
@@ -131,6 +139,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       shakeToUndo: _shakeToUndo,
       speechNavigation: _speechNavigation,
       bubbleTransitionSound: _bubbleTransitionSound,
+      soundEffects: _soundEffects,
+      buttonHaptics: _buttonHaptics,
+      navigationHaptics: _navigationHaptics,
+      hapticFeedback: _buttonHaptics,
       useLocalAI: _useLocalAI,
       showFloatingMascot: _showFloatingMascot,
     );
@@ -147,6 +159,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'shakeToUndo': _shakeToUndo,
         'speechNavigation': _speechNavigation,
         'bubbleTransitionSound': _bubbleTransitionSound,
+        'soundEffects': _soundEffects,
+        'buttonHaptics': _buttonHaptics,
+        'navigationHaptics': _navigationHaptics,
+        'hapticFeedback': _buttonHaptics,
         'useLocalAI': _useLocalAI,
         'showFloatingMascot': _showFloatingMascot,
       });
@@ -156,14 +172,113 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _openURL(String urlString) async {
     try {
       final Uri uri = Uri.parse(urlString);
-      if (await canLaunchUrl(uri)) {
+      final bool canLaunch = await canLaunchUrl(uri);
+      if (canLaunch) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        debugPrint("Could not launch URL: $urlString");
+        // Direct attempt for Android intent/browser handlers
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
-      debugPrint("Error launching URL: $e");
+      debugPrint("Error launching URL $urlString: $e");
     }
+  }
+
+  String _cleanReleaseNotes(String rawNotes) {
+    if (rawNotes.trim().isEmpty) {
+      return "• General performance enhancements\n• Accessibility & high-contrast theme improvements\n• Bug fixes and stability updates";
+    }
+
+    // 1. Replace common LaTeX math / Greek letter notations
+    var sanitized = rawNotes
+        .replaceAll(r'\alpha', 'α')
+        .replaceAll(r'\beta', 'β')
+        .replaceAll(r'\gamma', 'γ')
+        .replaceAll(r'\delta', 'δ')
+        .replaceAll(r'\lambda', 'λ')
+        .replaceAll(r'\mu', 'μ')
+        .replaceAll(r'\sigma', 'σ')
+        .replaceAll(r'\theta', 'θ')
+        .replaceAll(r'\approx', '≈')
+        .replaceAll(r'\le', '≤')
+        .replaceAll(r'\ge', '≥')
+        .replaceAll(r'\ne', '≠')
+        .replaceAll(r'\pm', '±')
+        .replaceAll(r'\times', '×');
+
+    // Remove LaTeX math delimiters ($...$ and $$...$$), dollar signs, and stray backslashes
+    sanitized = sanitized.replaceAll(RegExp(r'\$\$?([^$]+)\$\$?'), r'$1');
+    sanitized = sanitized.replaceAll(r'$', '');
+    sanitized = sanitized.replaceAll(r'\', '');
+
+    // Remove inline code backticks `...`
+    sanitized = sanitized.replaceAll('`', '');
+
+    // Remove HTML tags <br>, <p>, etc.
+    sanitized = sanitized.replaceAll(RegExp(r'<[^>]*>'), '');
+
+    // 2. Process line by line
+    final lines = sanitized.split('\n');
+    final cleaned = <String>[];
+
+    for (var line in lines) {
+      var trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+
+      // Remove markdown headings
+      if (trimmed.startsWith('#')) {
+        trimmed = trimmed.replaceAll(RegExp(r'^#+\s*'), '');
+      }
+
+      // Convert bullet markers (* or -) into clean bullet point •
+      if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+        trimmed = trimmed.replaceAll(RegExp(r'^[-*]\s*'), '');
+        // Remove markdown bold / italic
+        trimmed = trimmed.replaceAll(RegExp(r'\*\*|__|\*|_'), '');
+        cleaned.add('• $trimmed');
+      } else {
+        // Remove markdown bold / italic
+        trimmed = trimmed.replaceAll(RegExp(r'\*\*|__|\*|_'), '');
+        cleaned.add(trimmed);
+      }
+    }
+
+    if (cleaned.isEmpty) {
+      return "• General performance enhancements\n• Bug fixes and stability updates";
+    }
+
+    return cleaned.join('\n');
+  }
+
+  Future<void> _handleDownloadUpdate(String downloadUrl, String newVersion, bool isFilipino) async {
+    final msg = isFilipino 
+        ? "Binubuksan ang link sa pag-download ng EasyLens $newVersion..." 
+        : "Opening download link for EasyLens $newVersion...";
+    
+    TtsService().speak(msg);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.downloading_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  msg,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF2563EB),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+    
+    await _openURL(downloadUrl);
   }
 
   Future<void> _checkForUpdates() async {
@@ -198,24 +313,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }
         }
 
-        if (latestTag != currentVersionTag && apkUrl != null) {
-          if (mounted) {
-            _showUpdateDialog(latestTag, releaseNotes, apkUrl);
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  isFilipino 
-                      ? "Nasa pinakabagong bersyon ka na! ($currentVersionTag)" 
-                      : "You are on the latest version! ($currentVersionTag)",
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                ),
-                backgroundColor: const Color(0xFF10B981),
-              ),
-            );
-          }
+        final downloadUrl = apkUrl ?? (data['html_url'] as String?) ?? 'https://github.com/Thes-IS-IT/Easylens/releases/latest';
+
+        if (mounted) {
+          _showUpdateDialog(latestTag, releaseNotes, downloadUrl);
         }
       } else {
         throw Exception("Github API status code ${response.statusCode}");
@@ -339,6 +440,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: const Color(0xFF94A3B8),
                         ),
                         onPressed: () {
+                          SoundService.playClick();
                           setDialogState(() {
                             obscureText = !obscureText;
                           });
@@ -386,6 +488,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               actions: [
                 TextButton(
                   onPressed: () {
+                    SoundService.playClick();
                     final keyInput = controller.text.trim();
                     if (keyInput.isEmpty) {
                       setDialogState(() {
@@ -413,7 +516,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    SoundService.playClick();
+                    Navigator.of(context).pop();
+                  },
                   child: Text(
                     isFilipino ? "Kanselahin" : "Cancel",
                     style: GoogleFonts.inter(
@@ -424,6 +530,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
+                    SoundService.playClick();
                     final val = controller.text.trim();
                     setState(() {});
                     settings.updateSettings(geminiApiKey: val);
@@ -463,8 +570,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showUpdateDialog(String newVersion, String notes, String downloadUrl) {
     final settings = SettingsService();
     final isDefault = settings.selectedContrastTheme == 'Default';
+    final isDark = settings.isDarkMode;
     final lang = settings.selectedLanguage;
     final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+    final cleanedNotes = _cleanReleaseNotes(notes);
+
+    final normCurrent = currentVersionTag.replaceAll(RegExp(r'[^0-9.]'), '');
+    final normNew = newVersion.replaceAll(RegExp(r'[^0-9.]'), '');
+    final bool isAlreadyLatest = (normCurrent == normNew) || (currentVersionTag.trim().toLowerCase() == newVersion.trim().toLowerCase());
 
     showDialog(
       context: context,
@@ -473,20 +586,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return AlertDialog(
           backgroundColor: AppColors.primaryBackground,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: isDefault ? BorderSide.none : BorderSide(color: AppColors.cardBorder, width: 2),
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(
+              color: AppColors.cardBorder,
+              width: (isDefault && !isDark) ? 1.0 : 2.0,
+            ),
           ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
           title: Row(
             children: [
-              const Icon(Icons.cloud_download, color: Color(0xFF3B82F6), size: 28),
-              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isAlreadyLatest 
+                      ? const Color(0xFF10B981).withOpacity(0.16) 
+                      : AppColors.primaryButton.withOpacity(0.14),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.unselectedBorder, width: 1.0),
+                ),
+                child: Icon(
+                  isAlreadyLatest ? Icons.check_circle_rounded : Icons.system_update_rounded,
+                  color: isAlreadyLatest ? const Color(0xFF10B981) : AppColors.primaryText,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  isFilipino ? "May Update!" : "Update Available!",
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryText,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isAlreadyLatest
+                          ? (isFilipino ? "Nasa Pinakabago Ka Na!" : "You're on the Latest Version!")
+                          : (isFilipino ? "May Bagong Update!" : "Update Available!"),
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    Text(
+                      isAlreadyLatest
+                          ? (isFilipino ? "Naka-install ang pinakabagong bersyon ng EasyLens" : "EasyLens is fully up to date")
+                          : (isFilipino ? "Bagong bersyon ng EasyLens" : "New version of EasyLens"),
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -495,78 +645,165 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                isFilipino 
-                    ? "Isang bagong bersyon ($newVersion) ang magagamit. Kasalukuyang bersyon: $currentVersionTag."
-                    : "A new version ($newVersion) is available. Current version: $currentVersionTag.",
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: AppColors.primaryText,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(height: 6),
+
+              // Version progression comparison pill badges
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.lightBackground,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.unselectedBorder, width: 1.0),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isFilipino ? "Kasalukuyan" : "Current Version",
+                          style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          currentVersionTag,
+                          style: GoogleFonts.inter(fontSize: 13, color: AppColors.primaryText, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    Icon(
+                      isAlreadyLatest ? Icons.check_rounded : Icons.arrow_forward_rounded, 
+                      size: 18, 
+                      color: isAlreadyLatest ? const Color(0xFF10B981) : AppColors.primaryText,
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          isFilipino ? "Pinakabago" : "Latest Version",
+                          style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isAlreadyLatest 
+                                ? const Color(0xFF10B981).withOpacity(0.18) 
+                                : AppColors.primaryButton.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isAlreadyLatest ? const Color(0xFF10B981) : AppColors.cardBorder, 
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Text(
+                            newVersion,
+                            style: GoogleFonts.inter(
+                              fontSize: 13, 
+                              color: isAlreadyLatest ? const Color(0xFF10B981) : AppColors.primaryText, 
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              if (notes.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  isFilipino ? "Mga Pagbabago:" : "What's New:",
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF64748B),
-                  ),
+
+              const SizedBox(height: 14),
+
+              Text(
+                isFilipino ? "Mga Bagong Tampok & Pagbabago:" : "What's New in this Version:",
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryText,
                 ),
-                const SizedBox(height: 6),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 120),
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isDefault ? Colors.grey.shade50 : const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      notes,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.primaryText,
-                      ),
+              ),
+              const SizedBox(height: 6),
+
+              // Formatted Release Notes Container
+              Container(
+                constraints: const BoxConstraints(maxHeight: 140),
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.lightBackground,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.unselectedBorder, width: 1.0),
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Text(
+                    cleanedNotes,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      height: 1.45,
+                      color: AppColors.primaryText,
                     ),
                   ),
                 ),
-              ],
+              ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                isFilipino ? "Kanselahin" : "Cancel",
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF64748B),
-                  fontWeight: FontWeight.bold,
+              onPressed: () {
+                SoundService.playClick();
+                Navigator.of(context).pop();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  isFilipino ? "Isara" : "Close",
+                  style: GoogleFonts.inter(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _openURL(downloadUrl);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ElevatedButton.icon(
+              icon: Icon(
+                isAlreadyLatest ? Icons.check_circle_outline_rounded : Icons.download_rounded, 
+                color: isAlreadyLatest ? AppColors.textMuted : AppColors.primaryButtonText, 
+                size: 18,
               ),
-              child: Text(
-                isFilipino ? "I-download" : "Download Now",
+              label: Text(
+                isAlreadyLatest 
+                    ? (isFilipino ? "Nasa Pinakabago Ka Na" : "Already Up to Date")
+                    : (isFilipino ? "I-download Ngayon" : "Download Now"),
                 style: GoogleFonts.inter(
                   fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isAlreadyLatest ? AppColors.textMuted : AppColors.primaryButtonText,
                 ),
               ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isAlreadyLatest ? AppColors.unselectedBorder.withOpacity(0.35) : AppColors.primaryButton,
+                foregroundColor: isAlreadyLatest ? AppColors.textMuted : AppColors.primaryButtonText,
+                disabledBackgroundColor: AppColors.unselectedBorder.withOpacity(0.35),
+                disabledForegroundColor: AppColors.textMuted,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(
+                    color: isAlreadyLatest ? AppColors.unselectedBorder : AppColors.cardBorder, 
+                    width: 1.0,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                elevation: isAlreadyLatest ? 0 : 2,
+              ),
+              onPressed: isAlreadyLatest
+                  ? null
+                  : () {
+                      SoundService.playClick();
+                      Navigator.of(context).pop();
+                      _handleDownloadUpdate(downloadUrl, newVersion, isFilipino);
+                    },
             ),
           ],
         );
@@ -648,7 +885,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () {
+                          SoundService.playClick();
+                          Navigator.of(context).pop();
+                        },
                         child: Container(
                           height: 44,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -715,6 +955,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const ProfileDetailsScreen()),
                       ).then((_) => setState(() {}));
@@ -729,6 +970,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const ChangePasswordScreen()),
                       );
@@ -780,6 +1022,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedLanguage = 'English');
                                 _saveSettings();
                               },
@@ -807,6 +1050,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedLanguage = 'Filipino');
                                 _saveSettings();
                               },
@@ -854,6 +1098,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const NotificationSettingsScreen()),
                       );
@@ -878,6 +1123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const PreferencesScreen()),
                       );
@@ -920,6 +1166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedAppearance = 'Default');
                                 _saveSettings();
                               },
@@ -955,6 +1202,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedAppearance = 'White');
                                 _saveSettings();
                               },
@@ -990,6 +1238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
+                                SoundService.playClick();
                                 setState(() => _selectedAppearance = 'Black');
                                 _saveSettings();
                               },
@@ -1050,6 +1299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                           return GestureDetector(
                             onTap: () {
+                              SoundService.playClick();
                               setState(() => _selectedAccentColorIndex = idx);
                               _saveSettings();
                             },
@@ -1098,6 +1348,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const UnitsScreen()),
                       ).then((_) => setState(() {}));
@@ -1122,6 +1373,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       Navigator.of(context).push(
                         AppRoute.to(const CustomizeHomeScreen()),
                       ).then((_) => setState(() {}));
@@ -1161,6 +1413,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _shakeToUndo,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _shakeToUndo = val);
                             _saveSettings();
                           },
@@ -1206,6 +1459,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _speechNavigation,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _speechNavigation = val);
                             _saveSettings();
                           },
@@ -1251,8 +1505,151 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _bubbleTransitionSound,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _bubbleTransitionSound = val);
                             _saveSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('button_sfx', lang),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('button_sfx_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _soundEffects,
+                          onChanged: (val) {
+                            setState(() => _soundEffects = val);
+                            SettingsService().updateSoundEffects(val);
+                            if (val) SoundService.playClick();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('navigation_haptics', lang),
+                                style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('navigation_haptics_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _navigationHaptics,
+                          onChanged: (val) {
+                            setState(() => _navigationHaptics = val);
+                            SettingsService().updateNavigationHaptics(val);
+                            _saveSettings();
+                          },
+                          activeColor: Colors.white,
+                          activeTrackColor: const Color(0xFF48BB78),
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: const Color(0xFFCBD5E1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('button_haptics', lang),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: tileTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                TranslationService.translate('button_haptics_subtitle', lang),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Switch(
+                          value: _buttonHaptics,
+                          onChanged: (val) {
+                            setState(() {
+                              _buttonHaptics = val;
+                              _hapticFeedback = val;
+                            });
+                            SettingsService().updateButtonHaptics(val);
+                            _saveSettings();
+                            if (val) SoundService.playClick();
                           },
                           activeColor: Colors.white,
                           activeTrackColor: const Color(0xFF48BB78),
@@ -1302,6 +1699,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _useLocalAI,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _useLocalAI = val);
                             _saveSettings();
                           },
@@ -1347,6 +1745,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Switch(
                           value: _showFloatingMascot,
                           onChanged: (val) {
+                            SoundService.playClick();
                             setState(() => _showFloatingMascot = val);
                             _saveSettings();
                           },
@@ -1375,6 +1774,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
                     onTap: () {
+                      SoundService.playClick();
                       _showGeminiApiKeyDialog();
                     },
                   ),
@@ -1445,6 +1845,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                 ),
                                 onPressed: () {
+                                  SoundService.playClick();
                                   Navigator.of(context).push(
                                     AppRoute.to(const HelpGuideScreen()),
                                   );
@@ -1477,6 +1878,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                 ),
                                 onPressed: () async {
+                                  SoundService.playClick();
                                   final prefs = await SharedPreferences.getInstance();
                                   await prefs.setBool('has_completed_tutorial', false);
                                   DashboardScreen.triggerTutorial();
@@ -1546,7 +1948,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Text(
-                                          'v.1.0.0',
+                                          currentVersionTag,
                                           style: GoogleFonts.inter(
                                             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                                             fontSize: 10,
@@ -1572,7 +1974,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     crossAxisAlignment: WrapCrossAlignment.center,
                                     children: [
                                       GestureDetector(
-                                        onTap: () => _openURL('https://easylense-website.vercel.app/'),
+                                        onTap: () {
+                                          SoundService.playClick();
+                                          _openURL('https://easylense-website.vercel.app/');
+                                        },
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
@@ -1592,7 +1997,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         ),
                                       ),
                                       GestureDetector(
-                                        onTap: () => _openURL('https://github.com/Thes-IS-IT'),
+                                        onTap: () {
+                                          SoundService.playClick();
+                                          _openURL('https://github.com/Thes-IS-IT');
+                                        },
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
@@ -1649,7 +2057,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: tileTextColor, fontSize: 15),
                             ),
                             subtitle: Text(
-                              TranslationService.translate('updates_subtitle', lang),
+                              lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino')
+                                  ? "Nasa pinakabagong bersyon ka na, $currentVersionTag."
+                                  : "You are on the latest public version, $currentVersionTag.",
                               style: GoogleFonts.inter(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
                             ),
                             trailing: _isCheckingUpdates 
@@ -1659,7 +2069,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6)),
                                   )
                                 : Icon(Icons.refresh, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8)),
-                            onTap: _checkForUpdates,
+                            onTap: () {
+                              SoundService.playClick();
+                              _checkForUpdates();
+                            },
                           ),
                         ),
                         
@@ -1690,7 +2103,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: GoogleFonts.inter(fontSize: 11, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B)),
                             ),
                             trailing: Icon(Icons.open_in_new, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8), size: 18),
-                            onTap: () => _openURL('https://www.facebook.com/profile.php?id=61566090583740'),
+                            onTap: () {
+                              SoundService.playClick();
+                              _openURL('https://www.facebook.com/profile.php?id=61566090583740');
+                            },
                           ),
                         ),
                         
@@ -1722,6 +2138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             trailing: Icon(Icons.chevron_right, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8), size: 20),
                             onTap: () {
+                              SoundService.playClick();
                               Navigator.of(context).push(
                                 AppRoute.to(SurveyScreen()),
                               );
@@ -1796,6 +2213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   onPressed: () async {
+                    SoundService.playClick();
                     await _firebaseService.signOut();
                     if (mounted) {
                       Navigator.of(context).pushAndRemoveUntil(
