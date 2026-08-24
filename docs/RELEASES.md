@@ -1,12 +1,10 @@
-# EasyLens Official Release Log & Version History (v1.0 - v20.0)
+# EasyLens Official Release Log & Version History (v1.0 - v21.0)
 
-Welcome to the comprehensive release documentation for **EasyLens** — the accessible vision, audio navigation, and biometric assistant built for visually impaired and neurodivergent users.
-
-This document details all release milestones from `v1.0` to `v20.0`, reflecting full architectural evolutions, feature additions, accessibility improvements, bug fixes, and performance optimizations.
+> **NOTE:** This document details all release milestones from `v1.0` to `v21.0`, reflecting architectural evolutions, feature additions, accessibility improvements, bug fixes, and performance optimizations.
 
 ---
 
-## Release Navigation Matrix
+### 01 — RELEASE NAVIGATION MATRIX
 
 | Version | Milestone Focus | Commit Hash | Release Date |
 | :--- | :--- | :--- | :--- |
@@ -34,13 +32,13 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-## Release Details & Change Checklists
+### 02 — RELEASE DETAILS & CHANGE CHECKLISTS
 
-### v1.0 - Core Application Architecture & Initial Scaffold
+#### v1.0 - Core Application Architecture & Initial Scaffold
 - **Commit:** `916a150`
 - **Focus:** Application foundations, Flutter runner, core navigation skeleton, and initial state providers.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Initialized Flutter project structure targeting Dart SDK `^3.11.5`.
 - [x] Configured declarative `AppRoute` navigation wrapper supporting screen routing.
 - [x] Added core theme constants with accessible high-contrast colors (`AppColors`).
@@ -50,11 +48,11 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v2.0 - Core Documentation & UI Specification System
+#### v2.0 - Core Documentation & UI Specification System
 - **Commit:** `29997da`
 - **Focus:** System architectural design, technical documentation, and baseline accessibility tokens.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Published comprehensive technical `README.md` and `ARCHITECTURE.md` documentation.
 - [x] Standardized color palette for high-contrast accessibility (Yellow/Black, Blue/White, Dark Mode).
 - [x] Established component modularity guidelines for screens, widgets, and background services.
@@ -64,27 +62,27 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v3.0 - Gemini Multimodal API & Resilience Fallback Chain
+#### v3.0 - Gemini Multimodal API & Resilience Fallback Chain
 - **Commit:** `581f104`
 - **Focus:** Cloud generative AI connectivity, sequential API key rotation, and network error handling.
 
-#### Changes & Features
-- [x] Integrated `google_generative_ai` package for Gemini multimodal vision & speech prompts.
+##### Changes & Features
+- [x] Integrated `google_generative_ai` package for Gemini multimodal vision and speech prompts.
 - [x] Developed `GeminiService` with automated round-robin API key fallback chain.
-- [x] Implemented graceful offline degradation handling when network requests fail.
+- [x] Implemented offline degradation handling when network requests fail.
 - [x] Added request timeout guards and exponential backoff retry mechanisms.
 - [x] Built image-to-text scene description capabilities using camera frame snapshots.
 - [x] Added system prompt constraints to ensure concise, accessible speech responses.
 
 ---
 
-### v4.0 - Thread-Safe Sequential Frame Processing Pipeline
+#### v4.0 - Thread-Safe Sequential Frame Processing Pipeline
 - **Commit:** `ca0e0bd`
 - **Focus:** Live camera stream handler, isolate memory management, and frame drop prevention.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Designed `CameraIsolateWorker` to process live camera image frames in background threads.
-- [x] Implemented lock-free frame drop strategy to maintain smooth 60fps UI responsiveness.
+- [x] Implemented lock-free frame drop strategy to maintain 60fps UI responsiveness.
 - [x] Eliminated static fallback bounding boxes in object detection overlays.
 - [x] Integrated raw YUV420 to RGB conversion algorithms inside background isolates.
 - [x] Resolved memory leak issue occurring during long camera streaming sessions.
@@ -92,11 +90,11 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v5.0 - Smart HUD Mode & Audio Session Isolation
+#### v5.0 - Smart HUD Mode & Audio Session Isolation
 - **Commit:** `11b7b12`
 - **Focus:** Hands-free HUD interface, voice command routing, and TTS audio focus management.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Created `SmartHUDOverlay` with minimal visual distraction for low-vision users.
 - [x] Implemented TTS audio output suppression during active continuous STT voice sessions.
 - [x] Added tactile haptic feedback patterns for screen taps and action confirmations.
@@ -106,11 +104,11 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v6.0 - Local Gemma LLM & Floating Buddy Mascot Persona
+#### v6.0 - Local Gemma LLM & Floating Buddy Mascot Persona
 - **Commit:** `2f11e9b`
 - **Focus:** On-device generative inference using Google Gemma 2B and animated mascot interaction.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Integrated `flutter_gemma` package for offline 2B parameter LLM inference.
 - [x] Created `BuddyMascot` floating widget with interactive state animations.
 - [x] Built Tagalog and English persona toggle controls in application settings.
@@ -120,11 +118,11 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v7.0 - Dynamic Settings Engine & Live Update Checker
+#### v7.0 - Dynamic Settings Engine & Live Update Checker
 - **Commit:** `fc009df`
 - **Focus:** Application configuration manager, GitHub Actions automated build, and update notifier.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Built dynamic `SettingsProvider` listening to user preference state updates across screens.
 - [x] Configured GitHub Actions CI workflow for automated APK compilation.
 - [x] Implemented `UpdateCheckerService` querying GitHub releases for new version updates.
@@ -134,26 +132,26 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v8.0 - Accessible Onboarding & User Disability Profiles
+#### v8.0 - Accessible Onboarding & User Disability Profiles
 - **Commit:** `8e2cceb`
 - **Focus:** Guided onboarding flow, vision condition assessment, and screen reader alignment.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Designed guided multi-step onboarding wizard for first-time application setup.
 - [x] Added assessment step for vision conditions (Cataracts, Glaucoma, Low Vision, Color Blindness).
-- [x] Cleaned up UI clutter by removing non-essential skip controls from onboarding bottom bar.
+- [x] Removed non-essential skip controls from onboarding bottom bar.
 - [x] Integrated natural voice guidance prompts explaining each onboarding option.
 - [x] Persisted disability preference matrix to tailor navigation and OCR announcements.
 - [x] Added full TalkBack and VoiceOver semantics verification.
 
 ---
 
-### v9.0 - Generative Vision Assistant & Cloud AI Fallbacks
+#### v9.0 - Generative Vision Assistant & Cloud AI Fallbacks
 - **Commit:** `22cb9b0`
 - **Focus:** Multimodal generative vision pipeline, model version tuning, and local Ollama bridge.
 
-#### Changes & Features
-- [x] Restored optimal `gemini-1.5-flash` model parameter tuning for maximum response speed.
+##### Changes & Features
+- [x] Tuned `gemini-1.5-flash` model parameters for response speed.
 - [x] Integrated local Ollama server API bridge (`http://10.0.2.2:11434`) for offline fallback.
 - [x] Added support for `gemma2` offline server models via Ollama bridge.
 - [x] Implemented real-time image cropping before sending vision query frames.
@@ -162,25 +160,25 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v10.0 - Dynamic Context Memory & Companion Guardrails
+#### v10.0 - Dynamic Context Memory & Companion Guardrails
 - **Commit:** `698dda8`
 - **Focus:** Bi-directional user conversation memory, safety guardrails, and context injection.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Built `ChatHistoryService` storing user preference memories and past interaction logs.
 - [x] Implemented context-aware prompt injection for Buddy AI mascot responses.
 - [x] Configured strict safety guardrails preventing hallucinated medical or safety advice.
 - [x] Added automated summarization of long conversation turns to preserve memory windows.
-- [x] Implemented clear memory user privacy control in settings screen.
+- [x] Implemented memory user privacy control in settings screen.
 - [x] Created test suite verifying memory persistence across app reboots.
 
 ---
 
-### v11.0 - Local Model Weight Validation & Native Crash Prevention
+#### v11.0 - Local Model Weight Validation & Native Crash Prevention
 - **Commit:** `6d35065`
 - **Focus:** On-device file validation, download integrity verification, and SIGSEGV prevention.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Added local model binary file size check (> 1.2 GB) before initializing MediaPipe runtime.
 - [x] Implemented auto-deletion of corrupted or partial local model downloads.
 - [x] Eliminated native `SIGSEGV` segmentation fault crashes caused by broken weights.
@@ -190,27 +188,27 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v12.0 - High-Performance Isolate YUV Engine & GIF Pre-Caching
+#### v12.0 - High-Performance Isolate YUV Engine & GIF Pre-Caching
 - **Commit:** `ab0f2dc`
 - **Focus:** UI frame rate optimization, YUV image conversion offloading, and GIF caching.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Offloaded raw camera YUV pixel buffer processing entirely to Dart background isolates.
 - [x] Pre-cached Buddy mascot GIF animation frames during application splash phase.
 - [x] Throttled continuous camera frame dispatch to match device refresh rate without CPU spike.
 - [x] Reduced overall application RAM footprint by 35% during active object detection.
-- [x] Eliminated micro-stuttering on lower-end Android devices during live streaming.
-- [x] Verified zero UI thread blockages using Flutter DevTools performance profiler.
+- [x] Reduced stuttering on lower-end Android devices during live streaming.
+- [x] Verified UI thread performance using Flutter DevTools.
 
 ---
 
-### v13.0 - Spatial Walking Navigation & Collision Warnings
+#### v13.0 - Spatial Walking Navigation & Collision Warnings
 - **Commit:** `1193963`
 - **Focus:** Centered path collision analyzer, direction-aware obstacle alerts, and audio cues.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Developed spatial bounding box analyzer isolating hazards located in central path vectors.
-- [x] Implemented instant "Path Clear" audio cue when central walking corridor is unobstructed.
+- [x] Implemented "Path Clear" audio cue when central walking corridor is unobstructed.
 - [x] Added distance estimation heuristics based on object pixel height and bounding metrics.
 - [x] Built directional audio cues (Left, Right, Center) for obstacle notifications.
 - [x] Integrated proximity vibration pulses that intensify as hazards grow closer.
@@ -218,11 +216,11 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v14.0 - Native Audio Stability & Dual Speech Engine
+#### v14.0 - Native Audio Stability & Dual Speech Engine
 - **Commit:** `ed3e12b`
 - **Focus:** Android TTS native NullPointerException prevention, speech synthesis safeguards.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Implemented native guard bypassing `getVoices` on specific Android builds to prevent NPE.
 - [x] Resolved Android IPC `Binder` transaction failure errors during continuous speech loops.
 - [x] Added fallback voice engine selection when primary TTS engine fails to initialize.
@@ -232,25 +230,25 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v15.0 - ESP32-CAM Smart Glasses Integration & Command Panel
+#### v15.0 - ESP32-CAM Smart Glasses Integration & Command Panel
 - **Commit:** `d8ad231`
 - **Focus:** External hardware stream handling, smart glasses WiFi AP connection, and 3x3 UI panel.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Integrated `Esp32Service` connecting to external ESP32-CAM hardware over HTTP MJPEG AP stream.
-- [x] Added seamless automatic failover from smart glasses stream to phone camera when disconnected.
+- [x] Added automatic failover from smart glasses stream to phone camera when disconnected.
 - [x] Designed 3x3 high-contrast accessible touch command panel for rapid action triggering.
 - [x] Built remote hardware LED flash toggle endpoint controller (`/led?val=1`).
-- [x] Implemented user-friendly diagnostic messages for camera hardware authentication errors.
+- [x] Implemented diagnostic messages for camera hardware authentication errors.
 - [x] Validated low-latency video streaming at 30fps over local HTTP WiFi socket.
 
 ---
 
-### v16.0 - Real-Time Hazard Detection & Threat Alert Engine
+#### v16.0 - Real-Time Hazard Detection & Threat Alert Engine
 - **Commit:** `ca90ef1`
 - **Focus:** High-priority threat alert system (fire, weapons, sharp objects, animal caution).
 
-#### Changes & Features
+##### Changes & Features
 - [x] Implemented `DangerWarningService` to detect high-risk objects (Knife, Fire, Weapon, Sharp Metal).
 - [x] Added special animal caution warnings (Dogs, Vehicles, Moving Obstacles) during navigation.
 - [x] Configured high-priority emergency audio interrupt overriding general speech commentary.
@@ -260,25 +258,25 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v17.0 - Custom Micro-Animations & 60fps Split-Door Signup
+#### v17.0 - Custom Micro-Animations & 60fps Split-Door Signup
 - **Commit:** `dfa03cc`
 - **Focus:** Micro-animations, 60fps split-door signup screen transitions, mascot trajectory flight.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Implemented custom vertical `splitDoor` step transition between registration steps in `SignUpScreen`.
 - [x] Developed continuous flight trajectory: Buddy mascot GIF glides from hero position to screen center.
 - [x] Created custom `AppRoute.rocketLaunch` login transition with thruster particle effects.
-- [x] Optimized registration step questions to butter-smooth 60fps FadeIn + Scale transitions.
-- [x] Removed yellow seam highlights and border lines for sleek visual appearance.
+- [x] Optimized registration step questions with 60fps FadeIn and Scale transitions.
+- [x] Removed yellow seam highlights and border lines.
 - [x] Redesigned login hero section layout into asymmetric horizontal row with speech bubble card.
 
 ---
 
-### v18.0 - Robust Input Field Validation & Email/Phone Safeguards
+#### v18.0 - Robust Input Field Validation & Email/Phone Safeguards
 - **Commit:** `2158e8b`
 - **Focus:** Data integrity enforcement, strict 11-digit phone checks, email validation, and SOS safety net.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Enforced strict 11-digit phone number format validation across `StepPhoneInput` and `SignupScreen`.
 - [x] Implemented duplicate email address pre-check during account creation (Step 10).
 - [x] Added `@` symbol and domain pattern validation for email address inputs.
@@ -288,11 +286,11 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v19.0 - Docker Infrastructure, Native APK Pipeline, & GHCR Deployment
+#### v19.0 - Docker Infrastructure, Native APK Pipeline, & GHCR Deployment
 - **Commit:** `41be50c`
 - **Focus:** Complete containerization, local Docker Compose setup, GitHub Container Registry CI/CD.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Created optimized multi-stage `Dockerfile` using Ubuntu 22.04 and official Flutter SDK.
 - [x] Configured `docker-compose.yml` serving web landing pages and release APK download server.
 - [x] Automated GitHub Actions pipeline compiling release Android APK natively on runner.
@@ -302,13 +300,13 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v20.0 - Pixel-Exact Live Face Recognition & Biometric Overlay Engine
+#### v20.0 - Pixel-Exact Live Face Recognition & Biometric Overlay Engine
 - **Commit:** `b3b41a2`
 - **Focus:** 100% accurate face matching, spatial luminance grid, 90° NV21 unrotation, and bounding box overlay calibration.
 
-#### Changes & Features
-- [x] Implemented spatial facial luminance grid + biometric landmark signature engine for 100% match accuracy.
-- [x] Fixed 90-degree NV21 sensor coordinate unrotation for pixel-exact live face cropping.
+##### Changes & Features
+- [x] Implemented spatial facial luminance grid and biometric landmark signature engine for face matching.
+- [x] Fixed 90-degree NV21 sensor coordinate unrotation for live face cropping.
 - [x] Configured optimal `0.28` facial recognition distance threshold to eliminate false positives.
 - [x] Corrected `displayImageSize` aspect ratio mapping for portrait and landscape sensor orientations.
 - [x] Calibrated `scaleX` and `scaleY` bounding box alignment for exact live face camera overlay.
@@ -316,11 +314,11 @@ This document details all release milestones from `v1.0` to `v20.0`, reflecting 
 
 ---
 
-### v21.0 - Custom Fine-Tuned MobileNetV2 & Hybrid AI Vision Fusion
+#### v21.0 - Custom Fine-Tuned MobileNetV2 & Hybrid AI Vision Fusion
 - **Commit:** `99730bd`
 - **Focus:** 4-Phase Transfer Learning technical report, 24-class custom MobileNetV2 model validation, and Multi-Tier Hybrid AI Vision Fusion architecture.
 
-#### Changes & Features
+##### Changes & Features
 - [x] Published technical report `MOBILENETV2_FINETUNING_REPORT.md` documenting 4-Phase Transfer Learning pipeline (Warm-up $\rightarrow$ Mid-Level Unfreezing with Class Weights $\rightarrow$ Deep Full Unfreezing $\rightarrow$ Ultra-Low LR Optimization).
 - [x] Validated custom 24-class MobileNetV2 model achieving **85.55% Top-1**, **92.10% Top-2**, and **94.54% Top-3** accuracy with **2.48 ms** per-image latency (>400 FPS throughput).
 - [x] Documented **97% recall on potholes**, **95% F1 on crosswalks**, **92% recall on stairs**, and **99% recall on fire hydrants**.
