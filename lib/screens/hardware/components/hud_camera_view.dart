@@ -776,15 +776,32 @@ class HudBoundingBoxPainter extends CustomPainter {
       final double height = ((r.yMax - r.yMin) * size.height).clamp(0.0, size.height - top);
 
       if (width <= 0 || height <= 0) continue;
+
+      final rawLabel = r.label.replaceAll('_', ' ').trim();
+      final isDoor = rawLabel.toLowerCase().contains('door') ||
+          rawLabel.toLowerCase().contains('gate') ||
+          rawLabel.toLowerCase().contains('entrance') ||
+          rawLabel.toLowerCase().contains('exit');
+
+      final primaryColor = isDoor ? const Color(0xFF00E676) : const Color(0xFF00E5FF);
+      final fillPaint = isDoor
+          ? (Paint()..color = const Color(0xFF00E676).withOpacity(0.12)..style = PaintingStyle.fill)
+          : _fillPaint;
+      final borderPaint = isDoor
+          ? (Paint()..color = const Color(0xFF00E676)..style = PaintingStyle.stroke..strokeWidth = 2.5)
+          : _borderPaint;
+      final badgePaint = isDoor
+          ? (Paint()..color = const Color(0xFF00E676))
+          : _badgePaint;
       
       final rect = Rect.fromLTWH(left, top, width, height);
       final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
 
       // 1. Draw high-contrast translucent backdrop fill
-      canvas.drawRRect(rrect, _fillPaint);
+      canvas.drawRRect(rrect, fillPaint);
 
-      // 2. Draw primary glowing cyan border
-      canvas.drawRRect(rrect, _borderPaint);
+      // 2. Draw primary glowing border (green for doors, cyan for other objects)
+      canvas.drawRRect(rrect, borderPaint);
 
       // 3. Draw white futuristic corner accent brackets
       final cornerLen = math.min(14.0, math.min(width, height) / 3.0);
@@ -806,7 +823,6 @@ class HudBoundingBoxPainter extends CustomPainter {
       canvas.drawLine(Offset(left + width, top + height - cornerLen), Offset(left + width, top + height), _cornerPaint);
 
       // 4. Draw Header Badge Chip
-      final rawLabel = r.label.replaceAll('_', ' ').trim();
       final label = rawLabel.isNotEmpty ? '${rawLabel[0].toUpperCase()}${rawLabel.substring(1)}' : 'Object';
       final text = '$label (${(r.confidence * 100).toInt()}%)';
 
@@ -832,7 +848,7 @@ class HudBoundingBoxPainter extends CustomPainter {
         bottomRight: const Radius.circular(8),
       );
 
-      canvas.drawRRect(badgeRect, _badgePaint);
+      canvas.drawRRect(badgeRect, badgePaint);
 
       textPainter.paint(canvas, Offset(left + 6, top + 3));
     }

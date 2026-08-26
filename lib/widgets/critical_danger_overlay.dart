@@ -48,9 +48,13 @@ class _CriticalDangerOverlayState extends State<CriticalDangerOverlay>
   }
 
   void _triggerStrongWarningVibration() {
-    DangerWarningService().triggerStrongHazardVibration(
-      isCritical: widget.severity == HazardSeverity.critical,
-    );
+    if (widget.severity == HazardSeverity.critical || widget.severity == HazardSeverity.caution) {
+      DangerWarningService().triggerStrongHazardVibration(
+        isCritical: widget.severity == HazardSeverity.critical,
+      );
+    } else {
+      HapticFeedback.lightImpact();
+    }
   }
 
   @override
@@ -62,12 +66,36 @@ class _CriticalDangerOverlayState extends State<CriticalDangerOverlay>
   @override
   Widget build(BuildContext context) {
     final isCritical = widget.severity == HazardSeverity.critical;
+    final isCaution = widget.severity == HazardSeverity.caution;
+    final isDoor = widget.severity == HazardSeverity.safe ||
+        widget.hazardName.toLowerCase().contains('door') ||
+        widget.title.toLowerCase().contains('door');
 
-    final primaryColor = isCritical ? const Color(0xFFDC2626) : const Color(0xFFD97706);
-    final accentBg = isCritical ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB);
+    final Color primaryColor;
+    final Color accentBg;
+    final Color textColor;
+    final String badgeText;
+
+    if (isCritical) {
+      primaryColor = const Color(0xFFDC2626);
+      accentBg = const Color(0xFFFEF2F2);
+      textColor = const Color(0xFF991B1B);
+      badgeText = "CRITICAL HAZARD DETECTED";
+    } else if (isCaution) {
+      primaryColor = const Color(0xFFD97706);
+      accentBg = const Color(0xFFFFFBEB);
+      textColor = const Color(0xFF92400E);
+      badgeText = "SAFETY CAUTION";
+    } else {
+      // Safe Notice / Door Approaching (Green - non-threatening)
+      primaryColor = const Color(0xFF10B981);
+      accentBg = const Color(0xFFECFDF5);
+      textColor = const Color(0xFF065F46);
+      badgeText = isDoor ? "APPROACHING DOOR" : "SAFE NOTICE";
+    }
+
     final hazardInfo = DangerWarningService().getHazardInfo(widget.hazardName);
-    final iconData = hazardInfo.icon;
-
+    final iconData = isDoor ? Icons.door_front_door_outlined : hazardInfo.icon;
 
     return ScaleTransition(
       scale: _pulseAnimation,
@@ -114,7 +142,7 @@ class _CriticalDangerOverlayState extends State<CriticalDangerOverlay>
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          isCritical ? "CRITICAL HAZARD DETECTED" : "SAFETY CAUTION",
+                          badgeText,
                           style: GoogleFonts.inter(
                             color: primaryColor,
                             fontSize: 11,
@@ -187,7 +215,7 @@ class _CriticalDangerOverlayState extends State<CriticalDangerOverlay>
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isCritical ? const Color(0xFF991B1B) : const Color(0xFF92400E),
+                  color: textColor,
                   height: 1.35,
                 ),
               ),

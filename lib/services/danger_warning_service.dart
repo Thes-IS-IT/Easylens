@@ -109,12 +109,12 @@ class DangerWarningService {
 
   static final Set<String> _indoorObstacleKeywords = {
     'chair', 'table', 'desk', 'sofa', 'couch', 'bed', 'cabinet', 'shelf', 'bookcase',
-    'box', 'crate', 'backpack', 'bag', 'luggage', 'bin', 'trashcan', 'pot', 'plant', 'stand', 'doorway'
+    'box', 'crate', 'backpack', 'bag', 'luggage', 'bin', 'trashcan', 'pot', 'plant', 'stand'
   };
 
   static final Set<String> _outdoorObstacleKeywords = {
     'pole', 'lamppost', 'signpost', 'hydrant', 'fire hydrant', 'trash bin', 'bollard',
-    'bench', 'barricade', 'construction barrier', 'scaffolding', 'gate', 'guardrail', 'fence'
+    'bench', 'barricade', 'construction barrier', 'scaffolding', 'guardrail', 'fence'
   };
 
   static final Set<String> _elevationTerrainKeywords = {
@@ -122,7 +122,7 @@ class DangerWarningService {
   };
 
   static final Set<String> _doorKeywords = {
-    'door', 'doorway', 'entrance', 'exit', 'elevator', 'lift', 'escalator', 'gate'
+    'door', 'doorway', 'entrance', 'exit', 'gate', 'sliding door', 'glass door', 'wooden door', 'revolving door', 'doorframe', 'door handle'
   };
 
   /// Evaluates an object label string and returns its hazard severity level
@@ -189,9 +189,9 @@ class DangerWarningService {
       if (cleanLabel.contains(kw)) return HazardSeverity.caution;
     }
 
-    // Check Door (Caution)
+    // Check Door (Safe Notice, not hazard/dangerous)
     for (final kw in _doorKeywords) {
-      if (cleanLabel.contains(kw)) return HazardSeverity.caution;
+      if (cleanLabel.contains(kw)) return HazardSeverity.safe;
     }
 
     return HazardSeverity.safe;
@@ -371,16 +371,16 @@ class DangerWarningService {
       }
     }
 
-    // 13. Door check (Caution)
+    // 13. Door check (Safe notice, not hazard/dangerous)
     for (final kw in _doorKeywords) {
       if (cleanLabel.contains(kw)) {
         return DangerHazardInfo(
           label: 'Door',
-          severity: HazardSeverity.caution,
+          severity: HazardSeverity.safe,
           icon: Icons.door_front_door_outlined,
           title: 'DOOR APPROACHING',
-          messageEn: "Caution: You are approaching a door.",
-          messageTl: "Mag-ingat: Papalapit ka sa isang pintuan.",
+          messageEn: "You are approaching a door.",
+          messageTl: "Papalapit ka sa isang pintuan.",
         );
       }
     }

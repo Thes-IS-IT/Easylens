@@ -279,11 +279,11 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
       'speech': 'Traffic light detected. Slow down and check the signal.'
     },
     {
-      'title': 'Door Detected',
+      'title': 'Approaching Door',
       'desc': 'You are approaching a door.',
-      'bg': Color(0xFFE0F7FA),
+      'bg': Color(0xFFE8F5E9),
       'icon': Icons.door_front_door_outlined,
-      'iconColor': Colors.teal,
+      'iconColor': Color(0xFF2E7D32),
       'speech': 'You are approaching a door.'
     },
     {
@@ -1480,10 +1480,11 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
     ];
     final hazardKeywords = [
       'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
-      'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush',
+      'fence', 'rail', 'post', 'pole', 'tree', 'bush',
       'elevator', 'lift', 'escalator', 'metal', 'chair', 'table', 'sofa', 'bench', 'desk'
     ];
 
+    final isDoor = refinedLabel.toLowerCase().contains('door');
     final isCriticalDanger = criticalKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
     final isHazard = hazardKeywords.any((k) => refinedLabel.toLowerCase().contains(k));
     final isPerson = refinedLabel.toLowerCase() == 'person';
@@ -1543,6 +1544,54 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           _statusCardBg = const Color(0xFFFFEBEE); // Crimson Red background card
           _statusIcon = isFire ? Icons.local_fire_department_rounded : Icons.report_problem_rounded;
           _statusIconColor = Colors.red;
+        });
+      }
+    } else if (isDoor) {
+      // SAFE DOOR NOTICE: Approaching a door (Green warning/notice)
+      final guidance = isTagalog
+          ? 'Papalapit ka sa isang pintuan.'
+          : 'You are approaching a door.';
+
+      _triggerHapticAlert(isCritical: false);
+      _wasPathBlocked = false;
+
+      // Sync to ActiveNavigationService for navigation screen
+      ActiveNavigationService().triggerHazardAlert(
+        hazardName: 'Door',
+        severity: HazardSeverity.safe,
+        message: guidance,
+        avoidanceDirection: '',
+      );
+
+      final isDifferent = guidance != _lastGuidanceText;
+      final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+
+      bool shouldSpeak = false;
+      if (isDifferent) {
+        if (_lastGuidanceTime == null || now.difference(_lastGuidanceTime!).inSeconds >= 4) {
+          shouldSpeak = true;
+        }
+      } else {
+        if (elapsed.inSeconds >= 10) {
+          shouldSpeak = true;
+        }
+      }
+
+      if (shouldSpeak) {
+        _lastGuidanceText = guidance;
+        _lastGuidanceTime = now;
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(guidance);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _activeTitle = isTagalog ? 'May Pintuan sa Harap' : 'Approaching Door';
+          _activeDescription = guidance;
+          _statusCardBg = const Color(0xFFE8F5E9); // Soft green card
+          _statusIcon = Icons.door_front_door_outlined;
+          _statusIconColor = const Color(0xFF2E7D32); // Emerald / Green
         });
       }
     } else if (isCentered && largestArea > 0.45) {
@@ -1838,6 +1887,45 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
   /// Handles status card updates and TTS announcements for detected objects.
   void _handleObjectDetectionAnnouncements(List<SSDResult> results) {
     final now = DateTime.now();
+    final hasDoorInMlKit = _latestMLKitLabels.any((l) => l.toLowerCase().contains('door'));
+    final hasDoorInResults = results.any((r) => _refineLabel(r.label).toLowerCase().contains('door'));
+    final isDoor = hasDoorInMlKit || hasDoorInResults;
+
+    if (isDoor) {
+      final alertKey = 'door_detection_notice';
+      final lastSpoken = _lastSpokenMap[alertKey];
+      final isDifferent = _lastSpokenObjectText != 'door';
+      final cooldownElapsed = lastSpoken == null ||
+          now.difference(lastSpoken).inSeconds >= (isDifferent ? 8 : 20);
+      if (cooldownElapsed) {
+        _lastSpokenMap[alertKey] = now;
+        _lastSpokenObjectText = 'door';
+        final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+        final phrase = isTagalog ? "Papalapit ka sa isang pintuan." : "You are approaching a door.";
+        if (!_isContinuousVoiceEnabled) {
+          TtsService().speak(phrase);
+        }
+
+        ActiveNavigationService().triggerHazardAlert(
+          hazardName: 'Door',
+          severity: HazardSeverity.safe,
+          message: phrase,
+          avoidanceDirection: '',
+        );
+
+        if (mounted) {
+          setState(() {
+            _activeTitle = isTagalog ? "May Pintuan sa Harap" : "Approaching Door";
+            _activeDescription = phrase;
+            _statusCardBg = const Color(0xFFE8F5E9);
+            _statusIcon = Icons.door_front_door_outlined;
+            _statusIconColor = const Color(0xFF2E7D32);
+          });
+        }
+      }
+      return;
+    }
+
     if (results.isNotEmpty) {
       final detectedNames = results
           .take(4)
@@ -1896,6 +1984,45 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
       _tfliteDetections = results;
 
       final now = DateTime.now();
+      final hasDoorInMlKit = _latestMLKitLabels.any((l) => l.toLowerCase().contains('door'));
+      final hasDoorInResults = results.any((r) => _refineLabel(r.label).toLowerCase().contains('door'));
+      final isDoor = hasDoorInMlKit || hasDoorInResults;
+
+      if (isDoor) {
+        final alertKey = 'door_detection_notice_esp32';
+        final lastSpoken = _lastSpokenMap[alertKey];
+        final isDifferent = _lastSpokenObjectText != 'door';
+        final cooldownElapsed = lastSpoken == null ||
+            now.difference(lastSpoken).inSeconds >= (isDifferent ? 8 : 20);
+        if (cooldownElapsed) {
+          _lastSpokenMap[alertKey] = now;
+          _lastSpokenObjectText = 'door';
+          final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
+          final phrase = isTagalog ? "Papalapit ka sa isang pintuan." : "You are approaching a door.";
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak(phrase);
+          }
+
+          ActiveNavigationService().triggerHazardAlert(
+            hazardName: 'Door',
+            severity: HazardSeverity.safe,
+            message: phrase,
+            avoidanceDirection: '',
+          );
+
+          if (mounted) {
+            setState(() {
+              _activeTitle = isTagalog ? "May Pintuan sa Harap" : "Approaching Door";
+              _activeDescription = phrase;
+              _statusCardBg = const Color(0xFFE8F5E9);
+              _statusIcon = Icons.door_front_door_outlined;
+              _statusIconColor = const Color(0xFF2E7D32);
+            });
+          }
+        }
+        return;
+      }
+
       if (results.isNotEmpty) {
         final detectedNames = results
             .take(3)
@@ -2003,13 +2130,50 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
 
       final hazardKeywords = [
         'wall', 'pothole', 'hole', 'stair', 'step', 'barrier', 
-        'fence', 'rail', 'post', 'pole', 'door', 'tree', 'bush',
+        'fence', 'rail', 'post', 'pole', 'tree', 'bush',
         'traffic light', 'traffic sign', 'stop sign',
         'elevator', 'lift', 'escalator', 'metal'
       ];
       final isHazard = hazardKeywords.any((k) => targetLabel.toLowerCase().contains(k));
+      final bool isDoor = targetLabel.toLowerCase().contains('door') || refinedLabel.toLowerCase().contains('door');
 
-      if (isCentered && largestArea > 0.45) {
+      if (isDoor) {
+        // SAFE DOOR NOTICE: Approaching a door (Green warning/notice)
+        final guidance = isTagalog
+            ? 'Papalapit ka sa isang pintuan.'
+            : 'You are approaching a door.';
+
+        _triggerHapticAlert(isCritical: false);
+        _wasPathBlocked = false;
+
+        ActiveNavigationService().triggerHazardAlert(
+          hazardName: 'Door',
+          severity: HazardSeverity.safe,
+          message: guidance,
+          avoidanceDirection: '',
+        );
+
+        final isDifferent = guidance != _lastGuidanceText;
+        final elapsed = _lastGuidanceTime == null ? const Duration(seconds: 99) : now.difference(_lastGuidanceTime!);
+
+        if (isDifferent || elapsed.inSeconds >= 10) {
+          _lastGuidanceText = guidance;
+          _lastGuidanceTime = now;
+          if (!_isContinuousVoiceEnabled) {
+            TtsService().speak(guidance);
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _activeTitle = isTagalog ? 'May Pintuan sa Harap' : 'Approaching Door';
+            _activeDescription = guidance;
+            _statusCardBg = const Color(0xFFE8F5E9); // Soft green card
+            _statusIcon = Icons.door_front_door_outlined;
+            _statusIconColor = const Color(0xFF2E7D32); // Emerald / Green
+          });
+        }
+      } else if (isCentered && largestArea > 0.45) {
         // STOP immediately — extremely close centered obstacle covering the camera
         final guidance = isTagalog
             ? 'Huminto agad. May $refinedLabel sa iyong tapat. Mangyaring tumabi upang maiwasan ito.'
@@ -2103,14 +2267,9 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           });
         }
       } else if (isHazard && largestArea > 0.02) {
-        // SLOW DOWN — structural hazard (wall, pothole, step, door, etc.) detected early
+        // SLOW DOWN — structural hazard (wall, pothole, step, etc.) detected early
         final String guidance;
-        final bool isDoor = targetLabel.contains('door') || refinedLabel.toLowerCase().contains('door');
-        if (isDoor) {
-          guidance = isTagalog
-              ? 'Papalapit ka sa isang pintuan.'
-              : 'You are approaching a door.';
-        } else if (targetLabel.contains('traffic light')) {
+        if (targetLabel.contains('traffic light')) {
           guidance = isTagalog
               ? 'May ilaw ng trapiko sa iyong tapat.'
               : 'Traffic light detected ahead. Slow down and check the signal.';
@@ -2137,13 +2296,11 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
 
         if (mounted) {
           setState(() {
-            _activeTitle = isDoor 
-                ? (isTagalog ? 'May Pintuan sa Harap' : 'Door Ahead')
-                : (isTagalog ? 'Dahan-dahan' : 'Slow Down');
+            _activeTitle = isTagalog ? 'Dahan-dahan' : 'Slow Down';
             _activeDescription = guidance;
             _statusCardBg = const Color(0xFFFFFDE7);
-            _statusIcon = isDoor ? Icons.door_front_door_outlined : Icons.speed;
-            _statusIconColor = isDoor ? Colors.teal : Colors.yellow[800]!;
+            _statusIcon = Icons.speed;
+            _statusIconColor = Colors.yellow[800]!;
           });
         }
       } else if ((isCentered && largestArea > 0.03) || (!isCentered && largestArea > 0.06)) {
@@ -2467,13 +2624,19 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway') || topLabel.contains('exit') || topLabel.contains('elevator') || topLabel.contains('lift')) {
             final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
             selectedSim = {
-              'title': isTagalog ? 'May Pintuan sa Harap' : 'Door Ahead',
+              'title': isTagalog ? 'May Pintuan sa Harap' : 'Approaching Door',
               'desc': isTagalog ? 'Papalapit ka sa isang pintuan.' : 'You are approaching a door.',
-              'bg': const Color(0xFFE0F7FA), // Soft cyan non-critical notice
+              'bg': const Color(0xFFE8F5E9), // Soft green notice
               'icon': Icons.door_front_door_outlined,
-              'iconColor': Colors.teal,
+              'iconColor': const Color(0xFF2E7D32),
               'speech': isTagalog ? 'Papalapit ka sa isang pintuan.' : 'You are approaching a door.'
             };
+            ActiveNavigationService().triggerHazardAlert(
+              hazardName: 'Door',
+              severity: HazardSeverity.safe,
+              message: selectedSim['speech'],
+              avoidanceDirection: '',
+            );
           } else if (topLabel.contains('window') || topLabel.contains('glass window') || topLabel.contains('pane')) {
             final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
             selectedSim = {

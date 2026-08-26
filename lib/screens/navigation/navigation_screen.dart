@@ -4349,22 +4349,33 @@ class _NavigationScreenState extends State<NavigationScreen> {
         final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
         final isDark = SettingsService().isDarkMode || SettingsService().selectedContrastTheme != 'Default';
 
+        final isCritical = navService.hazardSeverity == HazardSeverity.critical;
+        final isCaution = navService.hazardSeverity == HazardSeverity.caution;
+        final isDoorOrSafe = navService.hazardSeverity == HazardSeverity.safe ||
+            navService.activeHazardName.toLowerCase().contains('door');
+
         final Color cardBg = isHazard
-            ? (navService.hazardSeverity == HazardSeverity.critical
+            ? (isCritical
                 ? (isDark ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.red.shade50)
-                : (isDark ? Colors.orange.shade900.withValues(alpha: 0.3) : Colors.orange.shade50))
+                : (isCaution
+                    ? (isDark ? Colors.orange.shade900.withValues(alpha: 0.3) : Colors.orange.shade50)
+                    : (isDark ? Colors.green.shade900.withValues(alpha: 0.3) : Colors.green.shade50)))
             : (isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade50);
 
         final Color borderColor = isHazard
-            ? (navService.hazardSeverity == HazardSeverity.critical
+            ? (isCritical
                 ? Colors.red.shade400
-                : Colors.orange.shade400)
+                : (isCaution
+                    ? Colors.orange.shade400
+                    : Colors.green.shade400))
             : AppColors.cardBorder.withValues(alpha: 0.4);
 
         final Color iconColor = isHazard
-            ? (navService.hazardSeverity == HazardSeverity.critical
+            ? (isCritical
                 ? Colors.red.shade400
-                : Colors.orange.shade400)
+                : (isCaution
+                    ? Colors.orange.shade400
+                    : Colors.green.shade600))
             : AppColors.primaryButton;
 
         return Container(
@@ -4377,9 +4388,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
             boxShadow: isHazard
                 ? [
                     BoxShadow(
-                      color: (navService.hazardSeverity == HazardSeverity.critical
+                      color: (isCritical
                               ? Colors.red
-                              : Colors.orange)
+                              : (isCaution ? Colors.orange : Colors.green))
                           .withValues(alpha: 0.15),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
@@ -4394,13 +4405,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
               Row(
                 children: [
                   Icon(
-                    isHazard ? Icons.warning_amber_rounded : Icons.shield_outlined,
+                    isHazard
+                        ? (isDoorOrSafe ? Icons.door_front_door_outlined : Icons.warning_amber_rounded)
+                        : Icons.shield_outlined,
                     size: 20,
                     color: iconColor,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isTagalog ? "SISTEMA NG BABALA SA PANGANIB" : "HAZARD WARNING SYSTEM",
+                    isHazard && isDoorOrSafe
+                        ? (isTagalog ? "IMPORMASYON SA PINTO" : "DOOR APPROACH NOTICE")
+                        : (isTagalog ? "SISTEMA NG BABALA SA PANGANIB" : "HAZARD WARNING SYSTEM"),
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -4412,10 +4427,20 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isHazard ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.green.shade900.withValues(alpha: 0.3),
+                      color: isHazard
+                          ? (isDoorOrSafe
+                              ? Colors.green.shade900.withValues(alpha: 0.3)
+                              : (isCritical
+                                  ? Colors.red.shade900.withValues(alpha: 0.3)
+                                  : Colors.orange.shade900.withValues(alpha: 0.3)))
+                          : Colors.green.shade900.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isHazard ? Colors.red.shade400 : Colors.green.shade400,
+                        color: isHazard
+                            ? (isDoorOrSafe
+                                ? Colors.green.shade400
+                                : (isCritical ? Colors.red.shade400 : Colors.orange.shade400))
+                            : Colors.green.shade400,
                       ),
                     ),
                     child: Row(
@@ -4425,17 +4450,27 @@ class _NavigationScreenState extends State<NavigationScreen> {
                           width: 6,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: isHazard ? Colors.red : Colors.green,
+                            color: isHazard
+                                ? (isDoorOrSafe
+                                    ? Colors.green
+                                    : (isCritical ? Colors.red : Colors.orange))
+                                : Colors.green,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          isHazard ? "WARNING" : "ACTIVE",
+                          isHazard
+                              ? (isDoorOrSafe ? (isTagalog ? "PINTO" : "NOTICE") : (isCritical ? "DANGER" : "WARNING"))
+                              : "ACTIVE",
                           style: GoogleFonts.inter(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isHazard ? Colors.red.shade400 : Colors.green.shade400,
+                            color: isHazard
+                                ? (isDoorOrSafe
+                                    ? Colors.green.shade400
+                                    : (isCritical ? Colors.red.shade400 : Colors.orange.shade400))
+                                : Colors.green.shade400,
                           ),
                         ),
                       ],
@@ -4453,18 +4488,24 @@ class _NavigationScreenState extends State<NavigationScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: navService.hazardSeverity == HazardSeverity.critical
+                        color: isCritical
                             ? Colors.red.shade900.withValues(alpha: 0.4)
-                            : Colors.orange.shade900.withValues(alpha: 0.4),
+                            : (isCaution
+                                ? Colors.orange.shade900.withValues(alpha: 0.4)
+                                : Colors.green.shade900.withValues(alpha: 0.4)),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        navService.hazardSeverity == HazardSeverity.critical
-                            ? Icons.report_problem_rounded
-                            : Icons.warning_amber_rounded,
-                        color: navService.hazardSeverity == HazardSeverity.critical
+                        isDoorOrSafe
+                            ? Icons.door_front_door_outlined
+                            : (isCritical
+                                ? Icons.report_problem_rounded
+                                : Icons.warning_amber_rounded),
+                        color: isCritical
                             ? Colors.red.shade300
-                            : Colors.orange.shade300,
+                            : (isCaution
+                                ? Colors.orange.shade300
+                                : (isDark ? Colors.green.shade300 : Colors.green.shade700)),
                         size: 22,
                       ),
                     ),
@@ -4476,25 +4517,31 @@ class _NavigationScreenState extends State<NavigationScreen> {
                           Text(
                             navService.activeHazardName.isNotEmpty
                                 ? navService.activeHazardName
-                                : "Hazard Detected",
+                                : (isDoorOrSafe ? "Door Approaching" : "Hazard Detected"),
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: navService.hazardSeverity == HazardSeverity.critical
+                              color: isCritical
                                   ? Colors.red.shade300
-                                  : Colors.orange.shade300,
+                                  : (isCaution
+                                      ? Colors.orange.shade300
+                                      : (isDark ? Colors.green.shade300 : Colors.green.shade800)),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             navService.activeHazardMessage.isNotEmpty
                                 ? navService.activeHazardMessage
-                                : "Caution! An obstacle has been detected in your navigation path.",
+                                : (isDoorOrSafe
+                                    ? "Notice: You are approaching a door."
+                                    : "Caution! An obstacle has been detected in your navigation path."),
                             style: GoogleFonts.inter(
                               fontSize: 12.5,
-                              color: navService.hazardSeverity == HazardSeverity.critical
+                              color: isCritical
                                   ? Colors.red.shade800
-                                  : Colors.orange.shade800,
+                                  : (isCaution
+                                      ? Colors.orange.shade800
+                                      : (isDark ? Colors.green.shade100 : Colors.green.shade900)),
                               height: 1.35,
                             ),
                           ),
@@ -4504,8 +4551,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   ],
                 ),
 
-                // ── Directional Avoidance Guidance Strip ──
-                if (navService.avoidanceDirection.isNotEmpty &&
+                // ── Directional Avoidance Guidance Strip (only for hazardous obstacles) ──
+                if (!isDoorOrSafe &&
+                    navService.avoidanceDirection.isNotEmpty &&
                     navService.avoidanceDirection != 'center') ...[
                   const SizedBox(height: 10),
                   Container(
@@ -4561,7 +4609,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                       ],
                     ),
                   ),
-                ] else if (navService.avoidanceDirection == 'center') ...[
+                ] else if (!isDoorOrSafe && navService.avoidanceDirection == 'center') ...[
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -4593,13 +4641,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   alignment: Alignment.centerRight,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: navService.hazardSeverity == HazardSeverity.critical
+                      foregroundColor: isCritical
                           ? Colors.red.shade900
-                          : Colors.orange.shade900,
+                          : (isCaution ? Colors.orange.shade900 : Colors.green.shade900),
                       side: BorderSide(
-                        color: navService.hazardSeverity == HazardSeverity.critical
+                        color: isCritical
                             ? Colors.red.shade300
-                            : Colors.orange.shade300,
+                            : (isCaution ? Colors.orange.shade300 : Colors.green.shade400),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
