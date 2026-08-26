@@ -523,7 +523,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         return;
       }
     } else if (_selectedHudMode == HudMode.navigation) {
-      if (nowMs - _lastObjectDetectionTime < 800 && nowMs - _lastLabelerTime < 800) {
+      if (nowMs - _lastObjectDetectionTime < 500 && nowMs - _lastLabelerTime < 500) {
         return;
       }
     }
@@ -542,12 +542,13 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           await _detectFaceOnFrame(nv21Bytes, image.width, image.height);
         } else if (_selectedHudMode == HudMode.navigation) {
           final nv21Bytes = _yuvToNv21Sync(image);
-          if (nowMs - _lastObjectDetectionTime > 800 && _objectDetector != null) {
+          final yBytes = Uint8List.fromList(image.planes[0].bytes);
+          if (nowMs - _lastObjectDetectionTime > 500 && _objectDetector != null) {
             _lastObjectDetectionTime = nowMs;
             await _detectObjectsOnFrame(nv21Bytes, image.width, image.height);
-          } else if (nowMs - _lastLabelerTime > 800) {
+          }
+          if (nowMs - _lastLabelerTime > 500) {
             _lastLabelerTime = nowMs;
-            final yBytes = Uint8List.fromList(image.planes[0].bytes);
             await _processCameraImage(nv21Bytes, yBytes, image.width, image.height);
           }
         } else {
@@ -2111,6 +2112,18 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         targetLabel = 'person';
       }
 
+      // Check if ML Kit ImageLabeler identified a door in the current scene to resolve generic/misclassified object boxes
+      final hasDoorInScene = _latestMLKitLabels.any((l) {
+        final lower = l.toLowerCase();
+        return lower.contains('door') || lower.contains('gate') || 
+               lower.contains('entrance') || lower.contains('doorway') || 
+               lower.contains('exit') || lower.contains('doorframe') ||
+               lower.contains('handle');
+      });
+      if (hasDoorInScene && (targetLabel == 'object' || targetLabel == 'unknown' || targetLabel.contains('home') || targetLabel.contains('place') || targetLabel.contains('room') || targetLabel.contains('furniture') || targetLabel.contains('wood') || targetLabel.contains('chair') || targetLabel.contains('table') || targetLabel.contains('wall'))) {
+        targetLabel = 'door';
+      }
+
       if (targetObject == null || largestArea < 0.03) {
         final elapsedHazard = _lastHazardDetectionTime == null 
             ? const Duration(seconds: 99) 
@@ -2135,7 +2148,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
         'elevator', 'lift', 'escalator', 'metal'
       ];
       final isHazard = hazardKeywords.any((k) => targetLabel.toLowerCase().contains(k));
-      final bool isDoor = targetLabel.toLowerCase().contains('door') || refinedLabel.toLowerCase().contains('door');
+      final bool isDoor = targetLabel.toLowerCase().contains('door') || refinedLabel.toLowerCase().contains('door') || hasDoorInScene;
 
       if (isDoor) {
         // SAFE DOOR NOTICE: Approaching a door (Green warning/notice)
@@ -2530,21 +2543,60 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
 
     if (labels.isNotEmpty && mounted) {
       ImageLabel? targetLabelObj;
+
+      // 1. High-priority scan: Check if ANY detected label is a door, stair, vehicle, person, or safety hazard
       for (final l in labels) {
         final labelText = _refineLabel(l.label).toLowerCase();
-        final isBackground = labelText.contains('floor') || 
-                             labelText.contains('ground') || 
-                             labelText.contains('sky') || 
-                             labelText.contains('ceiling') || 
-                             labelText.contains('indoor') || 
-                             labelText.contains('room') ||
-                             labelText.contains('building') ||
-                             labelText.contains('architecture') ||
-                             labelText.contains('house') ||
-                             labelText.contains('infrastructure');
-        if (!isBackground) {
+        final isCriticalOrDoor = labelText.contains('door') || labelText.contains('gate') || 
+                                 labelText.contains('entrance') || labelText.contains('exit') || 
+                                 labelText.contains('doorway') || labelText.contains('doorframe') || 
+                                 labelText.contains('handle') || labelText.contains('stair') || 
+                                 labelText.contains('step') || labelText.contains('escalator') || 
+                                 labelText.contains('elevator') || labelText.contains('lift') || 
+                                 labelText.contains('fire') || labelText.contains('smoke') || 
+                                 labelText.contains('car') || labelText.contains('vehicle') || 
+                                 labelText.contains('bus') || labelText.contains('truck') || 
+                                 labelText.contains('person') || labelText.contains('human') || 
+                                 labelText.contains('pedestrian') || labelText.contains('traffic light') || 
+                                 labelText.contains('traffic signal') || labelText.contains('stop sign') || 
+                                 labelText.contains('pothole') || labelText.contains('hole') || 
+                                 labelText.contains('crack') || labelText.contains('window') || 
+                                 labelText.contains('wall');
+        if (isCriticalOrDoor) {
           targetLabelObj = l;
           break;
+        }
+      }
+
+      // 2. Secondary scan: Exclude environmental/architectural noise
+      if (targetLabelObj == null) {
+        for (final l in labels) {
+          final labelText = _refineLabel(l.label).toLowerCase();
+          final isGenericNoise = labelText.contains('floor') || 
+                                 labelText.contains('ground') || 
+                                 labelText.contains('sky') || 
+                                 labelText.contains('ceiling') || 
+                                 labelText.contains('indoor') || 
+                                 labelText.contains('room') || 
+                                 labelText.contains('building') || 
+                                 labelText.contains('architecture') || 
+                                 labelText.contains('house') || 
+                                 labelText.contains('infrastructure') || 
+                                 labelText.contains('interior') || 
+                                 labelText.contains('design') || 
+                                 labelText.contains('property') || 
+                                 labelText.contains('comfort') || 
+                                 labelText.contains('material') || 
+                                 labelText.contains('wood') || 
+                                 labelText.contains('line') || 
+                                 labelText.contains('flooring') || 
+                                 labelText.contains('shade') || 
+                                 labelText.contains('fixture') || 
+                                 labelText.contains('rectangle');
+          if (!isGenericNoise) {
+            targetLabelObj = l;
+            break;
+          }
         }
       }
       targetLabelObj ??= labels[0];
@@ -2573,7 +2625,7 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
           if (_selectedHudMode == HudMode.navigation) {
             final essentialKeywords = [
               'stair', 'step', 'escalator', 'elevator', 'lift',
-              'door', 'gate', 'entrance', 'doorway', 'exit',
+              'door', 'gate', 'entrance', 'doorway', 'exit', 'doorframe', 'handle',
               'window', 'glass window', 'pane', 'glass',
               'wall', 'partition', 'fence', 'barrier', 'post', 'pole', 'column', 'pillar',
               'pothole', 'hole', 'crack', 'depression',
