@@ -93,19 +93,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            colors: [
-              Color(0xFF0A3078), // Deep navy blue accent
-              Color(0xFF001A4A), // Solid dark blue base
-            ],
-            center: Alignment.center,
-            radius: 1.0,
+      backgroundColor: Colors.black,
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              colors: [
+                Color(0xFF0A3078), // Deep navy blue accent
+                Color(0xFF001A4A), // Solid dark blue base
+              ],
+              center: Alignment.center,
+              radius: 1.0,
+            ),
           ),
-        ),
-        child: FadeTransition(
-          opacity: _fadeAnimation,
           child: ScaleTransition(
             scale: _scaleAnimation,
             child: Center(
