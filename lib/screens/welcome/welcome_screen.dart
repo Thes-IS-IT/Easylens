@@ -20,6 +20,7 @@ class WelcomeScreen extends StatefulWidget {
 class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
   Timer? _timer;
 
   @override
@@ -44,29 +45,40 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
     );
 
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeIn,
+      curve: Curves.easeInOutCubic,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.94, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
+      ),
     );
 
     _animationController.forward();
 
-    _timer = Timer(const Duration(seconds: 3), () async {
+    _timer = Timer(const Duration(milliseconds: 2200), () async {
+      if (!mounted) return;
+      // Smooth fade out before switching screen
+      try {
+        await _animationController.reverse().orCancel;
+      } catch (_) {}
+
       if (mounted) {
         final firebaseService = FirebaseService();
         final user = firebaseService.currentUser;
-        if (user != null) {
-          Navigator.of(context).pushReplacement(
-            AppRoute.to(const DashboardScreen()),
-          );
-        } else {
-          Navigator.of(context).pushReplacement(
-            AppRoute.to(const OnboardingScreen()),
-          );
-        }
+        final targetScreen = user != null 
+            ? const DashboardScreen() 
+            : const OnboardingScreen();
+
+        Navigator.of(context).pushReplacement(
+          AppRoute.fade(targetScreen, duration: const Duration(milliseconds: 500)),
+        );
       }
     });
   }
@@ -94,36 +106,39 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
         ),
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Mascot GIF
-                Image.asset(
-                  'assets/mascots/05_welcome.gif',
-                  width: 240,
-                  height: 240,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(Icons.pets,
-                      size: 120,
-                      color: AppColors.welcomeAccentGold,
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Golden Title
-                Text(
-                  'BUDDY',
-                  style: GoogleFonts.inter(
-                    textStyle: TextStyle(fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.welcomeAccentGold,
-                      letterSpacing: 3.0,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Mascot GIF
+                  Image.asset(
+                    'assets/mascots/05_welcome.gif',
+                    width: 240,
+                    height: 240,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(Icons.pets,
+                        size: 120,
+                        color: AppColors.welcomeAccentGold,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Golden Title
+                  Text(
+                    'BUDDY',
+                    style: GoogleFonts.inter(
+                      textStyle: TextStyle(fontSize: 38,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.welcomeAccentGold,
+                        letterSpacing: 3.0,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

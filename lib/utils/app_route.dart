@@ -64,6 +64,36 @@ class AppRoute {
     );
   }
 
+  /// Pure silky-smooth cross-fade transition for splash / welcome screen departures.
+  static PageRouteBuilder<T> fade<T>(Widget screen, {Duration duration = const Duration(milliseconds: 600)}) {
+    return PageRouteBuilder<T>(
+      transitionDuration: duration,
+      reverseTransitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, animation, secondaryAnimation) => screen,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final fadeIn = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        );
+        final fadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
+          CurvedAnimation(
+            parent: secondaryAnimation,
+            curve: Curves.easeInOutCubic,
+          ),
+        );
+        return FadeTransition(
+          opacity: fadeOut,
+          child: FadeTransition(
+            opacity: fadeIn,
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+
+
   /// 🔍 CINEMATIC ZOOM-IN & FADE-IN TRANSITION
   /// The current screen smoothly zooms forward (expanding from 1.0 to 1.25 towards the camera with soft dissolve),
   /// while the incoming screen smoothly fades in and settles from 0.92 to 1.0!
