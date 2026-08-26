@@ -2438,12 +2438,22 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
 
   String _refineLabel(String rawLabel) {
     final label = rawLabel.replaceAll('_', ' ').trim().toLowerCase();
-    if (label.contains('doorway') || 
+    if (label.contains('door') || 
+        label.contains('doorway') || 
         label.contains('entrance') || 
         label.contains('exit') || 
         label.contains('elevator') || 
         label.contains('lift') || 
-        label.contains('gate')) {
+        label.contains('gate') ||
+        label.contains('doorknob') ||
+        label.contains('knob') ||
+        label.contains('handle') ||
+        label.contains('lock') ||
+        label.contains('latch') ||
+        label.contains('deadbolt') ||
+        label.contains('keyhole') ||
+        label.contains('peephole') ||
+        label.contains('doorframe')) {
       return 'door';
     }
     if (label.contains('chair') || label.contains('stool') || label.contains('armchair')) {
@@ -2673,7 +2683,22 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
             selectedSim = _hazardSimulations[7]; // Damaged pathway / Pothole
           } else if (topLabel.contains('person') || topLabel.contains('human') || topLabel.contains('man') || topLabel.contains('woman') || topLabel.contains('child') || topLabel.contains('pedestrian')) {
             selectedSim = _hazardSimulations[12]; // Person Detected
-          } else if (topLabel.contains('door') || topLabel.contains('gate') || topLabel.contains('entrance') || topLabel.contains('doorway') || topLabel.contains('exit') || topLabel.contains('elevator') || topLabel.contains('lift')) {
+          } else if (topLabel.contains('door') || 
+                     topLabel.contains('gate') || 
+                     topLabel.contains('entrance') || 
+                     topLabel.contains('doorway') || 
+                     topLabel.contains('exit') || 
+                     topLabel.contains('elevator') || 
+                     topLabel.contains('lift') ||
+                     topLabel.contains('handle') ||
+                     topLabel.contains('doorknob') ||
+                     topLabel.contains('knob') ||
+                     topLabel.contains('lock') ||
+                     topLabel.contains('latch') ||
+                     topLabel.contains('deadbolt') ||
+                     topLabel.contains('keyhole') ||
+                     topLabel.contains('peephole') ||
+                     topLabel.contains('doorframe')) {
             final isTagalog = SettingsService().selectedLanguage.toLowerCase().contains('tagalog') || SettingsService().selectedLanguage.toLowerCase().contains('filipino');
             selectedSim = {
               'title': isTagalog ? 'May Pintuan sa Harap' : 'Approaching Door',

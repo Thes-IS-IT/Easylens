@@ -122,7 +122,7 @@ class DangerWarningService {
   };
 
   static final Set<String> _doorKeywords = {
-    'door', 'doorway', 'entrance', 'exit', 'gate', 'sliding door', 'glass door', 'wooden door', 'revolving door', 'doorframe', 'door handle'
+    'door', 'doorway', 'entrance', 'exit', 'gate', 'sliding door', 'glass door', 'wooden door', 'revolving door', 'doorframe', 'door handle', 'doorknob', 'knob', 'lock', 'latch', 'deadbolt', 'keyhole', 'peephole'
   };
 
   /// Evaluates an object label string and returns its hazard severity level

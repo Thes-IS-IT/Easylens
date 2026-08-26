@@ -56,12 +56,22 @@ class HudCameraView extends StatelessWidget {
     if (label.contains('hair drier') || label.contains('hairdryer')) {
       return 'hair drier';
     }
-    if (label.contains('doorway') || 
+    if (label.contains('door') || 
+        label.contains('doorway') || 
         label.contains('entrance') || 
         label.contains('exit') || 
         label.contains('elevator') || 
         label.contains('lift') || 
-        label.contains('gate')) {
+        label.contains('gate') ||
+        label.contains('doorknob') ||
+        label.contains('knob') ||
+        label.contains('handle') ||
+        label.contains('lock') ||
+        label.contains('latch') ||
+        label.contains('deadbolt') ||
+        label.contains('keyhole') ||
+        label.contains('peephole') ||
+        label.contains('doorframe')) {
       return 'door';
     }
     if (label.contains('window') || label.contains('glass window') || label.contains('pane')) {
@@ -357,43 +367,74 @@ class HudCameraView extends StatelessWidget {
                                 ),
                               ),
                             );
-                          })
+                        })
                       else if (latestMLKitLabels.isNotEmpty)
                         Builder(
                           builder: (context) {
                             String displayLabel = "";
+                            // 1. High-priority scan: Check if ANY label is a door, handle, lock, or key hazard
                             for (final label in latestMLKitLabels) {
-                              final isPathway = label.toLowerCase().contains('floor') || 
-                                                label.toLowerCase().contains('ground') || 
-                                                label.toLowerCase().contains('sky') ||
-                                                label.toLowerCase().contains('ceiling') ||
-                                                label.toLowerCase().contains('indoor') ||
-                                                label.toLowerCase().contains('room') ||
-                                                label.toLowerCase().contains('building') ||
-                                                label.toLowerCase().contains('architecture') ||
-                                                label.toLowerCase().contains('house') ||
-                                                label.toLowerCase().contains('infrastructure');
-                              if (!isPathway) {
-                                  displayLabel = label;
-                                  break;
+                              final l = _refineLabel(label).toLowerCase();
+                              if (l.contains('door') || l.contains('gate') || 
+                                  l.contains('entrance') || l.contains('exit') || 
+                                  l.contains('handle') || l.contains('lock') || 
+                                  l.contains('stair') || l.contains('step') || 
+                                  l.contains('vehicle') || l.contains('car') || 
+                                  l.contains('person') || l.contains('fire')) {
+                                displayLabel = _refineLabel(label);
+                                break;
+                              }
+                            }
+                            // 2. Secondary scan: Exclude environmental noise (space, room, wood, floor, etc.)
+                            if (displayLabel.isEmpty) {
+                              for (final label in latestMLKitLabels) {
+                                final l = label.toLowerCase();
+                                final isNoise = l.contains('floor') || 
+                                                l.contains('ground') || 
+                                                l.contains('sky') ||
+                                                l.contains('ceiling') ||
+                                                l.contains('indoor') ||
+                                                l.contains('room') ||
+                                                l.contains('space') ||
+                                                l.contains('property') ||
+                                                l.contains('comfort') ||
+                                                l.contains('material') ||
+                                                l.contains('wood') ||
+                                                l.contains('line') ||
+                                                l.contains('building') ||
+                                                l.contains('architecture') ||
+                                                l.contains('house') ||
+                                                l.contains('infrastructure');
+                                if (!isNoise) {
+                                    displayLabel = _refineLabel(label);
+                                    break;
+                                }
                               }
                             }
                             if (displayLabel.isEmpty) {
-                              displayLabel = latestMLKitLabels.first;
+                              displayLabel = _refineLabel(latestMLKitLabels.first);
                             }
-                            final isPathway = displayLabel.toLowerCase().contains('floor') || 
-                                              displayLabel.toLowerCase().contains('ground') || 
-                                              displayLabel.toLowerCase().contains('sky') ||
-                                              displayLabel.toLowerCase().contains('ceiling') ||
-                                              displayLabel.toLowerCase().contains('indoor') ||
-                                              displayLabel.toLowerCase().contains('room');
-                            if (isPathway) return const SizedBox.shrink();
+                            final isNoise = displayLabel.toLowerCase().contains('floor') || 
+                                            displayLabel.toLowerCase().contains('ground') || 
+                                            displayLabel.toLowerCase().contains('sky') ||
+                                            displayLabel.toLowerCase().contains('ceiling') ||
+                                            displayLabel.toLowerCase().contains('indoor') ||
+                                            displayLabel.toLowerCase().contains('space') ||
+                                            displayLabel.toLowerCase().contains('room');
+                            if (isNoise) return const SizedBox.shrink();
                             
+                            final isDoor = displayLabel.toLowerCase().contains('door');
+                            final boxColor = isDoor ? const Color(0xFF00E676) : Colors.orangeAccent;
+
                             double left = constraints.maxWidth * 0.15;
                             double top = constraints.maxHeight * 0.20;
                             double width = constraints.maxWidth * 0.70;
                             double height = constraints.maxHeight * 0.50;
                             
+                            final cleanLabel = displayLabel.isNotEmpty 
+                                ? '${displayLabel[0].toUpperCase()}${displayLabel.substring(1)}'
+                                : 'Object';
+
                             return AnimatedPositioned(
                               key: const ValueKey('mlkit_label'),
                               duration: const Duration(milliseconds: 250),
@@ -404,16 +445,16 @@ class HudCameraView extends StatelessWidget {
                               height: height,
                               child: Container(
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.orangeAccent, width: 2.5),
+                                  border: Border.all(color: boxColor, width: 2.5),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Align(
                                   alignment: Alignment.topLeft,
                                   child: Container(
-                                    color: Colors.orangeAccent,
+                                    color: boxColor,
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     child: Text(
-                                      "$displayLabel (Tracked)",
+                                      "$cleanLabel (Tracked)",
                                       style: GoogleFonts.inter(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
