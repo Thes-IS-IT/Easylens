@@ -34,13 +34,13 @@ The conceptual framework of **EasyLens** is established upon the intersection of
 
 ```mermaid
 flowchart LR
-    INPUT["INPUT\n\n- Smart Glasses Video (30 FPS)\n- User Voice Commands (STT)\n- 1,500 mAh Power Bank"] 
+    INPUT["INPUT<br/><br/>• Smart Glasses Camera<br/>• Voice Commands (STT)<br/>• 1,500 mAh Power Bank"] 
     ==> 
-    PROCESS["PROCESS (Edge AI)\n\n- MobileNetV2 SSD (80 COCO Classes)\n- Google ML Kit (Image Labeling & OCR)\n- Gemma-IT 2B / Gemini 3.6 Flash\n- Parallel Dart Isolates"] 
+    PROCESS["PROCESS (Edge AI)<br/><br/>• MobileNetV2 SSD (80 COCO)<br/>• ML Kit (Labeling & OCR)<br/>• Gemma-IT 2B / Gemini 3.6<br/>• Parallel Dart Isolates"] 
     ==> 
-    OUTPUT["OUTPUT\n\n- Bilingual Spatial Audio Alerts\n- Tactile Haptic Pulses\n- Safe Door HUD Highlights\n- Local Cache & Cloudflare Sync"]
+    OUTPUT["OUTPUT<br/><br/>• Bilingual Spatial Audio<br/>• Tactile Haptic Pulses<br/>• Safe Door Highlights<br/>• Local Cache & Cloud Sync"]
 
-    OUTPUT -.->|"User Voice & Preference Feedback"| INPUT
+    OUTPUT -.->|"Voice Feedback"| INPUT
 ```
 
 #### 2.2 Subsystem Architecture IPO Flowchart
@@ -49,17 +49,17 @@ flowchart LR
 flowchart LR
     subgraph INPUT ["INPUT — Sensory & Electrical Ingestion"]
         direction TB
-        CAM["Smart Glasses Camera\nEgocentric video stream @ 30 FPS"]
-        VOICE["Voice Command Input\nHands-free spoken user commands"]
-        PWR["External Power Bank\n1,500 mAh sustained field operation"]
+        CAM["Smart Glasses Camera<br/>Egocentric live video feed"]
+        VOICE["Voice Command Input<br/>Hands-free spoken user commands"]
+        PWR["External Power Bank<br/>1,500 mAh sustained field operation"]
         WIFI_TAG{{"Standalone Wi-Fi Hotspot — raw image buffers"}}
     end
 
     subgraph PROCESS ["PROCESS — On-Device Edge Computation (Offline)"]
         direction TB
         PHONE["Host Smartphone Processing Core"]
-        SSD["MobileNetV2 SSD Detector\n80 COCO Classes (24-class obstacle focus)"]
-        MLKIT["Google ML Kit Vision Suite\nImage Labeling & Offline OCR"]
+        SSD["MobileNetV2 SSD Detector<br/>80 COCO Classes (24-class focus)"]
+        MLKIT["Google ML Kit Vision Suite<br/>Image Labeling & Offline OCR"]
         ISOLATE_TAG{{"Parallel Dart Isolate background threads"}}
         
         PHONE --> SSD
@@ -68,9 +68,9 @@ flowchart LR
 
     subgraph OUTPUT ["OUTPUT — Guidance, Persistence & Sync"]
         direction TB
-        WARN["Bilingual Spatial Warnings\nSpoken guidance in English & Tagalog"]
-        CACHE[("Local Preference Cache\nOn-device private settings store")]
-        CLOUD["Cloudflare Edge Database\nServerless sync when internet available"]
+        WARN["Bilingual Spatial Warnings<br/>Spoken guidance in English & Tagalog"]
+        CACHE[("Local Preference Cache<br/>On-device private settings store")]
+        CLOUD["Cloudflare Edge Database<br/>Serverless sync when internet available"]
         COMPANION_TAG{{"Private, zero-latency navigation companion"}}
         
         CACHE -->|"on connect"| CLOUD
