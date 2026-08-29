@@ -78,6 +78,7 @@ graph TD
 | Category / Folder | Document File | Description |
 |---|---|---|
 | **Architecture** | [`architecture.md`](docs/architecture/architecture.md) | Comprehensive technical system architecture, `Provider` state flow, and database models. |
+| | [`conceptual_framework.md`](docs/architecture/conceptual_framework.md) | Academic Conceptual Framework & Theoretical IPO Model (Input-Process-Output). |
 | | [`ai_architecture.md`](docs/architecture/ai_architecture.md) | On-device Gemma-IT 2B LLM, Gemini 3.6 Flash (Low), RAG engine, and Ollama fallback. |
 | | [`local_storage_architecture.md`](docs/architecture/local_storage_architecture.md) | SQLite database caching, `SharedPreferences` key-value store, and Firestore sync. |
 | | [`object_detection_architecture.md`](docs/architecture/object_detection_architecture.md) | Real-time TFLite MobileNetV2 SSD pipeline, ML Kit, and Speech Navigation logic. |

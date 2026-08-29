@@ -11,6 +11,7 @@ Welcome to the **EasyLens** documentation repository. All technical specificatio
 #### `/architecture`
 Architectural blueprints, system design models, and database tier specs:
 * [`architecture.md`](file:///Users/arronkianparejas/easylens/docs/architecture/architecture.md) - System architecture overview & Flutter provider engine
+* [`conceptual_framework.md`](file:///Users/arronkianparejas/easylens/docs/architecture/conceptual_framework.md) - Conceptual Framework & Theoretical IPO Model (Input-Process-Output)
 * [`ai_architecture.md`](file:///Users/arronkianparejas/easylens/docs/architecture/ai_architecture.md) - Multi-tier edge AI architecture
 * [`local_storage_architecture.md`](file:///Users/arronkianparejas/easylens/docs/architecture/local_storage_architecture.md) - SQLite & SharedPreferences caching strategy
 * [`object_detection_architecture.md`](file:///Users/arronkianparejas/easylens/docs/architecture/object_detection_architecture.md) - TFLite MobileNetV2 SSD pipeline
