@@ -22,7 +22,7 @@ The conceptual framework of **EasyLens** is established upon the intersection of
 2. **Dual-Coding & Multimodal Sensory Integration**:
    By simultaneously synthesizing **spatial audio alerts**, **tactile haptics**, and **high-contrast visual cues**, the system distributes information across complementary sensory channels, minimizing cognitive fatigue during physical navigation.
 3. **Edge-Computing & Embedded AI Architecture**:
-   To ensure privacy and critical real-time safety, computer vision inference (24-class MobileNetV2 SSD object detection, OCR, spatial proximity calculation) and core LLM reasoning (**Gemma-IT 2B**) execute on-device at the edge, eliminating reliance on active internet connectivity.
+   To ensure privacy and critical real-time safety, computer vision inference (80-class MS-COCO MobileNetV2 SSD object detection, Google ML Kit Image Labeling, OCR text extraction, spatial proximity calculation) and core LLM reasoning (**Gemma-IT 2B**) execute on-device at the edge, eliminating reliance on active internet connectivity.
 4. **Retrieval-Augmented Generation (RAG) & Guardrailed Intelligence**:
    The conversational assistant ("Buddy") pairs on-device **Gemma-IT 2B** with cloud **Google Gemini 3.6 Flash (Low)** using localized domain knowledge (`buddy_knowledge.json`) and episodic interaction journals (`JournalService`) with strict semantic guardrails to prevent AI hallucinations and provide deterministic spatial guidance.
 
@@ -36,7 +36,7 @@ The conceptual framework of **EasyLens** is established upon the intersection of
 flowchart LR
     INPUT["INPUT\n\n- Smart Glasses Video (30 FPS)\n- User Voice Commands (STT)\n- 1,500 mAh Power Bank"] 
     ==> 
-    PROCESS["PROCESS (Edge AI)\n\n- 24-Class MobileNetV2 SSD\n- Local ML Kit OCR Engine\n- Gemma-IT 2B / Gemini 3.6 Flash\n- Parallel Dart Isolates"] 
+    PROCESS["PROCESS (Edge AI)\n\n- MobileNetV2 SSD (80 COCO Classes)\n- Google ML Kit (Image Labeling & OCR)\n- Gemma-IT 2B / Gemini 3.6 Flash\n- Parallel Dart Isolates"] 
     ==> 
     OUTPUT["OUTPUT\n\n- Bilingual Spatial Audio Alerts\n- Tactile Haptic Pulses\n- Safe Door HUD Highlights\n- Local Cache & Cloudflare Sync"]
 
@@ -58,12 +58,12 @@ flowchart LR
     subgraph PROCESS ["PROCESS — On-Device Edge Computation (Offline)"]
         direction TB
         PHONE["Host Smartphone Processing Core"]
-        SSD["MobileNetV2 SSD Detector\n24-class obstacle & object inference"]
-        OCR["Local OCR Engine\nOffline signage & text recognition"]
+        SSD["MobileNetV2 SSD Detector\n80 COCO Classes (24-class obstacle focus)"]
+        MLKIT["Google ML Kit Vision Suite\nImage Labeling & Offline OCR"]
         ISOLATE_TAG{{"Parallel Dart Isolate background threads"}}
         
         PHONE --> SSD
-        SSD --> OCR
+        SSD --> MLKIT
     end
 
     subgraph OUTPUT ["OUTPUT — Guidance, Persistence & Sync"]
@@ -80,7 +80,7 @@ flowchart LR
     VOICE --> PHONE
     PWR --> ISOLATE_TAG
     SSD --> WARN
-    OCR --> WARN
+    MLKIT --> WARN
     SSD --> CACHE
 ```
 
@@ -97,8 +97,9 @@ flowchart LR
 | | **Standalone Wi-Fi Hotspot** | Dedicated local wireless AP (`EasyLens-Camera` @ `192.168.4.1:81`) streaming raw MJPEG frame buffers. |
 | **Electrical & Hardware** | **External Power Bank** | 1,500 mAh Li-Po power reservoir providing regulated 5.0V DC rail for sustained continuous field operation. |
 | | **Heatsink Pad & Box Frame** | Direct-contact thermal heatsink on ESP32 SoC housed within a 3D-printed PETG module box frame. |
-| **Software & AI Models** | **MobileNetV2 SSD Detector** | Fine-tuned 24-class edge object detection model ($300 \times 300 \times 3$ RGB input tensor). |
-| | **Local OCR Engine** | Google ML Kit on-device text recognition for offline signage, door labels, and print media. |
+| **Software & AI Models** | **MobileNetV2 SSD Detector** | Pretrained on 80 MS-COCO classes with fine-tuned 24-class obstacle prioritization ($300 \times 300 \times 3$ input tensor). |
+| | **Google ML Kit Image Labeling** | On-device multi-object and scene context classification (`google_mlkit_image_labeling: ^0.14.2`). |
+| | **Google ML Kit OCR Engine** | On-device text recognition for offline signage, door labels, and print media (`google_mlkit_text_recognition: ^0.15.1`). |
 | | **Gemma-IT 2B (On-Device)** | Local 2B instruction-tuned LLM running offline on-device via Google AI Edge SDK. |
 | | **Google Gemini 3.6 Flash (Low)** | Cloud multimodal conversational LLM for rich Filipino/Tagalog synthesis and complex scene reasoning. |
 | | **Domain Knowledge Base** | Localized knowledge corpus (`buddy_knowledge.json`) with campus safety bounds, object facts, and FAQs. |
@@ -121,12 +122,13 @@ flowchart TD
         P2B["Normalize pixel intensities and resize frame to 300x300 RGB tensor"]
     end
 
-    subgraph Step3 ["Step 3: Multi-Tier Edge AI Inference"]
-        P3A["MobileNetV2 SSD: 24-class obstacle and object inference (Bounding Boxes & Scores)"]
-        P3B["Door Fixture Classifier: Safe door tracking and green HUD highlight verification"]
-        P3C["Local OCR Engine: Offline text recognition from high-resolution frame regions"]
-        P3D["Spatial Hazard Algorithm: Euclidean distance, Center-of-Mass & IoU threat scoring"]
-        P3E["RAG Engine: Gemma-IT 2B (Offline) & Gemini 3.6 Flash (Low) conversational reasoning"]
+    subgraph Step3 ["Step 3: Multi-Tier Edge AI Inference Suite"]
+        P3A["MobileNetV2 SSD: 80 COCO Class Inference with 24-class obstacle prioritization"]
+        P3B["Google ML Kit Image Labeling: Real-time contextual scene labeling"]
+        P3C["Google ML Kit OCR: Offline text token extraction from high-resolution frame regions"]
+        P3D["Safe Door Fixture Classifier: Green HUD tracking verification"]
+        P3E["Spatial Hazard Algorithm: Euclidean distance, Center-of-Mass & IoU threat scoring"]
+        P3F["RAG Engine: Gemma-IT 2B (Offline) & Gemini 3.6 Flash (Low) conversational reasoning"]
     end
 
     subgraph Step4 ["Step 4: Multimodal Synthesis & Priority Arbitration"]
@@ -149,9 +151,10 @@ flowchart TD
 2. **Host Smartphone Processing Core & Dart Isolates**:
    To ensure a 60 FPS smooth mobile UI, heavy image decoding and tensor conversions execute in parallel background Dart Isolates (`isolate_runner.dart`), transforming raw pixels into normalized $300 \times 300 \times 3$ tensors.
 3. **Multi-Tier Edge AI Inference Suite**:
-   - **MobileNetV2 SSD Detector**: TensorFlow Lite C-API runs 4-thread CPU inference, outputting bounding boxes, class labels across 24 curated obstacle categories, and confidence scores ($\ge 0.65$).
+   - **MobileNetV2 SSD (80 COCO Classes)**: Evaluates input tensors against the 80 standard MS-COCO object classes, prioritizing the 24 core assistive obstacle classes (e.g., `person`, `stairs`, `chair`, `door`, `vehicle`, `traffic light`) across 4 CPU threads with confidence scores $\ge 0.65$.
+   - **Google ML Kit Image Labeling**: Classifies scene contexts and background entities concurrently with object detection.
+   - **Google ML Kit OCR Engine**: Parses signs, bus placards, and prescription bottles directly on-device.
    - **Safe Door Fixture Tracking**: Detects doors and hardware fixtures (knobs, handles, locks) and highlights them with safe green tracking overlays.
-   - **Local OCR Engine**: Google ML Kit parses signs, bus placards, and prescription bottles directly on-device.
    - **Hybrid RAG Intelligence**: Couples on-device **Gemma-IT 2B** for offline speech guidance with **Google Gemini 3.6 Flash (Low)** for cloud-based Filipino/Tagalog multimodal queries.
 4. **Spatial Hazard Scoring Formula**:
    Spatial hazard risk $S_{\text{hazard}}$ is quantified using normalized bounding box area ($A_i$), center deviation ($\Delta X_i$), and class criticality weight ($W_{\text{class}}$):
@@ -169,6 +172,7 @@ flowchart TD
 | :--- | :--- | :--- |
 | **Bilingual Spatial Warnings** | Directional collision warnings (e.g., *"Caution: Stairs 1 meter ahead"* / *"Mag-ingat: May hagdan 1 metro sa harap"*). | Immediate collision prevention and safe forward mobility. |
 | | Spoken OCR text readouts (Room numbers, signs, labels). | Environmental literacy and independent navigation. |
+| | Scene classification readouts from Google ML Kit Image Labeling. | Comprehensive contextual awareness of physical surroundings. |
 | | Conversational voice companion (Buddy Q&A in English and Filipino). | Hands-free interactive assistance and cognitive reassurance. |
 | **Tactile & Visual Outputs** | Directional tactile haptic vibrations. | Non-auditory alert channel for noisy surroundings. |
 | | High-contrast accessible UI (WCAG 2.2 AAA compliance). | Clear interface for low-vision users and assistive coaches. |
@@ -187,7 +191,7 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph IV ["INDEPENDENT VARIABLES (IV)"]
-        IV1["AI Inference Pipeline\n(MobileNetV2 SSD vs. ML Kit OCR vs. Gemma-IT 2B)"]
+        IV1["AI Inference Pipeline\n(80-Class MobileNetV2 SSD vs. ML Kit Labeling/OCR vs. Gemma-IT 2B)"]
         IV2["User Input Modalities\n(Hands-free Voice STT vs. Screen Touch)"]
         IV3["Localization Mode\n(English vs. Filipino / Tagalog)"]
     end
@@ -200,7 +204,7 @@ flowchart LR
 
     subgraph DV ["DEPENDENT VARIABLES (DV)"]
         DV1["Inference & Alert Latency\n(Target: < 100 ms Edge Latency)"]
-        DV2["Obstacle Detection Accuracy\n(Target: ≥ 85% mAP)"]
+        DV2["Obstacle Detection Accuracy\n(Target: ≥ 85% mAP across COCO classes)"]
         DV3["Navigation Autonomy & Success\n(Target: ≥ 90% Obstacle Avoidance)"]
         DV4["Field Battery Runtime\n(Target: 2.75h to 8.25h on 1500 mAh)"]
     end
@@ -214,14 +218,14 @@ flowchart LR
 
 | Variable Type | Variable Name | Measurement Unit | Operational Definition in EasyLens |
 | :--- | :--- | :--- | :--- |
-| **Independent Variable ($IV_1$)** | AI Processing Pipeline | Model Architecture | Execution tier: TFLite 24-class SSD, ML Kit OCR, Gemma-IT 2B, or Gemini 3.6 Flash (Low). |
+| **Independent Variable ($IV_1$)** | AI Processing Pipeline | Model Architecture | Execution tier: 80-Class MobileNetV2 SSD, Google ML Kit Image Labeling/OCR, Gemma-IT 2B, or Gemini 3.6 Flash (Low). |
 | **Independent Variable ($IV_2$)** | User Input Modality | Input Type | Hands-free spoken voice commands vs. accessible touch gestures. |
 | **Independent Variable ($IV_3$)** | Localization Mode | Language Locale | English vs. Filipino (Tagalog) bilingual synthesis. |
 | **Moderating Variable ($MV_1$)** | Ambient Lighting | Lux ($\text{lx}$) | Environmental illumination and dynamic flash LED activation. |
 | **Moderating Variable ($MV_2$)** | Network Connectivity | Online vs. Offline | Determines whether queries stay on-device (Gemma-IT 2B) or route to cloud (Gemini 3.6 Flash Low). |
 | **Moderating Variable ($MV_3$)** | Hardware Thermal State | Temperature ($^\circ\text{C}$) | Heat dissipation via heatsink pad preventing SoC thermal throttling. |
 | **Dependent Variable ($DV_1$)** | Alert Latency | Milliseconds ($\text{ms}$) | Elapsed time from camera frame ingestion to spatial audio warning ($< 100\text{ ms}$). |
-| **Dependent Variable ($DV_2$)** | Detection Precision | Mean Average Precision ($mAP$) | Precision of 24-class obstacle detection and OCR text extraction. |
+| **Dependent Variable ($DV_2$)** | Detection Precision | Mean Average Precision ($mAP$) | Precision of 80-class COCO object detection, scene labeling, and OCR text extraction. |
 | **Dependent Variable ($DV_3$)** | Navigation Autonomy | Success Rate ($\%$) | Percentage of successful obstacle avoidances during mobility trials ($\ge 90\%$). |
 | **Dependent Variable ($DV_4$)** | Battery Field Runtime | Hours ($\text{hours}$) | Operational duration on a single 1,500 mAh battery charge ($2.75\text{h} - 8.25\text{h}$). |
 
@@ -238,8 +242,9 @@ flowchart LR
 | **Input** | Knowledge Base | `assets/models/buddy_knowledge.json` | Localized facts on campus bounds, safety rules, and FAQs. |
 | **Process** | Host Processing Core | `lib/services/esp32_service.dart` | Stream receiver and MJPEG frame chunk decoder. |
 | **Process** | Parallel Dart Isolates | `lib/services/isolate_runner.dart` | Heavy background compute thread normalizing $300 \times 300$ RGB tensors. |
-| **Process** | MobileNetV2 SSD | `lib/services/tflite_processor.dart` | 24-class obstacle and object inference on 4 CPU threads. |
-| **Process** | Local OCR Engine | `lib/services/ml_kit_service.dart` | Google ML Kit on-device signage and text recognition. |
+| **Process** | MobileNetV2 SSD | `lib/services/tflite_processor.dart` | 80 MS-COCO classes with 24-class obstacle prioritization on 4 CPU threads. |
+| **Process** | ML Kit Image Labeling | `lib/services/object_detector_service.dart`| On-device general scene entity and image labeling (`google_mlkit_image_labeling`). |
+| **Process** | ML Kit OCR Engine | `lib/services/ml_kit_service.dart` | Google ML Kit on-device signage and text recognition (`google_mlkit_text_recognition`). |
 | **Process** | Gemma-IT 2B | `flutter_gemma: ^0.13.6` | Offline 2B parameter conversational LLM running on-device. |
 | **Process** | Gemini 3.6 Flash (Low)| `google_generative_ai: ^0.4.4` | Cloud multimodal assistant for Tagalog synthesis and deep reasoning. |
 | **Process** | Audio Priority Mgr | `lib/services/navigation_voice_assistant.dart` | Arbitrates alert priority, interrupting dialogue for imminent hazards. |
