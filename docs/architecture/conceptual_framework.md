@@ -34,11 +34,11 @@ The conceptual framework of **EasyLens** is established upon the intersection of
 
 ```mermaid
 flowchart LR
-    INPUT["📥 INPUT\n\n• Smart Glasses Video (30 FPS)\n• User Voice Commands (STT)\n• 1,500 mAh Power Bank"] 
+    INPUT["INPUT\n\n- Smart Glasses Video (30 FPS)\n- User Voice Commands (STT)\n- 1,500 mAh Power Bank"] 
     ==> 
-    PROCESS["⚙️ PROCESS (Edge AI)\n\n• 24-Class MobileNetV2 SSD\n• Local ML Kit OCR Engine\n• Gemma-IT 2B / Gemini 3.6 Flash\n• Parallel Dart Isolates"] 
+    PROCESS["PROCESS (Edge AI)\n\n- 24-Class MobileNetV2 SSD\n- Local ML Kit OCR Engine\n- Gemma-IT 2B / Gemini 3.6 Flash\n- Parallel Dart Isolates"] 
     ==> 
-    OUTPUT["📤 OUTPUT\n\n• Bilingual Spatial Audio Alerts\n• Tactile Haptic Pulses\n• Safe Door HUD Highlights\n• Local Cache & Cloudflare Sync"]
+    OUTPUT["OUTPUT\n\n- Bilingual Spatial Audio Alerts\n- Tactile Haptic Pulses\n- Safe Door HUD Highlights\n- Local Cache & Cloudflare Sync"]
 
     OUTPUT -.->|"User Voice & Preference Feedback"| INPUT
 ```
