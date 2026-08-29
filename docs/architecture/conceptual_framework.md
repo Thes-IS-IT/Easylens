@@ -30,7 +30,20 @@ The conceptual framework of **EasyLens** is established upon the intersection of
 
 ### 02 — SIMPLIFIED CONCEPTUAL FRAMEWORK (IPO MODEL)
 
-The simplified conceptual framework represents the high-level data and power flow across the **Sensory Ingestion (Input)**, **On-Device Edge Computation (Process)**, and **Guidance, Persistence & Sync (Output)** tiers:
+#### 2.1 Ultra-Simplified Executive IPO Diagram
+
+```mermaid
+flowchart LR
+    INPUT["📥 INPUT\n\n• Smart Glasses Video (30 FPS)\n• User Voice Commands (STT)\n• 1,500 mAh Power Bank"] 
+    ==> 
+    PROCESS["⚙️ PROCESS (Edge AI)\n\n• 24-Class MobileNetV2 SSD\n• Local ML Kit OCR Engine\n• Gemma-IT 2B / Gemini 3.6 Flash\n• Parallel Dart Isolates"] 
+    ==> 
+    OUTPUT["📤 OUTPUT\n\n• Bilingual Spatial Audio Alerts\n• Tactile Haptic Pulses\n• Safe Door HUD Highlights\n• Local Cache & Cloudflare Sync"]
+
+    OUTPUT -.->|"User Voice & Preference Feedback"| INPUT
+```
+
+#### 2.2 Subsystem Architecture IPO Flowchart
 
 ```mermaid
 flowchart LR
