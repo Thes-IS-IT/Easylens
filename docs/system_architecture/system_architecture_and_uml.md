@@ -19,7 +19,7 @@ graph TD
     subgraph Hardware Layer ["Hardware & Sensors"]
         CAM["Smart Glasses Camera\n(ESP32-CAM OV2640 70° Wide Angle)"]
         PWR["1,500 mAh Powerbank\n(5V Regulated Power Supply)"]
-        CLP["3D-Printed Module Box Frame\n(PETG Enclosure with Heatsink)"]
+        CLP["3D-Printed Module Box Frame\n(PLA Enclosure with Heatsink)"]
     end
 
     subgraph Mobile Edge Layer ["Easylens Mobile App (Flutter Core)"]
@@ -49,7 +49,7 @@ flowchart TB
         REG["LDO Voltage Regulator\n(5V to 3.3V Step-Down)"]
         ESP["ESP32 Dual-Core CPU\n(240MHz, 4MB PSRAM, Heatsink Pad)"]
         OV2640["OV2640 Image Sensor\n(70° Light Wide Angle Lens, VGA 30 FPS)"]
-        CLIP["3D-Printed PETG Module Box Frame\n(Mounting & Lens Aperture)"]
+        CLIP["3D-Printed PLA Module Box Frame\n(Mounting & Lens Aperture)"]
 
         BATT --> REG
         REG -->|"3.3V Rail"| ESP
@@ -308,7 +308,7 @@ stateDiagram-v2
                                          |
                                          v
    +-------------------------------------+-------------------------------------+
-   |                 3D-Printed Module Box Frame Body (PETG)                   |
+   |                 3D-Printed Module Box Frame Body (PLA)                    |
    |                                                                           |
    |  +-----------------------+     +-------------------+   +---------------+  |
    |  | ESP32-CAM Housing     |     | Camera Lens Clip  |   | Micro-USB     |  |
@@ -323,7 +323,7 @@ stateDiagram-v2
                      +---------------------------------------+
 ```
 
-- **Material Composition**: **PETG (Polyethylene Terephthalate Glycol)** or **ABS**. Selected for high impact resistance, flexural strength, and temperature tolerance up to 75°C.
+- **Material Composition**: **PLA (Polylactic Acid)** or **PETG**. Selected for lightweight mechanical rigidity, dimensional accuracy, and ease of custom modular rapid prototyping.
 - **Manufacturing Specifications**: 0.2mm layer height, 30% tri-hexagon infill, 4 wall perimeter layers for structural rigidity.
 - **Total Frame Weight**: 22 grams (excluding camera PCB and battery).
 - **Vibration Dampening**: Internal TPU gasket inserts absorb body movement jitter.
@@ -402,4 +402,4 @@ stateDiagram-v2
 
 ### 07 — SUMMARY & VERIFICATION
 
-This system architecture document establishes the technical blueprint for the Easylens Wearable System. By combining a 1,500 mAh battery powerbudget model, 3D-printed modular PETG box frame, OV2640 70° Light Wide Angle camera optics, Standalone Wi-Fi Hotspot streaming, and an on-device edge AI Flutter engine (MobileNetV2 SSD, Gemma-IT 2B, Google Gemini 3.6 Flash Low), Easylens delivers high-speed obstacle detection and visual assistance within strict energy and latency constraints.
+This system architecture document establishes the technical blueprint for the Easylens Wearable System. By combining a 1,500 mAh battery powerbudget model, 3D-printed modular PLA box frame, OV2640 70° Light Wide Angle camera optics, Standalone Wi-Fi Hotspot streaming, and an on-device edge AI Flutter engine (MobileNetV2 SSD, Gemma-IT 2B, Google Gemini 3.6 Flash Low), Easylens delivers high-speed obstacle detection and visual assistance within strict energy and latency constraints.

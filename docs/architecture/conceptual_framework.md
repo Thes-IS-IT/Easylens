@@ -96,7 +96,7 @@ flowchart LR
 | | **Voice Command Input** | Hands-free spoken user commands captured via device microphone using `speech_to_text: ^7.4.0`. |
 | | **Standalone Wi-Fi Hotspot** | Dedicated local wireless AP (`EasyLens-Camera` @ `192.168.4.1:81`) streaming raw MJPEG frame buffers. |
 | **Electrical & Hardware** | **External Power Bank** | 1,500 mAh Li-Po power reservoir providing regulated 5.0V DC rail for sustained continuous field operation. |
-| | **Heatsink Pad & Box Frame** | Direct-contact thermal heatsink on ESP32 SoC housed within a 3D-printed PETG module box frame. |
+| | **Heatsink Pad & Box Frame** | Direct-contact thermal heatsink on ESP32 SoC housed within a 3D-printed PLA module box frame. |
 | **Software & AI Models** | **MobileNetV2 SSD Detector** | Pretrained on 80 MS-COCO classes with fine-tuned 24-class obstacle prioritization ($300 \times 300 \times 3$ input tensor). |
 | | **Google ML Kit Image Labeling** | On-device multi-object and scene context classification (`google_mlkit_image_labeling: ^0.14.2`). |
 | | **Google ML Kit OCR Engine** | On-device text recognition for offline signage, door labels, and print media (`google_mlkit_text_recognition: ^0.15.1`). |

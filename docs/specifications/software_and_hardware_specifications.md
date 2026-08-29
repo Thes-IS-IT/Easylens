@@ -73,7 +73,7 @@ The system combines physical wearable optics (ESP32-CAM-MB Development Board wit
 ```text
              3D PRINTED MODULE BOX FRAME SCHEMATIC
  +-------------------------------------------------------------------+
- | [Housing] 3D Printed Module Box Frame Enclosure (PETG / ABS)     |
+ | [Housing] 3D Printed Module Box Frame Enclosure (PLA / ABS)       |
  | [Lens Aperture] Custom Frame Aperture for OV2640 70° Light Wide  |
  |                 Angle Lens Module                                 |
  | [Thermal] Direct-Contact Opening & Heatsink Pad for ESP32 SoC     |
@@ -82,7 +82,7 @@ The system combines physical wearable optics (ESP32-CAM-MB Development Board wit
  +-------------------------------------------------------------------+
 ```
 
-* **Body Material**: **3D Printed Module Box Frame** (PETG or ABS polymer construction).
+* **Body Material**: **3D Printed Module Box Frame** (PLA or ABS polymer construction).
 * **Camera Aperture**: Precision-molded front-facing aperture hole engineered for the **OV2640 70° Light Wide Angle Lens**, eliminating peripheral vignetting.
 * **Thermal Management & Cooling**: 
   * **Heatsink Pad**: High-conductivity aluminum heatsink pad affixed on the ESP32 SoC and external PSRAM chips, coupled with box frame thermal convection cutouts.
@@ -263,4 +263,4 @@ graph TD
 * **Encrypted API Data Transfers**: All REST communications with Cloudflare D1 and Firebase utilize **TLS 1.3 encryption**.
 * **AWS SigV4 Authentication**: Cloudflare R2 bucket transactions use ephemeral HMAC-SHA256 signing to prevent key leakage.
 * **Operating Temperature Range**: $-10^\circ\text{C}$ to $+45^\circ\text{C}$.
-* **Hardware Moisture Protection**: 3D-printed PETG modular clip housing provides **IP54 splash resistance** for outdoor weather conditions.
+* **Hardware Moisture Protection**: 3D-printed PLA modular clip housing provides **IP54 splash resistance** for outdoor weather conditions.

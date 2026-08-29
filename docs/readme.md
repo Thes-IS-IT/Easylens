@@ -34,7 +34,7 @@ Data flow, use case, entity relationship diagrams, data dictionary, and Gantt ch
 * [`use_case_diagrams.md`](file:///Users/arronkianparejas/easylens/docs/dfd/use_case_diagrams.md) - Simplified & Detailed Use Case Diagrams (UCD)
 * [`entity_relationship_diagram.md`](file:///Users/arronkianparejas/easylens/docs/dfd/entity_relationship_diagram.md) - Conceptual & Relational ERD models
 * [`data_dictionary.md`](file:///Users/arronkianparejas/easylens/docs/dfd/data_dictionary.md) - Table schemas, data types, and key constraints
-* [`gantt_chart.md`](file:///Users/arronkianparejas/easylens/docs/dfd/gantt_chart.md) - Project implementation Gantt chart timeline (Dec 2025 - Aug 2028)
+* [`gantt_chart.md`](file:///Users/arronkianparejas/easylens/docs/dfd/gantt_chart.md) - Project implementation Gantt chart timeline (Dec 2025 - Aug 2026)
 
 #### `/setup`
 Deployment guides, Cloudflare R2 bucket setup, and CI/CD pipelines:

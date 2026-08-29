@@ -7,7 +7,7 @@
 This document outlines the formal project development and evaluation timeline for **EasyLens**, spanning **December 1, 2025 to August 28, 2026**.
 
 The key project phases follow an expanded engineering and validation roadmap:
-1. **Phase 1: Project Initiation, Literature Review & Hardware Sourcing** *(Dec 1, 2025 – Feb 15, 2026)*
+1. **Phase 1: Project Initiation, Literature Review & Hardware Sourcing** *(Dec 1, 2025 – Feb 28, 2026)*
 2. **Phase 2: 3D Box Frame Design & Physical Prototyping** *(Feb 1, 2026 – Mar 31, 2026)*
 3. **Phase 3: Dataset Curation & MobileNetV2 Model Training** *(Apr 1, 2026 – May 31, 2026)*
 4. **Phase 4: Flutter App Development, Edge AI Engine & Multimodal Accessibility** *(May 1, 2026 – Jul 15, 2026)*
@@ -26,7 +26,7 @@ gantt
     axisFormat  %b %Y
 
     section Phase 1: Research
-    Reqs & Sourcing            :p1, 2025-12-01, 2026-02-15
+    Reqs & Sourcing            :p1, 2025-12-01, 2026-02-28
 
     section Phase 2: Hardware
     3D Box Frame Design        :p2, 2026-02-01, 2026-03-31
@@ -59,10 +59,10 @@ gantt
 
     section 1. Initiation & Hardware
     System Modeling & Architecture     :a1, 2025-12-01, 2026-01-15
-    Hardware Sourcing (ESP32 / Lens)   :a2, 2026-01-05, 2026-02-15
+    Hardware Sourcing (ESP32 / Lens)   :a2, 2026-01-15, 2026-02-28
 
     section 2. 3D Box Frame & Hardware
-    3D Box Frame PETG CAD Design       :b1, 2026-02-01, 2026-03-05
+    3D Box Frame PLA CAD Design        :b1, 2026-02-01, 2026-03-05
     Thermal Heatsink Pad Fitting       :b2, 2026-02-20, 2026-03-20
     ESP32 Wi-Fi AP Stream Test         :b3, 2026-03-05, 2026-03-31
 
@@ -107,8 +107,8 @@ gantt
 
 | Phase | Target Date Range | Key Milestone Deliverable | Status / Output |
 | :--- | :--- | :--- | :--- |
-| **Phase 1** | Dec 1, 2025 – Feb 15, 2026 | System Requirements & Hardware Component Procurement | ESP32-CAM-MB, OV2640 70° Lens & 1500mAh Bank Sourced |
-| **Phase 2** | Feb 1, 2026 – Mar 31, 2026 | 3D Printed Box Frame Prototyping & Thermal Verification | PETG Enclosure with Heatsink Pad Mounting |
+| **Phase 1** | Dec 1, 2025 – Feb 28, 2026 | System Requirements & Hardware Component Procurement | ESP32-CAM-MB, OV2640 70° Lens & 1500mAh Bank Sourced |
+| **Phase 2** | Feb 1, 2026 – Mar 31, 2026 | 3D Printed Box Frame Prototyping & Thermal Verification | PLA Enclosure with Heatsink Pad Mounting |
 | **Phase 3** | **Apr 1, 2026 – May 31, 2026** | **AI Model Training & INT8 Quantization** | **MobileNetV2 SSD (>85% Top-1) Exported to TFLite** |
 | **Phase 4** | **May 1, 2026 – Jul 15, 2026** | **Flutter Mobile App Development & Vision Pipeline** | **60 FPS Accessible UI, TFLite, ML Kit OCR & Spatial TTS** |
 | **Phase 5** | Jun 15, 2026 – Jul 20, 2026 | Cloud Infrastructure Integration | Cloudflare D1/R2 & Firebase Auth Sync Active |
