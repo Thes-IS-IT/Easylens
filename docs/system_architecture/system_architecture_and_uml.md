@@ -6,7 +6,7 @@
 
 Easylens is an assistive accessibility system designed to provide real-time environment perception, obstacle and object detection, text recognition (OCR), and conversational AI assistance for visually impaired and neurodivergent users. 
 
-The system operates via a Hybrid Build: a wearable physical unit (smart glasses or chest-mounted harness featuring a 3D-printed modular clip, an ESP32-CAM with OV2640 75° FoV lens, or a Wired UVC USB OTG camera, powered by a compact 1500 mAh powerbank) linked to an edge application built with Flutter, TensorFlow Lite, Google Gemma 2B, and Cloud services.
+The system operates via a Wearable Edge Build: a wearable physical unit (smart glasses or chest-mounted harness featuring a 3D-printed modular box frame, an ESP32-CAM with OV2640 70° Light Wide Angle lens, heatsink pad, powered by a compact 1,500 mAh powerbank) linked wirelessly over a standalone Wi-Fi hotspot to an edge application built with Flutter, TensorFlow Lite, Gemma-IT 2B, Google Gemini 3.6 Flash (Low), and Cloudflare D1/R2 services.
 
 ---
 
@@ -17,25 +17,25 @@ The system operates via a Hybrid Build: a wearable physical unit (smart glasses 
 ```mermaid
 graph TD
     subgraph Hardware Layer ["Hardware & Sensors"]
-        CAM["Camera Sensor\n(ESP32-CAM OV2640 75° / Wired UVC)"]
-        PWR["1500 mAh Powerbank\n(Power Supply & Regulation)"]
-        CLP["3D-Printed Modular Clip\n(Physical Mount & Housing)"]
+        CAM["Smart Glasses Camera\n(ESP32-CAM OV2640 70° Wide Angle)"]
+        PWR["1,500 mAh Powerbank\n(5V Regulated Power Supply)"]
+        CLP["3D-Printed Module Box Frame\n(PETG Enclosure with Heatsink)"]
     end
 
     subgraph Mobile Edge Layer ["Easylens Mobile App (Flutter Core)"]
-        ING["Data Ingestion & Frame Buffer"]
-        AI["Edge AI Vision Engine\n(TFLite SSD MobileNet & ML Kit)"]
-        TTS["Spatial Audio / TTS Engine"]
+        ING["Data Ingestion & Frame Buffer\n(Stream Receiver @ 30 FPS)"]
+        AI["Edge AI Vision Engine\n(TFLite MobileNetV2 SSD & ML Kit)"]
+        TTS["Spatial Audio / TTS Engine\n(Bilingual English & Tagalog)"]
     end
 
     subgraph Cloud Layer ["Cloud & Sync Infrastructure"]
-        CLOUD["Cloud Services\n(Cloudflare D1/R2 & Firebase)"]
+        CLOUD["Cloud Services\n(Cloudflare D1/R2 & Firebase Auth)"]
     end
 
     PWR -->|"5V / 3.3V Power Rail"| CAM
-    CAM -->|"MJPEG Stream / USB OTG"| ING
+    CAM -->|"MJPEG Stream (192.168.4.1:81)"| ING
     ING -->|"Raw Frame Array"| AI
-    AI -->|"Detected Objects / Text"| TTS
+    AI -->|"Detected Obstacles / OCR Text"| TTS
     AI -.->|"Hazard Logs / Telemetry"| CLOUD
 ```
 
@@ -45,26 +45,22 @@ graph TD
 flowchart TB
     subgraph Physical Hardware ["Physical Wearable Hardware Unit"]
         direction TB
-        BATT["1500 mAh Powerbank\n(5V 1A/2A Output)"]
+        BATT["1,500 mAh Powerbank\n(5V 1A/2A Synchronous Boost)"]
         REG["LDO Voltage Regulator\n(5V to 3.3V Step-Down)"]
-        ESP["ESP32 Dual-Core CPU\n(240MHz, 4MB PSRAM)"]
-        OV2640["OV2640 Image Sensor\n(75° FoV Lens, UXGA/SVGA)"]
-        UVC["Wired UVC Module\n(USB-OTG Bridge IC)"]
-        CLIP["3D-Printed PETG Modular Clip\n(Quick-Release Clamp)"]
+        ESP["ESP32 Dual-Core CPU\n(240MHz, 4MB PSRAM, Heatsink Pad)"]
+        OV2640["OV2640 Image Sensor\n(70° Light Wide Angle Lens, VGA 30 FPS)"]
+        CLIP["3D-Printed PETG Module Box Frame\n(Mounting & Lens Aperture)"]
 
         BATT --> REG
         REG -->|"3.3V Rail"| ESP
         REG -->|"3.3V / 5V"| OV2640
-        REG -->|"5V VBUS"| UVC
         ESP <-->|"DVP Interface"| OV2640
     end
 
-    subgraph Transmission Layer ["Data Transport Protocols"]
-        WIFI["Wi-Fi AP Stream\n(HTTP MJPEG @ 192.168.4.1:81)"]
-        USBOTG["Wired USB-OTG Pipeline\n(Direct UVC Stream Protocol)"]
+    subgraph Transmission Layer ["Data Transport Protocol"]
+        WIFI["Standalone Wi-Fi Hotspot\n(HTTP MJPEG @ 192.168.4.1:81)"]
 
         ESP -->|"Wireless MJPEG"| WIFI
-        UVC -->|"Wired YUV/MJPEG"| USBOTG
     end
 
     subgraph Edge Application ["Easylens Mobile App System (Flutter & Native C++)"]
@@ -73,15 +69,16 @@ flowchart TB
         ISOLATE["Dart Heavy Compute Isolate\n(RGB Array Normalization & Resizing)"]
         
         subgraph Vision Engine ["Vision Processing Pipeline"]
-            TFLITE["TensorFlow Lite C-API Interpreter\n(MobileNetV2 SSD / COCO)"]
+            TFLITE["TensorFlow Lite C-API Interpreter\n(MobileNetV2 SSD 24-Class)"]
             MLKIT["Google ML Kit SDK\n(OCR & Text Recognition)"]
             GEMMA["Gemma-IT 2B Local LLM\n(On-Device Scene Understanding)"]
+            GEMINI["Google Gemini 3.6 Flash (Low)\n(Cloud Tagalog & Multimodal AI)"]
         end
 
         subgraph Audio Engine ["Multimodal Audio Pipeline"]
-            AUDIO_MGR["Audio Priority Manager\n(Interrupts & Queuing)"]
-            TTS_ENGINE["Flutter TTS Engine\n(Speech Rate, Pitch, Volume)"]
-            HAPTIC["Haptic Feedback Driver\n(Vibration Patterns)"]
+            AUDIO_MGR["Audio Priority Manager\n(Interrupts & Threat Queuing)"]
+            TTS_ENGINE["Flutter TTS Engine\n(Bilingual English & Tagalog)"]
+            HAPTIC["Haptic Feedback Driver\n(Tactile Vibration Patterns)"]
         end
 
         RECV --> ISOLATE
@@ -90,13 +87,14 @@ flowchart TB
         TFLITE -->|"Class & Bounding Boxes"| AUDIO_MGR
         MLKIT -->|"Parsed Text String"| GEMMA
         GEMMA -->|"Natural Voice Answer"| AUDIO_MGR
+        GEMINI -->|"Rich Tagalog Response"| AUDIO_MGR
         AUDIO_MGR --> TTS_ENGINE
         AUDIO_MGR --> HAPTIC
     end
 
     subgraph Backend Cloud ["Cloud & Storage Layer"]
         D1["Cloudflare D1 SQL DB"]
-        R2["Cloudflare R2 Storage"]
+        R2["Cloudflare R2 Storage (AWS SigV4)"]
         FIREBASE["Firebase Auth & Firestore"]
 
         RECV --> D1
@@ -105,7 +103,6 @@ flowchart TB
     end
 
     WIFI --> RECV
-    USBOTG --> RECV
 ```
 
 ---
@@ -120,8 +117,8 @@ classDiagram
         +PowerBank battery
         +ESP32Cam esp32
         +OV2640Sensor sensor
-        +UvcCamera wiredCam
-        +ModularClip clipMount
+        +HeatsinkPad heatsink
+        +ModuleBoxFrame enclosure
         +streamVideoFrames()
         +getBatteryDrainRate()
     }
@@ -132,14 +129,6 @@ classDiagram
         +connectToAp()
         +fetchMjpegStream()
         +toggleFlashlight(bool enable)
-    }
-
-    class WiredUvcService {
-        +int vendorId
-        +int productId
-        +initializeUsbOtg()
-        +startUvcStream()
-        +captureFrame()
     }
 
     class ObjectDetectorService {
@@ -154,10 +143,8 @@ classDiagram
         +triggerHapticPattern(int intensity)
     }
 
-    HardwareModule --> Esp32Service : Wireless Link
-    HardwareModule --> WiredUvcService : Wired USB OTG
+    HardwareModule --> Esp32Service : Standalone Wi-Fi Hotspot
     Esp32Service --> ObjectDetectorService : Frame Feed
-    WiredUvcService --> ObjectDetectorService : Frame Feed
     ObjectDetectorService --> AudioNotificationManager : Detection Trigger
 ```
 
@@ -166,10 +153,10 @@ classDiagram
 ```mermaid
 flowchart TB
     subgraph HW ["Wearable Physical Hardware"]
-        PB["1500mAh Powerbank"]
-        ESP["ESP32-CAM-MB Board"]
-        OV["OV2640 70° Camera"]
-        BOX["3D Printed Box Frame"]
+        PB["1,500mAh Powerbank"]
+        ESP["ESP32-CAM-MB Board (CH340G)"]
+        OV["OV2640 70° Wide Camera"]
+        BOX["3D Printed Box Frame & Heatsink"]
 
         PB --> ESP
         ESP --- OV
@@ -179,22 +166,25 @@ flowchart TB
     subgraph APP ["Easylens Mobile Core Engine"]
         STREAM["Stream Receiver Service"]
         ISO["Dart Isolate Worker"]
-        TFLITE["TFLite MobileNetV2 SSD"]
+        TFLITE["TFLite MobileNetV2 SSD (24-Class)"]
         MLKIT["Google ML Kit OCR"]
-        GEMMA["Google Gemma 2B LLM"]
-        TTS["Spatial Audio TTS Engine"]
+        GEMMA["Gemma-IT 2B Local LLM"]
+        GEMINI["Google Gemini 3.6 Flash (Low)"]
+        TTS["Bilingual Spatial TTS Engine"]
 
         STREAM --> ISO
         ISO --> TFLITE
         ISO --> MLKIT
         MLKIT --> GEMMA
+        MLKIT --> GEMINI
         TFLITE --> TTS
         GEMMA --> TTS
+        GEMINI --> TTS
     end
 
     subgraph CLOUD_TIER ["Cloud Infrastructure Tier"]
         D1["Cloudflare D1 SQL DB"]
-        R2["Cloudflare R2 Bucket"]
+        R2["Cloudflare R2 Bucket (AWS SigV4)"]
         FB["Firebase Auth & Firestore"]
     end
 
@@ -204,32 +194,26 @@ flowchart TB
     APP --> FB
 ```
 
-#### Detailed UML Sequence Diagram (Wired UVC & Wireless Camera Pipeline)
+#### Detailed UML Sequence Diagram (Wireless Camera & AI Inference Pipeline)
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as Visually Impaired User
-    participant Hardware as Modular Hardware Unit (ESP32/UVC)
+    participant Hardware as Wearable Hardware Unit (ESP32-CAM)
     participant StreamDriver as Camera Driver / Stream Client
     participant AppCore as Easylens App Controller
     participant Isolate as Dart Background Isolate
     participant AI as Edge AI Engine (TFLite & ML Kit)
     participant TTS as Spatial Audio System
 
-    User->>Hardware: Power On (1500 mAh Powerbank)
-    Hardware->>Hardware: Initialize Voltage Regulator & Camera Sensor (OV2640 75°)
-    
-    alt Wired UVC Pipeline
-        Hardware->>StreamDriver: Connect USB OTG Cable
-        StreamDriver->>AppCore: USB Host Permission Granted & Stream Started
-    else Wireless ESP32-CAM Pipeline
-        Hardware->>StreamDriver: Host Wi-Fi AP "EasyLens-Camera" (192.168.4.1)
-        StreamDriver->>AppCore: Establish Persistent HTTP Connection (/stream)
-    end
+    User->>Hardware: Power On (1,500 mAh Powerbank)
+    Hardware->>Hardware: Initialize Voltage Regulator & Camera Sensor (OV2640 70°)
+    Hardware->>StreamDriver: Host Wi-Fi AP "EasyLens-Camera" (192.168.4.1)
+    StreamDriver->>AppCore: Establish Persistent HTTP Connection (/stream)
 
-    loop Continuous Video Processing Cycle (15-30 FPS)
-        Hardware->>StreamDriver: Push MJPEG / YUV Raw Frame Chunk
+    loop Continuous Video Processing Cycle (30 FPS)
+        Hardware->>StreamDriver: Push MJPEG Raw Frame Chunk
         StreamDriver->>AppCore: Deliver Frame Bytes
         AppCore->>Isolate: Transfer Bytes to Parallel Worker Thread
         Isolate->>Isolate: Resize to 300x300 RGB Tensor & Normalize Arrays
@@ -254,16 +238,14 @@ stateDiagram-v2
         [*] --> Unpowered
     }
 
-    PowerOff --> SystemBoot : Plug into 1500mAh Powerbank
+    PowerOff --> SystemBoot : Plug into 1,500mAh Powerbank
 
     state SystemBoot {
         [*] --> HardwareInit
         HardwareInit --> CheckBattery : Voltage Level OK (> 3.4V)
         HardwareInit --> LowPowerAbort : Voltage Critical (< 3.2V)
-        CheckBattery --> SensorInit : OV2640 75° FoV Setup
-        SensorInit --> ProtocolSelect
-        ProtocolSelect --> WiFiAP_Mode : ESP32 Mode Selected
-        ProtocolSelect --> USB_OTG_Mode : Wired UVC Mode Selected
+        CheckBattery --> SensorInit : OV2640 70° FoV Setup
+        SensorInit --> WiFiAP_Mode : Launch Standalone Wi-Fi Hotspot (192.168.4.1)
     }
 
     LowPowerAbort --> PowerOff : Shutdown Hardware
@@ -309,40 +291,15 @@ stateDiagram-v2
 | **Microcontroller Core** | ESP32-DWD0WDQ6 (Dual-core Xtensa LX6 @ 240 MHz) | Computation engine for frame capture & web server |
 | **System Memory** | 520 KB Internal SRAM + **4 MB External PSRAM** | PSRAM is required for high-res MJPEG buffering |
 | **Image Sensor** | OmniVision **OV2640** 1/4" CMOS | 2 Megapixel maximum raw resolution |
-| **Lens Optics** | **75° Field of View (FoV)** Standard Lens | Optimized for human wearable spatial viewing range |
-| **Pixel Resolution Options** | UXGA (1600x1200), SVGA (800x600), VGA (640x480), QVGA (320x240) | Preferred runtime format: **VGA / QVGA** for speed |
+| **Lens Optics** | **OV2640 70° Light Wide Angle** Lens | Optimized for human wearable forward spatial awareness |
+| **Pixel Resolution Options** | UXGA (1600x1200), SVGA (800x600), VGA (640x480), QVGA (320x240) | Preferred runtime format: **VGA (640x480) @ 30 FPS** |
 | **Video Compression Engine** | Hardware JPEG Encoder | Reduces payload size over Wi-Fi stream by ~85% |
 | **Wi-Fi Protocol** | IEEE 802.11 b/g/n (Up to 150 Mbps) | Configured as Standalone AP (`EasyLens-Camera`) |
+| **Thermal Dissipation** | **Heatsink Pad** | High-conductivity aluminum pad affixed to ESP32 SoC |
 | **Onboard Flash LED** | High-Brightness White LED (GPIO 4) | Toggled dynamically via software for low-light OCR |
 | **Operating Voltage** | 5V DC via VPOWER pin / 3.3V Core logic | Regulated onboard via AMS1117 3.3V LDO |
 
-#### Wired UVC Camera Specifications & USB OTG Interface
-
-| Feature | Technical Specification | Operational Benefits |
-| :--- | :--- | :--- |
-| **Interface Standard** | USB 2.0 High-Speed / UVC (USB Video Class) 1.1 | Driverless plug-and-play connection on Android |
-| **Host Connection** | USB Type-C OTG (On-The-Go) with power delivery line | Transmits digital raw stream direct to host phone |
-| **Supported Formats** | YUY2 (Uncompressed) / MJPEG (Compressed) | MJPEG selected for low USB bus latency |
-| **Maximum Bandwidth** | 480 Mbps USB 2.0 PHY Limit | Zero frame drop at 30 FPS VGA resolution |
-| **Pinout Assignment** | VBUS (5V), D- (Data Negative), D+ (Data Positive), GND | Standard 4-pin shielded flexible cabling |
-| **Power Consumption** | 5V DC @ 150mA – 220mA active streaming | Powered directly via OTG port or shared power bank |
-| **Focus Type** | Fixed Hyperfocal Focus (0.3m to Infinity) | Ensures sharp focus for obstacles and handheld text |
-
-#### Hybrid Build Architecture
-
-The physical assembly follows a Hybrid Modular Design combining wearable ergonomics with physical stability:
-
-1. **Glasses Mount Integration**:
-   - Camera module positioned at temple height or center bridge.
-   - 75° Field of View lens aligned parallel to the user’s direct forward line of sight.
-2. **Chest / Harness Alternative Mount**:
-   - Universal clip attachment for backpack straps, shirt collars, or body harnesses.
-   - Reduces head-motion jitter during fast walking or running.
-3. **Wired Cable Routing**:
-   - Flexible braided USB cable with right-angle 90° strain-relief connectors.
-   - Prevents accidental snagging and cable fatigue.
-
-#### 3D-Printed Modular Clips Design & Mechanical Specifications
+#### 3D-Printed Modular Box Frame & Mechanical Specifications
 
 ```text
                      +---------------------------------------+
@@ -351,11 +308,11 @@ The physical assembly follows a Hybrid Modular Design combining wearable ergonom
                                          |
                                          v
    +-------------------------------------+-------------------------------------+
-   |                      Modular Housing Body (PETG)                          |
+   |                 3D-Printed Module Box Frame Body (PETG)                   |
    |                                                                           |
    |  +-----------------------+     +-------------------+   +---------------+  |
-   |  | ESP32-CAM / UVC Bay   |     | Camera Lens Clip  |   | Cable Strain  |  |
-   |  | (Heat-sink slots)     |     | (OV2640 75° Ring) |   | Relief Clamp  |  |
+   |  | ESP32-CAM Housing     |     | Camera Lens Clip  |   | Micro-USB     |  |
+   |  | (Heatsink Pad Slots)  |     | (OV2640 70° Ring) |   | Port Slot     |  |
    |  +-----------------------+     +-------------------+   +---------------+  |
    |                                                                           |
    +-------------------------------------+-------------------------------------+
@@ -368,9 +325,9 @@ The physical assembly follows a Hybrid Modular Design combining wearable ergonom
 
 - **Material Composition**: **PETG (Polyethylene Terephthalate Glycol)** or **ABS**. Selected for high impact resistance, flexural strength, and temperature tolerance up to 75°C.
 - **Manufacturing Specifications**: 0.2mm layer height, 30% tri-hexagon infill, 4 wall perimeter layers for structural rigidity.
-- **Total Clip Weight**: 22 grams (excluding camera PCB and battery).
-- **Vibration Dampening**: Internal TPU (Thermoplastic Polyurethane) gasket inserts absorb body movement jitter.
-- **Thermal Management**: Integrated passive ventilation channels adjacent to ESP32 regulator chip to dissipate operational heat.
+- **Total Frame Weight**: 22 grams (excluding camera PCB and battery).
+- **Vibration Dampening**: Internal TPU gasket inserts absorb body movement jitter.
+- **Thermal Management**: Integrated passive ventilation channels and direct contact opening for aluminum heatsink pad.
 
 ---
 
@@ -378,8 +335,8 @@ The physical assembly follows a Hybrid Modular Design combining wearable ergonom
 
 #### Power Supply Specifications
 
-- **Power Reservoir**: Compact 1500 mAh (5.55 Wh at nominal 3.7V) Lithium-Polymer Power Bank / Battery Pack.
-- **Output Conversion Efficiency**: Step-up boost converter delivers regulated 5.0V DC output at 88% efficiency.
+- **Power Reservoir**: Compact 1,500 mAh (5.55 Wh at nominal 3.7V) Lithium-Polymer Power Bank.
+- **Output Conversion Efficiency**: Synchronous step-up boost converter delivers regulated 5.0V DC output at 88% efficiency.
 - **Usable Battery Energy Capacity**: $1500\text{ mAh} \times 0.88 = 1320\text{ mAh}$ effective output @ 3.7V equivalent ($976.8\text{ mAh}$ @ 5V rail).
 
 #### Component Power Drain Breakdown
@@ -387,49 +344,30 @@ The physical assembly follows a Hybrid Modular Design combining wearable ergonom
 | Component | Operational State | Voltage (V) | Current Draw (mA) | Power Draw (mW) |
 | :--- | :--- | :--- | :--- | :--- |
 | **ESP32 Microcontroller** | Active Dual Core (240MHz, Wi-Fi AP Transmitting) | 3.3V | 160 – 240 mA | 528 – 792 mW |
-| **OV2640 Camera Sensor** | Active Streaming (VGA @ 25 FPS) | 3.3V | 70 – 90 mA | 231 – 297 mW |
+| **OV2640 Camera Sensor** | Active Streaming (VGA @ 30 FPS) | 3.3V | 70 – 90 mA | 231 – 297 mW |
 | **ESP32 Flash LED (GPIO 4)** | 100% Brightness (Illumination Mode) | 3.3V | 100 – 150 mA | 330 – 495 mW |
-| **Wired UVC Module** | USB OTG Streaming Mode | 5.0V | 150 – 220 mA | 750 – 1100 mW |
 | **Powerbank Boost Circuit Losses**| Internal Conversion & Idle Loss | 5.0V | 25 – 40 mA | 125 – 200 mW |
-| **Peak Total System Hardware Load**| **Wi-Fi Stream + Camera + Flash LED Active** | **5.0V Rail** | **~480 – 520 mA** | **2400 – 2600 mW** |
-| **Nominal Total Hardware Load**| **Wi-Fi Stream + Camera (LED Off)** | **5.0V Rail** | **~260 – 330 mA** | **1300 – 1650 mW** |
+| **Peak Total System Load** | **Wi-Fi Stream + Camera + Flash LED Active** | **5.0V Rail** | **~480 mA** | **2400 mW** |
+| **Nominal Total System Load** | **Wi-Fi Stream + Camera (LED Off)** | **5.0V Rail** | **~300 mA** | **1500 mW** |
 
 #### Battery Drain Calculations & Runtime Models
 
-**Mathematical Model for Continuous Battery Runtime:**
+**Operating Mode Analysis (1,500 mAh Powerbank Base):**
 
-$$T_{\text{runtime}} (\text{hours}) = \frac{\text{Battery Capacity (mAh)} \times \eta_{\text{efficiency}}}{\text{Total System Drain Rate (mA)}}$$
-
-**Operating Mode Analysis (1500 mAh Powerbank Base):**
-
-1. **Nominal Continuous Mode (ESP32-CAM Wireless MJPEG Stream, LED Off)**:
+1. **Standard Wireless Mode (ESP32-CAM MJPEG Stream, LED Off)**:
    - **System Current Drain**: ~300 mA (at 5V equivalent)
    - **Calculated Battery Runtime**:
      $$\text{Runtime} = \frac{1500\text{ mAh} \times 0.88}{300\text{ mA}} = \mathbf{4.40\text{ Hours}}\quad (264\text{ Minutes})$$
 
-2. **Wired UVC Camera Mode (USB OTG Directly Powered via Bank)**:
-   - **System Current Drain**: ~200 mA (at 5V rail)
-   - **Calculated Battery Runtime**:
-     $$\text{Runtime} = \frac{1500\text{ mAh} \times 0.88}{200\text{ mA}} = \mathbf{6.60\text{ Hours}}\quad (396\text{ Minutes})$$
-
-3. **High-Stress Night Mode (Wi-Fi Streaming + Continuous Flash LED Illumination)**:
+2. **High-Stress Low-Light Mode (Wi-Fi Streaming + Continuous Flash LED)**:
    - **System Current Drain**: ~480 mA
    - **Calculated Battery Runtime**:
      $$\text{Runtime} = \frac{1500\text{ mAh} \times 0.88}{480\text{ mA}} = \mathbf{2.75\text{ Hours}}\quad (165\text{ Minutes})$$
 
-4. **Duty-Cycled Power Saving Mode (50% Active Stream, 50% Standby)**:
+3. **Smart Duty-Cycled Power Saving Mode (50% Active Stream, 50% Standby)**:
    - **Average System Drain**: ~160 mA
    - **Calculated Battery Runtime**:
      $$\text{Runtime} = \frac{1500\text{ mAh} \times 0.88}{160\text{ mA}} = \mathbf{8.25\text{ Hours}}\quad (495\text{ Minutes})$$
-
-#### Hourly Power Consumption Summary Table
-
-| Operational Profile | Hourly Battery Drain | Total Battery Lifetime (1500 mAh Bank) | Thermal Profile |
-| :--- | :--- | :--- | :--- |
-| **Wired UVC Direct Mode** | ~200 mAh / hour | **~6.6 Hours** | Cool (< 38°C) |
-| **Standard Wireless Mode** | ~300 mAh / hour | **~4.4 Hours** | Warm (~44°C) |
-| **Low-Light Flash Mode** | ~480 mAh / hour | **~2.75 Hours** | Hot (~55°C) |
-| **Smart Duty-Cycled Mode** | ~160 mAh / hour | **~8.25 Hours** | Cool (< 35°C) |
 
 ---
 
@@ -440,46 +378,28 @@ $$T_{\text{runtime}} (\text{hours}) = \frac{\text{Battery Capacity (mAh)} \times
 - **App Framework**: Flutter SDK (`^3.11.5`) running Dart (`^3.5.0`).
 - **State Management**: Provider Architecture (`provider: ^6.1.2`).
 - **On-Device Vision Inference**: TensorFlow Lite C-API wrapper (`tflite_flutter: ^0.12.1`).
-- **Default Vision Model**: **MobileNetV2 SSD (MS-COCO dataset)** quantised to UINT8 / FP16 (`300x300x3` input format).
-- **On-Device LLM Integration**: Google Gemma-IT 2B via `flutter_gemma: ^0.13.6` & Google AI Edge Engine.
+- **Default Vision Model**: **MobileNetV2 SSD (24-Class curated assistive dataset)** quantized to UINT8 / FP16 (`300x300x3` input format).
+- **On-Device LLM**: **Gemma-IT 2B** via `flutter_gemma: ^0.13.6` & Google AI Edge SDK.
+- **Cloud Multimodal LLM**: **Google Gemini 3.6 Flash (Low)** via `google_generative_ai: ^0.4.4` for Tagalog synthesis and deep reasoning.
 - **Optical Character Recognition**: `google_mlkit_text_recognition: ^0.15.1`.
-- **Audio Synthesis Engine**: Native Android TextToSpeech / iOS AVSpeechSynthesizer via `flutter_tts: ^4.2.5`.
+- **Audio Synthesis Engine**: Bilingual TextToSpeech via `flutter_tts: ^4.2.5` (English & Tagalog).
 
 #### Data Pipeline Latency & Benchmark Matrix
 
 | Execution Stage | Resolution / Model | CPU Thread Count | Average Latency (ms) | Frames Per Sec (FPS) |
 | :--- | :--- | :--- | :--- | :--- |
 | **ESP32 Frame Capture & Encoding** | VGA (640x480) MJPEG | Hardware Encoder | 18 ms | 30 FPS |
-| **Wi-Fi Transport Over AP** | 192.168.4.1 Stream | N/A (Wi-Fi 802.11n) | 22 ms | 30 FPS |
-| **Wired UVC Transport (USB OTG)** | VGA (640x480) YUV/MJPEG| USB 2.0 Bus | **6 ms** | **30 FPS** |
+| **Wi-Fi Transport Over Standalone AP** | 192.168.4.1 Stream | N/A (Wi-Fi 802.11n) | 22 ms | 30 FPS |
 | **Dart Isolate Preprocessing** | Array Copy & Resize | 1 Dedicated Thread | 7 ms | 30 FPS |
 | **TFLite Object Detection** | MobileNetV2 SSD (UINT8) | 4 CPU Threads | **28 ms** | **30 FPS** |
 | **TFLite Object Detection** | MobileNetV2 SSD (FP16) | NNAPI / GPU Delegate| **12 ms** | **60 FPS** |
 | **ML Kit Text OCR Parsing** | High-Res Crop (640x480)| System Native | 45 ms | N/A (Triggered) |
-| **Gemma-IT 2B LLM Prompt** | Quantised INT4 | 4 CPU Threads / GPU | 210 ms (First Token)| 18 Tokens/sec |
+| **Gemma-IT 2B LLM Prompt** | Quantized INT4 | 4 CPU Threads / GPU | 210 ms (First Token)| 18 Tokens/sec |
 | **TTS Audio Alert Generation** | Text Payload to Wave | System Audio | 35 ms | N/A |
-| **End-to-End Pipeline (Camera to Audio Alert)** | **Wired UVC + TFLite** | **4 Threads** | **~88 ms total** | **~11 FPS E2E Target** |
-
-#### Hardware & Mobile Resource Consumption Summary
-
-```text
-                      RESOURCE CONSUMPTION BREAKDOWN
-  +--------------------------------------------------------------------+
-  |  Memory (RAM) Allocation                                           |
-  |  [====] TFLite Engine (45 MB)                                      |
-  |  [========] Flutter Base & App State (90 MB)                       |
-  |  [======================] Gemma-IT 2B Weights (1.4 GB)             |
-  +--------------------------------------------------------------------+
-  |  Mobile CPU Utilization (Octa-Core ARM)                            |
-  |  [==========] 2 Worker Cores @ 65% Utilization (Isolate + TFLite)   |
-  +--------------------------------------------------------------------+
-  |  Thermal Profile                                                   |
-  |  Stable at 39°C under continuous 30 FPS streaming & inference      |
-  +--------------------------------------------------------------------+
-```
+| **End-to-End Pipeline (Camera to Audio Alert)** | **ESP32 Wi-Fi + TFLite** | **4 Threads** | **~90 ms total** | **~11 FPS E2E Target** |
 
 ---
 
 ### 07 — SUMMARY & VERIFICATION
 
-This system architecture document establishes the technical blueprint for the Easylens Hybrid Wearable System. By combining a 1500 mAh battery powerbudget model, 3D-printed modular PETG clips, OV2640 75° FoV camera optics, Wired UVC low-latency transport, and an on-device edge AI Flutter engine, Easylens delivers high-speed obstacle detection and visual assistance within strict energy and latency constraints.
+This system architecture document establishes the technical blueprint for the Easylens Wearable System. By combining a 1,500 mAh battery powerbudget model, 3D-printed modular PETG box frame, OV2640 70° Light Wide Angle camera optics, Standalone Wi-Fi Hotspot streaming, and an on-device edge AI Flutter engine (MobileNetV2 SSD, Gemma-IT 2B, Google Gemini 3.6 Flash Low), Easylens delivers high-speed obstacle detection and visual assistance within strict energy and latency constraints.

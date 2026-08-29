@@ -40,22 +40,14 @@ The system combines physical wearable optics (ESP32-CAM-MB Development Board wit
 * **Output Color Space**: YUV422, YCbCr422, RGB565, and Compressed Raw JPEG.
 * **Dynamic Range**: 50 dB signal-to-noise ratio (SNR).
 
-**C. Wired UVC Camera Module (USB-OTG Direct Interface)**
-* **Interface Standard**: USB 2.0 High-Speed / UVC (USB Video Class) 1.1 compliance.
-* **Physical Connector**: High-durability Micro-USB / USB Type-C OTG connector with molded strain-relief boot.
-* **Stream Formats**: MJPEG (Compressed) / YUY2 (Uncompressed digital raw).
-* **Bus Bandwidth Requirement**: Up to 480 Mbps USB High-Speed PHY bandwidth.
-* **Focus Profile**: Fixed Hyperfocal Focus ($0.3\text{ meters}$ to $\infty$).
-* **Power Draw**: Powered via USB VBUS ($5.0\text{V} \pm 5\%$, $150\text{ mA} - 220\text{ mA}$ active current draw).
-
 #### 2.3 Power & Battery System Specifications
 
 | Parameter | Specification | Engineering Impact |
 | :--- | :--- | :--- |
 | **Battery Chemistry** | Lithium-Polymer (Li-Po) | High power-to-weight ratio for wearable comfort |
-| **Nominal Capacity** | **1500 mAh** (5.55 Wh @ 3.7V) | Ultra-compact pocket/clip-on form factor |
+| **Nominal Capacity** | **1,500 mAh** (5.55 Wh @ 3.7V) | Ultra-compact pocket/clip-on form factor |
 | **Output Regulation** | Regulated 5.0V DC Output Rail | Synchronous 5V boost converter @ **88% efficiency** |
-| **Effective Usable Capacity** | **1320 mAh** (at 3.7V equivalent) | Accounts for conversion thermal losses |
+| **Effective Usable Capacity** | **1,320 mAh** (at 3.7V equivalent) | Accounts for conversion thermal losses |
 | **Protection Circuitry** | Over-charge, Over-discharge, Short-Circuit | Integrated BMS (Battery Management System) IC |
 | **Charging Port** | USB Type-C Fast Charge | 5V 1A charge rate ($1.5\text{ hours}$ full recharge cycle) |
 
@@ -66,17 +58,15 @@ The system combines physical wearable optics (ESP32-CAM-MB Development Board wit
   +-------------------------------------------------------------------+
   |  ESP32 SoC (Active Wi-Fi AP Transmit): 180 - 240 mA               |
   |  OV2640 Sensor (VGA Streaming):        70 - 90 mA                 |
-  |  Wired UVC Camera Module (USB OTG):    150 - 220 mA               |
   |  Onboard Flash LED (100% Brightness):  100 - 150 mA               |
   |  Boost Converter Idle & Heat Losses:   25 - 40 mA                 |
   +-------------------------------------------------------------------+
 ```
 
 **Battery Runtime Modes (Calculated via $T = \frac{Capacity \times \eta}{I_{\text{total}}}$):**
-1. **Wired UVC Direct Mode** (USB OTG Stream): **~200 mA drain** $\rightarrow$ **6.60 Hours** continuous runtime.
-2. **Wireless ESP32-CAM Standard Mode** (Wi-Fi Stream, LED Off): **~300 mA drain** $\rightarrow$ **4.40 Hours** continuous runtime.
-3. **High-Stress Low-Light Mode** (Wi-Fi Stream + Continuous Flash LED): **~480 mA drain** $\rightarrow$ **2.75 Hours** continuous runtime.
-4. **Smart Power-Saving Mode** (50% Active Duty Cycle): **~160 mA average drain** $\rightarrow$ **8.25 Hours** continuous runtime.
+1. **Wireless ESP32-CAM Standard Mode** (Wi-Fi Stream, LED Off): **~300 mA drain** $\rightarrow$ **4.40 Hours** continuous runtime.
+2. **High-Stress Low-Light Mode** (Wi-Fi Stream + Continuous Flash LED): **~480 mA drain** $\rightarrow$ **2.75 Hours** continuous runtime.
+3. **Smart Power-Saving Mode** (50% Active Duty Cycle): **~160 mA average drain** $\rightarrow$ **8.25 Hours** continuous runtime.
 
 #### 2.4 Mechanical & 3D-Printed Module Box Frame Specifications
 
@@ -248,14 +238,13 @@ graph TD
 | Benchmark Metric | Execution Environment | Target Value | Measured Average | Status / Pass Criteria |
 | :--- | :--- | :--- | :--- | :--- |
 | **Wi-Fi Frame Ingestion Latency** | ESP32 AP (VGA @ 30 FPS) | $< 30\text{ ms}$ | **22 ms** | Optimal |
-| **Wired UVC Ingestion Latency** | USB-OTG High-Speed | $< 10\text{ ms}$ | **6 ms** | Ultra-Fast |
 | **Isolate Preprocessing Time** | Dart Isolate Thread | $< 10\text{ ms}$ | **7 ms** | Zero UI Blocking |
 | **TFLite MobileNetV2 SSD (CPU)** | 4-Thread CPU (ARM64) | $< 35\text{ ms}$ | **28 ms** (35 FPS capacity) | Pass |
 | **TFLite MobileNetV2 SSD (GPU)** | GPU Delegate / NNAPI | $< 15\text{ ms}$ | **12 ms** (80 FPS capacity) | Pass |
 | **Google ML Kit OCR Processing** | VGA High-Res Frame | $< 60\text{ ms}$ | **45 ms** | Pass |
-| **Gemma 2B First Token Latency** | Local GPU / NNAPI | $< 300\text{ ms}$ | **210 ms** | Fast Response |
+| **Gemma-IT 2B First Token Latency** | Local GPU / NNAPI | $< 300\text{ ms}$ | **210 ms** | Fast Response |
 | **TTS Speech Audio Latency** | Flutter TTS Driver | $< 50\text{ ms}$ | **35 ms** | Pass |
-| **End-to-End Latency (UVC Mode)**| Camera Frame $\rightarrow$ Voice Alert | $< 120\text{ ms}$ | **~88 ms** | Real-Time Assist |
+| **End-to-End Latency (Wi-Fi Mode)**| Camera Frame $\rightarrow$ Voice Alert | $< 120\text{ ms}$ | **~90 ms** | Real-Time Assist |
 
 #### 4.2 Resource Utilization Summary
 
