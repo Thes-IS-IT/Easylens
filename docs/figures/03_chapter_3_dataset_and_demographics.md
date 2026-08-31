@@ -70,27 +70,47 @@ flowchart TD
 Figure 3.4
 Age and Gender Demographic Distribution of the Visually Impaired End-User Cohort (N = 15)
 
-Note. Figure 3.4 represents the visual graphical chart illustrating the age ranges and gender distribution of the fifteen (15) visually impaired and legally blind participants recruited for empirical system evaluation.
+Note. Figure 3.4 represents the visual graphical chart illustrating the age ranges and gender distribution of the fifteen (15) visually impaired end-users, compiled in Appendix Q. This demographic representation exhibits a balanced age and gender layout to secure representative accessibility assessments across varied life routines.
 ```
 
 ---
 
-### Demographic Breakdown Table & Visualization
+### Demographic Profiles of the Visually Impaired Cohort (Table 3.2 & Figure 3.4)
 
-| Age Bracket | Male Count (n) | Female Count (n) | Total (N = 15) | Percentage (%) |
+| Participant ID | Age | Gender | WHO Low-Vision Classification | Self-Reported Eye Condition | Primary Mobility Aid / Spectacles | Usability Testing Locale |
+| :--- | :---: | :---: | :--- | :--- | :--- | :--- |
+| **BETA-01** | 46 | Female | Grade 1: Moderate Low Vision | Low Vision | Corrective Eyeglasses | Residence (San Fernando, Pampanga) |
+| **BETA-02** | 23 | Female | Grade 2: Severe Low Vision | Low Vision | Corrective Eyeglasses | Residence (San Fernando, Pampanga) |
+| **BETA-03** | 21 | Male | Grade 1: Moderate Low Vision | Low Vision | Corrective Eyeglasses | Campus Corridors (HAU, Angeles City) |
+| **BETA-04** | 19 | Male | Grade 1: Moderate Low Vision | Low Vision | Corrective Eyeglasses | Campus Corridors (HAU, Angeles City) |
+| **BETA-05** | 21 | Male | Grade 2: Severe Low Vision | Low Vision | Corrective Eyeglasses | Campus Corridors (HAU, Angeles City) |
+| **BETA-06** | 21 | Female | Grade 1: Moderate Low Vision | Low Vision | Corrective Eyeglasses | Campus Corridors (HAU, Angeles City) |
+| **BETA-07** | 50 | Female | Grade 2: Severe Low Vision | Eye Floater | White Cane, Eyeglasses | Residence (Lubao, Pampanga) |
+| **BETA-08** | 58 | Female | Grade 1: Moderate Low Vision | Low Vision | Corrective Eyeglasses | Residence (Lubao, Pampanga) |
+| **BETA-09** | 51 | Male | Grade 1: Moderate Low Vision | Low Vision | None (Unaided) | Residence (Lubao, Pampanga) |
+| **BETA-10** | 44 | Female | Grade 1: Moderate Low Vision | Astigmatism | Corrective Eyeglasses | Residence (Lubao, Pampanga) |
+| **BETA-11** | 43 | Male | Grade 2: Severe Low Vision | Low Vision | None (Unaided) | Residence (Lubao, Pampanga) |
+| **BETA-12** | 22 | Female | Grade 2: Severe Low Vision | Astigmatism | Corrective Eyeglasses | Campus Corridors (HAU, Angeles City) |
+| **BETA-13** | 21 | Male | Grade 1: Moderate Low Vision | Astigmatism | Corrective Eyeglasses | Campus Corridors (HAU, Angeles City) |
+| **BETA-14** | 20 | Male | Grade 1: Moderate Low Vision | Myopia, Astigmatism | Human Guide, Eyeglasses | Campus Corridors (HAU, Angeles City) |
+| **BETA-15** | 20 | Male | Grade 1: Moderate Low Vision | Astigmatism | Corrective Eyeglasses | Campus Corridors (HAU, Angeles City) |
+
+---
+
+### Age and Gender Summary Table
+
+| Age Bracket | Male Count (n) | Female Count (n) | Total Cohort (N = 15) | Percentage (%) |
 | :--- | :---: | :---: | :---: | :---: |
-| **18–25 Years** | 3 | 3 | 6 | 40.00% |
-| **26–35 Years** | 3 | 2 | 5 | 33.33% |
-| **36–50 Years** | 1 | 2 | 3 | 20.00% |
-| **> 50 Years** | 1 | 0 | 1 | 6.67% |
+| **18–25 Years** | 6 (BETA-03, 04, 05, 13, 14, 15) | 3 (BETA-02, 06, 12) | 9 | **60.00%** |
+| **36–50 Years** | 1 (BETA-11) | 3 (BETA-01, 07, 10) | 4 | **26.67%** |
+| **> 50 Years** | 1 (BETA-09) | 1 (BETA-08) | 2 | **13.33%** |
 | **Total Cohort** | **8 (53.33%)** | **7 (46.67%)** | **15** | **100.00%** |
 
 ```mermaid
-pie title Cohort Age Distribution (N=15)
-    "18-25 Years (40%)" : 6
-    "26-35 Years (33.33%)" : 5
-    "36-50 Years (20%)" : 3
-    "> 50 Years (6.67%)" : 1
+pie title Cohort Age Distribution (N = 15)
+    "18-25 Years (60.00%)" : 9
+    "36-50 Years (26.67%)" : 4
+    "> 50 Years (13.33%)" : 2
 ```
 
 ---
@@ -108,27 +128,27 @@ pie title Cohort Age Distribution (N=15)
 Figure 3.5
 Primary Mobility Aid and World Health Organization Low-Vision Grade Distribution (N = 15)
 
-Note. Figure 3.5 illustrates the visual distribution of the participants' primary mobility assistive devices and their corresponding clinical visual impairment classifications according to World Health Organization (WHO) standards.
+Note. Figure 3.5 illustrates the visual distribution of the participants' primary mobility aids in relation to their WHO visual acuity classifications, compiled in Appendix Q. This chart confirms that thirteen (13) of the fifteen (15) participants actively rely on standard prescription eyeglasses as their baseline corrective spectacles during navigation, verifying the practical utility of the modular Retrofit Clip-On Strategy.
 ```
 
 ---
 
-### Clinical Classification & Mobility Distribution Table
+### Clinical Classification & Spectacles Reliance Table
 
-| Parameter | Category / Clinical Level | Participant Count (n) | Percentage (%) |
+| Parameter | Clinical / Mobility Classification | Participant Count (n) | Percentage (%) |
 | :--- | :--- | :---: | :---: |
-| **Primary Mobility Aid** | White Cane (Long Cane) | 9 | 60.00% |
-| | Sighted Guide / Relative Assistance | 4 | 26.67% |
-| | Guide Dog / Other Support | 2 | 13.33% |
-| **WHO Low-Vision Grade** | Category 1: Moderate Visual Impairment (6/18 to 6/60) | 4 | 26.67% |
-| | Category 2: Severe Visual Impairment (6/60 to 3/60) | 6 | 40.00% |
-| | Categories 3–5: Legal Blindness (< 3/60 or visual field < 10°) | 5 | 33.33% |
+| **WHO Low-Vision Grade** | **Grade 1: Moderate Low Vision** (Visual acuity < 6/18 to 6/60) | 10 | **66.67%** |
+| | **Grade 2: Severe Low Vision** (Visual acuity < 6/60 to 3/60) | 5 | **33.33%** |
+| **Primary Spectacles & Aids** | **Corrective Eyeglasses Alone** (Base for Clip-On Hardware) | 11 | **73.33%** |
+| | **Eyeglasses + White Cane** (Multi-sensory Mobility) | 1 | **6.67%** |
+| | **Eyeglasses + Sighted Human Guide** (Assisted Transit) | 1 | **6.67%** |
+| | **Unaided / None** | 2 | **13.33%** |
+| **Total Baseline Eyeglasses** | **Participants Wearing Prescription Eyeglasses** | **13** | **86.67%** |
 
 ```mermaid
-pie title Primary Mobility Aid Usage (N=15)
-    "White Cane (60%)" : 9
-    "Sighted Guide (26.67%)" : 4
-    "Guide Dog / Other (13.33%)" : 2
+pie title WHO Visual Impairment Grade Distribution (N = 15)
+    "Grade 1: Moderate Low Vision (66.67%)" : 10
+    "Grade 2: Severe Low Vision (33.33%)" : 5
 ```
 
 ---
@@ -146,20 +166,29 @@ pie title Primary Mobility Aid Usage (N=15)
 Figure 3.6
 Professional Years of IT Experience and Domain Focus Areas of the Expert Panel (N = 5)
 
-Note. Figure 3.6 represents the visual chart illustrating the years of professional industry and academic experience alongside primary technical domains of the five (5) expert evaluators.
+Note. Figure 3.6 represents the visual chart illustrating the years of professional computing experience and primary domain focuses of the five (5) expert evaluators, compiled in Appendix O.
 ```
 
 ---
 
-### Technical Expert Panel Distribution Table
+### Technical Expert Panel Profiles (Table 3.3, Table Q.2 & Figure 3.6)
 
-| Expert ID | Primary Technical Specialization | Industry / Academic Experience | Primary Evaluation Focus |
-| :--- | :--- | :---: | :--- |
-| **Expert 1** | Mobile Application Architecture & Flutter Core | 12 Years | Frame rate stability, Dart Isolate threading, UI response |
-| **Expert 2** | Embedded Systems, IoT & Hardware Integration | 14 Years | ESP32-CAM thermal dissipation, battery draw, clip durability |
-| **Expert 3** | Computer Vision & Deep Learning Engineering | 8 Years | MobileNetV2 SSD inference latency, mAP@0.5, quantization loss |
-| **Expert 4** | Cloud Infrastructure, DevOps & Serverless Systems | 7 Years | Cloudflare D1/R2 API latency, GitHub Actions CI/CD automation |
-| **Expert 5** | Human-Computer Interaction & Accessibility (WCAG) | 16 Years | Audio feedback priority, WCAG 2.2 AAA contrast, haptic cues |
+| Participant ID | Evaluator Name | Years of IT Experience | Profession / Job Title | Selected Primary Computing Domain | Usability Testing Locale | Total ISO Quality Score |
+| :--- | :--- | :---: | :--- | :--- | :--- | :---: |
+| **EXP-01** | **Mr. Dante C. Luciano** | 8.0 Years | Senior Android / Java Developer, MySuki Inc. | Software Development & Mobile AI | San Fernando, Pampanga | **46 / 50**<br>(Highly Acceptable) |
+| **EXP-02** | **Mr. Kenneth P. Mariano** | 10.0 Years | Data Analyst & Database Specialist | Database & Spreadsheet Management | Mexico, Pampanga | **43 / 50**<br>(Highly Acceptable) |
+| **EXP-03** | **Ms. Roumayne R. Mariano** | 5.0–12.0 Years | Business Quality Deputy Manager, Optum | Internet of Things & IoT Evaluation | Mexico, Pampanga | **46 / 50**<br>(Highly Acceptable) |
+| **EXP-04** | **Mr. Kenjie Lloyd Dulatre** | 6.0 Years | Senior Python Engineer / Tech Lead, Exci AI | AI Modeling & Software Engineering | San Fernando, Pampanga | **47 / 50**<br>(Highly Acceptable) |
+| **EXP-05** | **Mr. James Marquez** | 24.0 Years | Senior Web Developer & Technical Consultant | UI/UX, AI Auditing, & Web Development | Angeles City, Pampanga | **37 / 50**<br>(Acceptable) |
+
+```mermaid
+pie title Expert Primary Technical Domains (N = 5)
+    "Software Development & Mobile AI (EXP-01)" : 1
+    "Database & Spreadsheet Management (EXP-02)" : 1
+    "Internet of Things & IoT Evaluation (EXP-03)" : 1
+    "AI Modeling & Software Engineering (EXP-04)" : 1
+    "UI/UX, AI Auditing, & Web Dev (EXP-05)" : 1
+```
 
 ---
 
