@@ -113,17 +113,17 @@ flowchart TD
     
     INFER --> CHECK_HAZARD{"Obstacle Detected?\n(Score > 0.65)"}
     
-    CHECK_HAZARD -->|Critical Threat (Stop/Vehicle/Wires)| CRIT["Double Haptic Vibration Pulse\n+ High-Priority Voice Override: 'STOP! Vehicle Approaching'"]
-    CHECK_HAZARD -->|Moderate Threat (Steps/Pothole/Pole)| MOD["Single Haptic Vibration Pulse\n+ Directional Voice Alert: 'Stairs Ahead at 12 o\'clock'"]
-    CHECK_HAZARD -->|No Threat / Clear Path| CLEAR["Maintain Silent Scanning / Periodic Status Cue"]
+    CHECK_HAZARD -->|"Critical Threat: Stop, Vehicle, or Wires"| CRIT["Double Haptic Vibration Pulse<br>+ High-Priority Voice Override: STOP! Vehicle Approaching"]
+    CHECK_HAZARD -->|"Moderate Threat: Steps, Pothole, or Pole"| MOD["Single Haptic Vibration Pulse<br>+ Directional Voice Alert: Stairs Ahead at 12 o'clock"]
+    CHECK_HAZARD -->|"No Threat: Clear Path"| CLEAR["Maintain Silent Scanning / Periodic Status Cue"]
 
     OCR --> OCR_SPEAK["Bilingual Text-to-Speech Reads Detected Text Aloud"]
     BUDDY --> BUDDY_SPEAK["Spoken Conversational Response Generated Locally"]
-    NAV --> NAV_SPEAK["Spoken Directional Instruction: 'Head towards 2 o\'clock'"]
+    NAV --> NAV_SPEAK["Spoken Directional Instruction: Head towards 2 o'clock"]
 
     SOS --> COUNTDOWN{"Cancelled within 5 seconds?"}
-    COUNTDOWN -->|Yes (Tap / Shake)| SOS_CANCEL["Cancel SOS & Announce Cancellation via Voice"]
-    COUNTDOWN -->|No (Timer Expires)| SOS_FIRE["Dispatch SMS with Real-Time GPS Coordinates\n+ Upload Snapshot to Cloudflare R2"]
+    COUNTDOWN -->|"Yes: Tap or Shake"| SOS_CANCEL["Cancel SOS and Announce Cancellation via Voice"]
+    COUNTDOWN -->|"No: Timer Expires"| SOS_FIRE["Dispatch SMS with Real-Time GPS Coordinates<br>+ Upload Snapshot to Cloudflare R2"]
 
     CRIT --> CYCLE(["Loop Continuous Processing"])
     MOD --> CYCLE

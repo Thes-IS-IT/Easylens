@@ -70,7 +70,7 @@ flowchart TD
 
     subgraph OUTPUT ["OUTPUT LAYER"]
         direction TB
-        O1["Real-Time Spoken Spatial Audio\n• Directional Hazard Warnings (e.g., 'Stop! Stairs Ahead')\n• Real-Time OCR Text Readout\n• Turn-by-Turn Clock-Face GPS Navigation (e.g., 'Target at 2 o\'clock')"]
+        O1["Real-Time Spoken Spatial Audio<br>• Directional Hazard Warnings (e.g. Stop! Stairs Ahead)<br>• Real-Time OCR Text Readout<br>• Turn-by-Turn Clock-Face GPS Navigation (e.g. Target at 2 o'clock)"]
         O2["Tactile Haptic Feedback\n• Single Pulse: Low/Medium Hazard Notification\n• Double High-Intensity Pulse: Critical Immediate Danger"]
         O3["Emergency Telemetry & SOS Dispatch\n• Automated SMS Location Broadcast with Google Maps Link\n• 5-Second Cancellation Countdown Safety Window"]
         O4["High-Contrast Visual UI\n• WCAG 2.2 Level AAA Compliant Themes (Up to 21:1 Contrast)\n• Dynamic Sizing Hierarchy (Extra Large High-Legibility)"]

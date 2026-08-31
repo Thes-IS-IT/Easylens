@@ -37,7 +37,7 @@ flowchart TD
 
         SK5["5. Emergency SOS Flow\n• 5-second countdown circular timer\n• Cancel gesture via large tap or phone shake"]
 
-        SK6["6. Clock-Face Navigation\n• 'Turn Right in 50 meters (2 o\'clock)' spoken guidance"]
+        SK6["6. Clock-Face Navigation<br>• Turn Right in 50 meters (2 o'clock) spoken guidance"]
     end
 
     SK1 --> SK2

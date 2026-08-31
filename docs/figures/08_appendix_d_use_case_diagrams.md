@@ -121,7 +121,7 @@ flowchart TD
 
     UC_VOICE --> UC_RAG
     UC_RAG --> UC_GEMMA
-    UC_GEMMA -.->|Tagalog / Complex Scene| UC_GEMINI
+    UC_GEMMA -.->|"Tagalog or Complex Scene"| UC_GEMINI
 
     UC_GPS --> UC_CLOCK
 

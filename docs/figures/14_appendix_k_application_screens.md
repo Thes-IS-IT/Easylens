@@ -94,7 +94,7 @@ flowchart TD
     subgraph EMERGENCY_NAV ["Emergency & Navigation Screens (Figure K.4)"]
         direction TB
         S1["SOS Countdown Viewport\n• Prominent circular 5-second countdown timer\n• Audible warning beeps\n• 'Cancel SOS' full-width cancel button"]
-        S2["Clock-Face GPS Navigation Viewport\n• Bearing directions: 'Head toward 12 o\'clock'\n• Hazard overlay alerts along active pedestrian route"]
+        S2["Clock-Face GPS Navigation Viewport<br>• Bearing directions: Head toward 12 o'clock<br>• Hazard overlay alerts along active pedestrian route"]
     end
 ```
 
