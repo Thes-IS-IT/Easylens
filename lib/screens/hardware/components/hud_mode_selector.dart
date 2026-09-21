@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../hardware_screen.dart'; // import HudMode
+import '../hardware_screen.dart';
+import '../models/hud_mode.dart';
 
 class HudModeSelector extends StatelessWidget {
   final HudMode selectedHudMode;

@@ -15,6 +15,7 @@ import '../../contacts/contacts_screen.dart';
 import '../../settings/settings_screen.dart';
 import '../../emergency/emergency_screen.dart';
 import '../hardware_screen.dart';
+import '../models/hud_mode.dart';
 import '../../../utils/app_route.dart';
 import 'camera_loading_overlay.dart';
 import '../../../services/sound_service.dart';
