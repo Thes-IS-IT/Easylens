@@ -154,25 +154,55 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                 // Tab Bar
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: cardBg,
                     borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: borderColor.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: TabBar(
                     controller: _tabController,
                     indicator: BoxDecoration(
                       color: AppColors.primaryButton,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
                     labelColor: AppColors.primaryButtonText,
                     unselectedLabelColor: AppColors.textMuted,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 2),
                     labelStyle: GoogleFonts.inter(
-                        fontSize: 12, fontWeight: FontWeight.bold),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    unselectedLabelStyle: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                     tabs: const [
-                      Tab(text: 'Connectivity'),
-                      Tab(text: 'Isolation'),
-                      Tab(text: 'Requirements'),
+                      Tab(
+                        height: 34,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Connectivity'),
+                        ),
+                      ),
+                      Tab(
+                        height: 34,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Isolation'),
+                        ),
+                      ),
+                      Tab(
+                        height: 34,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Requirements'),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -303,15 +333,12 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           const SizedBox(height: 16),
 
           // Features breakdown
-          Text(
-            '🔀 Hybrid Features (Online & Offline)',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          _sectionTitle(
+            icon: Icons.swap_horiz_rounded,
+            iconColor: const Color(0xFF7C3AED),
+            title: 'Hybrid Features (Online & Offline)',
+            textColor: textColor,
           ),
-          const SizedBox(height: 8),
           _featureRow(
             icon: Icons.chat_bubble_outline_rounded,
             title: 'Talk to Buddy Assistant',
@@ -327,16 +354,13 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             badgeColor: const Color(0xFF7C3AED),
           ),
 
-          const SizedBox(height: 16),
-          Text(
-            '📱 Cellular / SMS Only',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          const SizedBox(height: 14),
+          _sectionTitle(
+            icon: Icons.sms_outlined,
+            iconColor: const Color(0xFFDC2626),
+            title: 'Cellular / SMS Only',
+            textColor: textColor,
           ),
-          const SizedBox(height: 8),
           _featureRow(
             icon: Icons.phone_in_talk_rounded,
             title: 'SOS Emergency Alert',
@@ -345,16 +369,13 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             badgeColor: const Color(0xFFDC2626),
           ),
 
-          const SizedBox(height: 16),
-          Text(
-            '🌐 Features Requiring Online Connection',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          const SizedBox(height: 14),
+          _sectionTitle(
+            icon: Icons.cloud_outlined,
+            iconColor: const Color(0xFF2563EB),
+            title: 'Features Requiring Online Connection',
+            textColor: textColor,
           ),
-          const SizedBox(height: 8),
           _featureRow(
             icon: Icons.cloud_outlined,
             title: 'Weather Information',
@@ -368,14 +389,12 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             isOnline: true,
           ),
 
-          const SizedBox(height: 18),
-          Text(
-            '🟢 100% Offline (No Internet Required)',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          const SizedBox(height: 16),
+          _sectionTitle(
+            icon: Icons.offline_bolt_outlined,
+            iconColor: const Color(0xFF059669),
+            title: '100% Offline (No Internet Required)',
+            textColor: textColor,
           ),
           const SizedBox(height: 8),
           _featureRow(
@@ -442,7 +461,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
 
           // Glasses Isolation Card
           _isolationCard(
-            title: '👓 EasyLens Smart Glasses (Hardware)',
+            icon: Icons.visibility_outlined,
+            iconColor: const Color(0xFF2563EB),
+            title: 'EasyLens Smart Glasses (Hardware)',
             badge: 'Private Local Network',
             badgeColor: Colors.blue,
             items: [
@@ -461,7 +482,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
 
           // Phone Isolation Card
           _isolationCard(
-            title: '📱 Mobile Phone (100% On-Device)',
+            icon: Icons.phone_android_rounded,
+            iconColor: const Color(0xFF059669),
+            title: 'Mobile Phone (100% On-Device)',
             badge: 'Local Device Sandbox',
             badgeColor: Colors.green,
             items: [
@@ -480,7 +503,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
 
           // Cloud Card
           _isolationCard(
-            title: '☁️ Cloud Services (External Encrypted)',
+            icon: Icons.cloud_done_outlined,
+            iconColor: const Color(0xFF7C3AED),
+            title: 'Cloud Services (External Encrypted)',
             badge: 'Optional & User-Gated',
             badgeColor: Colors.purple,
             items: [
@@ -525,7 +550,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           const SizedBox(height: 16),
 
           _requirementGroup(
-            category: '🤖 Operating System & Platform',
+            icon: Icons.android_rounded,
+            iconColor: const Color(0xFF059669),
+            category: 'Operating System & Platform',
             items: [
               'Android OS 8.0 (API Level 26) or higher',
               'Recommended: Android 10+ (API 29+) 64-bit architecture',
@@ -540,7 +567,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           const SizedBox(height: 14),
 
           _requirementGroup(
-            category: '🔑 Google APIs & Services',
+            icon: Icons.api_rounded,
+            iconColor: const Color(0xFF2563EB),
+            category: 'Google APIs & Services',
             items: [
               'Google Play Services: v20.0+ (required for Google ML Kit Vision & Face Detection)',
               'Google Maps SDK & Directions API: Required for live turn-by-turn audio routing',
@@ -555,7 +584,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           const SizedBox(height: 14),
 
           _requirementGroup(
-            category: '👓 Smart Glasses & Hardware Sensors',
+            icon: Icons.sensors_rounded,
+            iconColor: const Color(0xFF7C3AED),
+            category: 'Smart Glasses & Hardware Sensors',
             items: [
               'EasyLens Smart Glasses: ESP32-CAM module with 2.4GHz Wi-Fi (802.11 b/g/n)',
               'Device Camera: 1080p camera with continuous autofocus',
@@ -574,6 +605,33 @@ class _SystemStatusModalState extends State<SystemStatusModal>
   }
 
   // ── Helper Widgets ─────────────────────────────────────────────────────────
+
+  Widget _sectionTitle({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required Color textColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: iconColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _featureRow({
     required IconData icon,
@@ -655,6 +713,8 @@ class _SystemStatusModalState extends State<SystemStatusModal>
   }
 
   Widget _isolationCard({
+    required IconData icon,
+    required Color iconColor,
     required String title,
     required String badge,
     required Color badgeColor,
@@ -674,8 +734,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Icon(icon, size: 18, color: iconColor),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
@@ -686,6 +747,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                   ),
                 ),
               ),
+              const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -735,6 +797,8 @@ class _SystemStatusModalState extends State<SystemStatusModal>
   }
 
   Widget _requirementGroup({
+    required IconData icon,
+    required Color iconColor,
     required String category,
     required List<String> items,
     required Color cardBg,
@@ -751,13 +815,21 @@ class _SystemStatusModalState extends State<SystemStatusModal>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            category,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+          Row(
+            children: [
+              Icon(icon, size: 18, color: iconColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  category,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           ...items.map(
