@@ -279,6 +279,253 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
   late FaceDetector _faceDetector;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
+  bool _gdprConsentChecked = false;
+
+  void _showGdprAgreementModal(BuildContext context) {
+    SoundService.playClick();
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (dialogCtx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 520, maxHeight: 620),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBackground,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: AppColors.cardBorder.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Modal Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 16, 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.verified_user_rounded,
+                          color: Colors.green,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Biometric Privacy & T&C',
+                              style: GoogleFonts.inter(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'GDPR Article 9 Consent Agreement',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(dialogCtx).pop(),
+                        icon: Icon(Icons.close_rounded, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.info_outline_rounded, color: Colors.blueAccent, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Facial geometric landmarks constitute special category biometric data under European GDPR & data privacy laws.',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: AppColors.primaryText,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildAgreementSection(
+                          icon: Icons.assignment_turned_in_outlined,
+                          title: '1. Explicit Consent (GDPR Art. 9)',
+                          content:
+                              'By checking the consent box, you confirm that the person whose face is being registered has given unambiguous, informed consent to capture their facial features and recognize them in real-time.',
+                        ),
+                        _buildAgreementSection(
+                          icon: Icons.phonelink_lock_rounded,
+                          title: '2. 100% On-Device Local Processing',
+                          content:
+                              'Facial landmark extraction runs entirely on your phone via Google ML Kit. Raw photos and 25 Euclidean geometric vectors are saved only inside your local app sandbox. Data is NEVER transmitted to external servers or cloud databases.',
+                        ),
+                        _buildAgreementSection(
+                          icon: Icons.visibility_outlined,
+                          title: '3. Purpose Limitation',
+                          content:
+                              'Biometric data is used exclusively for visual accessibility assistance — allowing EasyLens and Buddy to announce the person’s name when detected in front of the user.',
+                        ),
+                        _buildAgreementSection(
+                          icon: Icons.delete_forever_outlined,
+                          title: '4. Right to Erasure (GDPR Art. 17)',
+                          content:
+                              'The individual maintains the absolute right to be forgotten. You can permanently delete this face profile and all landmark embeddings at any time from "View Registered Faces".',
+                        ),
+                        _buildAgreementSection(
+                          icon: Icons.shield_outlined,
+                          title: '5. Data Minimization & Security',
+                          content:
+                              'EasyLens does not train public AI models with your photos. Only mathematical distance ratios between facial contours are stored in local device storage.',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Modal Footer
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(dialogCtx).pop(),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.5)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Text(
+                            'Decline',
+                            style: GoogleFonts.inter(
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            SoundService.playClick();
+                            setState(() {
+                              _gdprConsentChecked = true;
+                            });
+                            Navigator.of(dialogCtx).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryButton,
+                            foregroundColor: AppColors.primaryButtonText,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Text(
+                            'I Agree & Consent',
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAgreementSection({
+    required IconData icon,
+    required String title,
+    required String content,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: AppColors.primaryButton),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  content,
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    color: AppColors.textMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -327,6 +574,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       _errorMessage = '';
       _detectedFaces = [];
       _pickedImage = null;
+      _gdprConsentChecked = false;
     });
     try {
       final picked = await _picker.pickImage(
@@ -449,6 +697,33 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       return;
     }
 
+    if (!_gdprConsentChecked) {
+      SoundService.playWarning();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFDC2626),
+          content: Row(
+            children: [
+              const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'GDPR Consent Required: Please check the consent agreement box to recognize this face.',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: 'View T&C',
+            textColor: Colors.white,
+            onPressed: () => _showGdprAgreementModal(context),
+          ),
+        ),
+      );
+      return;
+    }
+
     // Extract features from all captured samples
     final allSamples = <List<double>>[];
 
@@ -474,6 +749,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       faceFeatures: primaryFeatures,
       multiSampleFeatures: allSamples.length > 1 ? allSamples : null,
       registeredAt: DateTime.now(),
+      isGdprConsented: true,
+      consentDate: DateTime.now(),
     );
     await FaceRegistrationService().saveProfile(profile);
     if (!mounted) return;
@@ -490,6 +767,33 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       return;
     }
 
+    if (!_gdprConsentChecked) {
+      SoundService.playWarning();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFDC2626),
+          content: Row(
+            children: [
+              const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'GDPR Consent Required: Please check the consent agreement box to recognize this face.',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: 'View T&C',
+            textColor: Colors.white,
+            onPressed: () => _showGdprAgreementModal(context),
+          ),
+        ),
+      );
+      return;
+    }
+
     List<double>? features;
     if (_detectedFaces.isNotEmpty) {
       features = FaceRegistrationScreen.extractFaceFeatures(_detectedFaces.first, _imageSize);
@@ -501,6 +805,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
       imageLocalPath: _pickedImage?.path,
       faceFeatures: features,
       registeredAt: DateTime.now(),
+      isGdprConsented: true,
+      consentDate: DateTime.now(),
     );
     await FaceRegistrationService().saveProfile(profile);
     if (!mounted) return;
@@ -638,7 +944,68 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             ),
           ),
         ],
-        const SizedBox(height: 36),
+        const SizedBox(height: 20),
+        // GDPR Biometric Privacy Notice Banner
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.primaryButton.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.primaryButton.withValues(alpha: 0.25),
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryButton.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.shield_outlined,
+                    color: AppColors.primaryButton, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Biometric Privacy & GDPR',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Faces are processed 100% on-device. Explicit consent is required before recognition.',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => _showGdprAgreementModal(context),
+                child: Text(
+                  'View T&C',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryButton,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
         // Camera button
         _GlassButton(
           icon: Icons.camera_alt_rounded,
@@ -868,6 +1235,106 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             textCapitalization: TextCapitalization.words,
           ),
         ),
+        const SizedBox(height: 16),
+        // GDPR Consent Checkbox Card
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _gdprConsentChecked
+                ? Colors.green.withValues(alpha: 0.08)
+                : AppColors.lightBackground,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _gdprConsentChecked
+                  ? Colors.green.withValues(alpha: 0.4)
+                  : AppColors.cardBorder.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Checkbox(
+                    value: _gdprConsentChecked,
+                    activeColor: AppColors.primaryButton,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    onChanged: (val) {
+                      SoundService.playClick();
+                      setState(() {
+                        _gdprConsentChecked = val ?? false;
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        SoundService.playClick();
+                        setState(() {
+                          _gdprConsentChecked = !_gdprConsentChecked;
+                        });
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'GDPR Consent: Set as "Recognized"',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryText,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'I confirm explicit consent from this person to capture their facial landmarks and set them as a recognized face.',
+                            style: GoogleFonts.inter(
+                              fontSize: 11.5,
+                              color: AppColors.textMuted,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 48),
+                child: InkWell(
+                  onTap: () => _showGdprAgreementModal(context),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.policy_outlined, size: 14, color: AppColors.primaryButton),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Read Biometric Privacy Agreement & T&C',
+                          style: GoogleFonts.inter(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryButton,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 20),
         // Multi-angle capture button (recommended)
         _GlassButton(
@@ -879,6 +1346,24 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             if (name.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Please enter a name first.')),
+              );
+              return;
+            }
+            if (!_gdprConsentChecked) {
+              SoundService.playWarning();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: const Color(0xFFDC2626),
+                  content: const Text(
+                    'GDPR Consent Required: Please check the consent agreement box to continue.',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  action: SnackBarAction(
+                    label: 'View T&C',
+                    textColor: Colors.white,
+                    onPressed: () => _showGdprAgreementModal(context),
+                  ),
+                ),
               );
               return;
             }
@@ -913,6 +1398,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
               _detectedFaces = [];
               _nameController.clear();
               _errorMessage = '';
+              _gdprConsentChecked = false;
             });
           },
           child: Text(

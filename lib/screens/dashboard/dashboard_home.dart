@@ -244,6 +244,8 @@ class _DashboardHomeState extends State<DashboardHome> {
             title: TranslationService.translate('talk_to_buddy', lang),
             icon: Icons.chat_bubble_outline,
             color: const Color(0xFF6B21A8),
+            connectivityBadge: 'Online AI',
+            isOnline: true,
             onTap: widget.onBuddyAssistantTap,
           ),
           'easylens': DashboardButton(
@@ -251,6 +253,8 @@ class _DashboardHomeState extends State<DashboardHome> {
             title: TranslationService.translate('easylens', lang),
             icon: Icons.visibility,
             color: const Color(0xFF002663),
+            connectivityBadge: 'Offline',
+            isOnline: false,
             onTap: () => widget.onTabSelected(2),
           ),
           'faces': DashboardButton(
@@ -258,6 +262,8 @@ class _DashboardHomeState extends State<DashboardHome> {
             title: TranslationService.translate('register_face', lang),
             icon: Icons.face_retouching_natural,
             color: const Color(0xFF7C3AED),
+            connectivityBadge: 'Offline',
+            isOnline: false,
             onTap: widget.onFaceRegistrationSelected,
           ),
           'text': DashboardButton(
@@ -265,6 +271,8 @@ class _DashboardHomeState extends State<DashboardHome> {
             title: TranslationService.translate('nearby_text', lang),
             icon: Icons.notes,
             color: const Color(0xFF3F83F8),
+            connectivityBadge: 'Offline',
+            isOnline: false,
             onTap: () {
               Navigator.of(context).push(
                 AppRoute.to(ImageLabelingScreen(
@@ -281,6 +289,8 @@ class _DashboardHomeState extends State<DashboardHome> {
             title: TranslationService.translate('nearby_objects', lang),
             icon: Icons.zoom_in,
             color: const Color(0xFF238290),
+            connectivityBadge: 'Offline',
+            isOnline: false,
             onTap: () {
               Navigator.of(context).push(
                 AppRoute.to(const HardwareScreen(initialStep: 4)),
@@ -292,6 +302,8 @@ class _DashboardHomeState extends State<DashboardHome> {
             title: TranslationService.translate('audio_navigation', lang),
             icon: Icons.near_me,
             color: const Color(0xFF85581A),
+            connectivityBadge: 'Online GPS',
+            isOnline: true,
             onTap: () => widget.onTabSelected(1),
           ),
           'sos': DashboardButton(
@@ -299,6 +311,8 @@ class _DashboardHomeState extends State<DashboardHome> {
             title: TranslationService.translate('sos_emergency', lang),
             icon: Icons.phone_in_talk,
             color: const Color(0xFFC53030),
+            connectivityBadge: 'Online / SMS',
+            isOnline: true,
             onTap: widget.onSOSSelected,
           ),
         };

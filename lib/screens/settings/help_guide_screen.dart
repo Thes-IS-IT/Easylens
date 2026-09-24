@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants/colors.dart';
 import '../../services/settings_service.dart';
 import '../../services/sound_service.dart';
+import '../../widgets/screen_tutorial_card.dart';
+import '../../widgets/system_status_modal.dart';
+import '../dashboard/dashboard_screen.dart';
 
 class GuideSection {
   final int index;
@@ -122,6 +126,46 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
         'UID-Isolated Security: Emergency contacts are securely bound to your user account and are NEVER sent to default or unapproved recipients.',
       ],
     ),
+    GuideSection(
+      index: 7,
+      icon: Icons.wifi_outlined,
+      title: 'Online vs. Offline Capabilities',
+      subtitle: 'Clear breakdown of which features require internet connectivity and which run 100% locally on-device.',
+      startsWith: 'EasyLens is built with an offline-first architecture to guarantee continuous visual mobility assistance even in remote locations without cellular reception.',
+      bulletPoints: [
+        '100% Offline (No Internet Needed): Real-time obstacle & hazard detection runs on-device using a lightweight TFLite neural network in an isolate. Facial geometric landmark identification and text recognition (OCR) operate locally on your phone.',
+        'Direct Glasses Stream: The ESP32-CAM Smart Glasses connect directly to your phone via local Wi-Fi SoftAP (192.168.4.1), requiring zero internet access.',
+        'Online Required: Buddy Cloud Assistant (powered by Google Gemini Pro), live GPS turn-by-turn map recalculations (Google Maps API), and cloud weather forecasting require an active internet connection.',
+        'Automatic Degradation: If your connection drops, EasyLens seamlessly switches Buddy to offline voice mode while keeping all safety collision detection active.',
+      ],
+    ),
+    GuideSection(
+      index: 8,
+      icon: Icons.phonelink_lock_outlined,
+      title: 'Phone & Lens Hardware Isolation',
+      subtitle: 'Data security architecture, local SoftAP Wi-Fi streaming, and on-device biometric privacy.',
+      startsWith: 'EasyLens follows strict privacy-by-design standards to ensure your sensitive physical environment and biometric data remain isolated.',
+      bulletPoints: [
+        'Lens-Isolated Hardware: The ESP32-CAM Smart Glasses contain an OV2640 camera, ultrasonic sensor, battery telemetry, and local Wi-Fi AP transmitter. No private user data is ever stored on the physical glasses.',
+        'Private Subnet Streaming: Glasses video frames are transmitted strictly within a local peer-to-peer Wi-Fi subnet between the glasses and your smartphone. Video frames NEVER pass through external cloud servers.',
+        'Phone-Isolated Biometrics: Facial landmark coordinates (25 geometric vector points) are stored only inside your device\'s local storage. They are never shared with cloud databases or public AI training sets.',
+        'Permanent Right to Erasure: You have the right to permanently wipe registered face profiles and history at any time from Registered Faces or Settings.',
+      ],
+    ),
+    GuideSection(
+      index: 9,
+      icon: Icons.developer_board_outlined,
+      title: 'System Requirements & Google APIs',
+      subtitle: 'Minimum Android OS versions, required Google APIs, sensor prerequisites, and hardware specifications.',
+      startsWith: 'Verify that your device and Google services meet the required technical standards for EasyLens.',
+      bulletPoints: [
+        'Operating System: Android 8.0 (Oreo / API Level 26) or higher. Android 10+ (API 29+) 64-bit is strongly recommended for peak neural processing performance.',
+        'Google Play Services: Version 20.0+ required to support Google ML Kit vision landmark detectors and text recognition pipelines.',
+        'Google APIs: Google Maps SDK Directions API key (for live audio navigation) and Google Generative AI Gemini API key (for cloud multi-modal reasoning).',
+        'Hardware Sensors: Rear/front camera with continuous autofocus, 2.4GHz Wi-Fi (802.11 b/g/n) for glasses, 3-axis accelerometer, gyroscope, magnetometer/compass, and GPS.',
+        'Memory & Storage: Minimum 3GB RAM (4GB+ recommended) and 2.5GB free storage for local AI model weights and offline cache.',
+      ],
+    ),
   ];
 
   void _toggleSection(int index) {
@@ -226,6 +270,63 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
             secondaryTextColor: secondaryTextColor,
             chipBg: chipBg,
             chipText: chipText,
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () async {
+                  SoundService.playClick();
+                  await ScreenTutorialCard.resetAllTutorials();
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('has_completed_tutorial', false);
+                  DashboardScreen.triggerTutorial();
+                  if (context.mounted) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryButton,
+                  foregroundColor: AppColors.primaryButtonText,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                ),
+                icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
+                label: Text(
+                  'Restart App Tour Now',
+                  style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  SoundService.playClick();
+                  SystemStatusModal.show(context);
+                },
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                      color: AppColors.cardBorder.withValues(alpha: 0.4)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                ),
+                icon: const Icon(Icons.phonelink_setup_rounded,
+                    size: 16, color: Colors.blueAccent),
+                label: Text(
+                  'System Specs & Connectivity',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: cardTitleColor,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

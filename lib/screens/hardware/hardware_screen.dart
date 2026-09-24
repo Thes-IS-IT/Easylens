@@ -38,6 +38,8 @@ import 'components/hud_controls_panel.dart';
 import 'components/hud_camera_view.dart';
 import 'components/camera_loading_overlay.dart';
 import '../../widgets/local_ai_instructions_dialog.dart';
+import '../../services/connectivity_service.dart';
+import '../../widgets/system_status_modal.dart';
 export 'models/hud_mode.dart';
 import 'models/hud_mode.dart';
 import 'models/yuv_data.dart';
@@ -3888,6 +3890,130 @@ Explain the surroundings to the user in a short, friendly golden retriever visua
               ),
             ),
             const SizedBox(height: 6),
+            // Hardware & Network Connectivity status row
+            ListenableBuilder(
+              listenable: ConnectivityService(),
+              builder: (context, _) {
+                final isOnline = ConnectivityService().isOnline;
+                final isGlassesConnected = Esp32Service().isConnected;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    children: [
+                      // Internet Status Pill
+                      GestureDetector(
+                        onTap: () {
+                          SoundService.playClick();
+                          SystemStatusModal.show(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isOnline
+                                ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                : const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isOnline
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                                  : const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isOnline ? Icons.wifi : Icons.wifi_off_rounded,
+                                size: 11,
+                                color: isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isOnline ? 'Online' : 'Offline Mode',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Glasses Direct Wi-Fi Status Pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isGlassesConnected
+                              ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
+                              : Colors.grey.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isGlassesConnected
+                                ? const Color(0xFF3B82F6).withValues(alpha: 0.4)
+                                : Colors.grey.withValues(alpha: 0.4),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.visibility_rounded,
+                              size: 11,
+                              color: isGlassesConnected ? const Color(0xFF3B82F6) : Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isGlassesConnected ? 'Lens SoftAP (Isolated)' : 'Mobile Camera',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isGlassesConnected ? const Color(0xFF3B82F6) : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      // System Specs & Isolation Link
+                      GestureDetector(
+                        onTap: () {
+                          SoundService.playClick();
+                          SystemStatusModal.show(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.info_outline_rounded, size: 12, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Specs & Isolation',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 4),
             // Status Card overlay displaying ML Kit Hazard warning matching mockup
             ListenableBuilder(
               listenable: ActiveNavigationService(),

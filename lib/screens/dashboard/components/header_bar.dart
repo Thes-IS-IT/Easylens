@@ -3,6 +3,8 @@ import '../../../constants/colors.dart';
 import '../../../services/settings_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/sound_service.dart';
+import '../../../services/connectivity_service.dart';
+import '../../../widgets/system_status_modal.dart';
 
 class HeaderBar extends StatelessWidget {
   final VoidCallback onSOSSelected;
@@ -62,6 +64,61 @@ class HeaderBar extends StatelessWidget {
               ),
             ),
           ),
+        ),
+
+        // Online / Offline Status Pill
+        ListenableBuilder(
+          listenable: ConnectivityService(),
+          builder: (context, _) {
+            final isOnline = ConnectivityService().isOnline;
+            return GestureDetector(
+              onTap: () {
+                SoundService.playClick();
+                SystemStatusModal.show(context);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isOnline
+                      ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5))
+                      : (isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7)),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isOnline
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFFF59E0B),
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isOnline
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF59E0B),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      isOnline ? 'Online' : 'Offline',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isOnline
+                            ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF065F46))
+                            : (isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
         
         // Settings / profiles float pill

@@ -14,6 +14,8 @@ class FaceProfile {
   final List<List<double>>? multiSampleFeatures;
   final DateTime registeredAt;
   final String? userId;
+  final bool isGdprConsented;
+  final DateTime? consentDate;
 
   FaceProfile({
     required this.id,
@@ -23,6 +25,8 @@ class FaceProfile {
     this.multiSampleFeatures,
     required this.registeredAt,
     this.userId,
+    this.isGdprConsented = true,
+    this.consentDate,
   });
 
   Map<String, dynamic> toJson() => {
@@ -33,6 +37,8 @@ class FaceProfile {
         'multiSampleFeatures': multiSampleFeatures,
         'registeredAt': registeredAt.toIso8601String(),
         'userId': userId,
+        'isGdprConsented': isGdprConsented,
+        'consentDate': consentDate?.toIso8601String(),
       };
 
   factory FaceProfile.fromJson(Map<String, dynamic> json) => FaceProfile(
@@ -49,6 +55,10 @@ class FaceProfile {
             .toList(),
         registeredAt: DateTime.parse(json['registeredAt'] as String),
         userId: json['userId'] as String?,
+        isGdprConsented: json['isGdprConsented'] as bool? ?? true,
+        consentDate: json['consentDate'] != null
+            ? DateTime.tryParse(json['consentDate'] as String)
+            : null,
       );
 
   /// Returns all available feature vectors for matching (multi-sample first, fallback to single).
@@ -103,8 +113,11 @@ class FaceRegistrationService extends ChangeNotifier {
       name: profile.name,
       imageLocalPath: profile.imageLocalPath,
       faceFeatures: profile.faceFeatures,
+      multiSampleFeatures: profile.multiSampleFeatures,
       registeredAt: profile.registeredAt,
       userId: profile.userId ?? activeUid,
+      isGdprConsented: profile.isGdprConsented,
+      consentDate: profile.consentDate ?? DateTime.now(),
     );
 
     final profiles = await getAllProfiles();
@@ -144,8 +157,11 @@ class FaceRegistrationService extends ChangeNotifier {
               name: prof.name,
               imageLocalPath: prof.imageLocalPath,
               faceFeatures: prof.faceFeatures,
+              multiSampleFeatures: prof.multiSampleFeatures,
               registeredAt: prof.registeredAt,
               userId: activeUid,
+              isGdprConsented: prof.isGdprConsented,
+              consentDate: prof.consentDate,
             );
             migratedList.add(jsonEncode(adoptProf.toJson()));
           }

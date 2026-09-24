@@ -23,6 +23,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../widgets/screen_tutorial_card.dart';
+import '../../widgets/system_status_modal.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -279,6 +280,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     
     await _openURL(downloadUrl);
+  }
+
+  void _showRestartTourDialog(BuildContext context) {
+    SoundService.playClick();
+    final lang = SettingsService().selectedLanguage;
+    final isFilipino = lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino');
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppColors.primaryBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.tour_rounded, color: Colors.blueAccent),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                isFilipino ? 'I-restart ang App Tour at Gabay' : 'Restart App Tour & Guides',
+                style: GoogleFonts.inter(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryText,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          isFilipino
+              ? 'Piliin kung anong gabay ang nais mong simulan muli:'
+              : 'Choose which walkthrough or introductory tour you want to restart:',
+          style: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(
+              isFilipino ? 'Kanselahin' : 'Cancel',
+              style: GoogleFonts.inter(color: AppColors.textMuted),
+            ),
+          ),
+          OutlinedButton(
+            onPressed: () async {
+              SoundService.playClick();
+              Navigator.pop(dialogCtx);
+              await ScreenTutorialCard.resetAllTutorials();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isFilipino
+                          ? 'Na-reset na ang mga screen tutorial cards!'
+                          : 'Screen introduction tutorial cards have been reset!',
+                    ),
+                  ),
+                );
+              }
+            },
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.5)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(
+              isFilipino ? 'I-reset ang Screen Cards' : 'Reset Screen Cards',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              SoundService.playClick();
+              Navigator.pop(dialogCtx);
+              await ScreenTutorialCard.resetAllTutorials();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('has_completed_tutorial', false);
+              DashboardScreen.triggerTutorial();
+              if (mounted) {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryButton,
+              foregroundColor: AppColors.primaryButtonText,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(
+              isFilipino ? 'Simulan ang Buong Tour' : 'Start Full Tour Now',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _checkForUpdates() async {
@@ -1877,21 +1971,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                 ),
-                                onPressed: () async {
-                                  SoundService.playClick();
-                                  final prefs = await SharedPreferences.getInstance();
-                                  await prefs.setBool('has_completed_tutorial', false);
-                                  DashboardScreen.triggerTutorial();
-                                  if (context.mounted) {
-                                    Navigator.of(context).popUntil((route) => route.isFirst);
-                                  }
-                                },
+                                onPressed: () => _showRestartTourDialog(context),
                                 icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
                                 label: Text(
                                   lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino')
-                                      ? 'Simulan ang Walkthrough Tour'
-                                      : 'Replay Walkthrough Tour',
+                                      ? 'I-restart ang App Tour at Gabay'
+                                      : 'Restart App Tour / Guides',
                                   style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              height: 38,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: AppColors.cardBorder.withValues(alpha: 0.4)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(19),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                ),
+                                onPressed: () {
+                                  SoundService.playClick();
+                                  SystemStatusModal.show(context);
+                                },
+                                icon: const Icon(Icons.info_outline_rounded, size: 16, color: Colors.blueAccent),
+                                label: Text(
+                                  lang.toLowerCase().contains('tagalog') || lang.toLowerCase().contains('filipino')
+                                      ? 'Kailangan ng App at Koneksyon'
+                                      : 'System Specs & Isolation',
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.primaryText,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -2072,6 +2185,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onTap: () {
                               SoundService.playClick();
                               _checkForUpdates();
+                            },
+                          ),
+                        ),
+
+                        // System Requirements & Isolation Architecture Option
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12.0),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: AppColors.cardBorder.withOpacity(isDark ? 0.4 : 0.2),
+                                width: 1.5),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 6.0),
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isDark
+                                    ? const Color(0xFF1E293B)
+                                    : const Color(0xFFEFF6FF),
+                              ),
+                              child: Icon(Icons.phonelink_setup_rounded,
+                                  color: isDark
+                                      ? const Color(0xFF60A5FA)
+                                      : const Color(0xFF2563EB),
+                                  size: 24),
+                            ),
+                            title: Text(
+                              lang.toLowerCase().contains('tagalog') ||
+                                      lang.toLowerCase().contains('filipino')
+                                  ? 'Mga Kinakailangan at Koneksyon ng App'
+                                  : 'System Requirements & Device Specs',
+                              style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  color: tileTextColor,
+                                  fontSize: 15),
+                            ),
+                            subtitle: Text(
+                              lang.toLowerCase().contains('tagalog') ||
+                                      lang.toLowerCase().contains('filipino')
+                                  ? 'Google APIs, Android OS, at Phone vs Lens Isolation.'
+                                  : 'Google APIs, Android OS, and Phone vs Lens Isolation.',
+                              style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? const Color(0xFFCBD5E1)
+                                      : const Color(0xFF64748B)),
+                            ),
+                            trailing: Icon(Icons.arrow_forward_ios_rounded,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF94A3B8),
+                                size: 16),
+                            onTap: () {
+                              SoundService.playClick();
+                              SystemStatusModal.show(context);
                             },
                           ),
                         ),

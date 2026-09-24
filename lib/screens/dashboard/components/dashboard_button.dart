@@ -9,6 +9,8 @@ class DashboardButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final String? connectivityBadge;
+  final bool? isOnline;
 
   const DashboardButton({
     super.key,
@@ -16,6 +18,8 @@ class DashboardButton extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.onTap,
+    this.connectivityBadge,
+    this.isOnline,
   });
 
   @override
@@ -76,6 +80,42 @@ class DashboardButton extends StatelessWidget {
                   ),
                 ),
               ),
+              if (connectivityBadge != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isOnline == true
+                            ? Icons.cloud_outlined
+                            : Icons.offline_bolt_outlined,
+                        size: 11,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        connectivityBadge!,
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

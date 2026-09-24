@@ -57,6 +57,21 @@ class ScreenTutorialCard extends StatelessWidget {
     } catch (_) {}
   }
 
+  /// Call this when the user explicitly chooses to restart all screen tutorials / intro guides.
+  static Future<void> resetAllTutorials() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      for (final key in _allTutorialKeys) {
+        if (uid != null && uid.isNotEmpty) {
+          await prefs.remove('seen_tutorial_${uid}_$key');
+        }
+        await prefs.remove('seen_tutorial_$key');
+      }
+      await prefs.setBool('has_completed_tutorial', false);
+    } catch (_) {}
+  }
+
   /// Call this for returning users (not first-time) so they never see tutorials.
   static Future<void> markAllSeen() async {
     try {

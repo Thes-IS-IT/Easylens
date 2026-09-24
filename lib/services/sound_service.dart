@@ -123,6 +123,9 @@ class SoundService {
     }
   }
 
+  /// Play warning action feedback.
+  static void playWarning() => playAlert();
+
   /// Play the Buddy dog bark sound effect (bark_dashboard.mp3) on app startup.
   static Future<void> playBark() async {
     try {
