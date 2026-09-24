@@ -959,7 +959,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
         final headerTextColor = AppColors.primaryText;
         final iconColor = isDark ? AppColors.primaryText : (isDefault ? const Color(0xFF002663) : AppColors.primaryText);
-        final tileTextColor = isDark ? Colors.white : (isDefault ? Colors.black : AppColors.primaryText);
+        final tileTextColor = isDefault ? (isDark ? Colors.white : Colors.black) : AppColors.primaryText;
+        final tileSubtitleColor = isDefault ? (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)) : AppColors.textMuted;
 
         final currentUnitText = settings.selectedUnit == 'Metric'
             ? TranslationService.translate('metric', lang)
@@ -1108,8 +1109,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
+                        color: isDark ? const Color(0xFF262626) : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF3E3E3E) : const Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -1123,10 +1128,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: _selectedLanguage == 'English' ? Colors.white : Colors.transparent,
+                                  color: _selectedLanguage == 'English'
+                                      ? (isDark ? AppColors.primaryButton : Colors.white)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(8),
                                   border: _selectedLanguage == 'English'
-                                      ? Border.all(color: const Color(0xFF3B82F6), width: 1.5)
+                                      ? Border.all(
+                                          color: isDark ? AppColors.primaryButton : const Color(0xFF3B82F6),
+                                          width: 1.5,
+                                        )
                                       : null,
                                 ),
                                 child: Center(
@@ -1134,7 +1144,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     'English',
                                     style: GoogleFonts.inter(
                                       fontWeight: FontWeight.bold,
-                                      color: _selectedLanguage == 'English' ? const Color(0xFF3B82F6) : const Color(0xFF94A3B8),
+                                      color: _selectedLanguage == 'English'
+                                          ? (isDark ? AppColors.primaryButtonText : const Color(0xFF3B82F6))
+                                          : (isDark ? Colors.white70 : const Color(0xFF64748B)),
                                     ),
                                   ),
                                 ),
@@ -1151,10 +1163,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: _selectedLanguage == 'Filipino' ? Colors.white : Colors.transparent,
+                                  color: _selectedLanguage == 'Filipino'
+                                      ? (isDark ? AppColors.primaryButton : Colors.white)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(8),
                                   border: _selectedLanguage == 'Filipino'
-                                      ? Border.all(color: const Color(0xFF3B82F6), width: 1.5)
+                                      ? Border.all(
+                                          color: isDark ? AppColors.primaryButton : const Color(0xFF3B82F6),
+                                          width: 1.5,
+                                        )
                                       : null,
                                 ),
                                 child: Center(
@@ -1162,7 +1179,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     'Filipino',
                                     style: GoogleFonts.inter(
                                       fontWeight: FontWeight.bold,
-                                      color: _selectedLanguage == 'Filipino' ? const Color(0xFF3B82F6) : const Color(0xFF94A3B8),
+                                      color: _selectedLanguage == 'Filipino'
+                                          ? (isDark ? AppColors.primaryButtonText : const Color(0xFF3B82F6))
+                                          : (isDark ? Colors.white70 : const Color(0xFF64748B)),
                                     ),
                                   ),
                                 ),
@@ -1188,9 +1207,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     subtitle: Text(
                       TranslationService.translate('notifications_subtitle', lang),
-                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.inter(fontSize: 12, color: tileSubtitleColor),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                    trailing: Icon(Icons.chevron_right, color: tileSubtitleColor),
                     onTap: () {
                       SoundService.playClick();
                       Navigator.of(context).push(
@@ -1213,9 +1232,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     subtitle: Text(
                       TranslationService.translate('preferences_subtitle', lang),
-                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.inter(fontSize: 12, color: tileSubtitleColor),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                    trailing: Icon(Icons.chevron_right, color: tileSubtitleColor),
                     onTap: () {
                       SoundService.playClick();
                       Navigator.of(context).push(
@@ -1242,7 +1261,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 2),
                         Text(
                           TranslationService.translate('appearance_subtitle', lang),
-                          style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 12),
+                          style: GoogleFonts.inter(color: tileSubtitleColor, fontSize: 12),
                         ),
                       ],
                     ),
@@ -1252,8 +1271,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
+                        color: isDark ? const Color(0xFF262626) : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF3E3E3E) : const Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -1267,10 +1290,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: _selectedAppearance == 'Default' ? Colors.white : Colors.transparent,
+                                  color: _selectedAppearance == 'Default'
+                                      ? (isDark ? AppColors.primaryButton : Colors.white)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(8),
                                   border: _selectedAppearance == 'Default'
-                                      ? Border.all(color: const Color(0xFF3B82F6), width: 1.5)
+                                      ? Border.all(
+                                          color: isDark ? AppColors.primaryButton : const Color(0xFF3B82F6),
+                                          width: 1.5,
+                                        )
                                       : null,
                                 ),
                                 child: Row(
@@ -1278,14 +1306,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Icon(Icons.phone_android_outlined,
                                         size: 16,
-                                        color: _selectedAppearance == 'Default' ? const Color(0xFF3B82F6) : Colors.black),
+                                        color: _selectedAppearance == 'Default'
+                                            ? (isDark ? AppColors.primaryButtonText : const Color(0xFF3B82F6))
+                                            : (isDark ? Colors.white70 : Colors.black87)),
                                     const SizedBox(width: 6),
                                     Text(
                                       'Default',
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
-                                        color: _selectedAppearance == 'Default' ? const Color(0xFF3B82F6) : Colors.black,
+                                        color: _selectedAppearance == 'Default'
+                                            ? (isDark ? AppColors.primaryButtonText : const Color(0xFF3B82F6))
+                                            : (isDark ? Colors.white70 : Colors.black87),
                                       ),
                                     ),
                                   ],
@@ -1303,10 +1335,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: _selectedAppearance == 'White' ? Colors.white : Colors.transparent,
+                                  color: _selectedAppearance == 'White'
+                                      ? (isDark ? AppColors.primaryButton : Colors.white)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(8),
                                   border: _selectedAppearance == 'White'
-                                      ? Border.all(color: const Color(0xFF3B82F6), width: 1.5)
+                                      ? Border.all(
+                                          color: isDark ? AppColors.primaryButton : const Color(0xFF3B82F6),
+                                          width: 1.5,
+                                        )
                                       : null,
                                 ),
                                 child: Row(
@@ -1314,14 +1351,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Icon(Icons.wb_sunny_outlined,
                                         size: 16,
-                                        color: _selectedAppearance == 'White' ? const Color(0xFF3B82F6) : Colors.black),
+                                        color: _selectedAppearance == 'White'
+                                            ? (isDark ? AppColors.primaryButtonText : const Color(0xFF3B82F6))
+                                            : (isDark ? Colors.white70 : Colors.black87)),
                                     const SizedBox(width: 6),
                                     Text(
                                       'White',
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
-                                        color: _selectedAppearance == 'White' ? const Color(0xFF3B82F6) : Colors.black,
+                                        color: _selectedAppearance == 'White'
+                                            ? (isDark ? AppColors.primaryButtonText : const Color(0xFF3B82F6))
+                                            : (isDark ? Colors.white70 : Colors.black87),
                                       ),
                                     ),
                                   ],
@@ -1339,10 +1380,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Container(
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: _selectedAppearance == 'Black' ? Colors.white : Colors.transparent,
+                                  color: _selectedAppearance == 'Black'
+                                      ? (isDark ? AppColors.primaryButton : Colors.white)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(8),
                                   border: _selectedAppearance == 'Black'
-                                      ? Border.all(color: const Color(0xFF3B82F6), width: 1.5)
+                                      ? Border.all(
+                                          color: isDark ? AppColors.primaryButton : const Color(0xFF3B82F6),
+                                          width: 1.5,
+                                        )
                                       : null,
                                 ),
                                 child: Row(
@@ -1350,14 +1396,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Icon(Icons.nightlight_round,
                                         size: 16,
-                                        color: _selectedAppearance == 'Black' ? const Color(0xFF3B82F6) : Colors.black),
+                                        color: _selectedAppearance == 'Black'
+                                            ? (isDark ? AppColors.primaryButtonText : const Color(0xFF3B82F6))
+                                            : (isDark ? Colors.white70 : Colors.black87)),
                                     const SizedBox(width: 6),
                                     Text(
                                       'Black',
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
-                                        color: _selectedAppearance == 'Black' ? const Color(0xFF3B82F6) : Colors.black,
+                                        color: _selectedAppearance == 'Black'
+                                            ? (isDark ? AppColors.primaryButtonText : const Color(0xFF3B82F6))
+                                            : (isDark ? Colors.white70 : Colors.black87),
                                       ),
                                     ),
                                   ],
@@ -1389,7 +1439,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: List.generate(_accentColors.length, (idx) {
                           final isSelected = _selectedAccentColorIndex == idx;
                           final color = _accentColors[idx];
-                          final ringColor = idx == 2 ? const Color(0xFF1B4332) : Colors.black;
+                          final ringColor = isSelected
+                              ? Colors.white
+                              : (idx == 2 ? const Color(0xFF333333) : Colors.black45);
 
                           return GestureDetector(
                             onTap: () {
@@ -1400,19 +1452,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               margin: const EdgeInsets.symmetric(horizontal: 12.0),
-                              width: isSelected ? 40 : 36,
-                              height: isSelected ? 40 : 36,
+                              width: isSelected ? 42 : 36,
+                              height: isSelected ? 42 : 36,
                               decoration: BoxDecoration(
                                 color: color,
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: ringColor,
-                                  width: 4.0,
+                                  width: isSelected ? 3.5 : 2.0,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(isSelected ? 0.35 : 0.2),
-                                    blurRadius: isSelected ? 8 : 4,
+                                    color: isSelected
+                                        ? color.withOpacity(0.5)
+                                        : Colors.black.withOpacity(0.2),
+                                    blurRadius: isSelected ? 10 : 4,
                                     offset: const Offset(0, 3),
                                   )
                                 ],
@@ -1438,9 +1492,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     subtitle: Text(
                       currentUnitText,
-                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.inter(fontSize: 12, color: tileSubtitleColor),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                    trailing: Icon(Icons.chevron_right, color: tileSubtitleColor),
                     onTap: () {
                       SoundService.playClick();
                       Navigator.of(context).push(
@@ -1463,9 +1517,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     subtitle: Text(
                       TranslationService.translate('customize_home_subtitle', lang),
-                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.inter(fontSize: 12, color: tileSubtitleColor),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                    trailing: Icon(Icons.chevron_right, color: tileSubtitleColor),
                     onTap: () {
                       SoundService.playClick();
                       Navigator.of(context).push(
@@ -1864,9 +1918,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           : (settings.geminiApiKey.length > 8
                               ? '${settings.geminiApiKey.substring(0, 8)}...'
                               : '••••••••'),
-                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.inter(fontSize: 12, color: tileSubtitleColor),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                    trailing: Icon(Icons.chevron_right, color: tileSubtitleColor),
                     onTap: () {
                       SoundService.playClick();
                       _showGeminiApiKeyDialog();
@@ -1889,12 +1943,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE0F2FE),
+                                color: isDark ? const Color(0xFF0369A1).withValues(alpha: 0.25) : const Color(0xFFE0F2FE),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                   Icons.info_outline,
-                                  color: Color(0xFF0284C7),
+                                  color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
                                   size: 24,
                                 ),
                             ),
@@ -2378,8 +2432,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 56,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFEE2E2),
-                    foregroundColor: const Color(0xFF991B1B),
+                    backgroundColor: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2),
+                    foregroundColor: isDark ? const Color(0xFFFECACA) : const Color(0xFF991B1B),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28.0),
@@ -2395,7 +2449,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                     }
                   },
-                  icon: const Icon(Icons.exit_to_app, color: Color(0xFF991B1B)),
+                  icon: Icon(Icons.exit_to_app, color: isDark ? const Color(0xFFFECACA) : const Color(0xFF991B1B)),
                   label: Text(
                     TranslationService.translate('log_out', lang),
                     style: GoogleFonts.inter(

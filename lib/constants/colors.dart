@@ -161,10 +161,13 @@ class AppColors {
       case 'Black on White':
         return const Color(0xFF4A5568);
       case 'White on Black':
+        return const Color(0xFFD1D5DB);
       case 'Green on Black':
+        return const Color(0xFF86EFAC);
       case 'Yellow on Black':
+        return const Color(0xFFFDE047);
       case 'Cyan on Black':
-        return const Color(0xFF999999);
+        return const Color(0xFF67E8F9);
       case 'Default':
       default:
         return _isDark ? const Color(0xFFA0AEC0) : const Color(0xFF666666);

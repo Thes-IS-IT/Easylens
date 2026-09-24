@@ -110,34 +110,35 @@ class _DashboardHomeState extends State<DashboardHome> {
 
     final tempStr = "${weather.currentTemp!.toStringAsFixed(1)}°C";
     final desc = weather.weatherDescription ?? 'Clear';
+    final isContrast = SettingsService().selectedContrastTheme != 'Default';
 
     IconData weatherIcon = Icons.wb_sunny;
-    Color iconColor = Colors.orangeAccent;
+    Color iconColor = isContrast ? AppColors.primaryText : Colors.orangeAccent;
     if (desc.toLowerCase().contains('cloud')) {
       weatherIcon = Icons.cloud;
-      iconColor = Colors.blueGrey;
+      if (!isContrast) iconColor = Colors.blueGrey;
     } else if (desc.toLowerCase().contains('rain') || desc.toLowerCase().contains('drizzle')) {
       weatherIcon = Icons.umbrella;
-      iconColor = Colors.blue;
+      if (!isContrast) iconColor = Colors.blue;
     } else if (desc.toLowerCase().contains('fog') || desc.toLowerCase().contains('mist')) {
       weatherIcon = Icons.blur_on;
-      iconColor = Colors.grey;
+      if (!isContrast) iconColor = Colors.grey;
     } else if (desc.toLowerCase().contains('snow')) {
       weatherIcon = Icons.ac_unit;
-      iconColor = Colors.lightBlueAccent;
+      if (!isContrast) iconColor = Colors.lightBlueAccent;
     } else if (desc.toLowerCase().contains('thunderstorm')) {
       weatherIcon = Icons.flash_on;
-      iconColor = Colors.amber;
+      if (!isContrast) iconColor = Colors.amber;
     }
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primaryText.withOpacity(0.05),
+        color: AppColors.primaryText.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.unselectedBorder.withOpacity(0.5),
+          color: AppColors.cardBorder.withOpacity(0.4),
           width: 1,
         ),
       ),
@@ -169,28 +170,35 @@ class _DashboardHomeState extends State<DashboardHome> {
       return const SizedBox.shrink();
     }
 
+    final isDark = SettingsService().isDarkMode;
     final isFilipino = lang.toLowerCase().contains('filipino') || lang.toLowerCase().contains('tagalog');
     final warningTitle = isFilipino ? "Babala sa Panahon" : "Weather Warning";
     final warningText = isFilipino 
         ? "Mukhang mapanganib sa labas dahil sa masamang panahon."
         : "It seems outside is dangerous due to stormy conditions.";
 
+    final cardBg = isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2);
+    final cardBorder = isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5);
+    final titleColor = isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B);
+    final bodyColor = isDark ? const Color(0xFFFECACA) : const Color(0xFF7F1D1D);
+    final iconColor = isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2), // Light red background
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFFCA5A5), // Red border
+          color: cardBorder,
           width: 1.5,
         ),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.warning_amber_rounded,
-            color: Color(0xFFDC2626), // Danger red
+            color: iconColor,
             size: 32,
           ),
           const SizedBox(width: 12),
@@ -203,7 +211,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF991B1B),
+                    color: titleColor,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -211,14 +219,14 @@ class _DashboardHomeState extends State<DashboardHome> {
                   warningText,
                   style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: const Color(0xFF7F1D1D),
+                    color: bodyColor,
                   ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: Color(0xFF991B1B), size: 20),
+            icon: Icon(Icons.close, color: titleColor, size: 20),
             onPressed: () async {
               await weather.dismissWarningForToday();
               setState(() {});
@@ -403,7 +411,7 @@ class _DashboardHomeState extends State<DashboardHome> {
             const MascotBanner(),
             // Action buttons - wrapped in container to cover mascot feet overflow
             Container(
-              color: AppColors.lightBackground,
+              color: (settings.appearanceTheme == 'Black') ? Colors.black : AppColors.lightBackground,
               padding: const EdgeInsets.fromLTRB(24.0, 32.0, 24.0, 0.0),
               child: Column(
                 children: cardList,

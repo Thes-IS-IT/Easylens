@@ -40,7 +40,12 @@ class DashboardButton extends StatelessWidget {
     } else {
       bg = AppColors.primaryButton;
       fg = AppColors.primaryButtonText;
-      border = BorderSide.none;
+      border = BorderSide(
+        color: theme == 'Black on White'
+            ? Colors.black.withValues(alpha: 0.25)
+            : AppColors.cardBorder.withValues(alpha: 0.6),
+        width: 1.5,
+      );
     }
 
     return Padding(
@@ -65,7 +70,7 @@ class DashboardButton extends StatelessWidget {
           },
           child: Row(
             children: [
-              Icon(icon, size: 24),
+              Icon(icon, size: 24, color: fg),
               const SizedBox(width: 16),
               Expanded(
                 child: FittedBox(
@@ -78,6 +83,7 @@ class DashboardButton extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: fg,
                     ),
                   ),
                 ),
@@ -88,10 +94,10 @@ class DashboardButton extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
+                    color: fg.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
+                      color: fg.withValues(alpha: 0.35),
                       width: 1,
                     ),
                   ),
@@ -108,7 +114,7 @@ class DashboardButton extends StatelessWidget {
                                         ? Icons.cloud_outlined
                                         : Icons.offline_bolt_outlined)),
                         size: 11,
-                        color: Colors.white,
+                        color: fg,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -116,7 +122,7 @@ class DashboardButton extends StatelessWidget {
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: fg,
                         ),
                       ),
                     ],

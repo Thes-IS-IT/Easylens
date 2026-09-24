@@ -52,13 +52,15 @@ class _SystemStatusModalState extends State<SystemStatusModal>
         final isFilipino = lang.toLowerCase().contains('filipino') || lang.toLowerCase().contains('tagalog');
 
         final dialogBg = isDark
-            ? const Color(0xFF1E1E1E)
+            ? (isDefault ? const Color(0xFF1E1E1E) : AppColors.primaryBackground)
             : (isDefault ? Colors.white : AppColors.primaryBackground);
-        final textColor = isDark ? Colors.white : AppColors.primaryText;
+        final textColor = isDefault
+            ? (isDark ? Colors.white : AppColors.primaryText)
+            : AppColors.primaryText;
         final cardBg = isDark
-            ? const Color(0xFF2A2A2A)
+            ? (isDefault ? const Color(0xFF2A2A2A) : const Color(0xFF1A1A1A))
             : (isDefault ? const Color(0xFFF8FAFC) : AppColors.lightBackground);
-        final borderColor = AppColors.cardBorder.withValues(alpha: 0.35);
+        final borderColor = AppColors.cardBorder.withValues(alpha: 0.5);
 
         return Dialog(
           backgroundColor: Colors.transparent,
@@ -278,6 +280,20 @@ class _SystemStatusModalState extends State<SystemStatusModal>
     ConnectivityService conn,
     bool isFilipino,
   ) {
+    final isDark = SettingsService().isDarkMode;
+    final bannerBg = isOnline
+        ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.6) : const Color(0xFFECFDF5))
+        : (isDark ? const Color(0xFF78350F).withValues(alpha: 0.6) : const Color(0xFFFEF3C7));
+    final bannerBorder = isOnline
+        ? (isDark ? const Color(0xFF10B981) : const Color(0xFFA7F3D0))
+        : (isDark ? const Color(0xFFF59E0B) : const Color(0xFFFDE68A));
+    final bannerTextColor = isOnline
+        ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF065F46))
+        : (isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E));
+    final bannerIconColor = isOnline
+        ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))
+        : (isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706));
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       physics: const BouncingScrollPhysics(),
@@ -288,14 +304,10 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isOnline
-                  ? const Color(0xFFECFDF5)
-                  : const Color(0xFFFEF3C7),
+              color: bannerBg,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: isOnline
-                    ? const Color(0xFFA7F3D0)
-                    : const Color(0xFFFDE68A),
+                color: bannerBorder,
               ),
             ),
             child: Row(
@@ -304,9 +316,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                   isOnline
                       ? Icons.check_circle_outline_rounded
                       : Icons.info_outline_rounded,
-                  color: isOnline
-                      ? const Color(0xFF059669)
-                      : const Color(0xFFD97706),
+                  color: bannerIconColor,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -322,9 +332,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isOnline
-                          ? const Color(0xFF065F46)
-                          : const Color(0xFF92400E),
+                      color: bannerTextColor,
                     ),
                   ),
                 ),
@@ -338,9 +346,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: isOnline
-                          ? const Color(0xFF059669)
-                          : const Color(0xFFD97706),
+                      color: bannerIconColor,
                     ),
                   ),
                 ),
@@ -726,6 +732,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
     String? badgeText,
     Color? badgeColor,
   }) {
+    final isDark = SettingsService().isDarkMode;
     final effectiveBadgeText = badgeText ?? (isOnline ? 'Online' : 'Offline');
     final effectiveColor = badgeColor ??
         (isOnline ? const Color(0xFF2563EB) : const Color(0xFF059669));
@@ -738,13 +745,14 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: effectiveColor.withValues(alpha: 0.12),
+              color: effectiveColor.withValues(alpha: isDark ? 0.22 : 0.12),
               borderRadius: BorderRadius.circular(10),
+              border: isDark ? Border.all(color: effectiveColor.withValues(alpha: 0.4)) : null,
             ),
             child: Icon(
               icon,
               size: 16,
-              color: effectiveColor,
+              color: isDark ? Color.lerp(effectiveColor, Colors.white, 0.25) : effectiveColor,
             ),
           ),
           const SizedBox(width: 10),
@@ -767,15 +775,16 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: effectiveColor.withValues(alpha: 0.12),
+                        color: effectiveColor.withValues(alpha: isDark ? 0.22 : 0.12),
                         borderRadius: BorderRadius.circular(6),
+                        border: isDark ? Border.all(color: effectiveColor.withValues(alpha: 0.4)) : null,
                       ),
                       child: Text(
                         effectiveBadgeText,
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: effectiveColor,
+                          color: isDark ? Color.lerp(effectiveColor, Colors.white, 0.25) : effectiveColor,
                         ),
                       ),
                     ),
@@ -808,6 +817,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
     required Color borderColor,
     required Color textColor,
   }) {
+    final isDark = SettingsService().isDarkMode;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -836,15 +846,16 @@ class _SystemStatusModalState extends State<SystemStatusModal>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.12),
+                  color: badgeColor.withValues(alpha: isDark ? 0.22 : 0.12),
                   borderRadius: BorderRadius.circular(8),
+                  border: isDark ? Border.all(color: badgeColor.withValues(alpha: 0.4)) : null,
                 ),
                 child: Text(
                   badge,
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: badgeColor,
+                    color: isDark ? Color.lerp(badgeColor, Colors.white, 0.25) : badgeColor,
                   ),
                 ),
               ),

@@ -460,7 +460,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                                     decoration: BoxDecoration(
                                       color: AppColors.primaryButton,
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
+                                      border: Border.all(color: AppColors.primaryButtonText.withValues(alpha: 0.8), width: 2),
                                       boxShadow: [
                                         BoxShadow(
                                           color: Colors.black.withOpacity(0.15),
@@ -469,10 +469,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                                         )
                                       ],
                                     ),
-                                    child: const Center(
+                                    child: Center(
                                       child: Icon(
                                         Icons.camera_alt,
-                                        color: Colors.white,
+                                        color: AppColors.primaryButtonText,
                                         size: 16,
                                       ),
                                     ),

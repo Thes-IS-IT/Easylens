@@ -36,8 +36,12 @@ class HeaderBar extends StatelessWidget {
     final isDark = settings.isDarkMode;
     final isDefault = theme == 'Default' && !isDark;
     
-    final pillBg = isDark ? const Color(0xFF1E1E1E) : (isDefault ? Colors.white : AppColors.primaryBackground);
-    final iconColor = isDark ? Colors.white : (isDefault ? const Color(0xFF002663) : AppColors.primaryText);
+    final pillBg = isDefault
+        ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
+        : AppColors.primaryBackground;
+    final iconColor = isDefault
+        ? (isDark ? Colors.white : const Color(0xFF002663))
+        : AppColors.primaryText;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

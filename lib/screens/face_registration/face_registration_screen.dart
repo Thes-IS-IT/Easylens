@@ -1029,6 +1029,11 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                           Checkbox(
                             value: _gdprConsentChecked,
                             activeColor: const Color(0xFF059669),
+                            checkColor: Colors.white,
+                            side: BorderSide(
+                              color: AppColors.cardBorder.withValues(alpha: 0.6),
+                              width: 1.5,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(5),
                             ),
@@ -1369,6 +1374,11 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                   Checkbox(
                     value: _gdprConsentChecked,
                     activeColor: AppColors.primaryButton,
+                    checkColor: AppColors.primaryButtonText,
+                    side: BorderSide(
+                      color: AppColors.cardBorder.withValues(alpha: 0.6),
+                      width: 1.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(5),
                     ),
