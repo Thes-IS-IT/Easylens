@@ -11,6 +11,7 @@ class DashboardButton extends StatelessWidget {
   final VoidCallback onTap;
   final String? connectivityBadge;
   final bool? isOnline;
+  final IconData? badgeIcon;
 
   const DashboardButton({
     super.key,
@@ -20,6 +21,7 @@ class DashboardButton extends StatelessWidget {
     required this.onTap,
     this.connectivityBadge,
     this.isOnline,
+    this.badgeIcon,
   });
 
   @override
@@ -97,9 +99,14 @@ class DashboardButton extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isOnline == true
-                            ? Icons.cloud_outlined
-                            : Icons.offline_bolt_outlined,
+                        badgeIcon ??
+                            (connectivityBadge!.toLowerCase().contains('sms')
+                                ? Icons.sms_outlined
+                                : connectivityBadge!.toLowerCase().contains('hybrid')
+                                    ? Icons.swap_horiz_rounded
+                                    : (isOnline == true
+                                        ? Icons.cloud_outlined
+                                        : Icons.offline_bolt_outlined)),
                         size: 11,
                         color: Colors.white,
                       ),

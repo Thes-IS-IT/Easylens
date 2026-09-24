@@ -304,7 +304,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
 
           // Features breakdown
           Text(
-            '🌐 Features Requiring Online Connection',
+            '🔀 Hybrid Features (Online & Offline)',
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -314,16 +314,47 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           const SizedBox(height: 8),
           _featureRow(
             icon: Icons.chat_bubble_outline_rounded,
-            title: 'Buddy Cloud AI (Gemini Pro)',
-            desc: 'Multi-modal conversational questions and general reasoning.',
-            isOnline: true,
+            title: 'Talk to Buddy Assistant',
+            desc: 'Hybrid: Online Gemini Cloud AI + Offline on-device Gemma 2 model.',
+            badgeText: 'Hybrid',
+            badgeColor: const Color(0xFF7C3AED),
           ),
           _featureRow(
             icon: Icons.near_me_rounded,
-            title: 'Audio GPS Navigation & Maps',
-            desc: 'Google Maps Directions API, route recalculation, and traffic updates.',
-            isOnline: true,
+            title: 'Audio Navigation',
+            desc: 'Hybrid: Online Google Maps routing + Offline GPS sensors, compass, and step guidance.',
+            badgeText: 'Hybrid',
+            badgeColor: const Color(0xFF7C3AED),
           ),
+
+          const SizedBox(height: 16),
+          Text(
+            '📱 Cellular / SMS Only',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _featureRow(
+            icon: Icons.phone_in_talk_rounded,
+            title: 'SOS Emergency Alert',
+            desc: 'Sends automated emergency SMS with location coordinates via mobile cellular network (No Wi-Fi/Internet required).',
+            badgeText: 'SMS only',
+            badgeColor: const Color(0xFFDC2626),
+          ),
+
+          const SizedBox(height: 16),
+          Text(
+            '🌐 Features Requiring Online Connection',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 8),
           _featureRow(
             icon: Icons.cloud_outlined,
             title: 'Weather Information',
@@ -334,12 +365,6 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             icon: Icons.sync_rounded,
             title: 'Firebase Account & Notion Sync',
             desc: 'Cloud profile backup and journal synchronization.',
-            isOnline: true,
-          ),
-          _featureRow(
-            icon: Icons.phone_in_talk_rounded,
-            title: 'SOS Live GPS Broadcasting',
-            desc: 'Sending emergency SMS with Google Maps location links.',
             isOnline: true,
           ),
 
@@ -554,8 +579,14 @@ class _SystemStatusModalState extends State<SystemStatusModal>
     required IconData icon,
     required String title,
     required String desc,
-    required bool isOnline,
+    bool isOnline = false,
+    String? badgeText,
+    Color? badgeColor,
   }) {
+    final effectiveBadgeText = badgeText ?? (isOnline ? 'Online' : 'Offline');
+    final effectiveColor = badgeColor ??
+        (isOnline ? const Color(0xFF2563EB) : const Color(0xFF059669));
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -564,14 +595,13 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: (isOnline ? Colors.blue : Colors.green)
-                  .withValues(alpha: 0.12),
+              color: effectiveColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
               size: 16,
-              color: isOnline ? const Color(0xFF2563EB) : const Color(0xFF059669),
+              color: effectiveColor,
             ),
           ),
           const SizedBox(width: 10),
@@ -594,18 +624,15 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: (isOnline ? Colors.blue : Colors.green)
-                            .withValues(alpha: 0.12),
+                        color: effectiveColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        isOnline ? 'Online' : 'Offline',
+                        effectiveBadgeText,
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isOnline
-                              ? const Color(0xFF2563EB)
-                              : const Color(0xFF059669),
+                          color: effectiveColor,
                         ),
                       ),
                     ),

@@ -570,11 +570,39 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
 
   // ── Pick image & detect ───────────────────────────────────────────────
   Future<void> _pickAndDetect(ImageSource source) async {
+    if (!_gdprConsentChecked) {
+      SoundService.playWarning();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Row(
+            children: [
+              const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Consent Required: Please check the biometric privacy consent box to proceed.',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: 'Review T&C',
+            textColor: Colors.white,
+            onPressed: () => _showGdprAgreementModal(context),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _errorMessage = '';
       _detectedFaces = [];
       _pickedImage = null;
-      _gdprConsentChecked = false;
     });
     try {
       final picked = await _picker.pickImage(
@@ -945,62 +973,106 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           ),
         ],
         const SizedBox(height: 20),
-        // GDPR Biometric Privacy Notice Banner
-        Container(
-          padding: const EdgeInsets.all(14),
+        // GDPR Biometric Privacy & Consent Checkbox Card
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.primaryButton.withValues(alpha: 0.08),
+            color: _gdprConsentChecked
+                ? Colors.green.withValues(alpha: 0.08)
+                : AppColors.primaryButton.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.primaryButton.withValues(alpha: 0.25),
-              width: 1.2,
+              color: _gdprConsentChecked
+                  ? Colors.green.withValues(alpha: 0.5)
+                  : AppColors.primaryButton.withValues(alpha: 0.25),
+              width: 1.4,
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryButton.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.shield_outlined,
-                    color: AppColors.primaryButton, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Biometric Privacy & GDPR',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryText,
-                      ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Checkbox(
+                    value: _gdprConsentChecked,
+                    activeColor: const Color(0xFF059669),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Faces are processed 100% on-device. Explicit consent is required before recognition.',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: () => _showGdprAgreementModal(context),
-                child: Text(
-                  'View T&C',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryButton,
+                    onChanged: (val) {
+                      SoundService.playClick();
+                      setState(() {
+                        _gdprConsentChecked = val ?? false;
+                      });
+                    },
                   ),
-                ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        SoundService.playClick();
+                        setState(() {
+                          _gdprConsentChecked = !_gdprConsentChecked;
+                        });
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _gdprConsentChecked
+                                    ? Icons.verified_user_rounded
+                                    : Icons.shield_outlined,
+                                size: 16,
+                                color: _gdprConsentChecked
+                                    ? const Color(0xFF059669)
+                                    : AppColors.primaryButton,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Biometric Privacy & Consent',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryText,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => _showGdprAgreementModal(context),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 4),
+                                  child: Text(
+                                    'View T&C',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryButton,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'I confirm that explicit consent has been obtained from the person being photographed to capture and recognize their facial biometrics.',
+                            style: GoogleFonts.inter(
+                              fontSize: 11.5,
+                              color: AppColors.textMuted,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
