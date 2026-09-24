@@ -48,6 +48,8 @@ class _SystemStatusModalState extends State<SystemStatusModal>
         final isDark = settings.isDarkMode;
         final isDefault = settings.selectedContrastTheme == 'Default' && !isDark;
         final isOnline = conn.isOnline;
+        final lang = SettingsService().selectedLanguage;
+        final isFilipino = lang.toLowerCase().contains('filipino') || lang.toLowerCase().contains('tagalog');
 
         final dialogBg = isDark
             ? const Color(0xFF1E1E1E)
@@ -101,7 +103,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'EasyLens System Status',
+                              isFilipino
+                                  ? 'Katayuan ng Sistema ng EasyLens'
+                                  : 'EasyLens System Status',
                               style: GoogleFonts.inter(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -122,16 +126,24 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  isOnline
-                                      ? 'Active Internet Connection'
-                                      : 'Offline Mode (On-Device Active)',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: isOnline
-                                        ? const Color(0xFF059669)
-                                        : const Color(0xFFD97706),
+                                Expanded(
+                                  child: Text(
+                                    isOnline
+                                        ? (isFilipino
+                                            ? 'Aktibong Koneksyon sa Internet'
+                                            : 'Active Internet Connection')
+                                        : (isFilipino
+                                            ? 'Offline Mode (Aktibo sa Device)'
+                                            : 'Offline Mode (On-Device Active)'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isOnline
+                                          ? const Color(0xFF059669)
+                                          : const Color(0xFFD97706),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -181,26 +193,26 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
-                    tabs: const [
+                    tabs: [
                       Tab(
                         height: 34,
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text('Connectivity'),
+                          child: Text(isFilipino ? 'Koneksyon' : 'Connectivity'),
                         ),
                       ),
                       Tab(
                         height: 34,
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text('Isolation'),
+                          child: Text(isFilipino ? 'Seguridad' : 'Isolation'),
                         ),
                       ),
                       Tab(
                         height: 34,
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text('Requirements'),
+                          child: Text(isFilipino ? 'Kinakailangan' : 'Requirements'),
                         ),
                       ),
                     ],
@@ -214,9 +226,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildConnectivityTab(cardBg, borderColor, textColor, isOnline, conn),
-                      _buildIsolationTab(cardBg, borderColor, textColor),
-                      _buildRequirementsTab(cardBg, borderColor, textColor),
+                      _buildConnectivityTab(cardBg, borderColor, textColor, isOnline, conn, isFilipino),
+                      _buildIsolationTab(cardBg, borderColor, textColor, isFilipino),
+                      _buildRequirementsTab(cardBg, borderColor, textColor, isFilipino),
                     ],
                   ),
                 ),
@@ -240,7 +252,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                         ),
                       ),
                       child: Text(
-                        'Close',
+                        isFilipino ? 'Isara' : 'Close',
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -264,6 +276,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
     Color textColor,
     bool isOnline,
     ConnectivityService conn,
+    bool isFilipino,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -300,8 +313,12 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                 Expanded(
                   child: Text(
                     isOnline
-                        ? 'Connected to internet. Cloud AI and Maps routing are fully functional.'
-                        : 'Offline mode active. On-device AI, face recognition, and Smart Glasses work without internet!',
+                        ? (isFilipino
+                            ? 'Konektado sa internet. Gumagana ang Cloud AI at Maps routing nang maayos.'
+                            : 'Connected to internet. Cloud AI and Maps routing are fully functional.')
+                        : (isFilipino
+                            ? 'Aktibo ang offline mode. Gumagana ang on-device AI, face recognition, at Smart Glasses kahit walang internet!'
+                            : 'Offline mode active. On-device AI, face recognition, and Smart Glasses work without internet!'),
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -317,7 +334,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                     await conn.checkConnectivity();
                   },
                   child: Text(
-                    'Re-check',
+                    isFilipino ? 'Suriing Muli' : 'Re-check',
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -336,20 +353,24 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _sectionTitle(
             icon: Icons.swap_horiz_rounded,
             iconColor: const Color(0xFF7C3AED),
-            title: 'Hybrid Features (Online & Offline)',
+            title: isFilipino ? 'Mga Serbisyong Hybrid (Online at Offline)' : 'Hybrid Features (Online & Offline)',
             textColor: textColor,
           ),
           _featureRow(
             icon: Icons.chat_bubble_outline_rounded,
-            title: 'Talk to Buddy Assistant',
-            desc: 'Hybrid: Online Gemini Cloud AI + Offline on-device Gemma 2 model.',
+            title: isFilipino ? 'Kausapin si Buddy' : 'Talk to Buddy Assistant',
+            desc: isFilipino
+                ? 'Hybrid: Online Gemini Cloud AI + Offline na Gemma 2 model sa device.'
+                : 'Hybrid: Online Gemini Cloud AI + Offline on-device Gemma 2 model.',
             badgeText: 'Hybrid',
             badgeColor: const Color(0xFF7C3AED),
           ),
           _featureRow(
             icon: Icons.near_me_rounded,
-            title: 'Audio Navigation',
-            desc: 'Hybrid: Online Google Maps routing + Offline GPS sensors, compass, and step guidance.',
+            title: isFilipino ? 'Gabay sa Nabigasyon' : 'Audio Navigation',
+            desc: isFilipino
+                ? 'Hybrid: Online Google Maps routing + Offline na GPS sensor, kompas, at gabay sa hakbang.'
+                : 'Hybrid: Online Google Maps routing + Offline GPS sensors, compass, and step guidance.',
             badgeText: 'Hybrid',
             badgeColor: const Color(0xFF7C3AED),
           ),
@@ -358,14 +379,16 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _sectionTitle(
             icon: Icons.sms_outlined,
             iconColor: const Color(0xFFDC2626),
-            title: 'Cellular / SMS Only',
+            title: isFilipino ? 'Cellular / SMS Lamang' : 'Cellular / SMS Only',
             textColor: textColor,
           ),
           _featureRow(
             icon: Icons.phone_in_talk_rounded,
-            title: 'SOS Emergency Alert',
-            desc: 'Sends automated emergency SMS with location coordinates via mobile cellular network (No Wi-Fi/Internet required).',
-            badgeText: 'SMS only',
+            title: isFilipino ? 'SOS Emergency Saklolo' : 'SOS Emergency Alert',
+            desc: isFilipino
+                ? 'Nagpapadala ng automated emergency SMS na may GPS coordinates gamit ang mobile cellular network (Hindi kailangan ng Wi-Fi o internet).'
+                : 'Sends automated emergency SMS with location coordinates via mobile cellular network (No Wi-Fi/Internet required).',
+            badgeText: isFilipino ? 'SMS lamang' : 'SMS only',
             badgeColor: const Color(0xFFDC2626),
           ),
 
@@ -373,19 +396,23 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _sectionTitle(
             icon: Icons.cloud_outlined,
             iconColor: const Color(0xFF2563EB),
-            title: 'Features Requiring Online Connection',
+            title: isFilipino ? 'Nangangailangan ng Koneksyon sa Internet' : 'Features Requiring Online Connection',
             textColor: textColor,
           ),
           _featureRow(
             icon: Icons.cloud_outlined,
-            title: 'Weather Information',
-            desc: 'Real-time weather radar & temperature updates.',
+            title: isFilipino ? 'Impormasyon sa Panahon' : 'Weather Information',
+            desc: isFilipino
+                ? 'Real-time na radar at temperatura sa panahon.'
+                : 'Real-time weather radar & temperature updates.',
             isOnline: true,
           ),
           _featureRow(
             icon: Icons.sync_rounded,
-            title: 'Firebase Account & Notion Sync',
-            desc: 'Cloud profile backup and journal synchronization.',
+            title: isFilipino ? 'Firebase Account at Notion Sync' : 'Firebase Account & Notion Sync',
+            desc: isFilipino
+                ? 'Cloud profile backup at pag-sync ng journal.'
+                : 'Cloud profile backup and journal synchronization.',
             isOnline: true,
           ),
 
@@ -393,38 +420,48 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _sectionTitle(
             icon: Icons.offline_bolt_outlined,
             iconColor: const Color(0xFF059669),
-            title: '100% Offline (No Internet Required)',
+            title: isFilipino ? '100% Offline (Hindi Kailangan ng Internet)' : '100% Offline (No Internet Required)',
             textColor: textColor,
           ),
           const SizedBox(height: 8),
           _featureRow(
             icon: Icons.view_in_ar_rounded,
-            title: 'Real-Time Object & Hazard Detection',
-            desc: 'Runs on-device TFLite neural network via high-speed background isolate.',
+            title: isFilipino ? 'Pagtukoy ng Bagay at Harang' : 'Real-Time Object & Hazard Detection',
+            desc: isFilipino
+                ? 'Tumatakbo sa on-device TFLite neural network gamit ang mabilis na background isolate.'
+                : 'Runs on-device TFLite neural network via high-speed background isolate.',
             isOnline: false,
           ),
           _featureRow(
             icon: Icons.face_retouching_natural_rounded,
-            title: 'Face Recognition & Geometric ID',
-            desc: 'ML Kit facial landmark extraction and 25 Euclidean geometric vectors stored locally.',
+            title: isFilipino ? 'Pagkilala sa Mukha at Geometric ID' : 'Face Recognition & Geometric ID',
+            desc: isFilipino
+                ? 'ML Kit facial landmark extraction at 25 Euclidean geometric vectors na nakaimbak sa device.'
+                : 'ML Kit facial landmark extraction and 25 Euclidean geometric vectors stored locally.',
             isOnline: false,
           ),
           _featureRow(
             icon: Icons.text_snippet_outlined,
-            title: 'Nearby Text Reader (OCR)',
-            desc: 'Local optical character recognition on signs and documents.',
+            title: isFilipino ? 'Babasahing Teksto sa Malapit (OCR)' : 'Nearby Text Reader (OCR)',
+            desc: isFilipino
+                ? 'Lokal na optical character recognition sa mga karatula at dokumento.'
+                : 'Local optical character recognition on signs and documents.',
             isOnline: false,
           ),
           _featureRow(
             icon: Icons.camera_outdoor_rounded,
             title: 'EasyLens Smart Glasses Live Stream',
-            desc: 'Direct Wi-Fi SoftAP connection between ESP32-CAM glasses and phone.',
+            desc: isFilipino
+                ? 'Direktang koneksyon ng Wi-Fi SoftAP sa pagitan ng ESP32-CAM glasses at telepono.'
+                : 'Direct Wi-Fi SoftAP connection between ESP32-CAM glasses and phone.',
             isOnline: false,
           ),
           _featureRow(
             icon: Icons.volume_up_rounded,
-            title: 'Voice Feedback (STT & TTS)',
-            desc: 'On-device Android text-to-speech and local voice commands.',
+            title: isFilipino ? 'Boses na Feedback (STT at TTS)' : 'Voice Feedback (STT & TTS)',
+            desc: isFilipino
+                ? 'On-device Android text-to-speech at lokal na voice commands.'
+                : 'On-device Android text-to-speech and local voice commands.',
             isOnline: false,
           ),
           const SizedBox(height: 12),
@@ -434,7 +471,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
   }
 
   // ── Tab 2: Phone vs. Lens Isolation ────────────────────────────────────────
-  Widget _buildIsolationTab(Color cardBg, Color borderColor, Color textColor) {
+  Widget _buildIsolationTab(Color cardBg, Color borderColor, Color textColor, bool isFilipino) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       physics: const BouncingScrollPhysics(),
@@ -442,7 +479,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hardware & Privacy Architecture',
+            isFilipino ? 'Arkitektura ng Hardware at Privacy' : 'Hardware & Privacy Architecture',
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -451,7 +488,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           ),
           const SizedBox(height: 6),
           Text(
-            'EasyLens is engineered with privacy-by-design. Sensitive biometric data never leaves your device.',
+            isFilipino
+                ? 'Ang EasyLens ay binuo nang may privacy-by-design. Ang sensitibong biometric data ay hindi kailanman lumalabas sa iyong device.'
+                : 'EasyLens is engineered with privacy-by-design. Sensitive biometric data never leaves your device.',
             style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textMuted,
@@ -464,15 +503,23 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             icon: Icons.visibility_outlined,
             iconColor: const Color(0xFF2563EB),
             title: 'EasyLens Smart Glasses (Hardware)',
-            badge: 'Private Local Network',
+            badge: isFilipino ? 'Pribadong Network' : 'Private Local Network',
             badgeColor: Colors.blue,
-            items: [
-              'ESP32-CAM video capture module (OV2640 camera sensor)',
-              'Direct Wi-Fi SoftAP connection: video frames stream directly to the phone via local 192.168.4.1 subnet, never passing through the internet',
-              'Integrated Ultrasonic / ToF sensor for hardware distance measurement',
-              'LED assist headlight & battery telemetry monitoring',
-              'No external tracking or unencrypted telemetry on hardware',
-            ],
+            items: isFilipino
+                ? [
+                    'ESP32-CAM video capture module (OV2640 camera sensor)',
+                    'Direktang Wi-Fi SoftAP koneksyon: direktang dumadaloy ang video frames sa telepono sa lokal na 192.168.4.1 subnet nang hindi dumaraan sa internet',
+                    'Integrated Ultrasonic / ToF sensor para sa pagsukat ng distansya sa hardware',
+                    'LED assist headlight at pagsubaybay sa baterya',
+                    'Walang panlabas na pagsubaybay o hindi naka-encrypt na telemetry sa hardware',
+                  ]
+                : [
+                    'ESP32-CAM video capture module (OV2640 camera sensor)',
+                    'Direct Wi-Fi SoftAP connection: video frames stream directly to the phone via local 192.168.4.1 subnet, never passing through the internet',
+                    'Integrated Ultrasonic / ToF sensor for hardware distance measurement',
+                    'LED assist headlight & battery telemetry monitoring',
+                    'No external tracking or unencrypted telemetry on hardware',
+                  ],
             cardBg: cardBg,
             borderColor: borderColor,
             textColor: textColor,
@@ -484,16 +531,24 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _isolationCard(
             icon: Icons.phone_android_rounded,
             iconColor: const Color(0xFF059669),
-            title: 'Mobile Phone (100% On-Device)',
-            badge: 'Local Device Sandbox',
+            title: isFilipino ? 'Telepono (100% Nasa Device)' : 'Mobile Phone (100% On-Device)',
+            badge: isFilipino ? 'Lokal na Sandbox' : 'Local Device Sandbox',
             badgeColor: Colors.green,
-            items: [
-              'Facial Biometric Data: 25 geometric landmark vectors stored strictly in local device storage (SQLite/Prefs)',
-              'TFLite AI Model: Runs on phone NPU / GPU via dedicated Dart Isolate with zero cloud transmission',
-              'Google ML Kit OCR: Scans text locally on the phone processor',
-              'Local Speech Synthesis & Speech Recognition engine',
-              'Emergency Contact directory and local alarm siren',
-            ],
+            items: isFilipino
+                ? [
+                    'Facial Biometric Data: 25 geometric landmark vectors na nakaimbak lamang sa lokal na storage ng device (SQLite/Prefs)',
+                    'TFLite AI Model: Tumatakbo sa NPU / GPU ng telepono gamit ang nakalaang Dart Isolate nang walang pagpapadala sa cloud',
+                    'Google ML Kit OCR: Nag-i-scan ng teksto nang lokal sa processor ng telepono',
+                    'Lokal na Speech Synthesis at Speech Recognition engine',
+                    'Direktoryo ng mga Kontak sa Emergency at lokal na sirena ng alarma',
+                  ]
+                : [
+                    'Facial Biometric Data: 25 geometric landmark vectors stored strictly in local device storage (SQLite/Prefs)',
+                    'TFLite AI Model: Runs on phone NPU / GPU via dedicated Dart Isolate with zero cloud transmission',
+                    'Google ML Kit OCR: Scans text locally on the phone processor',
+                    'Local Speech Synthesis & Speech Recognition engine',
+                    'Emergency Contact directory and local alarm siren',
+                  ],
             cardBg: cardBg,
             borderColor: borderColor,
             textColor: textColor,
@@ -505,14 +560,20 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _isolationCard(
             icon: Icons.cloud_done_outlined,
             iconColor: const Color(0xFF7C3AED),
-            title: 'Cloud Services (External Encrypted)',
-            badge: 'Optional & User-Gated',
+            title: isFilipino ? 'Mga Serbisyong Cloud (Naka-encrypt)' : 'Cloud Services (External Encrypted)',
+            badge: isFilipino ? 'Opsyonal at may Pahintulot' : 'Optional & User-Gated',
             badgeColor: Colors.purple,
-            items: [
-              'Google Gemini API: Invoked only when user initiates cloud AI questions or full scenery descriptions',
-              'Google Maps Directions API: Encrypted transit & walking navigation route calculations',
-              'Firebase Auth: User credentials & optional cloud backup',
-            ],
+            items: isFilipino
+                ? [
+                    'Google Gemini API: Ginagamit lamang kapag nagtanong ang user ng cloud AI o buong paglalarawan ng paligid',
+                    'Google Maps Directions API: Naka-encrypt na pagkalkula ng ruta sa paglalakad at biyahe',
+                    'Firebase Auth: Mga kredensyal ng user at opsyonal na cloud backup',
+                  ]
+                : [
+                    'Google Gemini API: Invoked only when user initiates cloud AI questions or full scenery descriptions',
+                    'Google Maps Directions API: Encrypted transit & walking navigation route calculations',
+                    'Firebase Auth: User credentials & optional cloud backup',
+                  ],
             cardBg: cardBg,
             borderColor: borderColor,
             textColor: textColor,
@@ -524,7 +585,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
   }
 
   // ── Tab 3: System Requirements ─────────────────────────────────────────────
-  Widget _buildRequirementsTab(Color cardBg, Color borderColor, Color textColor) {
+  Widget _buildRequirementsTab(Color cardBg, Color borderColor, Color textColor, bool isFilipino) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       physics: const BouncingScrollPhysics(),
@@ -532,7 +593,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'App & System Requirements',
+            isFilipino ? 'Mga Kinakailangan sa App at Sistema' : 'App & System Requirements',
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -541,7 +602,9 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           ),
           const SizedBox(height: 6),
           Text(
-            'Ensure your device and environment satisfy these prerequisites for optimal performance.',
+            isFilipino
+                ? 'Tiyaking natutugunan ng iyong device ang mga kinakailangang ito para sa maayos na pagtakbo.'
+                : 'Ensure your device and environment satisfy these prerequisites for optimal performance.',
             style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textMuted,
@@ -552,13 +615,20 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _requirementGroup(
             icon: Icons.android_rounded,
             iconColor: const Color(0xFF059669),
-            category: 'Operating System & Platform',
-            items: [
-              'Android OS 8.0 (API Level 26) or higher',
-              'Recommended: Android 10+ (API 29+) 64-bit architecture',
-              'RAM: Minimum 3GB, Recommended 4GB+ for seamless multi-model AI inference',
-              'Internal Storage: At least 2.5GB free space (for Gemma 2 local model weights and offline cache)',
-            ],
+            category: isFilipino ? 'Operating System at Platform' : 'Operating System & Platform',
+            items: isFilipino
+                ? [
+                    'Android OS 8.0 (API Level 26) o mas mataas',
+                    'Inirerekomenda: Android 10+ (API 29+) 64-bit architecture',
+                    'RAM: Minimum 3GB, Inirerekomenda 4GB+ para sa tuluy-tuloy na AI inference',
+                    'Internal Storage: Hindi bababa sa 2.5GB bakanteng espasyo (para sa Gemma 2 local weights at offline cache)',
+                  ]
+                : [
+                    'Android OS 8.0 (API Level 26) or higher',
+                    'Recommended: Android 10+ (API 29+) 64-bit architecture',
+                    'RAM: Minimum 3GB, Recommended 4GB+ for seamless multi-model AI inference',
+                    'Internal Storage: At least 2.5GB free space (for Gemma 2 local model weights and offline cache)',
+                  ],
             cardBg: cardBg,
             borderColor: borderColor,
             textColor: textColor,
@@ -569,13 +639,20 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _requirementGroup(
             icon: Icons.api_rounded,
             iconColor: const Color(0xFF2563EB),
-            category: 'Google APIs & Services',
-            items: [
-              'Google Play Services: v20.0+ (required for Google ML Kit Vision & Face Detection)',
-              'Google Maps SDK & Directions API: Required for live turn-by-turn audio routing',
-              'Google Gemini API (Google Generative AI): Required for Buddy Cloud multi-modal assistant',
-              'Firebase Authentication & Cloud Firestore: Required for cloud sync (optional in guest mode)',
-            ],
+            category: isFilipino ? 'Mga Serbisyo at API ng Google' : 'Google APIs & Services',
+            items: isFilipino
+                ? [
+                    'Google Play Services: v20.0+ (kailangan para sa Google ML Kit Vision at Face Detection)',
+                    'Google Maps SDK at Directions API: Kailangan para sa live turn-by-turn audio routing',
+                    'Google Gemini API (Google Generative AI): Kailangan para sa Buddy Cloud multi-modal assistant',
+                    'Firebase Authentication at Cloud Firestore: Kailangan para sa cloud sync (opsyonal sa guest mode)',
+                  ]
+                : [
+                    'Google Play Services: v20.0+ (required for Google ML Kit Vision & Face Detection)',
+                    'Google Maps SDK & Directions API: Required for live turn-by-turn audio routing',
+                    'Google Gemini API (Google Generative AI): Required for Buddy Cloud multi-modal assistant',
+                    'Firebase Authentication & Cloud Firestore: Required for cloud sync (optional in guest mode)',
+                  ],
             cardBg: cardBg,
             borderColor: borderColor,
             textColor: textColor,
@@ -586,14 +663,22 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _requirementGroup(
             icon: Icons.sensors_rounded,
             iconColor: const Color(0xFF7C3AED),
-            category: 'Smart Glasses & Hardware Sensors',
-            items: [
-              'EasyLens Smart Glasses: ESP32-CAM module with 2.4GHz Wi-Fi (802.11 b/g/n)',
-              'Device Camera: 1080p camera with continuous autofocus',
-              'Hardware Sensors: Accelerometer, Gyroscope (for 3D UI & shake-to-undo), Magnetometer/Compass (for navigation heading)',
-              'Location Services: High-accuracy GPS enabled',
-              'Audio: Microphone with noise suppression & speaker or bone-conduction headset',
-            ],
+            category: isFilipino ? 'Smart Glasses at Hardware Sensors' : 'Smart Glasses & Hardware Sensors',
+            items: isFilipino
+                ? [
+                    'EasyLens Smart Glasses: ESP32-CAM module na may 2.4GHz Wi-Fi (802.11 b/g/n)',
+                    'Camera ng Device: 1080p camera na may continuous autofocus',
+                    'Hardware Sensors: Accelerometer, Gyroscope (para sa 3D UI at shake-to-undo), Magnetometer/Compass (para sa direksyon ng nabigasyon)',
+                    'Mga Serbisyo sa Lokasyon: Naka-enable ang high-accuracy GPS',
+                    'Audio: Mikropono na may noise suppression at speaker o bone-conduction headset',
+                  ]
+                : [
+                    'EasyLens Smart Glasses: ESP32-CAM module with 2.4GHz Wi-Fi (802.11 b/g/n)',
+                    'Device Camera: 1080p camera with continuous autofocus',
+                    'Hardware Sensors: Accelerometer, Gyroscope (for 3D UI & shake-to-undo), Magnetometer/Compass (for navigation heading)',
+                    'Location Services: High-accuracy GPS enabled',
+                    'Audio: Microphone with noise suppression & speaker or bone-conduction headset',
+                  ],
             cardBg: cardBg,
             borderColor: borderColor,
             textColor: textColor,

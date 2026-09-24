@@ -4,6 +4,7 @@ import '../../../services/settings_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/sound_service.dart';
 import '../../../services/connectivity_service.dart';
+import '../../../services/translation_service.dart';
 import '../../../widgets/system_status_modal.dart';
 
 class HeaderBar extends StatelessWidget {
@@ -105,7 +106,9 @@ class HeaderBar extends StatelessWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      isOnline ? 'Online' : 'Offline',
+                      isOnline
+                          ? TranslationService.translate('badge_online', SettingsService().selectedLanguage)
+                          : TranslationService.translate('badge_offline', SettingsService().selectedLanguage),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,

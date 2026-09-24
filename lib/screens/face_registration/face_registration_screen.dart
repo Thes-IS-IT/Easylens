@@ -283,6 +283,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
 
   void _showGdprAgreementModal(BuildContext context) {
     SoundService.playClick();
+    final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('filipino') ||
+        SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.65),
@@ -332,7 +334,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Biometric Privacy & T&C',
+                              isFilipino ? 'Privacy at T&C sa Biometric' : 'Biometric Privacy & T&C',
                               style: GoogleFonts.inter(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -341,7 +343,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'GDPR Article 9 Consent Agreement',
+                              isFilipino ? 'Kasunduan sa Pahintulot (GDPR Art. 9)' : 'GDPR Article 9 Consent Agreement',
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -381,7 +383,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Facial geometric landmarks constitute special category biometric data under European GDPR & data privacy laws.',
+                                  isFilipino
+                                      ? 'Ang mga geometric landmark ng mukha ay bumubuo ng espesyal na kategorya ng biometric data alinsunod sa GDPR at mga batas sa data privacy.'
+                                      : 'Facial geometric landmarks constitute special category biometric data under European GDPR & data privacy laws.',
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     color: AppColors.primaryText,
@@ -395,33 +399,38 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                         const SizedBox(height: 16),
                         _buildAgreementSection(
                           icon: Icons.assignment_turned_in_outlined,
-                          title: '1. Explicit Consent (GDPR Art. 9)',
-                          content:
-                              'By checking the consent box, you confirm that the person whose face is being registered has given unambiguous, informed consent to capture their facial features and recognize them in real-time.',
+                          title: isFilipino ? '1. Malinaw na Pahintulot (GDPR Art. 9)' : '1. Explicit Consent (GDPR Art. 9)',
+                          content: isFilipino
+                              ? 'Sa pamamagitan ng paglagay ng tsek sa consent box, kinukumpirma mo na ang taong inirerehistro ang mukha ay nagbigay ng malinaw at may-kabatirang pahintulot na kunan ang kanyang mukha at kilalanin ito sa real-time.'
+                              : 'By checking the consent box, you confirm that the person whose face is being registered has given unambiguous, informed consent to capture their facial features and recognize them in real-time.',
                         ),
                         _buildAgreementSection(
                           icon: Icons.phonelink_lock_rounded,
-                          title: '2. 100% On-Device Local Processing',
-                          content:
-                              'Facial landmark extraction runs entirely on your phone via Google ML Kit. Raw photos and 25 Euclidean geometric vectors are saved only inside your local app sandbox. Data is NEVER transmitted to external servers or cloud databases.',
+                          title: isFilipino ? '2. 100% Pagproseso sa Device' : '2. 100% On-Device Local Processing',
+                          content: isFilipino
+                              ? 'Ang pagtukoy ng landmark ng mukha ay buong tumatakbo sa iyong telepono gamit ang Google ML Kit. Ang mga larawan at 25 Euclidean vectors ay nakaimbak lamang sa lokal na app sandbox nang walang cloud transmission.'
+                              : 'Facial landmark extraction runs entirely on your phone via Google ML Kit. Raw photos and 25 Euclidean geometric vectors are saved only inside your local app sandbox. Data is NEVER transmitted to external servers or cloud databases.',
                         ),
                         _buildAgreementSection(
                           icon: Icons.visibility_outlined,
-                          title: '3. Purpose Limitation',
-                          content:
-                              'Biometric data is used exclusively for visual accessibility assistance — allowing EasyLens and Buddy to announce the person’s name when detected in front of the user.',
+                          title: isFilipino ? '3. Limitasyon sa Layunin' : '3. Purpose Limitation',
+                          content: isFilipino
+                              ? 'Ang biometric data ay eksklusibong ginagamit para sa visual accessibility assistance — na nagbibigay-daan sa EasyLens at Buddy na banggitin ang pangalan ng tao kapag nakita sa harap ng user.'
+                              : 'Biometric data is used exclusively for visual accessibility assistance — allowing EasyLens and Buddy to announce the person’s name when detected in front of the user.',
                         ),
                         _buildAgreementSection(
                           icon: Icons.delete_forever_outlined,
-                          title: '4. Right to Erasure (GDPR Art. 17)',
-                          content:
-                              'The individual maintains the absolute right to be forgotten. You can permanently delete this face profile and all landmark embeddings at any time from "View Registered Faces".',
+                          title: isFilipino ? '4. Karapatang Mabura (GDPR Art. 17)' : '4. Right to Erasure (GDPR Art. 17)',
+                          content: isFilipino
+                              ? 'Pinapanatili ng bawat indibidwal ang karapatang mabura. Maaari mong permanenteng burahin ang profile ng mukha at lahat ng embeddings anumang oras mula sa "Mga Nakaimbak na Mukha".'
+                              : 'The individual maintains the absolute right to be forgotten. You can permanently delete this face profile and all landmark embeddings at any time from "View Registered Faces".',
                         ),
                         _buildAgreementSection(
                           icon: Icons.shield_outlined,
-                          title: '5. Data Minimization & Security',
-                          content:
-                              'EasyLens does not train public AI models with your photos. Only mathematical distance ratios between facial contours are stored in local device storage.',
+                          title: isFilipino ? '5. Pagbawas ng Data at Seguridad' : '5. Data Minimization & Security',
+                          content: isFilipino
+                              ? 'Hindi nagsasanay ang EasyLens ng pampublikong AI model gamit ang iyong mga larawan. Tanging mathematical distance ratios lamang ng mga hugis ng mukha ang nakaimbak sa device.'
+                              : 'EasyLens does not train public AI models with your photos. Only mathematical distance ratios between facial contours are stored in local device storage.',
                         ),
                       ],
                     ),
@@ -442,7 +451,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: Text(
-                            'Decline',
+                            isFilipino ? 'Tanggihan' : 'Decline',
                             style: GoogleFonts.inter(
                               color: AppColors.textMuted,
                               fontWeight: FontWeight.bold,
@@ -467,7 +476,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: Text(
-                            'I Agree & Consent',
+                            isFilipino ? 'Sumasang-ayon Ako' : 'I Agree & Consent',
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -572,6 +581,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
   Future<void> _pickAndDetect(ImageSource source) async {
     if (!_gdprConsentChecked) {
       SoundService.playWarning();
+      final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('filipino') ||
+          SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: const Color(0xFFDC2626),
@@ -581,16 +592,18 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
             children: [
               const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Consent Required: Please check the biometric privacy consent box to proceed.',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  isFilipino
+                      ? 'Kailangan ng Pahintulot: Pakilagyan ng tsek ang biometric privacy consent box upang magpatuloy.'
+                      : 'Consent Required: Please check the biometric privacy consent box to proceed.',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
           action: SnackBarAction(
-            label: 'Review T&C',
+            label: isFilipino ? 'Tingnan ang T&C' : 'Review T&C',
             textColor: Colors.white,
             onPressed: () => _showGdprAgreementModal(context),
           ),
@@ -928,23 +941,35 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
           ),
         ),
         const SizedBox(height: 28),
-        Text(
-          'Register a Face',
-          style: GoogleFonts.inter(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: AppColors.primaryText,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Take a clear photo of someone.\nBuddy will remember their landmark profile and announce their name.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: AppColors.textMuted,
-            height: 1.5,
-          ),
+        Builder(
+          builder: (context) {
+            final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('filipino') ||
+                SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
+            return Column(
+              children: [
+                Text(
+                  isFilipino ? 'Magrehistro ng Mukha' : 'Register a Face',
+                  style: GoogleFonts.inter(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  isFilipino
+                      ? 'Kumuha ng malinaw na larawan ng isang tao.\nTandaan ni Buddy ang landmark profile at sasabihin ang pangalan.'
+                      : 'Take a clear photo of someone.\nBuddy will remember their landmark profile and announce their name.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppColors.textMuted,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         if (_errorMessage.isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -974,141 +999,153 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
         ],
         const SizedBox(height: 20),
         // GDPR Biometric Privacy & Consent Checkbox Card
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            color: _gdprConsentChecked
-                ? Colors.green.withValues(alpha: 0.08)
-                : AppColors.primaryButton.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _gdprConsentChecked
-                  ? Colors.green.withValues(alpha: 0.5)
-                  : AppColors.primaryButton.withValues(alpha: 0.25),
-              width: 1.4,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Checkbox(
-                    value: _gdprConsentChecked,
-                    activeColor: const Color(0xFF059669),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
+        Builder(
+          builder: (context) {
+            final isFilipino = SettingsService().selectedLanguage.toLowerCase().contains('filipino') ||
+                SettingsService().selectedLanguage.toLowerCase().contains('tagalog');
+            return Column(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _gdprConsentChecked
+                        ? Colors.green.withValues(alpha: 0.08)
+                        : AppColors.primaryButton.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _gdprConsentChecked
+                          ? Colors.green.withValues(alpha: 0.5)
+                          : AppColors.primaryButton.withValues(alpha: 0.25),
+                      width: 1.4,
                     ),
-                    onChanged: (val) {
-                      SoundService.playClick();
-                      setState(() {
-                        _gdprConsentChecked = val ?? false;
-                      });
-                    },
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        SoundService.playClick();
-                        setState(() {
-                          _gdprConsentChecked = !_gdprConsentChecked;
-                        });
-                      },
-                      child: Column(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                _gdprConsentChecked
-                                    ? Icons.verified_user_rounded
-                                    : Icons.shield_outlined,
-                                size: 16,
-                                color: _gdprConsentChecked
-                                    ? const Color(0xFF059669)
-                                    : AppColors.primaryButton,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Biometric Privacy & Consent',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryText,
+                          Checkbox(
+                            value: _gdprConsentChecked,
+                            activeColor: const Color(0xFF059669),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            onChanged: (val) {
+                              SoundService.playClick();
+                              setState(() {
+                                _gdprConsentChecked = val ?? false;
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                SoundService.playClick();
+                                setState(() {
+                                  _gdprConsentChecked = !_gdprConsentChecked;
+                                });
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        _gdprConsentChecked
+                                            ? Icons.verified_user_rounded
+                                            : Icons.shield_outlined,
+                                        size: 16,
+                                        color: _gdprConsentChecked
+                                            ? const Color(0xFF059669)
+                                            : AppColors.primaryButton,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          isFilipino ? 'Privacy at Pahintulot sa Biometric' : 'Biometric Privacy & Consent',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primaryText,
+                                          ),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () => _showGdprAgreementModal(context),
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Text(
+                                            isFilipino ? 'Tingnan ang T&C' : 'View T&C',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primaryButton,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () => _showGdprAgreementModal(context),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 4),
-                                  child: Text(
-                                    'View T&C',
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    isFilipino
+                                        ? 'Kinukumpirma ko na may malinaw na pahintulot mula sa taong kinukunan ng litrato upang makuha at makilala ang kanyang biometric na mukha.'
+                                        : 'I confirm that explicit consent has been obtained from the person being photographed to capture and recognize their facial biometrics.',
                                     style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primaryButton,
-                                      decoration: TextDecoration.underline,
+                                      fontSize: 11.5,
+                                      color: AppColors.textMuted,
+                                      height: 1.35,
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'I confirm that explicit consent has been obtained from the person being photographed to capture and recognize their facial biometrics.',
-                            style: GoogleFonts.inter(
-                              fontSize: 11.5,
-                              color: AppColors.textMuted,
-                              height: 1.35,
                             ),
                           ),
                         ],
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Camera button
+                _GlassButton(
+                  icon: Icons.camera_alt_rounded,
+                  label: isFilipino ? 'Kumuha ng Larawan' : 'Take a Photo',
+                  isPrimary: true,
+                  onTap: () => _pickAndDetect(ImageSource.camera),
+                ),
+                const SizedBox(height: 12),
+                // Gallery button
+                _GlassButton(
+                  icon: Icons.photo_library_rounded,
+                  label: isFilipino ? 'Pumili sa Gallery' : 'Choose from Gallery',
+                  isPrimary: false,
+                  onTap: () => _pickAndDetect(ImageSource.gallery),
+                ),
+                const SizedBox(height: 20),
+                // View registered faces link
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      AppRoute.to(const RegisteredFacesScreen()),
+                    );
+                  },
+                  icon: Icon(Icons.people_alt_rounded, color: AppColors.primaryButton, size: 18),
+                  label: Text(
+                    isFilipino ? 'Tingnan ang mga Rehistradong Mukha' : 'View Registered Faces',
+                    style: GoogleFonts.inter(
+                      color: AppColors.primaryButton,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        // Camera button
-        _GlassButton(
-          icon: Icons.camera_alt_rounded,
-          label: 'Take a Photo',
-          isPrimary: true,
-          onTap: () => _pickAndDetect(ImageSource.camera),
-        ),
-        const SizedBox(height: 12),
-        // Gallery button
-        _GlassButton(
-          icon: Icons.photo_library_rounded,
-          label: 'Choose from Gallery',
-          isPrimary: false,
-          onTap: () => _pickAndDetect(ImageSource.gallery),
-        ),
-        const SizedBox(height: 20),
-        // View registered faces link
-        TextButton.icon(
-          onPressed: () {
-            Navigator.of(context).push(
-              AppRoute.to(const RegisteredFacesScreen()),
+                ),
+              ],
             );
           },
-          icon: Icon(Icons.people_alt_rounded, color: AppColors.primaryButton, size: 18),
-          label: Text(
-            'View Registered Faces',
-            style: GoogleFonts.inter(
-              color: AppColors.primaryButton,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
         ),
       ],
     );
