@@ -77,10 +77,10 @@ graph LR
 
 #### Mathematical Formulation
 Let $P_{user} = (\text{lat}_{user}, \text{lng}_{user})$ be the user's current GPS coordinates, and $P_{wp} = (\text{lat}_{wp}, \text{lng}_{wp})$ be the coordinate of the next target route node.
-The distance $D$ in meters is computed using the Haversine formula:
+The distance $D$ in meters is computed with the Haversine formula, as implemented by `Geolocator.distanceBetween` in the `geolocator` package (`geolocator_platform_interface`):
 $$a = \sin^2\left(\frac{\Delta \text{lat}}{2}\right) + \cos(\text{lat}_{user})\cos(\text{lat}_{wp})\sin^2\left(\frac{\Delta \text{lng}}{2}\right)$$
-$$d = 2r \cdot \text{atan2}(\sqrt{a}, \sqrt{1-a})$$
-where $r = 6,371,000$ meters (Earth's radius).
+$$D = 2r \cdot \arcsin\left(\sqrt{a}\right)$$
+where $r = 6,378,137$ meters (the WGS-84 equatorial radius used by the library).
 
 #### Algorithmic Logic
 ```

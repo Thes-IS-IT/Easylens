@@ -18,13 +18,13 @@ EasyLens integrates global map routing with localized safety metrics to construc
 
 #### 2. Distance Calculations: The Haversine Formula
 * **Algorithm**: **Haversine Formula**.
-* **Details**: To calculate the exact real-time great-circle distance (arc distance over the Earth's spherical surface) between the user's current GPS location $(lat_1, lon_1)$ and the next navigation waypoint step $(lat_2, lon_2)$, the system solves the Haversine equation on-device:
+* **Details**: To calculate the exact real-time great-circle distance (arc distance over the Earth's spherical surface) between the user's current GPS location $(lat_1, lon_1)$ and the next navigation waypoint step $(lat_2, lon_2)$, the app calls `Geolocator.distanceBetween` from the `geolocator` package, which solves the Haversine equation on-device:
   $$d = 2R \cdot \arcsin\left(\sqrt{\sin^2\left(\frac{lat_2 - lat_1}{2}\right) + \cos(lat_1) \cdot \cos(lat_2) \cdot \sin^2\left(\frac{lon_2 - lon_1}{2}\right)}\right)$$
-  Where $R$ is the mean radius of the Earth (6,371,000 meters). This ensures accurate coordinate distance mapping.
+  Where $R$ is the WGS-84 equatorial radius of the Earth (6,378,137 meters), the value used by the library. This ensures accurate coordinate distance mapping.
 
 #### 3. Dynamic 30-Meter Turn Warning System
 * **Trigger Mechanism**:
-  - The `ActiveNavigationService` continuously polls the device GPS provider and computes the Haversine distance to the next path node.
+  - `navigation_screen.dart` continuously polls the device GPS provider and computes the Haversine distance to the next path node; `ActiveNavigationService` holds the resulting navigation state (remaining distance, current step) for the rest of the app.
   - When the user approaches a transition coordinate and the distance drops to $\le 30$ meters, the system preemptively announces the turn action via Text-to-Speech (e.g., "In 30 meters, turn right on acacia street").
   - The warning is repeated at smaller intervals as they approach, concluding with an immediate notification at the corner.
 

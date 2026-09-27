@@ -366,8 +366,8 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             icon: Icons.chat_bubble_outline_rounded,
             title: isFilipino ? 'Kausapin si Buddy' : 'Talk to Buddy Assistant',
             desc: isFilipino
-                ? 'Hybrid: Online Gemini Cloud AI + Offline na Gemma 2 model sa device.'
-                : 'Hybrid: Online Gemini Cloud AI + Offline on-device Gemma 2 model.',
+                ? 'Hybrid: Online Gemini Cloud AI + Offline na Gemma 2B model sa device.'
+                : 'Hybrid: Online Gemini Cloud AI + Offline on-device Gemma 2B model.',
             badgeText: 'Hybrid',
             badgeColor: const Color(0xFF7C3AED),
           ),
@@ -377,6 +377,15 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             desc: isFilipino
                 ? 'Hybrid: Online Google Maps routing + Offline na GPS sensor, kompas, at gabay sa hakbang.'
                 : 'Hybrid: Online Google Maps routing + Offline GPS sensors, compass, and step guidance.',
+            badgeText: 'Hybrid',
+            badgeColor: const Color(0xFF7C3AED),
+          ),
+          _featureRow(
+            icon: Icons.volume_up_rounded,
+            title: isFilipino ? 'Boses na Feedback (STT at TTS)' : 'Voice Feedback (STT & TTS)',
+            desc: isFilipino
+                ? 'Hybrid: Android text-to-speech sa device. Ang boses na Buddy/Leo (Bata) ay gumagamit ng online Xiaomi MiMo at bumabalik sa boses ng telepono kapag offline. Ang voice commands ay nangangailangan ng internet maliban kung may naka-install na offline language pack.'
+                : 'Hybrid: on-device Android text-to-speech. The Buddy/Leo (Child) voices use online Xiaomi MiMo and fall back to the phone voice offline. Voice commands need internet unless an offline language pack is installed.',
             badgeText: 'Hybrid',
             badgeColor: const Color(0xFF7C3AED),
           ),
@@ -392,8 +401,8 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             icon: Icons.phone_in_talk_rounded,
             title: isFilipino ? 'SOS Emergency Saklolo' : 'SOS Emergency Alert',
             desc: isFilipino
-                ? 'Nagpapadala ng automated emergency SMS na may GPS coordinates gamit ang mobile cellular network (Hindi kailangan ng Wi-Fi o internet).'
-                : 'Sends automated emergency SMS with location coordinates via mobile cellular network (No Wi-Fi/Internet required).',
+                ? 'Nagpapadala ng automated emergency SMS na may GPS coordinates gamit ang SIM ng telepono (Hindi kailangan ng internet). Kung pumalya ang SIM, susubukan ang online SMS gateway.'
+                : 'Sends automated emergency SMS with location coordinates from the phone\'s SIM (no internet required). If SIM sending fails, it retries through an online SMS gateway.',
             badgeText: isFilipino ? 'SMS lamang' : 'SMS only',
             badgeColor: const Color(0xFFDC2626),
           ),
@@ -415,10 +424,10 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           ),
           _featureRow(
             icon: Icons.sync_rounded,
-            title: isFilipino ? 'Firebase Account at Notion Sync' : 'Firebase Account & Notion Sync',
+            title: isFilipino ? 'Firebase Account at Notion Feedback' : 'Firebase Account & Notion Feedback',
             desc: isFilipino
-                ? 'Cloud profile backup at pag-sync ng journal.'
-                : 'Cloud profile backup and journal synchronization.',
+                ? 'Cloud profile backup at pagpapadala ng feedback sa Notion.'
+                : 'Cloud profile backup and sending feedback to Notion.',
             isOnline: true,
           ),
 
@@ -462,14 +471,6 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                 : 'Direct Wi-Fi SoftAP connection between ESP32-CAM glasses and phone.',
             isOnline: false,
           ),
-          _featureRow(
-            icon: Icons.volume_up_rounded,
-            title: isFilipino ? 'Boses na Feedback (STT at TTS)' : 'Voice Feedback (STT & TTS)',
-            desc: isFilipino
-                ? 'On-device Android text-to-speech at lokal na voice commands.'
-                : 'On-device Android text-to-speech and local voice commands.',
-            isOnline: false,
-          ),
           const SizedBox(height: 12),
         ],
       ),
@@ -495,8 +496,8 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           const SizedBox(height: 6),
           Text(
             isFilipino
-                ? 'Ang EasyLens ay binuo nang may privacy-by-design. Ang sensitibong biometric data ay hindi kailanman lumalabas sa iyong device.'
-                : 'EasyLens is engineered with privacy-by-design. Sensitive biometric data never leaves your device.',
+                ? 'Ang EasyLens ay binuo nang may privacy-by-design. Ang mga naka-save na profile ng mukha ay hindi kailanman lumalabas sa iyong telepono. Kapag humingi ka ng cloud na paglalarawan ng paligid kay Buddy, ipinapadala ang larawan mula sa camera sa Google Gemini.'
+                : 'EasyLens is engineered with privacy-by-design. Saved face profiles never leave your phone. When you ask Buddy for a cloud scene description, that camera image is sent to Google Gemini.',
             style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textMuted,
@@ -515,16 +516,14 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                 ? [
                     'ESP32-CAM video capture module (OV2640 camera sensor)',
                     'Direktang Wi-Fi SoftAP koneksyon: direktang dumadaloy ang video frames sa telepono sa lokal na 192.168.4.1 subnet nang hindi dumaraan sa internet',
-                    'Integrated Ultrasonic / ToF sensor para sa pagsukat ng distansya sa hardware',
-                    'LED assist headlight at pagsubaybay sa baterya',
-                    'Walang panlabas na pagsubaybay o hindi naka-encrypt na telemetry sa hardware',
+                    'LED assist headlight na kinokontrol mula sa app',
+                    'Walang nakaimbak na personal na data sa salamin; video lamang ang ipinapadala nito sa telepono',
                   ]
                 : [
                     'ESP32-CAM video capture module (OV2640 camera sensor)',
                     'Direct Wi-Fi SoftAP connection: video frames stream directly to the phone via local 192.168.4.1 subnet, never passing through the internet',
-                    'Integrated Ultrasonic / ToF sensor for hardware distance measurement',
-                    'LED assist headlight & battery telemetry monitoring',
-                    'No external tracking or unencrypted telemetry on hardware',
+                    'LED assist headlight controlled from the app',
+                    'No personal data is stored on the glasses; they only send video to the phone',
                   ],
             cardBg: cardBg,
             borderColor: borderColor,
@@ -537,7 +536,7 @@ class _SystemStatusModalState extends State<SystemStatusModal>
           _isolationCard(
             icon: Icons.phone_android_rounded,
             iconColor: const Color(0xFF059669),
-            title: isFilipino ? 'Telepono (100% Nasa Device)' : 'Mobile Phone (100% On-Device)',
+            title: isFilipino ? 'Telepono (Nasa Device)' : 'Mobile Phone (On-Device)',
             badge: isFilipino ? 'Lokal na Sandbox' : 'Local Device Sandbox',
             badgeColor: Colors.green,
             items: isFilipino
@@ -545,14 +544,14 @@ class _SystemStatusModalState extends State<SystemStatusModal>
                     'Facial Biometric Data: 25 geometric landmark vectors na nakaimbak lamang sa lokal na storage ng device (SQLite/Prefs)',
                     'TFLite AI Model: Tumatakbo sa NPU / GPU ng telepono gamit ang nakalaang Dart Isolate nang walang pagpapadala sa cloud',
                     'Google ML Kit OCR: Nag-i-scan ng teksto nang lokal sa processor ng telepono',
-                    'Lokal na Speech Synthesis at Speech Recognition engine',
+                    'Android text-to-speech sa device (ang boses na Buddy/Leo at voice commands ay maaaring gumamit ng internet)',
                     'Direktoryo ng mga Kontak sa Emergency at lokal na sirena ng alarma',
                   ]
                 : [
                     'Facial Biometric Data: 25 geometric landmark vectors stored strictly in local device storage (SQLite/Prefs)',
                     'TFLite AI Model: Runs on phone NPU / GPU via dedicated Dart Isolate with zero cloud transmission',
                     'Google ML Kit OCR: Scans text locally on the phone processor',
-                    'Local Speech Synthesis & Speech Recognition engine',
+                    'On-device Android text-to-speech (Buddy/Leo voices and voice commands may use the internet)',
                     'Emergency Contact directory and local alarm siren',
                   ],
             cardBg: cardBg,
@@ -572,13 +571,15 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             items: isFilipino
                 ? [
                     'Google Gemini API: Ginagamit lamang kapag nagtanong ang user ng cloud AI o buong paglalarawan ng paligid',
-                    'Google Maps Directions API: Naka-encrypt na pagkalkula ng ruta sa paglalakad at biyahe',
+                    'Google Maps Directions API: Naka-encrypt na pagkalkula ng ruta sa paglalakad',
                     'Firebase Auth: Mga kredensyal ng user at opsyonal na cloud backup',
+                    'Xiaomi MiMo TTS: Teksto na binibigkas ng boses na Buddy/Leo (Bata)',
                   ]
                 : [
                     'Google Gemini API: Invoked only when user initiates cloud AI questions or full scenery descriptions',
-                    'Google Maps Directions API: Encrypted transit & walking navigation route calculations',
+                    'Google Maps Directions API: Encrypted walking route calculations',
                     'Firebase Auth: User credentials & optional cloud backup',
+                    'Xiaomi MiMo TTS: Text spoken by the Buddy/Leo (Child) voices',
                   ],
             cardBg: cardBg,
             borderColor: borderColor,
@@ -624,16 +625,16 @@ class _SystemStatusModalState extends State<SystemStatusModal>
             category: isFilipino ? 'Operating System at Platform' : 'Operating System & Platform',
             items: isFilipino
                 ? [
-                    'Android OS 8.0 (API Level 26) o mas mataas',
+                    'Android OS 7.0 (API Level 24) o mas mataas',
                     'Inirerekomenda: Android 10+ (API 29+) 64-bit architecture',
                     'RAM: Minimum 3GB, Inirerekomenda 4GB+ para sa tuluy-tuloy na AI inference',
-                    'Internal Storage: Hindi bababa sa 2.5GB bakanteng espasyo (para sa Gemma 2 local weights at offline cache)',
+                    'Internal Storage: Hindi bababa sa 2.5GB bakanteng espasyo (para sa Gemma 2B local weights at offline cache)',
                   ]
                 : [
-                    'Android OS 8.0 (API Level 26) or higher',
+                    'Android OS 7.0 (API Level 24) or higher',
                     'Recommended: Android 10+ (API 29+) 64-bit architecture',
                     'RAM: Minimum 3GB, Recommended 4GB+ for seamless multi-model AI inference',
-                    'Internal Storage: At least 2.5GB free space (for Gemma 2 local model weights and offline cache)',
+                    'Internal Storage: At least 2.5GB free space (for Gemma 2B local model weights and offline cache)',
                   ],
             cardBg: cardBg,
             borderColor: borderColor,

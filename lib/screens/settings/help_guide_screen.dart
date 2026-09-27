@@ -117,10 +117,10 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
       index: 6,
       icon: Icons.sensors_outlined,
       title: 'Sensors & Emergency SOS',
-      subtitle: 'Smart glasses connection, low battery alerts, and one-tap emergency SOS location broadcasting.',
+      subtitle: 'Smart glasses connection, phone battery display, and one-tap emergency SOS location broadcasting.',
       startsWith: 'Stay protected with real-time hardware status monitoring and instant emergency contact location broadcasting.',
       bulletPoints: [
-        'Battery Level Alerts: Automatic spoken warning when your smart glasses battery drops below 20%.',
+        'Battery Level: Your phone\'s battery percentage is shown on the Smart Glasses screen in the app. The glasses do not report their own battery level.',
         'Connection Status Alerts: Instant alert when Bluetooth or Wi-Fi connection to your smart glasses is interrupted.',
         'SOS Emergency Alert: Tapping the Red SOS button sends your live GPS location map link via SMS directly to your designated emergency contacts.',
         'UID-Isolated Security: Emergency contacts are securely bound to your user account and are NEVER sent to default or unapproved recipients.',
@@ -135,7 +135,7 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
       bulletPoints: [
         '100% Offline (No Internet Needed): Real-time obstacle & hazard detection runs on-device using a lightweight TFLite neural network in an isolate. Facial geometric landmark identification and text recognition (OCR) operate locally on your phone.',
         'Direct Glasses Stream: The ESP32-CAM Smart Glasses connect directly to your phone via local Wi-Fi SoftAP (192.168.4.1), requiring zero internet access.',
-        'Online Required: Buddy Cloud Assistant (powered by Google Gemini Pro), live GPS turn-by-turn map recalculations (Google Maps API), and cloud weather forecasting require an active internet connection.',
+        'Online Required: Buddy Cloud Assistant (Google Gemini), route planning and place search (Google Maps), weather, the Buddy/Leo (Child) voices (Xiaomi MiMo), and voice commands (unless an offline language pack is installed) need an internet connection.',
         'Automatic Degradation: If your connection drops, EasyLens seamlessly switches Buddy to offline voice mode while keeping all safety collision detection active.',
       ],
     ),
@@ -146,8 +146,8 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
       subtitle: 'Data security architecture, local SoftAP Wi-Fi streaming, and on-device biometric privacy.',
       startsWith: 'EasyLens follows strict privacy-by-design standards to ensure your sensitive physical environment and biometric data remain isolated.',
       bulletPoints: [
-        'Lens-Isolated Hardware: The ESP32-CAM Smart Glasses contain an OV2640 camera, ultrasonic sensor, battery telemetry, and local Wi-Fi AP transmitter. No private user data is ever stored on the physical glasses.',
-        'Private Subnet Streaming: Glasses video frames are transmitted strictly within a local peer-to-peer Wi-Fi subnet between the glasses and your smartphone. Video frames NEVER pass through external cloud servers.',
+        'Lens-Isolated Hardware: The ESP32-CAM Smart Glasses contain an OV2640 camera, an LED headlight, and a local Wi-Fi AP transmitter. No private user data is ever stored on the physical glasses.',
+        'Private Subnet Streaming: Glasses video frames travel over a local Wi-Fi link between the glasses and your phone, not the internet. The only exception is when you ask Buddy for a cloud scene description: that single camera image is sent to Google Gemini.',
         'Phone-Isolated Biometrics: Facial landmark coordinates (25 geometric vector points) are stored only inside your device\'s local storage. They are never shared with cloud databases or public AI training sets.',
         'Permanent Right to Erasure: You have the right to permanently wipe registered face profiles and history at any time from Registered Faces or Settings.',
       ],
@@ -159,7 +159,7 @@ class _HelpGuideScreenState extends State<HelpGuideScreen> {
       subtitle: 'Minimum Android OS versions, required Google APIs, sensor prerequisites, and hardware specifications.',
       startsWith: 'Verify that your device and Google services meet the required technical standards for EasyLens.',
       bulletPoints: [
-        'Operating System: Android 8.0 (Oreo / API Level 26) or higher. Android 10+ (API 29+) 64-bit is strongly recommended for peak neural processing performance.',
+        'Operating System: Android 7.0 (Nougat / API Level 24) or higher. Android 10+ (API 29+) 64-bit is strongly recommended for peak neural processing performance.',
         'Google Play Services: Version 20.0+ required to support Google ML Kit vision landmark detectors and text recognition pipelines.',
         'Google APIs: Google Maps SDK Directions API key (for live audio navigation) and Google Generative AI Gemini API key (for cloud multi-modal reasoning).',
         'Hardware Sensors: Rear/front camera with continuous autofocus, 2.4GHz Wi-Fi (802.11 b/g/n) for glasses, 3-axis accelerometer, gyroscope, magnetometer/compass, and GPS.',
