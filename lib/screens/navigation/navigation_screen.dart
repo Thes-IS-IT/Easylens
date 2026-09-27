@@ -1960,7 +1960,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
             'latLng': LatLng(lat, lng),
             'steps': item['steps'] ?? [
               'Head toward ${item['name']}',
-              'Turn right onto closest main road',
               'Follow directional signs',
               'Arrive at ${item['name']}'
             ],
@@ -2375,117 +2374,198 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
+  /// Decodes a Google encoded polyline string into coordinates.
+  static List<LatLng> _decodePolyline(String encoded) {
+    final List<LatLng> points = [];
+    int index = 0, lat = 0, lng = 0;
+    while (index < encoded.length) {
+      for (int coord = 0; coord < 2; coord++) {
+        int shift = 0, result = 0, b;
+        do {
+          b = encoded.codeUnitAt(index++) - 63;
+          result |= (b & 0x1f) << shift;
+          shift += 5;
+        } while (b >= 0x20);
+        final delta = (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
+        if (coord == 0) {
+          lat += delta;
+        } else {
+          lng += delta;
+        }
+      }
+      points.add(LatLng(lat / 1e5, lng / 1e5));
+    }
+    return points;
+  }
+
+  /// Walking route from the Google Directions API (mode=walking).
+  /// Returns null if the key is missing, the API is not enabled, or no route is found.
+  Future<_WalkingRoute?> _fetchGoogleWalkingRoute(LatLng start, LatLng end) async {
+    final apiKey = dotenv.env['GOOGLE_MAPS_KEY'] ?? '';
+    if (apiKey.isEmpty) return null;
+    final url = Uri.parse(
+      "https://maps.googleapis.com/maps/api/directions/json"
+      "?origin=${start.latitude},${start.longitude}"
+      "&destination=${end.latitude},${end.longitude}"
+      "&mode=walking&key=$apiKey"
+    );
+    final response = await http.get(url).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body);
+    if (data['status'] != 'OK' || data['routes'] == null || data['routes'].isEmpty) {
+      print("Google walking route unavailable: ${data['status']} ${data['error_message'] ?? ''}");
+      return null;
+    }
+    final leg = data['routes'][0]['legs'][0];
+    final List<LatLng> points = [];
+    final List<String> steps = [];
+    final List<LatLng> stepLocations = [];
+    for (final step in (leg['steps'] as List)) {
+      points.addAll(_decodePolyline(step['polyline']['points'] as String));
+      final instruction = (step['html_instructions'] as String? ?? '')
+          .replaceAll(RegExp(r'<div[^>]*>'), '. ')
+          .replaceAll(RegExp(r'<[^>]+>'), '')
+          .replaceAll('&nbsp;', ' ')
+          .replaceAll('&amp;', '&')
+          .trim();
+      if (instruction.isEmpty) continue;
+      steps.add(instruction);
+      final loc = step['start_location'];
+      stepLocations.add(LatLng((loc['lat'] as num).toDouble(), (loc['lng'] as num).toDouble()));
+    }
+    if (points.isEmpty) return null;
+    return _WalkingRoute(
+      points: points,
+      distanceM: (leg['distance']['value'] as num).toDouble(),
+      durationS: (leg['duration']['value'] as num).toDouble(),
+      steps: steps,
+      stepLocations: stepLocations,
+    );
+  }
+
+  /// Walking route from the public OSRM foot-profile server (routing.openstreetmap.de).
+  /// Used when the Google Directions API is unavailable.
+  Future<_WalkingRoute?> _fetchOsmWalkingRoute(LatLng start, LatLng end) async {
+    final url = Uri.parse(
+      "https://routing.openstreetmap.de/routed-foot/route/v1/foot/"
+      "${start.longitude},${start.latitude};${end.longitude},${end.latitude}"
+      "?overview=full&geometries=geojson&steps=true"
+    );
+    final response = await http.get(url).timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body);
+    if (data['routes'] == null || data['routes'].isEmpty) return null;
+    final route = data['routes'][0];
+    final coordinates = route['geometry']['coordinates'] as List;
+    final List<LatLng> points = coordinates.map((coord) {
+      final double lon = coord[0].toDouble();
+      final double lat = coord[1].toDouble();
+      return LatLng(lat, lon);
+    }).toList();
+
+    final List<String> steps = [];
+    final List<LatLng> stepLocations = [];
+    if (route['legs'] != null && route['legs'].isNotEmpty) {
+      final leg = route['legs'][0];
+      if (leg['steps'] != null && leg['steps'].isNotEmpty) {
+        for (var step in leg['steps'] as List) {
+          final maneuver = step['maneuver'];
+          String instruction = '';
+          if (maneuver != null && maneuver['instruction'] != null) {
+            instruction = maneuver['instruction'] as String;
+          } else {
+            final type = maneuver?['type'] ?? 'move';
+            final modifier = maneuver?['modifier'] ?? '';
+            final name = step['name'] ?? '';
+            instruction = "${type.replaceAll('_', ' ')} ${modifier.replaceAll('_', ' ')} ${name.isNotEmpty ? 'onto $name' : ''}".trim();
+          }
+          if (instruction.isNotEmpty) {
+            steps.add(instruction);
+            if (maneuver != null && maneuver['location'] != null) {
+              final locList = maneuver['location'] as List;
+              stepLocations.add(LatLng(locList[1].toDouble(), locList[0].toDouble()));
+            } else {
+              stepLocations.add(end);
+            }
+          }
+        }
+      }
+    }
+    return _WalkingRoute(
+      points: points,
+      distanceM: (route['distance'] as num).toDouble(),
+      durationS: (route['duration'] as num).toDouble(),
+      steps: steps,
+      stepLocations: stepLocations,
+    );
+  }
+
   Future<void> _fetchRoadRoute() async {
     if (_selectedPlace == null || _isFetchingRoute) return;
     _isFetchingRoute = true;
     final start = _currentLocation;
     final end = _selectedPlace!['latLng'] as LatLng;
-    
+
     try {
-      final url = Uri.parse(
-        "https://router.project-osrm.org/route/v1/driving/"
-        "${start.longitude},${start.latitude};${end.longitude},${end.latitude}"
-        "?overview=full&geometries=geojson&steps=true"
-      );
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['routes'] != null && data['routes'].isNotEmpty) {
-          final route = data['routes'][0];
-          final coordinates = route['geometry']['coordinates'] as List;
-          final List<LatLng> points = coordinates.map((coord) {
-            final double lon = coord[0].toDouble();
-            final double lat = coord[1].toDouble();
-            return LatLng(lat, lon);
-          }).toList();
-          
-          final double distanceInMeters = (route['distance'] as num).toDouble();
-          final double durationInSeconds = (route['duration'] as num).toDouble();
+      // Walking routes only: Google Directions first, OpenStreetMap foot routing as fallback.
+      _WalkingRoute? route;
+      try {
+        route = await _fetchGoogleWalkingRoute(start, end);
+      } catch (e) {
+        print("Google walking route error: $e");
+      }
+      route ??= await _fetchOsmWalkingRoute(start, end);
+      if (route == null) {
+        throw Exception('No walking route available');
+      }
 
-          final double kmVal = distanceInMeters / 1000.0;
-          final String distStr = "${kmVal.toStringAsFixed(1)} km";
-          final int minutes = (durationInSeconds / 60.0).round();
-          final String timeStr = "$minutes min";
+      final List<LatLng> points = route.points;
+      final double kmVal = route.distanceM / 1000.0;
+      final String distStr = "${kmVal.toStringAsFixed(1)} km";
+      final int minutes = (route.durationS / 60.0).round();
+      final String timeStr = "$minutes min";
 
-          // Parse dynamic steps from OSRM S01
-          final List<String> parsedSteps = [];
-          final List<LatLng> stepLocations = [];
-          if (route['legs'] != null && route['legs'].isNotEmpty) {
-            final leg = route['legs'][0];
-            if (leg['steps'] != null && leg['steps'].isNotEmpty) {
-              final stepsList = leg['steps'] as List;
-              for (var step in stepsList) {
-                final maneuver = step['maneuver'];
-                String instruction = '';
-                if (maneuver != null && maneuver['instruction'] != null) {
-                  instruction = maneuver['instruction'] as String;
-                } else {
-                  final type = maneuver?['type'] ?? 'move';
-                  final modifier = maneuver?['modifier'] ?? '';
-                  final name = step['name'] ?? '';
-                  instruction = "${type.replaceAll('_', ' ')} ${modifier.replaceAll('_', ' ')} ${name.isNotEmpty ? 'onto $name' : ''}".trim();
-                }
-                if (instruction.isNotEmpty) {
-                  parsedSteps.add(instruction);
-                  if (maneuver != null && maneuver['location'] != null) {
-                    final locList = maneuver['location'] as List;
-                    stepLocations.add(LatLng(locList[1].toDouble(), locList[0].toDouble()));
-                  } else {
-                    stepLocations.add(end);
-                  }
-                }
-              }
-            }
-          }
+      final List<String> parsedSteps = List<String>.from(route.steps);
+      final List<LatLng> stepLocations = List<LatLng>.from(route.stepLocations);
 
-          if (parsedSteps.isEmpty) {
-            parsedSteps.addAll([
-              'Head toward ${_selectedPlace!['name']}',
-              'Turn right onto closest main road',
-              'Follow directional signs',
-              'Arrive at ${_selectedPlace!['name']}'
-            ]);
-            stepLocations.addAll([
-              start,
-              LatLng(start.latitude + (end.latitude - start.latitude) * 0.33, start.longitude + (end.longitude - start.longitude) * 0.33),
-              LatLng(start.latitude + (end.latitude - start.latitude) * 0.66, start.longitude + (end.longitude - start.longitude) * 0.66),
-              end,
-            ]);
-          }
+      if (parsedSteps.isEmpty) {
+        parsedSteps.addAll([
+          'Head toward ${_selectedPlace!['name']}',
+          'Arrive at ${_selectedPlace!['name']}'
+        ]);
+        stepLocations.addAll([start, end]);
+      }
 
-          if (mounted) {
-            setState(() {
-              _routePoints = points;
-              _stepLocations = stepLocations;
-              _selectedPlace!['steps'] = parsedSteps;
-              _selectedPlace!['dist'] = distStr;
-              _selectedPlace!['time'] = timeStr;
-            });
-            ActiveNavigationService().startNavigation(
-              destinationName: _selectedPlace!['name'],
-              destinationLocation: end,
-              routePoints: points,
-              activePlace: _selectedPlace,
-              stepLocations: stepLocations,
-            );
-            ActiveNavigationService().updateProgress(
-              currentStepText: _selectedPlace!['steps'][_currentStepIndex.clamp(0, parsedSteps.length - 1)],
-              distanceRemaining: distStr,
-              timeRemaining: timeStr,
-              currentLocation: start,
-              currentStepIndex: _currentStepIndex,
-            );
-          }
-        }
+      if (mounted) {
+        setState(() {
+          _routePoints = points;
+          _stepLocations = stepLocations;
+          _selectedPlace!['steps'] = parsedSteps;
+          _selectedPlace!['dist'] = distStr;
+          _selectedPlace!['time'] = timeStr;
+        });
+        ActiveNavigationService().startNavigation(
+          destinationName: _selectedPlace!['name'],
+          destinationLocation: end,
+          routePoints: points,
+          activePlace: _selectedPlace,
+          stepLocations: stepLocations,
+        );
+        ActiveNavigationService().updateProgress(
+          currentStepText: _selectedPlace!['steps'][_currentStepIndex.clamp(0, parsedSteps.length - 1)],
+          distanceRemaining: distStr,
+          timeRemaining: timeStr,
+          currentLocation: start,
+          currentStepIndex: _currentStepIndex,
+        );
       }
     } catch (e) {
-      print("OSRM route fetch error: $e");
+      print("Walking route fetch error: $e");
       if (mounted) {
         final steps = (_selectedPlace != null && _selectedPlace!['steps'] != null) 
             ? List<String>.from(_selectedPlace!['steps'])
             : <String>[
                 'Head toward ${_selectedPlace!['name']}',
-                'Turn right onto closest main road',
                 'Follow directional signs',
                 'Arrive at ${_selectedPlace!['name']}'
               ];
@@ -2785,7 +2865,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 'latLng': targetLatLng,
                 'steps': [
                   'Head toward $name',
-                  'Turn right onto main road',
+                  'Follow directional signs',
                   'Arrive at $name'
                 ]
               });
@@ -3153,12 +3233,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
       'latLng': position,
       'steps': isFilipino ? [
         'Tumungo patungong Pinned Location',
-        'Kumanan sa pinakamalapit na pangunahing daan',
         'Sundin ang mga palatandaan sa direksyon',
         'Dumating sa Pinned Location'
       ] : [
         'Head toward Pinned Location',
-        'Turn right onto closest main road',
         'Follow directional signs',
         'Arrive at Pinned Location'
       ]
@@ -4860,4 +4938,21 @@ class _NavigationScreenState extends State<NavigationScreen> {
       ],
     );
   }
+}
+
+/// A walking route normalized from either Google Directions or OSRM.
+class _WalkingRoute {
+  final List<LatLng> points;
+  final double distanceM;
+  final double durationS;
+  final List<String> steps;
+  final List<LatLng> stepLocations;
+
+  const _WalkingRoute({
+    required this.points,
+    required this.distanceM,
+    required this.durationS,
+    required this.steps,
+    required this.stepLocations,
+  });
 }

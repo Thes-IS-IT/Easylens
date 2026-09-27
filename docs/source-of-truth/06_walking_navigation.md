@@ -13,7 +13,7 @@ The walking navigation system provides real-time obstacle warnings, non-critical
 EasyLens integrates global map routing with localized safety metrics to construct a safe walking corridor:
 
 #### 1. Pedestrian Shortest Path Routing: Dijkstra's / A* Search Algorithm
-* **Algorithm**: **Dijkstra's Algorithm / A\* Search** (used internally by Google Maps Directions API).
+* **Algorithm**: **Dijkstra's Algorithm / A\* Search**, computed server-side by the routing provider. EasyLens requests walking routes from the Google Maps Directions API (`mode=walking`); if that request fails, it falls back to the OpenStreetMap OSRM foot-profile server (`routing.openstreetmap.de/routed-foot`), which uses Contraction Hierarchies over a pedestrian road graph.
 * **Details**: Computes the optimal walking paths along pedestrian networks, sidewalks, and crosswalk segments, returning a collection of coordinate waypoints and localized routing instructions.
 
 #### 2. Distance Calculations: The Haversine Formula
