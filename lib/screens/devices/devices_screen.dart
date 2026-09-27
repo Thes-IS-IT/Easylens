@@ -403,7 +403,7 @@ class _DevicesScreenState extends State<DevicesScreen>
     final steps = [
       ('1', 'Turn on your ESP32-CAM smart glasses.'),
       ('2', 'On your phone, go to WiFi Settings.'),
-      ('3', 'Connect to "EasyLens-Camera" (open, no password).'),
+      ('3', 'Connect to "EasyLens-Camera" and enter the glasses Wi-Fi password.'),
       ('4', 'Come back here and tap "Connect".'),
     ];
     return Container(

@@ -27,7 +27,7 @@ Easylens is an accessibility assistant designed for visually impaired and neurod
    - Performs low-latency on-device Optical Character Recognition (OCR) to parse labels, prescription text, and warning signs.
 
 #### Hardware & Peripherals (ESP32-CAM)
-- **Local Networking Server:** The ESP32 hosts a local open WiFi Access Point (AP) named `EasyLens-Camera`.
+- **Local Networking Server:** The ESP32 hosts a local WPA2-protected WiFi Access Point (AP) named `EasyLens-Camera` (password set in the git-ignored `secrets.h`).
 - **MJPEG Video Receiver:** `Esp32Service` establishes an HTTP persistent boundary stream to `http://192.168.4.1:81/stream`, chunk-decodes raw JPEG frames, and updates visual frames.
 - **Hardware Control Endpoint:** Sends micro-control GET requests to adjust flash LED levels (`/led?val=1` or `/led?val=0`).
 

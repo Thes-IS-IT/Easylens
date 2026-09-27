@@ -62,3 +62,5 @@ journal_*.md
 *.ipa
 *.apk
 
+# ESP32 lens firmware secrets (Wi-Fi password)
+hardware/esp32_cam_wifi_ap/secrets.h

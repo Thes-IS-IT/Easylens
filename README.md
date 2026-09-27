@@ -181,9 +181,9 @@ flutter analyze
 To stream live video into the object detection pipeline, you must connect your mobile device to the ESP32's local Wi-Fi Access Point:
 
 > **Network Name (SSID):** `EasyLens-Camera`  
-> **Password:** *(None / Open Network)*  
+> **Password:** WPA2, set in `hardware/esp32_cam_wifi_ap/secrets.h` (8–63 characters)  
 
-Flash the `hardware/esp32_cam_wifi_ap/esp32_cam_wifi_ap.ino` sketch to your ESP32-CAM module to initiate the MJPEG stream.
+Before flashing, copy `hardware/esp32_cam_wifi_ap/secrets.example.h` to `secrets.h` in the same folder and set your own password. `secrets.h` is git-ignored, so the password is never published in this repository. Then flash the `hardware/esp32_cam_wifi_ap/esp32_cam_wifi_ap.ino` sketch to your ESP32-CAM module to initiate the MJPEG stream.
 
 ---
 

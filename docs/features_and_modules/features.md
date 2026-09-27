@@ -382,7 +382,7 @@ All preferences collected during onboarding are written to `SettingsService` (Sh
 EasyLens supports a custom ESP32-CAM smart glass device for hands-free vision assistance.
 
 #### Architecture
-- **WiFi AP Mode:** The ESP32 hosts an Access Point: SSID `EasyLens-Camera`, no password.
+- **WiFi AP Mode:** The ESP32 hosts a WPA2-protected Access Point: SSID `EasyLens-Camera`, password set in the git-ignored `hardware/esp32_cam_wifi_ap/secrets.h`. Only one device can be connected at a time.
 - **MJPEG Streaming:** `Esp32Service` connects to `http://192.168.4.1:81/stream`, parses raw JPEG boundary frames, and emits `Uint8List` frame updates.
 - **LED Flash:** HTTP GET to `/led?val=1` (on) or `/led?val=0` (off).
 - **Custom URL:** Users can override the default stream endpoint in Settings.

@@ -23,8 +23,13 @@
 #define PCLK_GPIO_NUM     22
 
 // Wi-Fi Access Point Settings
+// The WPA2 password lives in secrets.h (git-ignored) so it is not published in this public repo.
+// Copy secrets.example.h to secrets.h and set your own password before flashing.
+#include "secrets.h"
+static_assert(sizeof(LENS_WIFI_PASSWORD) - 1 >= 8 && sizeof(LENS_WIFI_PASSWORD) - 1 <= 63,
+              "LENS_WIFI_PASSWORD in secrets.h must be 8-63 characters (WPA2 requirement)");
 const char* ssid = "EasyLens-Camera";
-const char* password = ""; // Open network
+const char* password = LENS_WIFI_PASSWORD;
 
 httpd_handle_t stream_httpd = NULL;
 
@@ -213,7 +218,7 @@ void setup() {
     s->set_lenc(s, 1);           // Lens correction
   }
 
-  // Configure ESP32-CAM as Wi-Fi Access Point on Channel 6, single-client lock
+  // Configure ESP32-CAM as a WPA2-protected Wi-Fi Access Point on Channel 6, single-client lock
   WiFi.softAP(ssid, password, 6, 0, 1);
   
   // Wi-Fi Connectivity & Latency Optimizations
