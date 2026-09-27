@@ -25,7 +25,7 @@ class FaceProfile {
     this.multiSampleFeatures,
     required this.registeredAt,
     this.userId,
-    this.isGdprConsented = true,
+    this.isGdprConsented = false,
     this.consentDate,
   });
 
@@ -55,7 +55,7 @@ class FaceProfile {
             .toList(),
         registeredAt: DateTime.parse(json['registeredAt'] as String),
         userId: json['userId'] as String?,
-        isGdprConsented: json['isGdprConsented'] as bool? ?? true,
+        isGdprConsented: json['isGdprConsented'] as bool? ?? false,
         consentDate: json['consentDate'] != null
             ? DateTime.tryParse(json['consentDate'] as String)
             : null,
@@ -117,7 +117,7 @@ class FaceRegistrationService extends ChangeNotifier {
       registeredAt: profile.registeredAt,
       userId: profile.userId ?? activeUid,
       isGdprConsented: profile.isGdprConsented,
-      consentDate: profile.consentDate ?? DateTime.now(),
+      consentDate: profile.consentDate,
     );
 
     final profiles = await getAllProfiles();

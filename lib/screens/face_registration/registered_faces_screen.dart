@@ -75,6 +75,58 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
     }
   }
 
+  /// Records consent for a face registered before consent was required.
+  /// Until this is done the face is kept but not recognized.
+  Future<void> _confirmConsent(FaceProfile p) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.primaryBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Record consent for "${p.name}"?',
+          style: GoogleFonts.inter(
+            color: AppColors.primaryText,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Confirm that ${p.name} has given explicit consent to store their face data on this phone and be recognized (RA 10173). '
+          'Until then, this face will not be recognized.',
+          style: GoogleFonts.inter(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel',
+                style: GoogleFonts.inter(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('I Confirm Consent',
+                style: GoogleFonts.inter(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await FaceRegistrationService().saveProfile(FaceProfile(
+        id: p.id,
+        name: p.name,
+        imageLocalPath: p.imageLocalPath,
+        faceFeatures: p.faceFeatures,
+        multiSampleFeatures: p.multiSampleFeatures,
+        registeredAt: p.registeredAt,
+        userId: p.userId,
+        isGdprConsented: true,
+        consentDate: DateTime.now(),
+      ));
+      await _load();
+    }
+  }
+
   String _formatDate(DateTime dt) {
     final months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -206,7 +258,7 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'GDPR Compliance: Biometric landmarks stored locally on this phone. Swipe any face to permanently erase.',
+                            'RA 10173 / GDPR: Face data is stored only on this phone. Faces without recorded consent are not recognized. Swipe any face to permanently erase.',
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               color: AppColors.textMuted,
@@ -382,32 +434,43 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
                     spacing: 6,
                     runSpacing: 4,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                              color: Colors.green.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.verified_user_rounded,
-                                size: 10, color: Colors.green),
-                            const SizedBox(width: 4),
-                            Text(
-                              p.isGdprConsented
-                                  ? 'GDPR Consented'
-                                  : 'Consent Pending',
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
+                      GestureDetector(
+                        onTap: p.isGdprConsented ? null : () => _confirmConsent(p),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: (p.isGdprConsented ? Colors.green : Colors.orange)
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: (p.isGdprConsented ? Colors.green : Colors.orange)
+                                    .withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                  p.isGdprConsented
+                                      ? Icons.verified_user_rounded
+                                      : Icons.pending_actions_rounded,
+                                  size: 10,
+                                  color: p.isGdprConsented ? Colors.green : Colors.orange),
+                              const SizedBox(width: 4),
+                              Text(
+                                p.isGdprConsented
+                                    ? 'Consent Recorded'
+                                    : 'Consent Pending · Tap to confirm',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: p.isGdprConsented
+                                      ? Colors.green[700]
+                                      : Colors.orange[800],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       Container(

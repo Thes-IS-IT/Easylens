@@ -777,6 +777,8 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
                   multiSampleFeatures: prof.multiSampleFeatures,
                   registeredAt: prof.registeredAt,
                   userId: prof.userId,
+                  isGdprConsented: prof.isGdprConsented,
+                  consentDate: prof.consentDate,
                 );
                 await FaceRegistrationService().saveProfile(updatedProf);
                 profiles[i] = updatedProf;
@@ -794,7 +796,8 @@ class _HardwareScreenState extends State<HardwareScreen> with WidgetsBindingObse
 
     if (mounted) {
       setState(() {
-        _registeredFaces = profiles;
+        // Only faces with recorded consent are recognized and announced.
+        _registeredFaces = profiles.where((p) => p.isGdprConsented).toList();
       });
       debugPrint('[FaceRecog] Loaded ${profiles.length} registered faces. Feature lengths: ${profiles.map((p) => "${p.name}:${p.faceFeatures?.length ?? 0}").join(", ")}');
     }

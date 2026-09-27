@@ -343,7 +343,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              isFilipino ? 'Kasunduan sa Pahintulot (GDPR Art. 9)' : 'GDPR Article 9 Consent Agreement',
+                              isFilipino ? 'Kasunduan sa Pahintulot (RA 10173 at GDPR)' : 'Consent Agreement (RA 10173 & GDPR)',
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -384,8 +384,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                               Expanded(
                                 child: Text(
                                   isFilipino
-                                      ? 'Ang mga geometric landmark ng mukha ay bumubuo ng espesyal na kategorya ng biometric data alinsunod sa GDPR at mga batas sa data privacy.'
-                                      : 'Facial geometric landmarks constitute special category biometric data under European GDPR & data privacy laws.',
+                                      ? 'Ang biometric data ng mukha ay sensitibong personal na impormasyon sa ilalim ng Data Privacy Act of 2012 (RA 10173) ng Pilipinas, at espesyal na kategorya ng data sa ilalim ng GDPR Art. 9.'
+                                      : 'Facial biometric data is sensitive personal information under the Philippine Data Privacy Act of 2012 (RA 10173), and special category data under GDPR Art. 9.',
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     color: AppColors.primaryText,
@@ -399,7 +399,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                         const SizedBox(height: 16),
                         _buildAgreementSection(
                           icon: Icons.assignment_turned_in_outlined,
-                          title: isFilipino ? '1. Malinaw na Pahintulot (GDPR Art. 9)' : '1. Explicit Consent (GDPR Art. 9)',
+                          title: isFilipino ? '1. Malinaw na Pahintulot (RA 10173 Sek. 13; GDPR Art. 9)' : '1. Explicit Consent (RA 10173 Sec. 13; GDPR Art. 9)',
                           content: isFilipino
                               ? 'Sa pamamagitan ng paglagay ng tsek sa consent box, kinukumpirma mo na ang taong inirerehistro ang mukha ay nagbigay ng malinaw at may-kabatirang pahintulot na kunan ang kanyang mukha at kilalanin ito sa real-time.'
                               : 'By checking the consent box, you confirm that the person whose face is being registered has given unambiguous, informed consent to capture their facial features and recognize them in real-time.',
@@ -420,7 +420,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                         ),
                         _buildAgreementSection(
                           icon: Icons.delete_forever_outlined,
-                          title: isFilipino ? '4. Karapatang Mabura (GDPR Art. 17)' : '4. Right to Erasure (GDPR Art. 17)',
+                          title: isFilipino ? '4. Karapatang Mabura (RA 10173 Sek. 16; GDPR Art. 17)' : '4. Right to Erasure (RA 10173 Sec. 16; GDPR Art. 17)',
                           content: isFilipino
                               ? 'Pinapanatili ng bawat indibidwal ang karapatang mabura. Maaari mong permanenteng burahin ang profile ng mukha at lahat ng embeddings anumang oras mula sa "Mga Nakaimbak na Mukha".'
                               : 'The individual maintains the absolute right to be forgotten. You can permanently delete this face profile and all landmark embeddings at any time from "View Registered Faces".',
@@ -429,8 +429,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                           icon: Icons.shield_outlined,
                           title: isFilipino ? '5. Pagbawas ng Data at Seguridad' : '5. Data Minimization & Security',
                           content: isFilipino
-                              ? 'Hindi nagsasanay ang EasyLens ng pampublikong AI model gamit ang iyong mga larawan. Tanging mathematical distance ratios lamang ng mga hugis ng mukha ang nakaimbak sa device.'
-                              : 'EasyLens does not train public AI models with your photos. Only mathematical distance ratios between facial contours are stored in local device storage.',
+                              ? 'Hindi nagsasanay ang EasyLens ng pampublikong AI model gamit ang iyong mga larawan. Ang larawan at ang mathematical distance ratios ng mga hugis ng mukha lamang ang nakaimbak sa device.'
+                              : 'EasyLens does not train public AI models with your photos. Only the photo and the mathematical distance ratios between facial contours are stored in local device storage.',
                         ),
                       ],
                     ),
@@ -1733,6 +1733,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
               _currentCaptureIndex = 0;
               _nameController.clear();
               _errorMessage = '';
+              _gdprConsentChecked = false;
             });
           },
         ),
