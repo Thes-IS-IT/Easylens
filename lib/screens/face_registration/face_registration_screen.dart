@@ -343,7 +343,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              isFilipino ? 'Kasunduan sa Pahintulot (GDPR Art. 9)' : 'GDPR Article 9 Consent Agreement',
+                              isFilipino ? 'Kasunduan sa Pahintulot (RA 10173)' : 'Data Privacy Act (RA 10173) Consent',
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -384,8 +384,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                               Expanded(
                                 child: Text(
                                   isFilipino
-                                      ? 'Ang mga geometric landmark ng mukha ay bumubuo ng espesyal na kategorya ng biometric data alinsunod sa GDPR at mga batas sa data privacy.'
-                                      : 'Facial geometric landmarks constitute special category biometric data under European GDPR & data privacy laws.',
+                                      ? 'Ang mga geometric landmark at sukat ng mukha ay bumubuo ng Sensitibong Personal na Impormasyon (SPI) alinsunod sa Data Privacy Act ng Pilipinas (Republic Act No. 10173).'
+                                      : 'Facial geometric landmarks constitute Sensitive Personal Information (SPI) protected under the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).',
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     color: AppColors.primaryText,
@@ -399,10 +399,10 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                         const SizedBox(height: 16),
                         _buildAgreementSection(
                           icon: Icons.assignment_turned_in_outlined,
-                          title: isFilipino ? '1. Malinaw na Pahintulot (GDPR Art. 9)' : '1. Explicit Consent (GDPR Art. 9)',
+                          title: isFilipino ? '1. Hayagang Pahintulot (RA 10173 Sec. 13)' : '1. Explicit Consent (RA 10173 Sec. 13)',
                           content: isFilipino
-                              ? 'Sa pamamagitan ng paglagay ng tsek sa consent box, kinukumpirma mo na ang taong inirerehistro ang mukha ay nagbigay ng malinaw at may-kabatirang pahintulot na kunan ang kanyang mukha at kilalanin ito sa real-time.'
-                              : 'By checking the consent box, you confirm that the person whose face is being registered has given unambiguous, informed consent to capture their facial features and recognize them in real-time.',
+                              ? 'Sa pamamagitan ng paglagay ng tsek sa consent box, kinukumpirma mo na ang taong inirerehistro ang mukha ay nagbigay ng hayagan, malaya, at may-kabatirang pahintulot na kunan at iproseso ang kanyang biometric na mukha para sa real-time na pagkilala.'
+                              : 'By checking the consent box, you confirm that the data subject whose face is being registered has given unambiguous, informed, and explicit consent to capture and process their facial biometrics for real-time recognition.',
                         ),
                         _buildAgreementSection(
                           icon: Icons.phonelink_lock_rounded,
@@ -413,24 +413,24 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                         ),
                         _buildAgreementSection(
                           icon: Icons.visibility_outlined,
-                          title: isFilipino ? '3. Limitasyon sa Layunin' : '3. Purpose Limitation',
+                          title: isFilipino ? '3. Limitasyon sa Layunin at Proporsyonalidad' : '3. Purpose Limitation & Proportionality',
                           content: isFilipino
                               ? 'Ang biometric data ay eksklusibong ginagamit para sa visual accessibility assistance — na nagbibigay-daan sa EasyLens at Buddy na banggitin ang pangalan ng tao kapag nakita sa harap ng user.'
                               : 'Biometric data is used exclusively for visual accessibility assistance — allowing EasyLens and Buddy to announce the person’s name when detected in front of the user.',
                         ),
                         _buildAgreementSection(
                           icon: Icons.delete_forever_outlined,
-                          title: isFilipino ? '4. Karapatang Mabura (GDPR Art. 17)' : '4. Right to Erasure (GDPR Art. 17)',
+                          title: isFilipino ? '4. Karapatang Magpabura at Mag-alis (Sec. 16)' : '4. Right to Erasure or Blocking (Sec. 16)',
                           content: isFilipino
-                              ? 'Pinapanatili ng bawat indibidwal ang karapatang mabura. Maaari mong permanenteng burahin ang profile ng mukha at lahat ng embeddings anumang oras mula sa "Mga Nakaimbak na Mukha".'
-                              : 'The individual maintains the absolute right to be forgotten. You can permanently delete this face profile and all landmark embeddings at any time from "View Registered Faces".',
+                              ? 'Pinapanatili ng bawat indibidwal ang karapatang magpabura o mag-alis ng kanyang impormasyon alinsunod sa batas. Maaari mong permanenteng burahin ang profile ng mukha at lahat ng embeddings anumang oras mula sa "Mga Nakaimbak na Mukha".'
+                              : 'Under Section 16 of RA 10173, data subjects retain the right to erasure or blocking. You can permanently delete this face profile and all landmark embeddings at any time from "View Registered Faces".',
                         ),
                         _buildAgreementSection(
                           icon: Icons.shield_outlined,
-                          title: isFilipino ? '5. Pagbawas ng Data at Seguridad' : '5. Data Minimization & Security',
+                          title: isFilipino ? '5. Pagbawas ng Datos at Panseguridad (Sec. 20)' : '5. Data Minimization & Security (Sec. 20)',
                           content: isFilipino
-                              ? 'Hindi nagsasanay ang EasyLens ng pampublikong AI model gamit ang iyong mga larawan. Tanging mathematical distance ratios lamang ng mga hugis ng mukha ang nakaimbak sa device.'
-                              : 'EasyLens does not train public AI models with your photos. Only mathematical distance ratios between facial contours are stored in local device storage.',
+                              ? 'Alinsunod sa mga panuntunan ng National Privacy Commission (NPC), hindi nagsasanay ang EasyLens ng pampublikong AI model gamit ang iyong mga larawan. Tanging mathematical distance ratios lamang ng mga hugis ng mukha ang ligtas na nakaimbak sa device.'
+                              : 'In accordance with National Privacy Commission (NPC) security standards, EasyLens does not train public AI models with your photos. Only mathematical distance ratios between facial contours are securely stored in local device storage.',
                         ),
                       ],
                     ),
@@ -749,7 +749,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
-                  'GDPR Consent Required: Please check the consent agreement box to recognize this face.',
+                  'Data Privacy Consent Required: Please check the RA 10173 consent agreement box to recognize this face.',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -819,7 +819,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
-                  'GDPR Consent Required: Please check the consent agreement box to recognize this face.',
+                  'Data Privacy Consent Required: Please check the RA 10173 consent agreement box to recognize this face.',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -1098,8 +1098,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                                   const SizedBox(height: 4),
                                   Text(
                                     isFilipino
-                                        ? 'Kinukumpirma ko na may malinaw na pahintulot mula sa taong kinukunan ng litrato upang makuha at makilala ang kanyang biometric na mukha.'
-                                        : 'I confirm that explicit consent has been obtained from the person being photographed to capture and recognize their facial biometrics.',
+                                        ? 'Alinsunod sa Data Privacy Act (RA 10173), kinukumpirma ko na may hayagang pahintulot mula sa taong kinukunan ng litrato upang makuha at maproseso ang kanyang biometric na mukha.'
+                                        : 'Under the Philippine Data Privacy Act (RA 10173), I confirm that explicit consent has been obtained from this person to capture and recognize their facial biometrics.',
                                     style: GoogleFonts.inter(
                                       fontSize: 11.5,
                                       color: AppColors.textMuted,
@@ -1402,7 +1402,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'GDPR Consent: Set as "Recognized"',
+                            'Data Privacy Consent (RA 10173)',
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -1411,7 +1411,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'I confirm explicit consent from this person to capture their facial landmarks and set them as a recognized face.',
+                            'I confirm explicit consent under the Data Privacy Act to capture this person’s facial biometrics and set them as a recognized face.',
                             style: GoogleFonts.inter(
                               fontSize: 11.5,
                               color: AppColors.textMuted,
@@ -1438,7 +1438,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                         Icon(Icons.policy_outlined, size: 14, color: AppColors.primaryButton),
                         const SizedBox(width: 4),
                         Text(
-                          'Read Biometric Privacy Agreement & T&C',
+                          'Read Biometric Privacy Agreement & T&C (RA 10173)',
                           style: GoogleFonts.inter(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
@@ -1474,7 +1474,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen>
                 SnackBar(
                   backgroundColor: const Color(0xFFDC2626),
                   content: const Text(
-                    'GDPR Consent Required: Please check the consent agreement box to continue.',
+                    'Data Privacy Consent Required: Please check the RA 10173 consent agreement box to continue.',
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                   action: SnackBarAction(
