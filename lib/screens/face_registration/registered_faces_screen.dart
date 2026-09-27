@@ -206,7 +206,7 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'GDPR Compliance: Biometric landmarks stored locally on this phone. Swipe any face to permanently erase.',
+                            'DPA (RA 10173) Compliance: Biometric landmarks stored locally on this phone. Swipe any face to permanently erase.',
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               color: AppColors.textMuted,
@@ -399,7 +399,7 @@ class _RegisteredFacesScreenState extends State<RegisteredFacesScreen> {
                             const SizedBox(width: 4),
                             Text(
                               p.isGdprConsented
-                                  ? 'GDPR Consented'
+                                  ? 'DPA Consented'
                                   : 'Consent Pending',
                               style: GoogleFonts.inter(
                                 fontSize: 10,
