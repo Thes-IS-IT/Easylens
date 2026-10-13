@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User profile avatars and photos
+    match /users/{userId}/{fileName} {
+      allow read: if isOwner(userId) || (isAuthenticated() && request.auth.token.email == 'parejasarronkian@gmail.com');
+      allow write: if isOwner(userId) &&
+        request.resource.size <= 5 * 1024 * 1024 && // Max 5MB
+        request.resource.contentType.matches('image/.*');
+      allow delete: if isOwner(userId);
+    }
+
+    match /avatars/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) &&
+        request.resource.size <= 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+      allow delete: if isOwner(userId);
+    }
+
+    // Default deny for all other storage paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

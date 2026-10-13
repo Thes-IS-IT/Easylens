@@ -131,16 +131,21 @@ class FirebaseService {
         await prefs.setBool('is_logged_in', false);
         print('[FirebaseService] Stay logged in is false. Cleared session for restart.');
       } else {
-        final savedUid = prefs.getString('user_uid') ?? "persisted_user_uid";
-        final savedEmail = prefs.getString('user_email') ?? "user@easylens.app";
+        final savedUid = prefs.getString('user_uid');
+        final savedEmail = prefs.getString('user_email');
         final savedName = prefs.getString('user_display_name') ?? "EasyLens Explorer";
-        _mockUser = EasyLensUser(
-          uid: savedUid,
-          email: savedEmail,
-          displayName: savedName,
-          isForMyself: true,
-        );
-        print('[FirebaseService] Restored user session for $savedEmail');
+        if (savedUid != null && savedUid.isNotEmpty && savedEmail != null && savedEmail.isNotEmpty) {
+          _mockUser = EasyLensUser(
+            uid: savedUid,
+            email: savedEmail,
+            displayName: savedName,
+            isForMyself: true,
+          );
+          print('[FirebaseService] Restored user session for $savedEmail');
+        } else {
+          _mockUser = null;
+          print('[FirebaseService] No valid stored session found. Operating signed out.');
+        }
       }
     } catch (_) {}
   }

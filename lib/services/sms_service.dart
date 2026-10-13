@@ -11,7 +11,7 @@ class SmsService {
   final String _deviceName;
 
   SmsService()
-      : _apiKey = dotenv.env['MENSAHERO_API_KEY'] ?? 'PpPmPlrWbbBq3qdNK8UI',
+      : _apiKey = dotenv.env['MENSAHERO_API_KEY'] ?? '',
         _baseUrl = dotenv.env['MENSAHERO_BASE_URL'] ?? 'https://mensahero.onrender.com',
         _deviceName = dotenv.env['MENSAHERO_DEVICE_NAME'] ?? 'EasyLens';
 
@@ -73,6 +73,10 @@ class SmsService {
     }
 
     // 2. Fallback to online MensaHero gateway API
+    if (_apiKey.isEmpty) {
+      print('[SmsService] MensaHero API key not configured. Online SMS gateway disabled.');
+      return false;
+    }
     print('[SmsService] Attempting online MensaHero API sending to $formattedTo...');
     try {
       final response = await http.post(

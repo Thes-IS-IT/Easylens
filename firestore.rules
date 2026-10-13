@@ -1,0 +1,92 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // HELPER FUNCTIONS
+    // =========================================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.keys().hasAny(['admin']) && request.auth.token.admin == true) ||
+        request.auth.token.email == 'parejasarronkian@gmail.com'
+      );
+    }
+
+    // =========================================================================
+    // 1. USERS COLLECTION (/users/{userId})
+    // Protects user profile, visual condition preferences, and auth metadata
+    // =========================================================================
+    match /users/{userId} {
+      // Owner and platform admin can view their profile document
+      allow get: if isOwner(userId) || isAdmin();
+
+      // Forbid public listing / scraping of all registered users
+      allow list: if isAdmin();
+
+      // Users can only create or update their own profile document
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+
+      // -----------------------------------------------------------------------
+      // 1.1 EMERGENCY CONTACTS (/users/{userId}/contacts/{contactId})
+      // Highly sensitive caregiver and family phone numbers
+      // -----------------------------------------------------------------------
+      match /contacts/{contactId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) &&
+          request.resource.data.keys().hasAll(['name', 'phone']) &&
+          request.resource.data.name is string &&
+          request.resource.data.phone is string &&
+          request.resource.data.name.size() > 0 &&
+          request.resource.data.name.size() <= 100 &&
+          request.resource.data.phone.size() >= 7 &&
+          request.resource.data.phone.size() <= 20;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // -----------------------------------------------------------------------
+      // 1.2 RECENT NAVIGATION (/users/{userId}/recent_navigation/{docId})
+      // Sensitive GPS locations, visited addresses, and timestamped routes
+      // -----------------------------------------------------------------------
+      match /recent_navigation/{docId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) &&
+          request.resource.data.keys().hasAll(['name']) &&
+          request.resource.data.name is string &&
+          request.resource.data.name.size() <= 200;
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      // -----------------------------------------------------------------------
+      // 1.3 FEEDBACK & SURVEYS (/users/{userId}/feedbacks/{feedbackId})
+      // User survey feedback and accessibility ratings
+      // -----------------------------------------------------------------------
+      match /feedbacks/{feedbackId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) &&
+          request.resource.data.keys().hasAll(['rating', 'subject']) &&
+          request.resource.data.subject is string &&
+          request.resource.data.rating is number;
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // =========================================================================
+    // 2. DEFAULT DENY
+    // Explicitly reject all other read/write operations to prevent leakages
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
