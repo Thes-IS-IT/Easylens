@@ -240,7 +240,7 @@
         
         <div class="button-group">
             <!-- Android APK Download Button -->
-            <a href="/easylens-release.apk" download="easylens-release.apk" class="btn btn-android" id="btn-android" onclick="handleAndroidDownload(event)">
+            <a href="/easylens-release.apk" class="btn btn-android" id="btn-android">
                 <span class="btn-icon">🤖</span>
                 <div>
                     <div>Download Android APK</div>
@@ -259,7 +259,7 @@
         </div>
 
         <div class="sublinks">
-            <a href="/easylens-debug.apk" download="easylens-debug.apk">Download Debug APK (583 MB)</a> • 
+            <a href="/easylens-debug.apk">Download Debug APK (583 MB)</a> • 
             <a href="https://github.com/Thes-IS-IT/Easylens/releases" target="_blank">GitHub Releases</a>
         </div>
 
@@ -302,18 +302,6 @@
             if (e.target.id === 'iosModal') {
                 closeIosModal();
             }
-        }
-        function handleAndroidDownload(e) {
-            fetch('/easylens-release.apk', { method: 'HEAD' })
-                .then(function(res) {
-                    if (!res.ok) {
-                        e.preventDefault();
-                        window.open('https://github.com/Thes-IS-IT/Easylens/releases', '_blank');
-                    }
-                })
-                .catch(function() {
-                    // let default browser download proceed
-                });
         }
     </script>
 </body>
