@@ -6,8 +6,10 @@ FROM nginx:1.25-alpine AS production-stage
 # Copy custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy application portal HTML
+# Copy application portal HTML and branding assets
 COPY download_landing.html /usr/share/nginx/html/index.html
+COPY assets/mascots/app_logo.png /usr/share/nginx/html/app_logo.png
+COPY assets/mascots/app_mascot.png /usr/share/nginx/html/app_mascot.png
 
 EXPOSE 80
 
