@@ -231,19 +231,22 @@ Para sa live demo sa prof o panel kung saan kailangan ipakita ang fresh/clean in
 
 ##### Option 2: Using Docker CLI Directly
 
-```bash
-# 1. Build the Docker image
-docker build -t easylens:latest .
+1. **Build and start the container:**
+   ```bash
+   docker build -t easylens:latest .
+   docker run -d --name easylens_app -p 8080:80 easylens:latest
+   ```
 
-# 2. Run the container
-docker run -d --name easylens_app -p 8080:80 --restart always easylens:latest
+2. **Verify status & access:**
+   ```bash
+   curl -I http://localhost:8080/
+   ```
+   Open `http://localhost:8080` in your web browser.
 
-# 3. Test healthcheck
-curl -I http://localhost:8080/
-
-# 4. Stop and remove container
-docker stop easylens_app && docker rm easylens_app
-```
+3. **Stop & clean up (when finished):**
+   ```bash
+   docker stop easylens_app && docker rm easylens_app
+   ```
 
 ---
 
