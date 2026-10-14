@@ -194,6 +194,8 @@ Flash the `hardware/esp32_cam_wifi_ap/esp32_cam_wifi_ap.ino` sketch to your ESP3
 
 EasyLens includes a production containerized NGINX web and application distribution portal. Anyone can install and test it locally using Docker without needing Flutter, Android SDK, or Java pre-installed.
 
+> 💻 **Cross-Platform Compatibility:** The containerized portal and CI/CD packages are built for multi-architecture support (`linux/amd64` and `linux/arm64`). Fully compatible across **Windows 10/11** (PowerShell / Command Prompt / WSL2), **macOS** (Apple Silicon M1/M2/M3/M4 & Intel), and **Linux** (Ubuntu / Debian / Arch / Fedora).
+>
 > For complete Docker architecture, CI/CD pipeline, and GHCR registry instructions, see [`DOCKER.md`](DOCKER.md).
 
 ##### Option 1: Clean Local Demo via Docker Compose (Recommended)

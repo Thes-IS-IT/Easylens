@@ -1,0 +1,26 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Force LF for shell scripts and Docker files (prevents Windows CRLF corruption)
+*.sh text eol=lf
+*.bash text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.conf text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.dart text eol=lf
+*.md text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.mp4 binary
+*.mp3 binary
+*.apk binary
+*.ipa binary
+*.tflite binary
+*.bin binary
