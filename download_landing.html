@@ -3,19 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buddy Mobile App Download</title>
+    <title>Buddy by EasyLens — Download for Android & iOS</title>
     <link rel="icon" type="image/png" href="/app_logo.png">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #071426; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-        .card { background: #0A2540; border: 1px solid rgba(255,255,255,0.15); border-radius: 24px; padding: 40px 32px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-        .logo-wrap { width: 96px; height: 96px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; overflow: hidden; background: #0f2744; border: 2px solid rgba(255,255,255,0.18); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-        .logo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; color: #fff; }
-        p { color: #94A3B8; font-size: 15px; line-height: 1.5; margin-bottom: 28px; }
-        .btn { display: inline-block; width: 100%; padding: 16px 24px; background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #fff; font-weight: 700; font-size: 16px; border-radius: 30px; text-decoration: none; box-shadow: 0 8px 20px rgba(37,99,235,0.4); transition: transform 0.2s, box-shadow 0.2s; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(37,99,235,0.5); }
-        .badge { display: inline-block; margin-top: 20px; padding: 6px 14px; background: rgba(255,255,255,0.08); border-radius: 20px; font-size: 12px; color: #60A5FA; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #071426;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px 16px;
+        }
+        .card {
+            background: #0A2540;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 28px;
+            padding: 40px 32px;
+            max-width: 460px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.55);
+            position: relative;
+        }
+        .logo-wrap {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            background: #0f2744;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+        }
+        .logo-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+        p.subtitle {
+            color: #94A3B8;
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 28px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px 22px;
+            font-weight: 700;
+            font-size: 15px;
+            border-radius: 30px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            outline: none;
+        }
+        .btn-android {
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+        }
+        .btn-android:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 26px rgba(37,99,235,0.55);
+        }
+        .btn-ios {
+            background: #111827;
+            color: #F9FAFB;
+            border: 1px solid rgba(255,255,255,0.22);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .btn-ios:hover {
+            transform: translateY(-2px);
+            background: #1F2937;
+            border-color: rgba(255,255,255,0.35);
+        }
+        .btn-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+        .btn-info {
+            font-size: 11px;
+            font-weight: 400;
+            opacity: 0.8;
+            display: block;
+            margin-top: 2px;
+        }
+        .sublinks {
+            margin-top: 14px;
+            font-size: 12px;
+            color: #64748B;
+        }
+        .sublinks a {
+            color: #60A5FA;
+            text-decoration: none;
+        }
+        .sublinks a:hover {
+            text-decoration: underline;
+        }
+        .badge {
+            display: inline-block;
+            margin-top: 18px;
+            padding: 6px 14px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 20px;
+            font-size: 12px;
+            color: #60A5FA;
+            letter-spacing: 0.3px;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(3, 10, 20, 0.75);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #0B223D;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 32px 28px;
+            max-width: 440px;
+            width: 100%;
+            text-align: left;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            position: relative;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .option-box {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .option-box h4 {
+            font-size: 15px;
+            margin-bottom: 6px;
+            color: #93C5FD;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .option-box p {
+            font-size: 13px;
+            color: #CBD5E1;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        .option-link {
+            display: inline-block;
+            background: #1D4ED8;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 16px;
+            text-decoration: none;
+        }
+        .option-link:hover {
+            background: #2563EB;
+        }
     </style>
 </head>
 <body>
@@ -24,9 +236,85 @@
             <img src="/app_logo.png" alt="Buddy App Logo" onerror="this.onerror=null; this.src='/app_mascot.png';">
         </div>
         <h1>Buddy</h1>
-        <p>AI-Powered Vision Assistant & Accessible Companion App for Android.</p>
-        <a href="/easylens-release.apk" class="btn">📲 Download Buddy APK</a>
-        <div class="badge">Version 1.0.0 • Mobile Release</div>
+        <p class="subtitle">AI-Powered Accessibility Assistant & Companion App for Visually Impaired Users.</p>
+        
+        <div class="button-group">
+            <!-- Android APK Download Button -->
+            <a href="/easylens-release.apk" download="easylens-release.apk" class="btn btn-android" id="btn-android" onclick="handleAndroidDownload(event)">
+                <span class="btn-icon">🤖</span>
+                <div>
+                    <div>Download Android APK</div>
+                    <span class="btn-info">Direct Release • 482 MB • Android 7.0+</span>
+                </div>
+            </a>
+
+            <!-- iOS Download / TestFlight Button -->
+            <button class="btn btn-ios" onclick="openIosModal()">
+                <span class="btn-icon">🍏</span>
+                <div>
+                    <div>Download for iOS</div>
+                    <span class="btn-info">Apple TestFlight / IPA Sideload</span>
+                </div>
+            </button>
+        </div>
+
+        <div class="sublinks">
+            <a href="/easylens-debug.apk" download="easylens-debug.apk">Download Debug APK (583 MB)</a> • 
+            <a href="https://github.com/Thes-IS-IT/Easylens/releases" target="_blank">GitHub Releases</a>
+        </div>
+
+        <div class="badge">Version 1.0.27 • Production Release</div>
     </div>
+
+    <!-- iOS Modal -->
+    <div class="modal-overlay" id="iosModal" onclick="closeIosModalOnOverlay(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🍏 iOS Installation Guide</h3>
+                <button class="modal-close" onclick="closeIosModal()">&times;</button>
+            </div>
+            <p style="font-size: 13px; color: #94A3B8; margin-bottom: 16px;">
+                Apple iOS requires apps to be installed through TestFlight or sideloaded using an IPA package:
+            </p>
+
+            <div class="option-box">
+                <h4>🚀 Method 1: Apple TestFlight (Beta)</h4>
+                <p>Install the TestFlight app from the App Store and join the official EasyLens closed beta program.</p>
+                <a href="https://testflight.apple.com" target="_blank" class="option-link">Open Apple TestFlight</a>
+            </div>
+
+            <div class="option-box">
+                <h4>📦 Method 2: Sideload IPA Package</h4>
+                <p>Download the <code>easylens.ipa</code> binary and sideload to your iPhone using AltStore, Sideloadly, or Xcode.</p>
+                <a href="https://github.com/Thes-IS-IT/Easylens/releases" target="_blank" class="option-link">Download iOS IPA from GitHub</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openIosModal() {
+            document.getElementById('iosModal').classList.add('active');
+        }
+        function closeIosModal() {
+            document.getElementById('iosModal').classList.remove('active');
+        }
+        function closeIosModalOnOverlay(e) {
+            if (e.target.id === 'iosModal') {
+                closeIosModal();
+            }
+        }
+        function handleAndroidDownload(e) {
+            fetch('/easylens-release.apk', { method: 'HEAD' })
+                .then(function(res) {
+                    if (!res.ok) {
+                        e.preventDefault();
+                        window.open('https://github.com/Thes-IS-IT/Easylens/releases', '_blank');
+                    }
+                })
+                .catch(function() {
+                    // let default browser download proceed
+                });
+        }
+    </script>
 </body>
 </html>
