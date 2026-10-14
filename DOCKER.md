@@ -50,9 +50,9 @@ docker compose down
 
 ---
 
-### 02.1 — CLEAN LOCAL DEMO PROTOCOL ("BAWAL NAKAINSTALL NA")
+### 02.1 — FRESH INSTALLATION & VERIFICATION PROTOCOL
 
-If demonstrating to a professor, panelist, or peer who requires showing a fresh, clean installation from scratch (no pre-existing running state):
+To verify a clean deployment from an uninitialized environment without pre-existing container state:
 
 1. **Step 1: Verify Clean Environment (Nothing Running)**
    Ensure no previous instance or port conflict exists:

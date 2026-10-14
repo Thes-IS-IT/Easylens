@@ -190,62 +190,96 @@ To stream live video into the object detection pipeline, you must connect your m
 
 Flash the `hardware/esp32_cam_wifi_ap/esp32_cam_wifi_ap.ino` sketch to your ESP32-CAM module to initiate the MJPEG stream.
 
-#### 🐳 Docker Container & Web Portal (Local Demo)
+#### 🐳 Docker Container & Web Portal Deployment
 
-EasyLens includes a production containerized NGINX web and application distribution portal. Anyone can install and test it locally using Docker without needing Flutter, Android SDK, or Java pre-installed.
+EasyLens includes a production containerized NGINX web and application distribution portal. Anyone can deploy and run it locally or in cloud environments using Docker without needing Flutter, Android SDK, or Java pre-installed.
 
 > 💻 **Cross-Platform Compatibility:** The containerized portal and CI/CD packages are built for multi-architecture support (`linux/amd64` and `linux/arm64`). Fully compatible across **Windows 10/11** (PowerShell / Command Prompt / WSL2), **macOS** (Apple Silicon M1/M2/M3/M4 & Intel), and **Linux** (Ubuntu / Debian / Arch / Fedora).
 >
-> For complete Docker architecture, CI/CD pipeline, and GHCR registry instructions, see [`DOCKER.md`](DOCKER.md).
+> For full architecture, Dockerfile breakdown, and CI/CD pipeline specifications, see [`DOCKER.md`](DOCKER.md).
 
-##### Option 1: Clean Local Demo via Docker Compose (Recommended)
+##### Deployment Options Overview
 
-Para sa live demo sa prof o panel kung saan kailangan ipakita ang fresh/clean installation from scratch (*"bawal nakainstall na"*):
+| Deployment Method | Mechanism | Ideal Use Case |
+|---|---|---|
+| **Local Build (Docker Compose)** | Clones source repository and builds container image locally via Compose. | Local development, code modification, testing, and full local orchestration. |
+| **Standalone Docker CLI** | Builds and executes the container directly using native Docker CLI commands. | Lightweight testing, custom container arguments, or environments without Compose. |
+| **Pre-built Package (GHCR)** | Pulls pre-compiled multi-arch image (`linux/amd64`, `linux/arm64`) from GitHub Packages. | Production cloud hosting (AWS, GCP, DigitalOcean), CI/CD, or running without cloning source files. |
 
-1. **Clean Any Existing Containers (Fresh Start):**
+---
+
+##### Option 1: Local Build via Docker Compose (Recommended)
+
+1. **Clone the repository:**
    ```bash
-   docker compose down
+   git clone https://github.com/Thes-IS-IT/Easylens.git
+   cd Easylens
    ```
 
-2. **Build and Run the Container:**
+2. **Build and launch the container:**
    ```bash
    docker compose up --build -d
    ```
 
-3. **Verify Container Status and Health:**
+3. **Verify container status and health:**
    ```bash
    docker compose ps
    curl -I http://localhost:8080/
    ```
 
-4. **Access the Web Portal:**
-   Open your browser and navigate to:
-   ```text
-   http://localhost:8080
-   ```
+4. **Access the web portal:**
+   Open `http://localhost:8080` in your web browser.
 
-5. **Stop / Clean Up After Demo:**
+5. **Stop the container:**
    ```bash
    docker compose down
    ```
 
-##### Option 2: Using Docker CLI Directly
+---
 
-1. **Build and start the container:**
+##### Option 2: Standalone Docker CLI (Local Build)
+
+1. **Build the Docker image:**
    ```bash
    docker build -t easylens:latest .
-   docker run -d --name easylens_app -p 8080:80 easylens:latest
    ```
 
-2. **Verify status & access:**
+2. **Run the container:**
+   ```bash
+   docker run -d --name easylens_app -p 8080:80 --restart always easylens:latest
+   ```
+
+3. **Verify health check and access:**
    ```bash
    curl -I http://localhost:8080/
    ```
    Open `http://localhost:8080` in your web browser.
 
-3. **Stop & clean up (when finished):**
+4. **Stop and remove container:**
    ```bash
    docker stop easylens_app && docker rm easylens_app
+   ```
+
+---
+
+##### Option 3: Pre-Built Multi-Architecture Package (GitHub Container Registry)
+
+Run the pre-compiled container directly without cloning the repository or compiling locally:
+
+1. **Pull and run the pre-built image:**
+   ```bash
+   docker run -d --name easylens_live -p 8080:80 --restart always ghcr.io/thes-is-it/easylens:latest
+   ```
+
+2. **Verify health check and access:**
+   ```bash
+   curl -I http://localhost:8080/
+   ```
+   Open `http://localhost:8080` in your web browser.
+
+3. **Stop and remove container:**
+   ```bash
+   docker stop easylens_live && docker rm easylens_live
    ```
 
 ---
