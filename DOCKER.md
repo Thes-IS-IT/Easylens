@@ -33,10 +33,11 @@ graph TD
 
 #### Using Docker Compose (Recommended)
 
-To build and launch the containerized application locally:
+##### Standard Local Launch
+To build and launch the containerized application in detached mode:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
 Once started, navigate to:
@@ -46,6 +47,46 @@ To stop the container:
 ```bash
 docker compose down
 ```
+
+---
+
+### 02.1 — CLEAN LOCAL DEMO PROTOCOL ("BAWAL NAKAINSTALL NA")
+
+If demonstrating to a professor, panelist, or peer who requires showing a fresh, clean installation from scratch (no pre-existing running state):
+
+1. **Step 1: Verify Clean Environment (Nothing Running)**
+   Ensure no previous instance or port conflict exists:
+   ```bash
+   docker compose down
+   docker ps | grep easylens
+   ```
+   *(Expected output: No EasyLens container running)*
+
+2. **Step 2: Build & Start Container from Scratch**
+   ```bash
+   docker compose up --build -d
+   ```
+   *(This builds the NGINX image and launches `easylens_mobile_server` on port 8080)*
+
+3. **Step 3: Verify Status & Health Check**
+   ```bash
+   docker compose ps
+   curl -I http://localhost:8080/
+   ```
+   *(Expected output: Status `Up (healthy)`, HTTP `200 OK`)*
+
+4. **Step 4: Demo the Web Portal**
+   Open your browser to:
+   **`http://localhost:8080`**
+   Showcase the live EasyLens Web Portal, APK download link, responsive layout, and headers.
+
+5. **Step 5: Clean Teardown**
+   When the demo is concluded, cleanly stop and remove the container:
+   ```bash
+   docker compose down
+   ```
+
+---
 
 #### Using Docker CLI Manually
 

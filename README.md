@@ -56,6 +56,10 @@ EasyLens is an accessibility assistant mobile application designed for visually 
 - `http: ^1.2.1` — REST calls (Google Maps routing, Ollama, Geocoding, ESP32)
 - `flutter_dotenv: ^5.2.1` — `.env` secrets management
 
+#### Containerization & DevOps
+- Docker & Docker Compose — Containerized web application portal & NGINX distribution
+- GitHub Actions & GHCR — Automated CI/CD test, build, and container publishing
+
 ---
 
 ### 03 — ARCHITECTURE
@@ -104,6 +108,7 @@ graph TD
 | **Setup & Cloud Config** | [`security_configuration.md`](docs/setup/security_configuration.md) | Security key management, `.env` file templates, and credential isolation. |
 | | [`cloudflare_r2_setup.md`](docs/setup/cloudflare_r2_setup.md) | Cloudflare R2 bucket setup, CORS policy, and AWS SigV4 signing configuration. |
 | | [`cicd_pipeline.md`](docs/setup/cicd_pipeline.md) | Continuous Integration and release build pipeline specifications. |
+| | [`DOCKER.md`](DOCKER.md) | Docker containerization guide, Compose orchestration, and local demo steps. |
 | **Releases & Navigation** | [`releases.md`](docs/releases.md) | Official release notes and version changelog history (v1.0 - v20.0). |
 | | [`readme.md`](docs/readme.md) | Documentation index map and topic directory guide. |
 | **Canonical Reference** | [`readme.md`](docs/source-of-truth/readme.md) | Canonical source-of-truth technical specifications (Chapters 01 - 10). |
@@ -184,6 +189,59 @@ To stream live video into the object detection pipeline, you must connect your m
 > **Password:** *(None / Open Network)*  
 
 Flash the `hardware/esp32_cam_wifi_ap/esp32_cam_wifi_ap.ino` sketch to your ESP32-CAM module to initiate the MJPEG stream.
+
+#### 🐳 Docker Container & Web Portal (Local Demo)
+
+EasyLens includes a production containerized NGINX web and application distribution portal. Anyone can install and test it locally using Docker without needing Flutter, Android SDK, or Java pre-installed.
+
+> For complete Docker architecture, CI/CD pipeline, and GHCR registry instructions, see [`DOCKER.md`](DOCKER.md).
+
+##### Option 1: Clean Local Demo via Docker Compose (Recommended)
+
+Para sa live demo sa prof o panel kung saan kailangan ipakita ang fresh/clean installation from scratch (*"bawal nakainstall na"*):
+
+1. **Clean Any Existing Containers (Fresh Start):**
+   ```bash
+   docker compose down
+   ```
+
+2. **Build and Run the Container:**
+   ```bash
+   docker compose up --build -d
+   ```
+
+3. **Verify Container Status and Health:**
+   ```bash
+   docker compose ps
+   curl -I http://localhost:8080/
+   ```
+
+4. **Access the Web Portal:**
+   Open your browser and navigate to:
+   ```text
+   http://localhost:8080
+   ```
+
+5. **Stop / Clean Up After Demo:**
+   ```bash
+   docker compose down
+   ```
+
+##### Option 2: Using Docker CLI Directly
+
+```bash
+# 1. Build the Docker image
+docker build -t easylens:latest .
+
+# 2. Run the container
+docker run -d --name easylens_app -p 8080:80 --restart always easylens:latest
+
+# 3. Test healthcheck
+curl -I http://localhost:8080/
+
+# 4. Stop and remove container
+docker stop easylens_app && docker rm easylens_app
+```
 
 ---
 
