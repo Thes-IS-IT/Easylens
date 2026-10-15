@@ -18,9 +18,10 @@ graph TD
 
 #### Key Components
 
-- `Dockerfile`: NGINX container serving the application portal (`nginx:1.25-alpine`).
-- `nginx.conf`: NGINX server configuration with Gzip compression and asset caching headers.
-- `docker-compose.yml`: Local container orchestration.
+- `Dockerfile`: Multi-stage build (`asset-stage` on Alpine Linux + hardened `production-stage` on `nginx:1.25-alpine`) with asset verification, non-root least-privilege permissions, and dual-stack healthcheck.
+- `nginx.conf`: NGINX dual-stack (`0.0.0.0:80` and `[::]:80`) server configuration with Gzip compression and security headers (`DENY`, `nosniff`, `XSS-Protection`).
+- `docker-compose.yml`: Local container orchestration with automated healthcheck probe.
+- `scripts/test_docker.sh`: Automated test suite verifying all 3 Docker deployment modes.
 - `.dockerignore`: Excludes build caches, native OS folders, and large binary models (`model.bin`).
 
 ---
@@ -85,6 +86,23 @@ To verify a clean deployment from an uninitialized environment without pre-exist
    ```bash
    docker compose down
    ```
+
+---
+
+### 02.2 — AUTOMATED VERIFICATION SUITE (`scripts/test_docker.sh`)
+
+To execute an automated test across all Docker deployment options (Docker Compose, standalone CLI, and GHCR package):
+
+```bash
+chmod +x scripts/test_docker.sh
+./scripts/test_docker.sh
+```
+
+This script:
+1. Validates Docker daemon responsiveness.
+2. Builds and starts `docker-compose.yml`, waits for the container healthcheck to transition to `healthy`, tests `http://localhost:8080/`, and verifies clean teardown.
+3. Compiles `easylens:latest` using the multi-stage `Dockerfile`, executes `easylens_app`, verifies HTTP 200, and cleans up.
+4. Pulls the GHCR pre-built image, launches `easylens_live`, verifies HTTP 200, and cleanly tears down.
 
 ---
 
