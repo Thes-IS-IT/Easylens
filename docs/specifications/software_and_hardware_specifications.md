@@ -16,7 +16,7 @@ The system combines physical wearable optics (ESP32-CAM-MB Development Board wit
 
 | Component | Technical Parameter | Detailed Specification |
 | :--- | :--- | :--- |
-| **Development Board & Interface** | **ESP32-CAM-MB Board (CH340G)** | NodeMCU baseboard featuring integrated **CH340G Micro-USB to Serial Port** converter for direct USB flashing and debugging |
+| **Development Board & Interface** | **ESP32-CAM-MB Board (CH340G)** | NodeMCU baseboard featuring integrated **CH340G Micro-USB to Serial Port** converter for direct USB flashing, debugging, and 5V powerbank input (see [`hardware/SCHEMATIC.md`](../../hardware/SCHEMATIC.md)) |
 | **System on Chip (SoC)** | Espressif ESP32-DWD0WDQ6 | Dual-core 32-bit Xtensa LX6 microprocessor @ 240 MHz |
 | **Camera Module** | **OV2640 70° Light Wide Angle** | 2 Megapixel ($1600 \times 1200$) CMOS sensor with 70° light wide angle lens for spatial scene awareness |
 | **Thermal Dissipation** | **Heatsink Pad** | High-conductivity aluminum **heatsink pad** attached directly to ESP32 SoC and PSRAM to eliminate thermal throttling |

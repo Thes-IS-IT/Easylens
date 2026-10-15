@@ -16,7 +16,7 @@ EasyLens is an accessibility assistant mobile application designed for visually 
 | **Voice Personas** | 6 personas (including Maya for native Tagalog) with distinct pitch/rate. Applied universally across all TTS output. |
 | **Filipino Language** | Full app localization — UI strings, greetings, Buddy, Navigation, Settings — switch live. |
 | **Dynamic Theming** | Default (light) and Black (AMOLED) themes with 8 accent color choices applied globally in real time. |
-| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over Wi-Fi directly into the object detection pipeline. |
+| **ESP32 Smart Glass** | Streams MJPEG video from a custom ESP32-CAM head-mounted device over Wi-Fi directly into the object detection pipeline. See [`SCHEMATIC.md`](hardware/SCHEMATIC.md) for full wiring and dev board schematic. |
 | **Shake to Undo** | Accelerometer gesture (>2.5g) triggers undo action and TTS confirmation. |
 | **Bark Sound Cue** | `bark_dashboard.mp3` plays once on welcome/startup and tab interactions. |
 
@@ -360,6 +360,9 @@ easylens/
 │   │   ├── signup/       # 8-step onboarding wizard
 │   │   └── object_detection/ # TFLite bounding box screen
 │   └── utils/            # AppRoute (declarative navigation)
+├── hardware/
+│   ├── esp32_cam_wifi_ap/ # ESP32-CAM MJPEG streamer firmware (.ino)
+│   └── SCHEMATIC.md      # Pinout, dev board integration & wiring schematic
 ├── assets/
 │   ├── mascots/          # Buddy mascot images (idle, thinking, listening…)
 │   ├── models/           # TFLite model files
