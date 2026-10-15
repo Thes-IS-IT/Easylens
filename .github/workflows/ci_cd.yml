@@ -75,6 +75,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request' && env.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || 'darknecrocities' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build Docker Image Locally for Health Check
         uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
         with:
@@ -97,8 +106,10 @@ jobs:
         run: |
           echo "REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: Build & Push Docker Package Image to GHCR
+      - name: Build & Push Docker Package Image to GHCR & Docker Hub
         if: github.event_name != 'pull_request'
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
         with:
           context: .
@@ -109,3 +120,5 @@ jobs:
           tags: |
             ghcr.io/${{ env.REPO_LOWER }}:latest
             ghcr.io/${{ env.REPO_LOWER }}:${{ github.sha }}
+            ${{ env.DOCKERHUB_TOKEN != '' && 'darknecrocities/easylens:latest' || '' }}
+            ${{ env.DOCKERHUB_TOKEN != '' && format('darknecrocities/easylens:{0}', github.sha) || '' }}

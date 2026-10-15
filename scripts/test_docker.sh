@@ -31,6 +31,7 @@ cleanup() {
     docker compose down --remove-orphans >/dev/null 2>&1 || true
     docker rm -f easylens_app >/dev/null 2>&1 || true
     docker rm -f easylens_live >/dev/null 2>&1 || true
+    docker rm -f easylens_dockerhub >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT
@@ -118,7 +119,27 @@ fi
 log_info "Stopping and removing easylens_live..."
 docker stop easylens_live >/dev/null
 docker rm easylens_live >/dev/null
-log_pass "Option 3 passed and cleaned up."
+log_pass "Option 3 (GHCR) passed and cleaned up."
+
+# ------------------------------------------------------------------------------
+# Test 4: Option 3 - Docker Hub Pre-Built Package
+# ------------------------------------------------------------------------------
+log_info "Starting Test 4: Option 3 (Docker Hub Image: darknecrocities/easylens)..."
+docker run -d --name easylens_dockerhub -p "${PORT}:80" --restart always darknecrocities/easylens:latest
+
+sleep 3
+log_info "Probing ${BASE_URL} via curl..."
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}/")
+if [ "$HTTP_STATUS" -eq 200 ]; then
+    log_pass "Option 3 (Docker Hub Image) returned HTTP ${HTTP_STATUS} OK."
+else
+    log_fail "Option 3 expected HTTP 200 but received ${HTTP_STATUS}."
+fi
+
+log_info "Stopping and removing easylens_dockerhub..."
+docker stop easylens_dockerhub >/dev/null
+docker rm easylens_dockerhub >/dev/null
+log_pass "Option 3 (Docker Hub) passed and cleaned up."
 
 echo ""
 echo "=============================================================================="

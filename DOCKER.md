@@ -129,12 +129,33 @@ curl -f http://localhost:8080/
 
 ---
 
-### 03 — PULLING PRE-BUILT PACKAGE IMAGE FROM GITHUB PACKAGES (GHCR)
+### 03 — PRE-BUILT CONTAINER PACKAGES (DOCKER HUB & GHCR)
 
-On every push to the `main` branch, GitHub Actions compiles and publishes the official Docker package image directly to GitHub Container Registry (GHCR). You can pull and run the package without building locally:
+You can pull and run the pre-compiled container image directly without cloning the repository or building locally.
+
+#### Method A: Docker Hub (Recommended for Instant Deployments)
+Directly pull and run from Docker Hub repository [`darknecrocities/easylens`](https://hub.docker.com/r/darknecrocities/easylens):
 
 ```bash
-# Pull the latest Docker package
+# Pull the latest Docker Hub image
+docker pull darknecrocities/easylens:latest
+
+# Run the containerized portal
+docker run -d \
+  --name easylens \
+  -p 8080:80 \
+  --restart always \
+  darknecrocities/easylens:latest
+
+# Test container health
+curl -f http://localhost:8080/
+```
+
+#### Method B: GitHub Container Registry (GHCR)
+Pull and run from GitHub Packages:
+
+```bash
+# Pull the latest GHCR package
 docker pull ghcr.io/thes-is-it/easylens:latest
 
 # Run the containerized app
@@ -143,6 +164,9 @@ docker run -d \
   -p 8080:80 \
   --restart always \
   ghcr.io/thes-is-it/easylens:latest
+
+# Test container health
+curl -f http://localhost:8080/
 ```
 
 ---

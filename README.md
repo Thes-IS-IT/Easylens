@@ -262,10 +262,28 @@ EasyLens includes a production containerized NGINX web and application distribut
 
 ---
 
-##### Option 3: Pre-Built Multi-Architecture Package (GitHub Container Registry)
+##### Option 3: Pre-Built Multi-Architecture Package (Docker Hub & GHCR)
 
 Run the pre-compiled container directly without cloning the repository or compiling locally:
 
+###### From Docker Hub (Fastest)
+1. **Pull and run the pre-built image:**
+   ```bash
+   docker run -d --name easylens -p 8080:80 --restart always darknecrocities/easylens:latest
+   ```
+
+2. **Verify health check and access:**
+   ```bash
+   curl -I http://localhost:8080/
+   ```
+   Open `http://localhost:8080` in your web browser.
+
+3. **Stop and remove container:**
+   ```bash
+   docker stop easylens && docker rm easylens
+   ```
+
+###### From GitHub Container Registry (GHCR)
 1. **Pull and run the pre-built image:**
    ```bash
    docker run -d --name easylens_live -p 8080:80 --restart always ghcr.io/thes-is-it/easylens:latest
@@ -275,7 +293,6 @@ Run the pre-compiled container directly without cloning the repository or compil
    ```bash
    curl -I http://localhost:8080/
    ```
-   Open `http://localhost:8080` in your web browser.
 
 3. **Stop and remove container:**
    ```bash
