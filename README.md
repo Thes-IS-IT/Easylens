@@ -284,6 +284,17 @@ Run the pre-compiled container directly without cloning the repository or compil
 
 ---
 
+##### Automated Docker Test Suite
+
+Run the automated test suite to verify all three Docker deployment modes, container healthchecks, and HTTP responses end-to-end:
+
+```bash
+chmod +x scripts/test_docker.sh
+./scripts/test_docker.sh
+```
+
+---
+
 ### 05 — LANGUAGE SUPPORT
 
 | Language | Code | UI | Buddy | TTS Voice |
