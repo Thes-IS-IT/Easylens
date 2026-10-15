@@ -147,18 +147,58 @@ docker run -d \
 
 ---
 
-### 04 — AUTOMATED CI/CD WORKFLOW (`.github/workflows/ci_cd.yml`)
+### 04 — ARCHITECTURAL COMPONENT BREAKDOWN & ROLES
+
+The following table distinguishes each component across the source code, packaging, and runtime layers:
+
+| Component Label | Type | Purpose | Primary Command |
+|---|---|---|---|
+| **Git Repository** | Source Control | Stores raw, editable code files (`.dart`, `.html`, `.conf`), version history, and configurations. | `git clone https://github.com/Thes-IS-IT/Easylens.git` |
+| **Container Image** | Packaged Appliance | An immutable, multi-architecture Linux snapshot bundling NGINX, web assets, and health checks. | `docker pull ghcr.io/thes-is-it/easylens:latest` |
+| **Container Instance** | Runtime Process | Active execution instance of the Docker image running on host port `8080`. | `docker run -d -p 8080:80 ghcr.io/thes-is-it/easylens:latest` |
+| **Web Portal Gateway** | Distribution UI | Interactive landing interface serving Buddy assets, APK downloads, and iOS installation guides. | Access at `http://localhost:8080` |
+| **Asset Extraction** | Container Utility | Copies assets or build outputs directly from inside a container to the host machine without Git. | `docker cp <container_name>:<path_inside> <host_path>` |
+
+#### Conceptual Difference: `git clone` vs `docker pull`
+
+- **`git clone` (Source Code Repository):**  
+  Downloads individual source files, documentation, and Git branches to your local machine for editing, code development, and manual compilation.
+- **`docker pull` (Pre-Packaged Appliance):**  
+  Downloads a self-contained, pre-compiled application appliance from GitHub Container Registry (GHCR). It does not download individual repository files to your folder; rather, the web portal and its dependencies run inside Docker's isolated runtime engine.
+
+---
+
+### 05 — EXTRACTING FILES FROM CONTAINER (`docker cp`)
+
+If you need to retrieve files or assets directly from a container to your host machine without cloning the Git repository:
+
+```bash
+# 1. Start the container
+docker run -d --name easylens_extract -p 8080:80 ghcr.io/thes-is-it/easylens:latest
+
+# 2. Copy the index.html or assets to your local directory
+docker cp easylens_extract:/usr/share/nginx/html/index.html ./index.html
+docker cp easylens_extract:/usr/share/nginx/html/app_logo.png ./app_logo.png
+
+# 3. Clean up the container
+docker stop easylens_extract && docker rm easylens_extract
+```
+
+---
+
+### 06 — AUTOMATED CI/CD WORKFLOW (`.github/workflows/ci_cd.yml`)
 
 1. **`analyze_and_test`**:
    - Runs static code analysis (`flutter analyze --no-fatal-warnings --no-fatal-infos`).
    - Executes all unit tests (`flutter test`).
 2. **`docker_build_and_publish`**:
-   - Builds Docker image and verifies container health (`curl http://localhost:8080/`).
+   - Builds multi-architecture Docker images (`linux/amd64`, `linux/arm64`) using QEMU and Buildx.
+   - Verifies container health (`curl http://localhost:8080/`).
    - Publishes Docker package to GitHub Packages (`ghcr.io/thes-is-it/easylens:latest`).
 
 ---
 
-### 05 — LICENSE & MAINTAINERS
+### 07 — LICENSE & MAINTAINERS
 
 Maintained by the Thes-IS-IT Research Team (Holy Angel University):
 - **Graciella Mhervie D. Jimenez**
