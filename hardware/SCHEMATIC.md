@@ -50,7 +50,28 @@ flowchart LR
 
 ---
 
-## 2. Component Interconnect & Power Delivery Network (PDN)
+## 2. Visual Connection Blueprint
+
+![ESP32 + ESP32-CAM + Power Bank Simple Connection Blueprint](assets/esp32_cam_devboard_blueprint.jpg)
+
+### Wire Color Legend & Pin Interconnections
+
+| Wire Color | Signal / Rail | ESP32 Development Board | ESP32-CAM Pin | Functional Description |
+| :---: | :--- | :--- | :--- | :--- |
+| 🔴 **Red** | **5V (Power)** | `5V` (from Power Bank VBUS) | `5V` Pin | Primary 5.0V DC regulated supply rail |
+| ⚫ **Black** | **GND (Ground)**| `GND` (from Power Bank) | `GND` Pin | Common system ground reference |
+| 🟡 **Yellow** | **UART RX** | `GPIO 3` (RX0) | `U0R` (IO3) | Serial receive data communication line |
+| 🔵 **Blue** | **UART TX** | `GPIO 1` (TX0) | `U0T` (IO1) | Serial transmit data communication line |
+| 🟢 **Green** | **GPIO** | `GPIO 12` | `IO12` | Digital control line / strapping pin |
+
+> 📌 **Engineering Notes**:
+> - **Power Supply**: Always use a regulated 5.0V power bank with a Micro-USB cable connected directly into the development board.
+> - **Common Ground (GND)**: Ground must be shared between the ESP32 development board and the ESP32-CAM to prevent floating voltage references and sensor brownout.
+> - **Modular Socket Mating**: When using the dedicated **ESP32-CAM-MB** shield, the ESP32-CAM plugs directly into female sockets, routing these exact 5V, GND, TX, RX, and GPIO pins without external jumper cables.
+
+---
+
+## 3. Component Interconnect & Power Delivery Network (PDN)
 
 ```mermaid
 flowchart TD
@@ -118,11 +139,11 @@ flowchart TD
 
 ---
 
-## 3. Detailed Pin-to-Pin Interface Mapping
+## 4. Detailed Pin-to-Pin Interface Mapping
 
 The **ESP32-CAM-MB** baseboard mates with the **ESP32-CAM** board via dual 8-pin inline headers (16 pins total).
 
-### 3.1 Left Header Interface (J1 / 8 Pins)
+### 4.1 Left Header Interface (J1 / 8 Pins)
 
 | Pin # | Header Label | Signal Type | Electrical Function | Connected Destination |
 | :---: | :--- | :--- | :--- | :--- |
@@ -135,7 +156,7 @@ The **ESP32-CAM-MB** baseboard mates with the **ESP32-CAM** board via dual 8-pin
 | **7** | **IO2** | Digital I/O | SD Data 0 / Onboard Status LED | Blue activity indicator LED |
 | **8** | **IO4** | Digital Out | High-brightness Flashlight LED driver | Controls N-MOSFET for front illumination |
 
-### 3.2 Right Header Interface (J2 / 8 Pins)
+### 4.2 Right Header Interface (J2 / 8 Pins)
 
 | Pin # | Header Label | Signal Type | Electrical Function | Connected Destination |
 | :---: | :--- | :--- | :--- | :--- |
@@ -150,7 +171,7 @@ The **ESP32-CAM-MB** baseboard mates with the **ESP32-CAM** board via dual 8-pin
 
 ---
 
-## 4. OV2640 Camera Sensor DVP Pinout (24-Pin FPC)
+## 5. OV2640 Camera Sensor DVP Pinout (24-Pin FPC)
 
 The **OV2640 70° Light Wide Angle** sensor communicates with the ESP32-D0WD processor over a dedicated 8-bit Digital Video Port (DVP) bus and SCCB (I2C-compatible) configuration bus:
 
@@ -175,9 +196,9 @@ The **OV2640 70° Light Wide Angle** sensor communicates with the ESP32-D0WD pro
 
 ---
 
-## 5. Power Bank & Wearable Power Distribution
+## 6. Power Bank & Wearable Power Distribution
 
-### 5.1 Power Chain
+### 6.1 Power Chain
 1. **Source**: 1,500 mAh (3.7V / 5.55 Wh) Lithium-Polymer wearable battery pack.
 2. **Regulation**: Internal boost converter delivers a stable **5.0V DC ($\pm 5\%$) @ up to 1.0A**.
 3. **Cable**: Short ($15\text{ cm}$) high-gauge shielded USB cable with a 90° right-angle Micro-USB connector to prevent snagging during pedestrian head rotation.
@@ -186,7 +207,7 @@ The **OV2640 70° Light Wide Angle** sensor communicates with the ESP32-D0WD pro
    - The MB baseboard converts 5.0V to 3.3V via the **AMS1117-3.3** regulator.
    - The ESP32-CAM module receives 5.0V directly on Pin 1 and steps it down via high-efficiency low-noise **ME6211** LDOs to 3.3V (digital logic), 2.8V (analog sensor), and 1.3V (sensor core logic).
 
-### 5.2 Electrical Power Budget
+### 6.2 Electrical Power Budget
 
 | Operational State | Current Draw @ 5.0V | Power Consumption | Expected Battery Life (1,500 mAh) |
 | :--- | :---: | :---: | :---: |
@@ -196,7 +217,7 @@ The **OV2640 70° Light Wide Angle** sensor communicates with the ESP32-D0WD pro
 
 ---
 
-## 6. Physical Assembly & 3D Enclosure Mounting
+## 7. Physical Assembly & 3D Enclosure Mounting
 
 ```text
        +-------------------------------------------------------------+
